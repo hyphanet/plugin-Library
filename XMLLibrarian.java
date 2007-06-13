@@ -1,4 +1,4 @@
-package plugins.Librarian;
+package plugins.XMLLibrarian;
 
 import java.io.File;
 import java.io.FileWriter;
