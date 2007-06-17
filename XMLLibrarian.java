@@ -2,7 +2,6 @@ package plugins.XMLLibrarian;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -20,6 +19,7 @@ import javax.xml.parsers.SAXParserFactory;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.Attributes;
 import org.xml.sax.Locator;
@@ -46,8 +46,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 //the default index site has to be set as the SSK key of the index site 
 //the Librarian would later be modified to take the site value from the interface
 //this Librarian assumes that the index to be used is present at DEFAULT_INDEX_SITE/index.xml
-
-	private  final String DEFAULT_INDEX_SITE="SSK@BdtiukemDVmUu-Ds8va48bnalaPv2Kc-FAXCgW2fULY,YOeF82YDzFhp2A5ChKeyd2AKHbs~mQTXHRdM3ur-Vuo,AQACAAE/testsite/";
+	//SSK@0yc3irwbhLYU1j3MdzGuwC6y1KboBHJ~1zIi8AN2XC0,5j9hrd2LLcew6ieoX1yC-hXRueSKziKYnRaD~aLnAYE,AQACAAE/testsite/
+	private  final String DEFAULT_INDEX_SITE="SSK@0yc3irwbhLYU1j3MdzGuwC6y1KboBHJ~1zIi8AN2XC0,5j9hrd2LLcew6ieoX1yC-hXRueSKziKYnRaD~aLnAYE,AQACAAE/testsite/";
+	//	"SSK@BdtiukemDVmUu-Ds8va48bnalaPv2Kc-FAXCgW2fULY,YOeF82YDzFhp2A5ChKeyd2AKHbs~mQTXHRdM3ur-Vuo,AQACAAE/testsite/";
 	private  final String DEFAULT_INDEX_URI = DEFAULT_INDEX_SITE+"index.xml";
 	private static final String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
@@ -260,7 +261,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				}
 				else{
 					try{
-					
+					FileWriter output3 = new FileWriter("logfile_geturi",true);
+					output3.write("inside keyuris elimination "+keyuris.size());
 					synchronized(hs){
 					if(keyuris.size() > 0){
 					
@@ -269,12 +271,17 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					{
 						URIWrapper uri = (URIWrapper) it.next();
 						//output.write("\nhs values "+uri.URI);
-						if(!((uri.URI).equals(((URIWrapper) (keyuris.elementAt(0))).URI))) it.remove();
+						if(!Contains(uri.URI,keyuris)) it.remove();
+//						if(!((uri.URI).equals(((URIWrapper) (keyuris.elementAt(0))).URI))) {
+//							//output.write("\ndoesn't match \n "+keyuris.elementAt())
+//							it.remove();
+//						}
 					}
 					
 					}
 					if(keyuris.size() == 0) hs.clear();}
-					//output.close();
+					
+					output3.close();
 					}
 					catch(Exception e){
 						e.getMessage();
@@ -328,6 +335,17 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			return e.toString();
 		}
 	}
+	private boolean Contains(String str, Vector keyuris){
+		if(keyuris.size() > 0){
+			//to search if the string is present in the vector
+			for(int i = 0; i<keyuris.size();i++){
+				if(str.equals((((URIWrapper) (keyuris.elementAt(i))).URI))) return true;
+				
+			}
+			return false;
+		}
+		else return false;
+	}
 	private Vector getIndex(String word) throws Exception{
 		fetch(DEFAULT_FILE);
 	
@@ -378,6 +396,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 		Document doc = docBuilder.parse("index_"+subIndex+".xml");
 		Element root = doc.getDocumentElement();
+		Element filesElement = (Element) root.getElementsByTagName("files").item(0);
 		NodeList wordList = root.getElementsByTagName("word");
 		for(int i = 0;i<wordList.getLength();i++)
 		{
@@ -398,10 +417,24 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					URIWrapper uri = new URIWrapper();
 					String id = file.getAttribute("id");
 					//reference this id from index.xml and get the file
-					uri.URI = getURI(id);
-				
+		//			uri.URI = getURI(id);
+					uri.URI = "not available";
+					NodeList files = filesElement.getElementsByTagName("file");
+					for(int k =0;k<files.getLength();k++){
+						Node fileElt =  files.item(k);
+						String fileid = ((Attr) fileElt.getAttributes().getNamedItem("id")).getValue();
+			
+						if(fileid.equals(id))
+							{
+							uri.URI = ((Attr) fileElt.getAttributes().getNamedItem("key")).getValue();
+							break;
+							}
+					}
+					FileWriter output3 = new FileWriter("logfile_geturi",true);
+					output3.write(uri.URI+"\n");
 					uri.descr = "not available";
 					fileuris.add(uri);
+					output3.close();
 				}
 				break;
 				}
