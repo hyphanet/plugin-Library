@@ -46,23 +46,26 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 //the default index site has to be set as the SSK key of the index site 
 //the Librarian would later be modified to take the site value from the interface
 //this Librarian assumes that the index to be used is present at DEFAULT_INDEX_SITE/index.xml
-	//SSK@0yc3irwbhLYU1j3MdzGuwC6y1KboBHJ~1zIi8AN2XC0,5j9hrd2LLcew6ieoX1yC-hXRueSKziKYnRaD~aLnAYE,AQACAAE/testsite/
-	private  final String DEFAULT_INDEX_SITE="SSK@0yc3irwbhLYU1j3MdzGuwC6y1KboBHJ~1zIi8AN2XC0,5j9hrd2LLcew6ieoX1yC-hXRueSKziKYnRaD~aLnAYE,AQACAAE/testsite/";
-	//	"SSK@BdtiukemDVmUu-Ds8va48bnalaPv2Kc-FAXCgW2fULY,YOeF82YDzFhp2A5ChKeyd2AKHbs~mQTXHRdM3ur-Vuo,AQACAAE/testsite/";
+	
+	private  String DEFAULT_INDEX_SITE="SSK@0yc3irwbhLYU1j3MdzGuwC6y1KboBHJ~1zIi8AN2XC0,5j9hrd2LLcew6ieoX1yC-hXRueSKziKYnRaD~aLnAYE,AQACAAE/testsite/";
+
 	private  final String DEFAULT_INDEX_URI = DEFAULT_INDEX_SITE+"index.xml";
-	private static final String DEFAULT_FILE = "index.xml";
+	private  String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
 	Random rnd = new Random();
 	PluginRespirator pr;
 	private static final String plugName = "Librarian";
 	private String word ;
 	private boolean processingWord ;
+	private boolean found_match ;
 	private URIWrapper uriw;
-	private Vector uris;
+	private HashMap uris;
 	private Vector keyuris;
 	private Vector fileuris;
 	private HashMap keywords;
 	private FileWriter output;
+	private String prefix_match;
+	private int prefix;
 	public void terminate() {
 		goon = false;
 	}
@@ -82,25 +85,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		return null;
 	}
 	
-	private HashMap getElements(String path) {
-		String[] getelements = getArrayElement(path.split("\\?"),1).split("\\&");
-		HashMap ret = new HashMap();
-		for (int i = 0; i < getelements.length ; i++) {
-			int eqpos = getelements[i].indexOf("="); 
-			if (eqpos < 1)
-				// Unhandled so far
-				continue;
-			
-			String key = getelements[i].substring(0, eqpos);
-			String value = getelements[i].substring(eqpos + 1);
-
-			ret.put(key, value);
-			/*if (getelements[i].startsWith("page="))
-				page = Integer.parseInt(getelements[i].substring("page=".length()));
-				*/
-		}
-		return ret;
-	}
+	
 	
 	private void appendDefaultPageStart(StringBuffer out, String stylesheet) {
 		out.append("<HTML><HEAD><TITLE>" + plugName + "</TITLE>");
@@ -130,58 +115,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		// search - text to search for
 	}
 	
-	private HashMap getFullIndex(String uri) throws Exception {
-		
-		//this will return a hashmap consisting of the file uri that have the keywords 
-		// has to be modified to include the file names in the search
-		keywords = new HashMap();
-		word = new String();
-		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
-		FreenetURI u = new FreenetURI(uri);
-		FetchResult res;
-		while(true) {
-			try {
-				res = hlsc.fetch(u);
-				break;
-			} catch (FetchException e) {
-				if(e.newURI != null) {
-					u = e.newURI;
-					continue;
-				} else throw e;
-			}
-		}
-		output = new FileWriter("logfile");
-		output.write("testing ");
-		String index[] = new String(res.asByteArray()).trim().split("\n");
-		//this index is still not recognisable as xml file...so it would be better if we read it as xml....for this all the statements are added to an xml file and then 
-		// that file is read
-		
-		FileWriter out = new FileWriter(DEFAULT_FILE);
-		for(int j=0;j<index.length;j++)
-		out.write(index[j].toString() + "\n");
-		out.close();
-		// the file should be done by this
-		
-		//now we need to parse the xml file and see if we can get the uris with the requied ids
-		// we need to use the xml parser
-		SAXParserFactory factory = SAXParserFactory.newInstance();
-		
-		try {
-
-	      //  OutputStreamWriter output = new OutputStreamWriter (System.out, "UTF8");
-	        SAXParser saxParser = factory.newSAXParser();
-	        saxParser.parse( new File(DEFAULT_FILE), new LibrarianHandler() );
-
-	  } catch (Throwable err) {
-	        err.printStackTrace ();
-	  }
 	
-	  return keywords;
-
-	}
 	
 	private void fetch(String str) throws Exception{
+		FileWriter outp = new FileWriter("loG_fetch",true);
 		String uri = DEFAULT_INDEX_SITE + str;
+		outp.write(uri);
 		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
 		FreenetURI u = new FreenetURI(uri);
 		FetchResult res;
@@ -204,6 +143,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		for(int j=0;j<index.length;j++)
 		out.write(index[j].toString() + "\n");
 		out.close();
+		outp.write("created "+str);
+		outp.close();
 	}
 	
 	
@@ -211,7 +152,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		StringBuffer out = new StringBuffer();
 
 		//int page = request.getIntParam("page", 1);
-		String indexuri = request.getParam("index", DEFAULT_INDEX_URI);
+		String indexuri = request.getParam("index", DEFAULT_INDEX_SITE);
+		
 		String search = request.getParam("search");
 		String stylesheet = request.getParam("stylesheet", null);
 		if(stylesheet != null) {
@@ -347,31 +289,46 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		else return false;
 	}
 	private Vector getIndex(String word) throws Exception{
-		fetch(DEFAULT_FILE);
 	
+	    
 		String subIndex = searchStr(word);
 	
 		
-		fetch("index_"+subIndex+".xml");
+		//fetch("index_"+subIndex+".xml");
 		Vector index = new Vector();
 		index = getEntry(word,subIndex);
 		return index;
 	}
-	private String searchStr(String word) throws Exception{
+	private String searchStr(String str) throws Exception{
 		// in this we will search for the md5 in index.xml 
 		//this should be same as that in XML Spider
-	
-		DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-		DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-		Document doc = docBuilder.parse(DEFAULT_FILE);
-		Element root = doc.getDocumentElement();
-		Attr prefix_value = (Attr) (root.getElementsByTagName("prefix").item(0)).getAttributes().getNamedItem("value");
-		int prefix = Integer.parseInt(prefix_value.getValue()); 
-		//Element prefixNode = (Element)root.getFirstChild();
-		String md5 = MD5(word);
-		NodeList subindexList = root.getElementsByTagName("subIndex");
-		String str = md5.substring(0,prefix);		
-   	    String prefix_match = search(str,subindexList);
+		//we need to parse the input stream and then use that to find the matching subindex
+		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
+		FreenetURI u = new FreenetURI(DEFAULT_INDEX_SITE + DEFAULT_FILE);
+		FetchResult res;
+		while(true) {
+			try {
+				res = hlsc.fetch(u);
+				break;
+			} catch (FetchException e) {
+				if(e.newURI != null) {
+					u = e.newURI;
+					continue;
+				} else throw e;
+			}
+		}
+		word = str;
+		SAXParserFactory factory = SAXParserFactory.newInstance();
+		try {
+
+		      //  OutputStreamWriter output = new OutputStreamWriter (System.out, "UTF8");
+		        SAXParser saxParser = factory.newSAXParser();
+		        saxParser.parse(res.asBucket().getInputStream(), new LibrarianHandler() );
+
+		  } catch (Throwable err) {
+		        err.printStackTrace ();}
+		//by this parsing we should have the correct match in prefix_match
+
 		return prefix_match;
 		
 	}
@@ -386,59 +343,84 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		
 		return search(str.substring(0, prefix-1),list);
 	}
-	private Vector getEntry(String word,String subIndex)throws Exception{
+	private Vector getEntry(String str,String subIndex)throws Exception{
 		//search for the word in the given subIndex
 		fileuris = new Vector();
-		
-			
-		//now the xml file is created and we need to look for the word
-		DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-		DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-		Document doc = docBuilder.parse("index_"+subIndex+".xml");
-		Element root = doc.getDocumentElement();
-		Element filesElement = (Element) root.getElementsByTagName("files").item(0);
-		NodeList wordList = root.getElementsByTagName("word");
-		for(int i = 0;i<wordList.getLength();i++)
-		{
-			Element wordElt = (Element)wordList.item(i);
-			String key = wordElt.getAttribute("v");
-			
-			if(key.equals(word)) 
-				{
-			
-				NodeList fileList = wordElt.getElementsByTagName("file");
-				
-				
-				
-				for(int j =0;j<fileList.getLength();j++){
-					Element file = (Element) fileList.item(j);
-					
-					//Attr id = (Attr) file.getAttributes().getNamedItem("id");
-					URIWrapper uri = new URIWrapper();
-					String id = file.getAttribute("id");
-					//reference this id from index.xml and get the file
-		//			uri.URI = getURI(id);
-					uri.URI = "not available";
-					NodeList files = filesElement.getElementsByTagName("file");
-					for(int k =0;k<files.getLength();k++){
-						Node fileElt =  files.item(k);
-						String fileid = ((Attr) fileElt.getAttributes().getNamedItem("id")).getValue();
-			
-						if(fileid.equals(id))
-							{
-							uri.URI = ((Attr) fileElt.getAttributes().getNamedItem("key")).getValue();
-							break;
-							}
-					}
-					FileWriter output3 = new FileWriter("logfile_geturi",true);
-					output3.write(uri.URI+"\n");
-					uri.descr = "not available";
-					fileuris.add(uri);
-					output3.close();
-				}
+		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
+		FreenetURI u = new FreenetURI(DEFAULT_INDEX_SITE + "index_"+subIndex+".xml");
+		FetchResult res;
+		while(true) {
+			try {
+				res = hlsc.fetch(u);
 				break;
-				}
+			} catch (FetchException e) {
+				if(e.newURI != null) {
+					u = e.newURI;
+					continue;
+				} else throw e;
+			}
 		}
+		word = str; //word to be searched
+		SAXParserFactory factory = SAXParserFactory.newInstance();
+		try {
+
+		      //  OutputStreamWriter output = new OutputStreamWriter (System.out, "UTF8");
+		        SAXParser saxParser = factory.newSAXParser();
+		        saxParser.parse(res.asBucket().getInputStream(), new LibrarianHandler() );
+
+		  } catch (Throwable err) {
+		        err.printStackTrace ();}
+		 FileWriter outp = new FileWriter("log_get",true);
+		 outp.write("fileuris " + fileuris.size());
+		 outp.close();
+		//now the xml file is created and we need to look for the word
+//		DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+//		DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+//		Document doc = docBuilder.parse("index_"+subIndex+".xml");
+//		Element root = doc.getDocumentElement();
+//		Element filesElement = (Element) root.getElementsByTagName("files").item(0);
+//		NodeList wordList = root.getElementsByTagName("word");
+//		for(int i = 0;i<wordList.getLength();i++)
+//		{
+//			Element wordElt = (Element)wordList.item(i);
+//			String key = wordElt.getAttribute("v");
+//			
+//			if(key.equals(word)) 
+//				{
+//			
+//				NodeList fileList = wordElt.getElementsByTagName("file");
+//				
+//				
+//				
+//				for(int j =0;j<fileList.getLength();j++){
+//					Element file = (Element) fileList.item(j);
+//					
+//					//Attr id = (Attr) file.getAttributes().getNamedItem("id");
+//					URIWrapper uri = new URIWrapper();
+//					String id = file.getAttribute("id");
+//					//reference this id from index.xml and get the file
+//		//			uri.URI = getURI(id);
+//					uri.URI = "not available";
+//					NodeList files = filesElement.getElementsByTagName("file");
+//					for(int k =0;k<files.getLength();k++){
+//						Node fileElt =  files.item(k);
+//						String fileid = ((Attr) fileElt.getAttributes().getNamedItem("id")).getValue();
+//			
+//						if(fileid.equals(id))
+//							{
+//							uri.URI = ((Attr) fileElt.getAttributes().getNamedItem("key")).getValue();
+//							break;
+//							}
+//					}
+//					FileWriter output3 = new FileWriter("logfile_geturi",true);
+//					output3.write(uri.URI+"\n");
+//					uri.descr = "not available";
+//					fileuris.add(uri);
+//					output3.close();
+//				}
+//				break;
+//				}
+//		}
 		
 		return fileuris;
 	}
@@ -477,9 +459,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		// now we need to adapt this to read subindexing 
 		private Locator locator = null;
 		public LibrarianHandler() throws Exception{
-			processingWord = false;
-			uriw = new URIWrapper();
-			uris = new Vector();
+			
+			//found_match = false;
+//			uriw = new URIWrapper();
+//			uris = new Vector();
 			
 		}
 		public void setDocumentLocator(Locator value) {
@@ -487,61 +470,149 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		}
 		public void endDocument()  throws SAXException
 		{
-		if(!word.equals(""))
-			keywords.put(word, keyuris);
-		
+//		if(!word.equals(""))
+//			keywords.put(word, keyuris);
+//		
 		}
-	   
+		public void startDocument () throws SAXException
+	    {
+			found_match = false;
+		uris = new HashMap();
+	    }
 	    public void startElement(String nameSpaceURI, String localName,
 				 String rawName, Attributes attrs) throws SAXException {
-	    
+	     
+	  
+	     
 	    	if (rawName == null) {
 				rawName = localName;
 			}
 	    	
 	    	String elt_name = rawName;
-	    	if(elt_name.equals("word"))
-	    	{
-	    	try
-	    	{
-	    		if(!word.equals(""))
-	    		{
-	    			keywords.put(word, keyuris);
-	    			word = new String();
-	    			
+	    	if(elt_name.equals("prefix")){
+	    		prefix = Integer.parseInt(attrs.getValue("value"));
+	    	}
+	    	if(elt_name.equals("subIndex")){
+	    		try{
+	    		String md5 = MD5(word);
+	    		//here we need to match and see if any of the subindices match the required substring of the word.
+	    		for(int i=0;i<prefix;i++){
+	    			if((md5.substring(0,prefix-i)).equals(attrs.getValue("key"))) 
+	    				{
+	    				prefix_match=md5.substring(0, prefix-i);
+	    				break;
+	    				}
 	    		}
-	    	 word = attrs.getValue("v");
-	    	     
-	    			 
-	    	 }
-	    	 catch (Exception e)
-	    	 {
-	    		 
-	    	 }
-	    	 
-	    	 processingWord = true;
-	    	 keyuris = new Vector();	
+	    		}
+	    		catch(Exception e){
+	    		
+	    		}
 	    	}
 	    	
-	    	if(elt_name.equals("file"))
-	    	{
-	    		if(!processingWord)
-	    		{
-					uriw = new URIWrapper();
-					uriw.URI = attrs.getValue("key");
-					uriw.descr = "not available";
-					
-					uris.add(uriw);
-	     		}
-	    		else
-	    		{	    				    		
-				    int uriNumber = Integer.parseInt(attrs.getValue("id").toString());
-					URIWrapper uw = (URIWrapper) uris.get(uriNumber);
-					
-					if(!keyuris.contains(uw))
-						keyuris.add(uw);
+	    	if(elt_name.equals("files")) processingWord = false;
+	    	if(elt_name.equals("keywords")) processingWord = true;
+	    	if(elt_name.equals("word")){
+	    		//processingWord = true;
+	    		try{
+	    			FileWriter outp = new FileWriter("log_check",true);
+	    			outp.write(" " + word);
+	    			
+	    			outp.write(" "+attrs.getValue("v")+"\n");
+	    			outp.close();
+	    			if((attrs.getValue("v")).equals(word)) found_match = true;
+	    		}catch(Exception e){}
+	    	}
+	    	
+	    	if(elt_name.equals("file")){
+//	    		try{
+//	    			FileWriter outp = new FileWriter("log_check",true);
+//	    			outp.write(" " + processingWord);
+//	    			outp.close();
+//	    		}catch(Exception e){}
+	    		if(processingWord == true && found_match == true){
+//		    		//this file id has to be appended to the fileuris list
+		    			
+		    			try{
+		    				//uris.put(attrs.getValue("id"), attrs.getValue("key"));
+		    				FileWriter outp = new FileWriter("add",true);
+		    				URIWrapper uri = new URIWrapper();
+			    			uri.URI =  (uris.get(attrs.getValue("id"))).toString();
+////			    			
+			    			uri.descr = "not available";
+			    			outp.write("uri.URI "+uri.URI);
+			    			fileuris.add(uri);
+//		    				outp.write(" uri.URI "+attrs.getValue("id"));
+//		    				outp.write("\n uri .URI"+((String) (uris.get(attrs.getValue("id").toString()))));
+//		    				outp.write(" "+found_match);
+		    				outp.close();
+		    			}
+		    			catch(Exception e){}
+		    			
+		    			}
+	    		else{
+	    			try{
+	    				String id = attrs.getValue("id");
+	    				String key = attrs.getValue("key");
+	    				uris.put(id,key);
+	    				FileWriter outp = new FileWriter("add",true);
+	    			
+	    				String[] words = (String[]) uris.values().toArray(new String[uris.size()]);
+	    				//outp.write(attrs.getValue("key")+"\n");
+	    				outp.write("id "+id+" key "+key+"\n");
+	    				outp.write(uris.size()+"\n");
+	    				
+	    				outp.close();
 	    			}
-	     	}
+	    			catch(Exception e){}
+	    			
+	    		}
+	    		
+	    		
+	    			
+	  	    	
+	    	}
+//	    	if(elt_name.equals("word"))
+//	    	{
+//	    	try
+//	    	{
+//	    		if(!word.equals(""))
+//	    		{
+//	    			keywords.put(word, keyuris);
+//	    			word = new String();
+//	    			
+//	    		}
+//	    	 word = attrs.getValue("v");
+//	    	     
+//	    			 
+//	    	 }
+//	    	 catch (Exception e)
+//	    	 {
+//	    		 
+//	    	 }
+//	    	 
+//	    	 processingWord = true;
+//	    	 keyuris = new Vector();	
+//	    	}
+//	    	
+//	    	if(elt_name.equals("file"))
+//	    	{
+//	    		if(!processingWord)
+//	    		{
+//					uriw = new URIWrapper();
+//					uriw.URI = attrs.getValue("key");
+//					uriw.descr = "not available";
+//					
+//					uris.add(uriw);
+//	     		}
+//	    		else
+//	    		{	    				    		
+//				    int uriNumber = Integer.parseInt(attrs.getValue("id").toString());
+//					URIWrapper uw = (URIWrapper) uris.get(uriNumber);
+//					
+//					if(!keyuris.contains(uw))
+//						keyuris.add(uw);
+//	    			}
+//	     	}
 	    		    	
 	    }
 	    
