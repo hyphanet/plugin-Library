@@ -108,7 +108,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		index = HTMLEncoder.encode(index);
 		out.append("Search for:<br/>");
         out.append("<form method=\"GET\"><input type=\"text\" value=\"").append(search).append("\" name=\"search\" size=80/><br/><br/>");
-		out.append("Using the index:<br/>");
+		out.append("Using the index site(remember to give the site without index.xml):<br/>");
         out.append("<input type=text name=\"index\" value=\"").append(index).append("\" size=80/>");
 		out.append("<input type=submit value=\"Find!\"/></form>\n");
 		// index - key to index
