@@ -1,6 +1,5 @@
 package plugins.XMLLibrarian;
 
-import java.io.File;
 import java.io.FileWriter;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -16,10 +15,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.Attributes;
 import org.xml.sax.Locator;
