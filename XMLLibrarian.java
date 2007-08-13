@@ -99,7 +99,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		goon = false;
 	}
 	
-	@SuppressWarnings("unused")
+	
 	private String getArrayElement(String[] array, int element) {
 		try {
 			return array[element];
