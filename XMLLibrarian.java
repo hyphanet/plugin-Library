@@ -83,7 +83,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	private Vector fileuris;
 	private String prefix_match;
 	private int prefix;
-
+	private boolean test;
 	/**
 	 * indexList contains the index folders 
 	 * each folder has a name and a list of indices added to that folder
@@ -92,6 +92,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 
 	public void terminate() {
 		goon = false;
+		save(configfile);
 	}
 
 	public String handleHTTPPut(HTTPRequest request) throws PluginHTTPException {
@@ -162,7 +163,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * @param request
 	 */
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
-
+		if(test) {reloadOld(configfile); test= false;}
 		StringBuffer out = new StringBuffer();
 		String search = request.getParam("search");
 		String stylesheet = request.getParam("stylesheet", null);
@@ -249,67 +250,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		else if((request.getParam("Save")).equals("Save Configuration")){
 			try{
 				String file = request.getParam("datafile4");
-				File outputFile = new File(file);
-				StreamResult resultStream;
-				resultStream = new StreamResult(outputFile);
-				Document xmlDoc = null;
-				DocumentBuilderFactory xmlFactory = null;
-				DocumentBuilder xmlBuilder = null;
-				DOMImplementation impl = null;
-				Element rootElement = null;
-				xmlFactory = DocumentBuilderFactory.newInstance();
-				try {
-					xmlBuilder = xmlFactory.newDocumentBuilder();
-				} catch(javax.xml.parsers.ParserConfigurationException e) {
-
-					Logger.error(this, "Spider: Error while initializing XML generator: "+e.toString());
-					return out.toString();
-				}
-
-				impl = xmlBuilder.getDOMImplementation();
-				xmlDoc = impl.createDocument(null, "XMLLibrarian", null);
-				rootElement = xmlDoc.getDocumentElement();
-
-				String[] folders = (String[]) indexList.keySet().toArray(new String[indexList.size()]);
-				for(int i=0;i<folders.length;i++)
-				{
-					Element folder = xmlDoc.createElement("folder");
-					String folderName = folders[i];
-					folder.setAttribute("name", folderName);
-
-					String[] indices = (String[]) indexList.get(folderName);
-					for(int j =0;j<indices.length;j++)
-					{
-						Element index = xmlDoc.createElement("index");
-						index.setAttribute("key", indices[j]);
-						folder.appendChild(index);
-					}
-					rootElement.appendChild(folder);
-				}
-				DOMSource domSource = new DOMSource(xmlDoc);
-				TransformerFactory transformFactory = TransformerFactory.newInstance();
-				Transformer serializer;
-
-				try {
-					serializer = transformFactory.newTransformer();
-				} catch(javax.xml.transform.TransformerConfigurationException e) {
-					Logger.error(this, "Spider: Error while serializing XML (transformFactory.newTransformer()): "+e.toString());
-					return out.toString();
-				}
-
-				serializer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
-				serializer.setOutputProperty(OutputKeys.INDENT,"yes");
-
-				try {
-					serializer.transform(domSource, resultStream);
-				} catch(javax.xml.transform.TransformerException e) {
-					Logger.error(this, "Spider: Error while serializing XML (transform()): "+e.toString());
-					return out.toString();
-				}
-
-				if(Logger.shouldLog(Logger.MINOR, this))
-					Logger.minor(this, "Spider: indexes regenerated.");
-
+				if(file.equals("")) file = configfile;
+				save(out,file);
 				out.append("Saved Configuration");
 			}
 			catch(Exception e){}
@@ -407,6 +349,134 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			}
 		}
 		catch(Exception e){ Logger.error(this, "Could not read configuration "+e.toString(), e);}
+	}
+	private void save(StringBuffer out, String file){
+		File outputFile = new File(file);
+		StreamResult resultStream;
+		resultStream = new StreamResult(outputFile);
+		Document xmlDoc = null;
+		DocumentBuilderFactory xmlFactory = null;
+		DocumentBuilder xmlBuilder = null;
+		DOMImplementation impl = null;
+		Element rootElement = null;
+		xmlFactory = DocumentBuilderFactory.newInstance();
+		try {
+			xmlBuilder = xmlFactory.newDocumentBuilder();
+		} catch(javax.xml.parsers.ParserConfigurationException e) {
+
+			Logger.error(this, "Spider: Error while initializing XML generator: "+e.toString());
+			//return out.toString();
+		}
+
+		impl = xmlBuilder.getDOMImplementation();
+		xmlDoc = impl.createDocument(null, "XMLLibrarian", null);
+		rootElement = xmlDoc.getDocumentElement();
+
+		String[] folders = (String[]) indexList.keySet().toArray(new String[indexList.size()]);
+		for(int i=0;i<folders.length;i++)
+		{
+			Element folder = xmlDoc.createElement("folder");
+			String folderName = folders[i];
+			folder.setAttribute("name", folderName);
+
+			String[] indices = (String[]) indexList.get(folderName);
+			for(int j =0;j<indices.length;j++)
+			{
+				Element index = xmlDoc.createElement("index");
+				index.setAttribute("key", indices[j]);
+				folder.appendChild(index);
+			}
+			rootElement.appendChild(folder);
+		}
+		DOMSource domSource = new DOMSource(xmlDoc);
+		TransformerFactory transformFactory = TransformerFactory.newInstance();
+		Transformer serializer;
+
+		try {
+			serializer = transformFactory.newTransformer();
+			serializer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+			serializer.setOutputProperty(OutputKeys.INDENT,"yes");
+
+			try {
+				serializer.transform(domSource, resultStream);
+			} catch(javax.xml.transform.TransformerException e) {
+				Logger.error(this, "Spider: Error while serializing XML (transform()): "+e.toString());
+				//return out.toString();
+			}
+		} catch(javax.xml.transform.TransformerConfigurationException e) {
+			Logger.error(this, "Spider: Error while serializing XML (transformFactory.newTransformer()): "+e.toString());
+		//	return out.toString();
+		}
+
+		
+
+		if(Logger.shouldLog(Logger.MINOR, this))
+			Logger.minor(this, "Spider: indexes regenerated.");
+
+	}
+	private void save(String file){
+		File outputFile = new File(file);
+		StreamResult resultStream;
+		resultStream = new StreamResult(outputFile);
+		Document xmlDoc = null;
+		DocumentBuilderFactory xmlFactory = null;
+		DocumentBuilder xmlBuilder = null;
+		DOMImplementation impl = null;
+		Element rootElement = null;
+		xmlFactory = DocumentBuilderFactory.newInstance();
+		try {
+			xmlBuilder = xmlFactory.newDocumentBuilder();
+		} catch(javax.xml.parsers.ParserConfigurationException e) {
+
+			Logger.error(this, "Spider: Error while initializing XML generator: "+e.toString());
+			//return out.toString();
+		}
+
+		impl = xmlBuilder.getDOMImplementation();
+		xmlDoc = impl.createDocument(null, "XMLLibrarian", null);
+		rootElement = xmlDoc.getDocumentElement();
+
+		String[] folders = (String[]) indexList.keySet().toArray(new String[indexList.size()]);
+		for(int i=0;i<folders.length;i++)
+		{
+			Element folder = xmlDoc.createElement("folder");
+			String folderName = folders[i];
+			folder.setAttribute("name", folderName);
+
+			String[] indices = (String[]) indexList.get(folderName);
+			for(int j =0;j<indices.length;j++)
+			{
+				Element index = xmlDoc.createElement("index");
+				index.setAttribute("key", indices[j]);
+				folder.appendChild(index);
+			}
+			rootElement.appendChild(folder);
+		}
+		DOMSource domSource = new DOMSource(xmlDoc);
+		TransformerFactory transformFactory = TransformerFactory.newInstance();
+		Transformer serializer;
+
+		try {
+			serializer = transformFactory.newTransformer();
+			serializer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+			serializer.setOutputProperty(OutputKeys.INDENT,"yes");
+
+			try {
+				serializer.transform(domSource, resultStream);
+			} catch(javax.xml.transform.TransformerException e) {
+				Logger.error(this, "Spider: Error while serializing XML (transform()): "+e.toString());
+				//return out.toString();
+			}
+		} catch(javax.xml.transform.TransformerConfigurationException e) {
+			Logger.error(this, "Spider: Error while serializing XML (transformFactory.newTransformer()): "+e.toString());
+		//	return out.toString();
+		}
+
+		
+
+		if(Logger.shouldLog(Logger.MINOR, this))
+			Logger.minor(this, "Spider: indexes regenerated.");
+
 	}
 	/**
 	 * Searches for the string in the specified index. In case of a folder searches in all included indices
@@ -608,6 +678,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 
 	public void runPlugin(PluginRespirator pr) {
 		this.pr = pr;
+		this.test = true;
 	}
 
 	private class URIWrapper implements Comparable {
