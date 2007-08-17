@@ -164,7 +164,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * @param request
 	 */
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
-		//if(test) {reloadOld(configfile); test= false;}
+		if(test) {reloadOld(configfile); test= false;}
 		StringBuffer out = new StringBuffer();
 		String search = request.getParam("search");
 		String stylesheet = request.getParam("stylesheet", null);
@@ -349,6 +349,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 */
 	private void reloadOld(String config){
 		try{
+			File f = new File(config);
+			if(f.exists()){
+
 			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
 			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
 			Document doc = docBuilder.parse(config);
@@ -367,7 +370,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					index[j] = indexj.getValue();
 				}
 				indexList.put(folderName, index);
-			}
+			}}
+			
 		}
 		catch(Exception e){ Logger.error(this, "Could not read configuration "+e.toString(), e);}
 	}
