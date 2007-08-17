@@ -70,7 +70,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * <p>Change this parameter accordingly.
 	 * 
 	 */
-	public  String DEFAULT_INDEX_SITE="SSK@0yc3irwbhLYU1j3MdzGuwC6y1KboBHJ~1zIi8AN2XC0,5j9hrd2LLcew6ieoX1yC-hXRueSKziKYnRaD~aLnAYE,AQACAAE/testsite/";
+	public String DEFAULT_INDEX_SITE="SSK@F2r3VplAy6D0Z3odk0hqoHIHMTZfAZ2nx98AiF44pfY,alJs1GWselPGxkjlEY3KdhqLoIAG7Snq5qfUMhgJYeI,AQACAAE/testsite/";
+	//public  String DEFAULT_INDEX_SITE="SSK@0yc3irwbhLYU1j3MdzGuwC6y1KboBHJ~1zIi8AN2XC0,5j9hrd2LLcew6ieoX1yC-hXRueSKziKYnRaD~aLnAYE,AQACAAE/testsite/";
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
