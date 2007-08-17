@@ -164,7 +164,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * @param request
 	 */
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
-	//	if(test) {reloadOld(configfile); test= false;}
+		//	if(test) {reloadOld(configfile); test= false;}
 		StringBuffer out = new StringBuffer();
 		String search = request.getParam("search");
 		String stylesheet = request.getParam("stylesheet", null);
@@ -192,10 +192,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				String[] indices = (String [])indexList.get(folder);
 				for(int i =0;i<indices.length;i++)
 				{try{
-					searchStr(out,search,indices[i],stylesheet);}
-				catch (Exception e){
-					Logger.error(this, "Search for "+search+" in folder "+folder+" failed "+e.toString(), e);
-				}
+					    searchStr(out,search,indices[i],stylesheet);}
+					    catch (Exception e){
+						    Logger.error(this, "Search for "+search+" in folder "+folder+" failed "+e.toString(), e);
+					    }
 				}
 			}
 		}
@@ -206,9 +206,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		}	 
 		else if((request.getParam("addNew")).equals("Add")){
 			try{
-			String newFolder = request.getParam("newfolder");
-			indexList.put(newFolder, new String[]{new String("0")});
-			out.append("New folder "+newFolder+" added. Kindly refresh the page<br/> ");
+				String newFolder = request.getParam("newfolder");
+				indexList.put(newFolder, new String[]{new String("0")});
+				out.append("New folder "+newFolder+" added. Kindly refresh the page<br/> ");
 			}
 			catch(Exception e){
 				Logger.error(this, "Could not add new folder "+e.toString(), e);
@@ -230,22 +230,22 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			String folder = request.getParam("folderList");
 			indexuri = request.getParam("index",DEFAULT_INDEX_SITE);
 			try{
-			String[] old = (String []) indexList.get(folder);
-			String firstIndex = old[0]; 
-			String[] indices;
-			if(firstIndex.equals(new String("0"))){
-				indices = new String[]{indexuri};
-			}
-			else{
-				indices = new String[old.length+1];
-				System.arraycopy(old, 0, indices, 0, old.length);
+				String[] old = (String []) indexList.get(folder);
+				String firstIndex = old[0]; 
+				String[] indices;
+				if(firstIndex.equals(new String("0"))){
+					indices = new String[]{indexuri};
+				}
+				else{
+					indices = new String[old.length+1];
+					System.arraycopy(old, 0, indices, 0, old.length);
 
-				indices[old.length] = indexuri;
-			}
+					indices[old.length] = indexuri;
+				}
 
-			out.append("index site "+indexuri+" added to "+folder);
-			indexList.remove(folder);
-			indexList.put(folder, indices);
+				out.append("index site "+indexuri+" added to "+folder);
+				indexList.remove(folder);
+				indexList.put(folder, indices);
 			}
 			catch(Exception e){
 				Logger.error(this, "Index "+indexuri+" could not be added to folder "+folder+" "+e.toString(), e);
@@ -276,7 +276,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 
 		else if(choice.equals("index")){
 			try{
-			searchStr(out,search,indexuri,stylesheet);}
+				searchStr(out,search,indexuri,stylesheet);}
 			catch(Exception e){
 				Logger.error(this, "Searchign for the word "+search+" in index "+indexuri+" failed "+e.toString(), e);
 			}
@@ -352,26 +352,26 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			File f = new File(config);
 			if(f.exists()){
 
-			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-			Document doc = docBuilder.parse(config);
-			Element root = doc.getDocumentElement();
-			NodeList folders = root.getElementsByTagName("folder");
+				DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+				DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+				Document doc = docBuilder.parse(config);
+				Element root = doc.getDocumentElement();
+				NodeList folders = root.getElementsByTagName("folder");
 
-			for(int i =0;i<folders.getLength();i++)
-			{
-				Attr folder = (Attr) ((folders.item(i)).getAttributes().getNamedItem("name"));
-				String folderName = folder.getValue();
-				NodeList indices = ((Element) folders.item(i)).getElementsByTagName("index");
-				String[] index = new String[indices.getLength()];
-				for(int j=0;j<indices.getLength();j++)
+				for(int i =0;i<folders.getLength();i++)
 				{
-					Attr indexj = (Attr) ((indices.item(j)).getAttributes().getNamedItem("key"));
-					index[j] = indexj.getValue();
-				}
-				indexList.put(folderName, index);
-			}}
-			
+					Attr folder = (Attr) ((folders.item(i)).getAttributes().getNamedItem("name"));
+					String folderName = folder.getValue();
+					NodeList indices = ((Element) folders.item(i)).getElementsByTagName("index");
+					String[] index = new String[indices.getLength()];
+					for(int j=0;j<indices.getLength();j++)
+					{
+						Attr indexj = (Attr) ((indices.item(j)).getAttributes().getNamedItem("key"));
+						index[j] = indexj.getValue();
+					}
+					indexList.put(folderName, index);
+				}}
+
 		}
 		catch(Exception e){ Logger.error(this, "Could not read configuration "+e.toString(), e);}
 	}
@@ -430,10 +430,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			}
 		} catch(javax.xml.transform.TransformerConfigurationException e) {
 			Logger.error(this, "Spider: Error while serializing XML (transformFactory.newTransformer()): "+e.toString());
-		//	return out.toString();
+			//	return out.toString();
 		}
 
-		
+
 
 		if(Logger.shouldLog(Logger.MINOR, this))
 			Logger.minor(this, "Spider: indexes regenerated.");
@@ -494,10 +494,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			}
 		} catch(javax.xml.transform.TransformerConfigurationException e) {
 			Logger.error(this, "Spider: Error while serializing XML (transformFactory.newTransformer()): "+e.toString());
-		//	return out.toString();
+			//	return out.toString();
 		}
 
-		
+
 
 		if(Logger.shouldLog(Logger.MINOR, this))
 			Logger.minor(this, "Spider: indexes regenerated.");
@@ -524,37 +524,37 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			LinkedHashSet hs = new LinkedHashSet();
 			Vector keyuris;
 			try{
-			for(int i = 0;i<searchWords.length;i++){
-				keyuris = getIndex(searchWords[i]);
-				if(i == 0){
-					synchronized(hs){
-						hs.clear();
-						if (keyuris != null) {
-							Iterator it = keyuris.iterator();
-							while (it.hasNext()){
-								hs.add(it.next());	
-							}
-						}
-					}
-				}
-				else{
-					try{
+				for(int i = 0;i<searchWords.length;i++){
+					keyuris = getIndex(searchWords[i]);
+					if(i == 0){
 						synchronized(hs){
-							if(keyuris.size() > 0){
-								Iterator it = hs.iterator();
-								while(it.hasNext()){
-									URIWrapper uri = (URIWrapper) it.next();
-									if(!Contains(uri.URI,keyuris)) it.remove();
+							hs.clear();
+							if (keyuris != null) {
+								Iterator it = keyuris.iterator();
+								while (it.hasNext()){
+									hs.add(it.next());	
 								}
 							}
-							if(keyuris.size() == 0) hs.clear();
 						}
 					}
-					catch(Exception e){
-						e.getMessage();
+					else{
+						try{
+							synchronized(hs){
+								if(keyuris.size() > 0){
+									Iterator it = hs.iterator();
+									while(it.hasNext()){
+										URIWrapper uri = (URIWrapper) it.next();
+										if(!Contains(uri.URI,keyuris)) it.remove();
+									}
+								}
+								if(keyuris.size() == 0) hs.clear();
+							}
+						}
+						catch(Exception e){
+							e.getMessage();
+						}
 					}
-				}
-			}}
+				}}
 			catch(Exception e){
 				out.append("could not complete search for "+search +"in "+indexuri+e.toString());
 				Logger.error(this, "could not complete search for "+search +"in "+indexuri+e.toString(), e);
@@ -564,26 +564,26 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			out.append("<table class=\"librarian-results\"><tr>\n");
 			Iterator it = hs.iterator();
 			try{
-			while (it.hasNext()) {
-				URIWrapper o = (URIWrapper)it.next();
-				String showurl = o.URI;
-				String description = HTMLEncoder.encode(o.descr);
-				if(!description.equals("not available")){
-					description=description.replaceAll("(\n|&lt;(b|B)(r|R)&gt;)", "<br>");
-					description=description.replaceAll("  ", "&nbsp; ");
-					description=description.replaceAll("&lt;/?[a-zA-Z].*/?&gt;", "");	
+				while (it.hasNext()) {
+					URIWrapper o = (URIWrapper)it.next();
+					String showurl = o.URI;
+					String description = HTMLEncoder.encode(o.descr);
+					if(!description.equals("not available")){
+						description=description.replaceAll("(\n|&lt;(b|B)(r|R)&gt;)", "<br>");
+						description=description.replaceAll("  ", "&nbsp; ");
+						description=description.replaceAll("&lt;/?[a-zA-Z].*/?&gt;", "");	
+					}
+					showurl = HTMLEncoder.encode(showurl);
+					if (showurl.length() > 60)
+						showurl = showurl.substring(0,15) + "&hellip;" +  showurl.replaceFirst("[^/]*/", "/");
+					String realurl = (o.URI.startsWith("/")?"":"/") + o.URI;
+					realurl = HTMLEncoder.encode(realurl);
+					out.append("<p>\n<table class=\"librarian-result\" width=\"100%\" border=1><tr><td align=center bgcolor=\"#D0D0D0\" class=\"librarian-result-url\">\n");
+					out.append("  <A HREF=\"").append(realurl).append("\" title=\"").append(o.URI).append("\">").append(showurl).append("</A>\n");
+					out.append("</td></tr><tr><td align=left class=\"librarian-result-summary\">\n");
+					out.append("</td></tr></table>\n");
+					results++;
 				}
-				showurl = HTMLEncoder.encode(showurl);
-				if (showurl.length() > 60)
-					showurl = showurl.substring(0,15) + "&hellip;" +  showurl.replaceFirst("[^/]*/", "/");
-				String realurl = (o.URI.startsWith("/")?"":"/") + o.URI;
-				realurl = HTMLEncoder.encode(realurl);
-				out.append("<p>\n<table class=\"librarian-result\" width=\"100%\" border=1><tr><td align=center bgcolor=\"#D0D0D0\" class=\"librarian-result-url\">\n");
-				out.append("  <A HREF=\"").append(realurl).append("\" title=\"").append(o.URI).append("\">").append(showurl).append("</A>\n");
-				out.append("</td></tr><tr><td align=left class=\"librarian-result-summary\">\n");
-				out.append("</td></tr></table>\n");
-				results++;
-			}
 			}
 			catch(Exception e){
 				out.append("Could not display results for "+search+e.toString());
@@ -645,22 +645,22 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			err.printStackTrace ();}
 
 
-		return prefix_match;
+			return prefix_match;
 
 	}
 
 
-//	public String search(String str,NodeList list) throws Exception
-//	{
-//		int prefix = str.length();
-//		for(int i = 0;i<list.getLength();i++){
-//			Element subIndex = (Element) list.item(i);
-//			String key = subIndex.getAttribute("key");
-//			if(key.equals(str)) return key;
-//		}
-//
-//		return search(str.substring(0, prefix-1),list);
-//	}
+	//	public String search(String str,NodeList list) throws Exception
+	//	{
+	//		int prefix = str.length();
+	//		for(int i = 0;i<list.getLength();i++){
+	//			Element subIndex = (Element) list.item(i);
+	//			String key = subIndex.getAttribute("key");
+	//			if(key.equals(str)) return key;
+	//		}
+	//
+	//		return search(str.substring(0, prefix-1),list);
+	//	}
 
 
 	private Vector getEntry(String str,String subIndex)throws Exception{
@@ -688,7 +688,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		} catch (Throwable err) {
 			err.printStackTrace ();}
 
-		return fileuris;
+			return fileuris;
 	}
 
 	/**
