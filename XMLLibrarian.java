@@ -205,10 +205,14 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			out.append("<input type=submit value=\"Add\" name=\"addNew\" />");
 		}	 
 		else if((request.getParam("addNew")).equals("Add")){
+			try{
 			String newFolder = request.getParam("newfolder");
 			indexList.put(newFolder, new String[]{new String("0")});
 			out.append("New folder "+newFolder+" added. Kindly refresh the page<br/> ");
-
+			}
+			catch(Exception e){
+				Logger.error(this, "Could not add new folder "+e.toString(), e);
+			}
 			return out.toString();
 		}
 		else if((request.getParam("help")).equals("Help!")){
@@ -225,6 +229,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		else if((request.getParam("addToFolder")).equals("Add to folder")){
 			String folder = request.getParam("folderList");
 			indexuri = request.getParam("index",DEFAULT_INDEX_SITE);
+			try{
 			String[] old = (String []) indexList.get(folder);
 			String firstIndex = old[0]; 
 			String[] indices;
@@ -241,6 +246,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			out.append("index site "+indexuri+" added to "+folder);
 			indexList.remove(folder);
 			indexList.put(folder, indices);
+			}
+			catch(Exception e){
+				Logger.error(this, "Index "+indexuri+" could not be added to folder "+folder+" "+e.toString(), e);
+			}
 		}
 		else if((request.getParam("List")).equals("List")){
 
@@ -260,7 +269,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				save(out,file);
 				out.append("Saved Configuration");
 			}
-			catch(Exception e){}
+			catch(Exception e){
+				Logger.error(this, "Configuration could not be saved "+e.toString(), e);
+			}
 		}
 
 		else if(choice.equals("index")){
@@ -508,6 +519,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			// Return results in order.
 			LinkedHashSet hs = new LinkedHashSet();
 			Vector keyuris;
+			try{
 			for(int i = 0;i<searchWords.length;i++){
 				keyuris = getIndex(searchWords[i]);
 				if(i == 0){
@@ -538,11 +550,16 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 						e.getMessage();
 					}
 				}
+			}}
+			catch(Exception e){
+				out.append("could not complete search for "+search +"in "+indexuri+e.toString());
+				Logger.error(this, "could not complete search for "+search +"in "+indexuri+e.toString(), e);
 			}
 			// Output results
 			int results = 0;
 			out.append("<table class=\"librarian-results\"><tr>\n");
 			Iterator it = hs.iterator();
+			try{
 			while (it.hasNext()) {
 				URIWrapper o = (URIWrapper)it.next();
 				String showurl = o.URI;
@@ -563,10 +580,16 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				out.append("</td></tr></table>\n");
 				results++;
 			}
+			}
+			catch(Exception e){
+				out.append("Could not display results for "+search+e.toString());
+				Logger.error(this, "Could not display search results for "+search+e.toString(), e);
+			}
 			out.append("</tr><table>\n");
 			out.append("<p><span class=\"librarian-summary-found-text\">Found: </span><span class=\"librarian-summary-found-number\">").append(results).append(" results</span></p>\n");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
+			Logger.error(this, "Could not complete search for "+search +"in "+indexuri+e.toString(), e);
 			e.printStackTrace();
 		}
 	}
