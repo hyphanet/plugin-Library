@@ -164,7 +164,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * @param request
 	 */
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
-		if(test) {reloadOld(configfile); test= false;}
+	//	if(test) {reloadOld(configfile); test= false;}
 		StringBuffer out = new StringBuffer();
 		String search = request.getParam("search");
 		String stylesheet = request.getParam("stylesheet", null);
