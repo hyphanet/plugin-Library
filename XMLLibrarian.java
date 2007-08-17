@@ -773,7 +773,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			if(elt_name.equals("word")){
 				try{
 					if((attrs.getValue("v")).equals(word)) found_match = true;
-				}catch(Exception e){}
+				}catch(Exception e){Logger.error(this, "word key doesn't match"+e.toString(), e); }
 			}
 
 			if(elt_name.equals("file")){
@@ -790,7 +790,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 						uris.put(id,key);
 						String[] words = (String[]) uris.values().toArray(new String[uris.size()]);
 					}
-					catch(Exception e){}
+					catch(Exception e){Logger.error(this,"File id and key could not be retrieved. May be due to format clash",e);}
 				}
 			}
 		}
