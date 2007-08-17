@@ -191,7 +191,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				String folder = request.getParam("folderList");
 				String[] indices = (String [])indexList.get(folder);
 				for(int i =0;i<indices.length;i++)
-					searchStr(out,search,indices[i],stylesheet);
+				{try{
+					searchStr(out,search,indices[i],stylesheet);}
+				catch (Exception e){
+					Logger.error(this, "Search for "+search+" in folder "+folder+" failed "+e.toString(), e);
+				}
+				}
 			}
 		}
 		else if((request.getParam("newFolder")).equals("New Folder")){
@@ -259,7 +264,11 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		}
 
 		else if(choice.equals("index")){
-			searchStr(out,search,indexuri,stylesheet);
+			try{
+			searchStr(out,search,indexuri,stylesheet);}
+			catch(Exception e){
+				Logger.error(this, "Searchign for the word "+search+" in index "+indexuri+" failed "+e.toString(), e);
+			}
 		}
 		else if((request.getParam("Reload")).equals("Load Configuration")){
 			String file = request.getParam("datafile3");
@@ -486,7 +495,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * @param indexuri
 	 * @param stylesheet
 	 */
-	private void searchStr(StringBuffer out,String search,String indexuri,String stylesheet){
+	private void searchStr(StringBuffer out,String search,String indexuri,String stylesheet) throws Exception{
 
 		if (search.equals("")) {
 			return;
