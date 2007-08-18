@@ -69,14 +69,14 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * <p>Change this parameter accordingly.
 	 * 
 	 */
-//public String DEFAULT_INDEX_SITE="SSK@F2r3VplAy6D0Z3odk0hqoHIHMTZfAZ2nx98AiF44pfY,alJs1GWselPGxkjlEY3KdhqLoIAG7Snq5qfUMhgJYeI,AQACAAE/testsite/";
+//public String DEFAULT_INDEX_SITE="SSK@OvRy7HP~dMKxitNNtZDXMFqI2IIWf7RifXrT61Nlk6c,F5f2AS9NFVTsR2okQFkbUh9EM~HNrD-f8LidYThN3MU,AQACAAE/testsite/";
 	//public  String DEFAULT_INDEX_SITE="SSK@0yc3irwbhLYU1j3MdzGuwC6y1KboBHJ~1zIi8AN2XC0,5j9hrd2LLcew6ieoX1yC-hXRueSKziKYnRaD~aLnAYE,AQACAAE/testsite/";
 	public String DEFAULT_INDEX_SITE="";
 	/*
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
-	private int version = 1;
+	private int version = 2;
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
@@ -86,6 +86,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	private boolean processingWord ;
 	private boolean found_match ;
 	private HashMap uris;
+	private HashMap titles;
 	private Vector fileuris;
 	private String prefix_match;
 	private int prefix;
@@ -138,7 +139,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		out.append("<td><input type=submit name=\"help\" value=\"Help!\" /></td>");
 		out.append("<td><input type=submit name=\"delete\" value=\"Delete Folder\" /></td>");
 		out.append("</tr></table>");
-		out.append("Search in the index or folder:<br/>");
+		out.append("Search for:<br/>");
 		out.append("<p><input type=\"text\" value=\"").append(search).append("\" name=\"search\" size=80/>");
 		out.append("<input type=submit name = \"find\" value=\"Find!\"/></p>\n");
 		out.append("Using the index or folder <br/>");
@@ -619,6 +620,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				while (it.hasNext()) {
 					URIWrapper o = (URIWrapper)it.next();
 					String showurl = o.URI;
+					String showtitle = o.descr;
+					if(showtitle.equals("not available")) showtitle = showurl;
 					String description = HTMLEncoder.encode(o.descr);
 					if(!description.equals("not available")){
 						description=description.replaceAll("(\n|&lt;(b|B)(r|R)&gt;)", "<br>");
@@ -631,7 +634,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					String realurl = (o.URI.startsWith("/")?"":"/") + o.URI;
 					realurl = HTMLEncoder.encode(realurl);
 					out.append("<p>\n<table class=\"librarian-result\" width=\"100%\" border=1><tr><td align=center bgcolor=\"#D0D0D0\" class=\"librarian-result-url\">\n");
-					out.append("  <A HREF=\"").append(realurl).append("\" title=\"").append(o.URI).append("\">").append(showurl).append("</A>\n");
+					out.append("  <A HREF=\"").append(realurl).append("\" title=\"").append(o.URI).append("\">").append(showtitle).append("</A>\n");
 					out.append("</td></tr><tr><td align=left class=\"librarian-result-summary\">\n");
 					out.append("</td></tr></table>\n");
 					results++;
@@ -700,7 +703,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 
 	}
 
-
+/*
+ * parses through the subindex containing the word for the matching files
+ */
 	private Vector getEntry(String str,String subIndex)throws Exception{
 		//search for the word in the given subIndex
 		fileuris = new Vector();
@@ -799,6 +804,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		{
 			found_match = false;
 			uris = new HashMap();
+			titles = new HashMap();
 		}
 		public void startElement(String nameSpaceURI, String localName, String rawName, Attributes attrs) throws SAXException {
 			if (rawName == null) {
@@ -835,14 +841,18 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				if(processingWord == true && found_match == true){
 					URIWrapper uri = new URIWrapper();
 					uri.URI =  (uris.get(attrs.getValue("id"))).toString();
-					uri.descr = "not available";
+					//uri.descr = "not available";
+					uri.descr = (titles.get(attrs.getValue("id"))).toString();
+					if ((uri.URI).equals(uri.descr)) uri.descr = "not available";
 					fileuris.add(uri);
 				}
 				else{
 					try{
 						String id = attrs.getValue("id");
 						String key = attrs.getValue("key");
+						String title = attrs.getValue("title");
 						uris.put(id,key);
+						titles.put(id,title);
 						String[] words = (String[]) uris.values().toArray(new String[uris.size()]);
 					}
 					catch(Exception e){Logger.error(this,"File id and key could not be retrieved. May be due to format clash",e);}
