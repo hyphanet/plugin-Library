@@ -10,7 +10,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.Random;
 import java.util.Vector;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -70,8 +69,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * <p>Change this parameter accordingly.
 	 * 
 	 */
-	public String DEFAULT_INDEX_SITE="SSK@F2r3VplAy6D0Z3odk0hqoHIHMTZfAZ2nx98AiF44pfY,alJs1GWselPGxkjlEY3KdhqLoIAG7Snq5qfUMhgJYeI,AQACAAE/testsite/";
+//public String DEFAULT_INDEX_SITE="SSK@F2r3VplAy6D0Z3odk0hqoHIHMTZfAZ2nx98AiF44pfY,alJs1GWselPGxkjlEY3KdhqLoIAG7Snq5qfUMhgJYeI,AQACAAE/testsite/";
 	//public  String DEFAULT_INDEX_SITE="SSK@0yc3irwbhLYU1j3MdzGuwC6y1KboBHJ~1zIi8AN2XC0,5j9hrd2LLcew6ieoX1yC-hXRueSKziKYnRaD~aLnAYE,AQACAAE/testsite/";
+	public String DEFAULT_INDEX_SITE="";
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
@@ -164,7 +164,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * @param request
 	 */
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
+
 		if(test) {reloadOld(configfile); test= false;}
+
 		StringBuffer out = new StringBuffer();
 		String search = request.getParam("search");
 		String stylesheet = request.getParam("stylesheet", null);
@@ -180,7 +182,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		}
 
 		String indexuri = request.getParam("index", DEFAULT_INDEX_SITE);
-
+		DEFAULT_INDEX_SITE = indexuri;
 		appendDefaultPageStart(out, stylesheet);
 		appendDefaultPostFields(out, search, indexuri);
 		appendDefaultPageEnd(out);
@@ -229,6 +231,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		else if((request.getParam("addToFolder")).equals("Add to folder")){
 			String folder = request.getParam("folderList");
 			indexuri = request.getParam("index",DEFAULT_INDEX_SITE);
+			DEFAULT_INDEX_SITE = indexuri;
 			try{
 				String[] old = (String []) indexList.get(folder);
 				String firstIndex = old[0]; 
@@ -278,7 +281,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			try{
 				searchStr(out,search,indexuri,stylesheet);}
 			catch(Exception e){
-				Logger.error(this, "Searchign for the word "+search+" in index "+indexuri+" failed "+e.toString(), e);
+				Logger.error(this, "Searching for the word "+search+" in index "+indexuri+" failed "+e.toString(), e);
 			}
 		}
 		else if((request.getParam("Reload")).equals("Load Configuration")){
@@ -519,6 +522,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			out.append("<p><span class=\"librarian-searching-for-header\">Searching: </span><span class=\"librarian-searching-for-target\">").append(HTMLEncoder.encode(search)).append("</span></p>\n");
 			// Get search result
 			out.append("<p>Index Site: "+indexuri+"</p>");
+			DEFAULT_INDEX_SITE = indexuri;
 			String searchWords[] = search.split(" ");
 			// Return results in order.
 			LinkedHashSet hs = new LinkedHashSet();
@@ -556,8 +560,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					}
 				}}
 			catch(Exception e){
-				out.append("could not complete search for "+search +"in "+indexuri+e.toString());
-				Logger.error(this, "could not complete search for "+search +"in "+indexuri+e.toString(), e);
+				out.append("Could not complete search for "+search +"in "+indexuri+e.toString());
+				Logger.error(this, "Could not complete search for "+search +"in "+indexuri+e.toString(), e);
 			}
 			// Output results
 			int results = 0;
@@ -592,7 +596,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			out.append("</tr><table>\n");
 			out.append("<p><span class=\"librarian-summary-found-text\">Found: </span><span class=\"librarian-summary-found-number\">").append(results).append(" results</span></p>\n");
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			Logger.error(this, "Could not complete search for "+search +"in "+indexuri+e.toString(), e);
 			e.printStackTrace();
 		}
@@ -648,19 +651,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			return prefix_match;
 
 	}
-
-
-	//	public String search(String str,NodeList list) throws Exception
-	//	{
-	//		int prefix = str.length();
-	//		for(int i = 0;i<list.getLength();i++){
-	//			Element subIndex = (Element) list.item(i);
-	//			String key = subIndex.getAttribute("key");
-	//			if(key.equals(str)) return key;
-	//		}
-	//
-	//		return search(str.substring(0, prefix-1),list);
-	//	}
 
 
 	private Vector getEntry(String str,String subIndex)throws Exception{
@@ -769,7 +759,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 						}
 					}
 				}
-				catch(Exception e){Logger.error(this, "MD5 of the word could not be calculated "+e.toString(), e);}
+				catch(Exception e){Logger.error(this, "MD5 of the word"+word+"could not be calculated "+e.toString(), e);}
 			}
 
 			if(elt_name.equals("files")) processingWord = false;
