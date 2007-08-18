@@ -76,11 +76,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
+	private int version = 1;
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
 	private PluginRespirator pr;
-	private static final String plugName = "XMLLibrarian";
+	private final String plugName = "XMLLibrarian "+version;
 	private String word ;
 	private boolean processingWord ;
 	private boolean found_match ;
