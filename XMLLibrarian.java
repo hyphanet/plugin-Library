@@ -823,19 +823,45 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			if(elt_name.equals("file")){
 				if(processingWord == true && found_match == true){
 					URIWrapper uri = new URIWrapper();
-					uri.URI =  (uris.get(attrs.getValue("id"))).toString();
+					try{
+						uri.URI =  (uris.get(attrs.getValue("id"))).toString();
 					//uri.descr = "not available";
-					uri.descr = (titles.get(attrs.getValue("id"))).toString();
-					if ((uri.URI).equals(uri.descr)) uri.descr = "not available";
+					if(titles.containsKey(attrs.getValue("id")))
+						{
+						uri.descr = (titles.get(attrs.getValue("id"))).toString();
+						if ((uri.URI).equals(uri.descr)) uri.descr = "not available";
+						}
+					else uri.descr = "not available";
 					fileuris.add(uri);
+					}
+					catch(Exception e){
+						Logger.error(this, "Index format may be outdated "+e.toString(), e);
+					}
+					
 				}
 				else{
 					try{
 						String id = attrs.getValue("id");
 						String key = attrs.getValue("key");
-						String title = attrs.getValue("title");
+						int l = attrs.getLength();
+						String title;
+						if (l>=3 )
+						{
+						try{
+						 title = attrs.getValue("title");
+						FileWriter outp = new FileWriter("checking");
+						outp.write("found title "+title+" == \n");
+						outp.close();
+						if(!title.equals(""))
+							titles.put(id,title);
+						}
+						catch(Exception e){
+							Logger.error(this, "Index Format not compatible "+e.toString(), e);
+						}
+						}
+						
 						uris.put(id,key);
-						titles.put(id,title);
+						
 						String[] words = (String[]) uris.values().toArray(new String[uris.size()]);
 					}
 					catch(Exception e){Logger.error(this,"File id and key could not be retrieved. May be due to format clash",e);}
