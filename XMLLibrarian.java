@@ -110,10 +110,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	}
 
 	private void appendDefaultPageStart(StringBuffer out, String stylesheet) {
-
+		
 		out.append("<HTML><HEAD><TITLE>" + plugName + "</TITLE>");
 		if(stylesheet != null)
 			out.append("<link href=\""+stylesheet+"\" type=\"text/css\" rel=\"stylesheet\" />");
+		String s = "<script type=\"text/javascript\">"+"function reloadPage(){ window.location.reload()}</script>";
+		//out.append(s);
 		out.append("</HEAD><BODY>\n");
 		out.append("<CENTER><H1>" + plugName + "</H1><BR/><BR/><BR/>\n");
 	}
@@ -132,16 +134,18 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	public void appendDefaultPostFields(StringBuffer out, String search, String index) {
 		search = HTMLEncoder.encode(search);
 		index = HTMLEncoder.encode(index);
-		out.append("<form method=\"GET\"><table><tr><td>");
-		out.append("<input type=submit name=\"addToFolder\" value=\"Add to folder\" /></td><td>");
-		out.append("<input type=submit name=\"newFolder\" value=\"New Folder\" /></td>");
-		out.append("<td><input type=submit name=\"List\" value=\"List\" /></td>");
-		out.append("<td><input type=submit name=\"help\" value=\"Help!\" /></td>");
-		out.append("<td><input type=submit name=\"delete\" value=\"Delete Folder\" /></td>");
+		String s = "<div style=\"visibility:hidden;\"><input type=submit name = \"find\" value=\"Find!\" TABINDEX=1/></div>";
+		out.append("<form method=\"GET\">");
+		out.append(s);
+		out.append("<table><tr><td><input type=submit name=\"addToFolder\" value=\"Add to folder\" tabindex=9 /></td><td>");
+		out.append("<input type=submit name=\"newFolder\" value=\"New Folder\" tabindex=8/></td>");
+		out.append("<td><input type=submit name=\"List\" value=\"List\" tabindex=7/></td>");
+		out.append("<td><input type=submit name=\"help\" value=\"Help!\" tabindex=6/></td>");
+		out.append("<td><input type=submit name=\"delete\" value=\"Delete Folder\" tabindex=5/></td>");
 		out.append("</tr></table>");
 		out.append("Search for:<br/>");
 		out.append("<p><input type=\"text\" value=\"").append(search).append("\" name=\"search\" size=80/>");
-		out.append("<input type=submit name = \"find\" value=\"Find!\"/></p>\n");
+		out.append("<input type=submit name = \"find\" value=\"Find!\" TABINDEX=1/></p>\n");
 		out.append("Using the index or folder <br/>");
 		out.append("<p><input type=\"radio\" name=\"choice\" value=\"folder\">Folder");
 		out.append("<select name=\"folderList\">");
@@ -164,7 +168,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		out.append("<option value=\"Load Configuration\">Load Configuration</option>");
 		out.append("<option value=\"Save Configuration\">Save Configuration</option></select>");
 		out.append("<input type=submit name=\"go\" value=\"Go!\" />");
-		
+	//	out.append("SetDefaultButton(this.Page, \"search\",\"find\") ");
 		// index - key to index
 		// search - text to search for
 	}
@@ -210,13 +214,19 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				String folder = request.getParam("folderList");
 				try{
 					String[] indices = (String [])indexList.get(folder);
+					
+					String firstIndex = indices[0]; 
+					if(firstIndex.equals(new String("0"))){
+						out.append("No indices found in folder \""+folder+"\"");
+					}
+					else{
 					for(int i =0;i<indices.length;i++)
 					{try{
 						searchStr(out,search,indices[i],stylesheet);}
 					catch (Exception e){
 						Logger.error(this, "Search for "+search+" in folder "+folder+" failed "+e.toString(), e);
 					}
-					}
+					}}
 				}
 				catch(Exception e){
 					out.append("No folder chosen\n");
@@ -236,7 +246,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				String newFolder = request.getParam("newfolder");
 				if(newFolder.equals("")) out.append("Invalid folder name \n");
 				else {indexList.put(newFolder, new String[]{new String("0")});
-				out.append("New folder "+newFolder+" added. Kindly refresh the page<br/> ");}
+				out.append("New folder "+newFolder+" added. Kindly refresh the page<br/> ");
+				}
 			}
 			catch(Exception e){
 				Logger.error(this, "Could not add new folder "+e.toString(), e);
@@ -620,7 +631,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			out.append("</tr><table>\n");
 			out.append("<p><span class=\"librarian-summary-found-text\">Found: </span><span class=\"librarian-summary-found-number\">").append(results).append(" results</span></p>\n");
 		} catch (Exception e) {
-			Logger.error(this, "Could not complete search for "+search +"in "+indexuri+e.toString(), e);
+			Logger.error(this, "Could not complete search for "+search +" in "+indexuri+e.toString(), e);
 			e.printStackTrace();
 		}
 	}
@@ -801,6 +812,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					for(int i=0;i<prefix;i++){
 						if((md5.substring(0,prefix-i)).equals(attrs.getValue("key"))){ 
 							prefix_match=md5.substring(0, prefix-i);
+							Logger.normal(this, "match found "+prefix_match);
+							FileWriter outp = new FileWriter("logfile",true);
+							outp.write("word searched = "+word+" prefix matcheed = "+prefix_match+"\n");
+							outp.close();
 							break;
 						}
 					}
@@ -816,15 +831,30 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			 */
 			if(elt_name.equals("word")){
 				try{
-					if((attrs.getValue("v")).equals(word)) found_match = true;
+					String match = attrs.getValue("v");
+					if(match.equals(word)) found_match = true;
+					//if((attrs.getValue("v")).equals(word)) found_match = true;
+					FileWriter outp = new FileWriter("logfile",true);
+					outp.write("word searched = "+word+" matched \n");
+					outp.close();
 				}catch(Exception e){Logger.error(this, "word key doesn't match"+e.toString(), e); }
 			}
 
 			if(elt_name.equals("file")){
+				try{FileWriter outp = new FileWriter("logfile",true);
+				outp.write("word searched = "+word+" found_match = "+found_match+" processingWord "+processingWord+" \n");
+				outp.close();
+				}
+				catch(Exception e){
+					
+				}
 				if(processingWord == true && found_match == true){
 					URIWrapper uri = new URIWrapper();
 					try{
 						uri.URI =  (uris.get(attrs.getValue("id"))).toString();
+						FileWriter outp = new FileWriter("logfile",true);
+						outp.write("word searched = "+word+" file id = "+uri.URI+" \n");
+						outp.close();
 					//uri.descr = "not available";
 					if(titles.containsKey(attrs.getValue("id")))
 						{
@@ -839,7 +869,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					}
 					
 				}
-				else{
+				else if(processingWord == false){
 					try{
 						String id = attrs.getValue("id");
 						String key = attrs.getValue("key");
@@ -849,11 +879,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 						{
 						try{
 						 title = attrs.getValue("title");
-						FileWriter outp = new FileWriter("checking");
+						FileWriter outp = new FileWriter("logfile",true);
 						outp.write("found title "+title+" == \n");
 						outp.close();
-						if(!title.equals(""))
-							titles.put(id,title);
+						titles.put(id,title);
 						}
 						catch(Exception e){
 							Logger.error(this, "Index Format not compatible "+e.toString(), e);
