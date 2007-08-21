@@ -2,8 +2,9 @@ package plugins.XMLLibrarian;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.FileWriter;
+import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -76,7 +77,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
-	private int version = 4;
+	private int version = 5;
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
@@ -84,7 +85,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	private final String plugName = "XMLLibrarian "+version;
 	private String word ;
 	private boolean processingWord ;
-	private boolean found_match ;
+	
 	private HashMap uris;
 	private HashMap titles;
 	private Vector fileuris;
@@ -154,7 +155,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 
 		for(int i =0;i<words.length;i++)
 		{
-			out.append("<option value=\"").append(words[i]).append("\">").append(words[i]).append("</option></p>");
+			out.append("<option value=\"").append(words[i]).append("\">").append(HTMLEncoder.encode(words[i])).append("</option></p>");
 		}
 		out.append("</p><p><input type=\"radio\" name=\"choice\" value=\"index\">Index");
 		out.append("<input type=\"text\" name=\"index\" value=\"").append(index).append("\" size=50/><br/>");
@@ -198,13 +199,13 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		}
 
 		String indexuri = request.getParam("index", DEFAULT_INDEX_SITE);
-		DEFAULT_INDEX_SITE = indexuri;
+		DEFAULT_INDEX_SITE = HTMLEncoder.encode(indexuri);
 		appendDefaultPageStart(out, stylesheet);
 		appendDefaultPostFields(out, search, indexuri);
 		appendDefaultPageEnd(out);
 		
 		if(((request.getParam("find")).equals("Find!")) && !choice.equals("folder") && !choice.equals("index"))
-			out.append("Choose an index or a folder for search\n");
+			out.append(HTMLEncoder.encode("Choose an index or a folder for search\n"));
 		/*
 		 * search for the given string in the chosen folder 
 		 */
@@ -246,7 +247,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				String newFolder = request.getParam("newfolder");
 				if(newFolder.equals("")) out.append("Invalid folder name \n");
 				else {indexList.put(newFolder, new String[]{new String("0")});
-				out.append("New folder "+newFolder+" added. Kindly refresh the page<br/> ");
+				out.append("New folder "+HTMLEncoder.encode(newFolder)+" added. Kindly refresh the page<br/> ");
 				}
 			}
 			catch(Exception e){
@@ -276,7 +277,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			if(folder.equals("")) out.append("Choose an existing folder for deletion");
 			else{
 				indexList.remove(folder);
-				out.append("\""+folder+"\" deleted successfully. Kindly refresh the page\n");
+				out.append("\""+HTMLEncoder.encode(folder)+"\" deleted successfully. Kindly refresh the page\n");
 			}
 		}
 		/*
@@ -285,7 +286,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		else if((request.getParam("addToFolder")).equals("Add to folder")){
 			String folder = request.getParam("folderList");
 			indexuri = request.getParam("index",DEFAULT_INDEX_SITE);
-			if(folder.equals("") || indexuri.equals(""))out.append("Index \""+indexuri+"\" could not be added to folder \""+folder+"\"");
+			if(folder.equals("") || indexuri.equals(""))out.append("Index \""+HTMLEncoder.encode(indexuri)+"\" could not be added to folder \""+HTMLEncoder.encode(folder)+"\"");
 			else{
 				DEFAULT_INDEX_SITE = indexuri;
 				try{
@@ -302,7 +303,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 						indices[old.length] = indexuri;
 					}
 
-					out.append("index site "+indexuri+" added to "+folder);
+					out.append("index site "+HTMLEncoder.encode(indexuri)+" added to "+folder);
 					indexList.remove(folder);
 					indexList.put(folder, indices);
 				}
@@ -321,7 +322,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				String[] indices = (String[]) indexList.get(folder);
 				for(int i = 0;i<indices.length;i++){
 					out.append("<p>\n<table class=\"librarian-result\" width=\"100%\" border=1><tr><td align=center bgcolor=\"#D0D0D0\" class=\"librarian-result-url\">\n");
-					out.append("  <A HREF=\"").append(indices[i]).append("\">").append(indices[i]).append("</A>");
+					out.append("  <A HREF=\"").append(HTMLEncoder.encode(indices[i])).append("\">").append(indices[i]).append("</A>");
 					out.append("</td></tr><tr><td align=left class=\"librarian-result-summary\">\n");
 					out.append("</td></tr></table>\n");
 				}}
@@ -350,12 +351,13 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				String file = request.getParam("datafile");
 				Vector indices=new Vector();
 				try{
-					BufferedReader inp = new BufferedReader(new FileReader(file));
+					BufferedReader inp = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF8"));
+				
 					String index = inp.readLine();
 
 					while(index != null){
 						indices.add(index);
-						out.append("index :"+index);
+						out.append("index :"+HTMLEncoder.encode(index));
 						index = inp.readLine();
 					}
 					String[] old = (String []) indexList.get(folder);
@@ -380,7 +382,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					inp.close();
 				}
 				catch(Exception e){
-					out.append("Index list from file \" "+file+"\" could not be imported to folder \""+folder+"\"");
+					out.append("Index list from file \" "+HTMLEncoder.encode(file)+"\" could not be imported to folder \""+folder+"\"");
 					Logger.error(this, "Index list from "+file+" could not be imported to folder "+folder+" "+e.toString(), e);
 				}
 
@@ -549,7 +551,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		try {
 			out.append("<p><span class=\"librarian-searching-for-header\">Searching: </span><span class=\"librarian-searching-for-target\">").append(HTMLEncoder.encode(search)).append("</span></p>\n");
 			// Get search result
-			out.append("<p>Index Site: "+indexuri+"</p>");
+			out.append("<p>Index Site: "+HTMLEncoder.encode(indexuri)+"</p>");
 			DEFAULT_INDEX_SITE = indexuri;
 			String searchWords[] = search.split(" ");
 			// Return results in order.
@@ -593,7 +595,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					}
 				}}
 			catch(Exception e){
-				out.append("Could not complete search for "+search +" in "+indexuri+e.toString());
+				out.append("Could not complete search for "+HTMLEncoder.encode(search) +" in "+HTMLEncoder.encode(indexuri)+e.toString());
 				Logger.error(this, "Could not complete search for "+search +"in "+indexuri+e.toString(), e);
 			}
 			// Output results
@@ -781,6 +783,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	public class LibrarianHandler extends DefaultHandler {
 		// now we need to adapt this to read subindexing 
 		private Locator locator = null;
+		private boolean found_match ;
 		public LibrarianHandler() throws Exception{
 		}
 		public void setDocumentLocator(Locator value) {
@@ -831,6 +834,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			 */
 			if(elt_name.equals("word")){
 				try{
+					found_match = false;
 					String match = attrs.getValue("v");
 					if(match.equals(word)) found_match = true;
 					//if((attrs.getValue("v")).equals(word)) found_match = true;
@@ -841,13 +845,14 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			}
 
 			if(elt_name.equals("file")){
-				try{FileWriter outp = new FileWriter("logfile",true);
-				outp.write("word searched = "+word+" found_match = "+found_match+" processingWord "+processingWord+" \n");
-				outp.close();
-				}
-				catch(Exception e){
+//				try{
+//					FileWriter outp = new FileWriter("logfile",true);
+//				outp.write("word searched = "+word+" found_match = "+found_match+" processingWord "+processingWord+" \n");
+//				outp.close();
+//				}
+//				catch(Exception e){
 					
-				}
+//				}
 				if(processingWord == true && found_match == true){
 					URIWrapper uri = new URIWrapper();
 					try{
@@ -863,6 +868,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 						}
 					else uri.descr = "not available";
 					fileuris.add(uri);
+					
 					}
 					catch(Exception e){
 						Logger.error(this, "Index format may be outdated "+e.toString(), e);
@@ -879,9 +885,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 						{
 						try{
 						 title = attrs.getValue("title");
-						FileWriter outp = new FileWriter("logfile",true);
-						outp.write("found title "+title+" == \n");
-						outp.close();
+//						FileWriter outp = new FileWriter("logfile",true);
+//						outp.write("found title "+title+" == \n");
+//						outp.close();
 						titles.put(id,title);
 						}
 						catch(Exception e){
