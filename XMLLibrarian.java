@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
@@ -690,7 +691,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 		try {
 			SAXParser saxParser = factory.newSAXParser();
-			saxParser.parse(res.asBucket().getInputStream(), new LibrarianHandler() );
+			InputStream is = res.asBucket().getInputStream();
+			saxParser.parse(is, new LibrarianHandler() );
 		} catch (Throwable err) {
 			err.printStackTrace ();}
 
@@ -728,7 +730,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			try {
 				SAXParser saxParser = factory.newSAXParser();
-				saxParser.parse(res.asBucket().getInputStream(), new LibrarianHandler() );
+				InputStream is = res.asBucket().getInputStream();
+				saxParser.parse(is, new LibrarianHandler() );
+				is.close();
 			} catch (Throwable err) {
 				err.printStackTrace ();}
 		}
