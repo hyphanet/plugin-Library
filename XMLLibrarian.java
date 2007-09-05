@@ -693,6 +693,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			SAXParser saxParser = factory.newSAXParser();
 			InputStream is = res.asBucket().getInputStream();
 			saxParser.parse(is, new LibrarianHandler() );
+			is.close();
 		} catch (Throwable err) {
 			err.printStackTrace ();}
 
