@@ -224,12 +224,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 						out.append("No indices found in folder \""+folder+"\"");
 					}
 					else{
-					for(int i =0;i<indices.length;i++)
-					{try{
-						searchStr(out,search,indices[i],stylesheet);}
-					catch (Exception e){
-						Logger.error(this, "Search for "+search+" in folder "+folder+" failed "+e.toString(), e);
-					}
+					for(int i =0;i<indices.length;i++) {
+						try {
+							searchStr(out,search,indices[i],stylesheet);
+						} catch (Exception e) {
+							Logger.error(this, "Search for "+search+" in folder "+folder+" failed "+e.toString(), e);
+						}
 					}}
 				}
 				catch(Exception e){
