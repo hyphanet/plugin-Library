@@ -78,7 +78,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
-	private int version = 8;
+	private int version = 9;
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
@@ -229,6 +229,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 							searchStr(out,search,indices[i],stylesheet);
 						} catch (Exception e) {
 							Logger.error(this, "Search for "+search+" in folder "+folder+" failed "+e.toString(), e);
+							out.append("Unable to search in index "+HTMLEncoder.encode(indices[i])+" : "+e.toString());
 						}
 					}}
 				}
