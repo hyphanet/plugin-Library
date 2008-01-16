@@ -78,7 +78,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
-	private int version = 9;
+	private int version = 10;
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
@@ -227,9 +227,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					for(int i =0;i<indices.length;i++) {
 						try {
 							searchStr(out,search,indices[i],stylesheet);
+						} catch (FetchException e) {
+							Logger.normal(this, "Search for "+search+" in folder "+folder+" failed: "+e.toString(), e);
+							out.append("<p>Unable to fetch index "+HTMLEncoder.encode(indices[i])+" : "+e.toString());
 						} catch (Exception e) {
 							Logger.error(this, "Search for "+search+" in folder "+folder+" failed "+e.toString(), e);
-							out.append("Unable to search in index "+HTMLEncoder.encode(indices[i])+" : "+e.toString());
+							out.append("<p>Unable to search in index "+HTMLEncoder.encode(indices[i])+" : "+e.toString()+"</p>\n");
 						}
 					}}
 				}
@@ -603,9 +606,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 							e.getMessage();
 						}
 					}
-				}}
-			catch(Exception e){
-				out.append("Could not complete search for "+HTMLEncoder.encode(search) +" in "+HTMLEncoder.encode(indexuri)+e.toString());
+				}
+			} catch (FetchException e) {
+				out.append("<p>Could not fetch sub-index for "+HTMLEncoder.encode(search)+" in "+HTMLEncoder.encode(indexuri)+" : "+e.toString()+"</p>\n");
+				Logger.normal(this, "<p>Could not fetch sub-index for "+HTMLEncoder.encode(search)+" in "+HTMLEncoder.encode(indexuri)+" : "+e.toString()+"</p>\n", e);
+			} catch(Exception e) {
+				out.append("<p>Could not complete search for "+HTMLEncoder.encode(search) +" in "+HTMLEncoder.encode(indexuri)+" : "+e.toString()+"</p>\n");
 				Logger.error(this, "Could not complete search for "+search +"in "+indexuri+e.toString(), e);
 			}
 			// Output results
