@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
@@ -78,7 +79,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
-	private int version = 12;
+	private int version = 13;
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
@@ -561,6 +562,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			out.append("Give a valid string to search\n");
 			return;
 		}
+		String searchWord = null;
 		try {
 			out.append("<p><span class=\"librarian-searching-for-header\">Searching: </span><span class=\"librarian-searching-for-target\">").append(HTMLEncoder.encode(search)).append("</span></p>\n");
 			// Get search result
@@ -577,6 +579,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			*/
 			try{
 				for(int i = 0;i<searchWords.length;i++){
+					searchWord = searchWords[i];
 					keyuris = getIndex(searchWords[i]);
 					if(i == 0){
 						synchronized(hs){
@@ -608,7 +611,15 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					}
 				}
 			} catch (FetchException e) {
-				out.append("<p>Could not fetch sub-index for "+HTMLEncoder.encode(search)+" : "+e.getMessage()+"</p>\n");
+				FreenetURI uri = getSubIndex(searchWord);
+				String href = "";
+				String endHref = "";
+				if(uri != null) {
+					String encoded = HTMLEncoder.encode(uri.toString());
+					href="<a href=\"/" + encoded;
+					endHref = "";
+				}
+				out.append("<p>Could not fetch "+href+"sub-index"+endHref+" for "+HTMLEncoder.encode(search)+" : "+e.getMessage()+"</p>\n");
 				Logger.normal(this, "<p>Could not fetch sub-index for "+HTMLEncoder.encode(search)+" in "+HTMLEncoder.encode(indexuri)+" : "+e.toString()+"</p>\n", e);
 			} catch(Exception e) {
 				out.append("<p>Could not complete search for "+HTMLEncoder.encode(search) +" : "+e.toString()+"</p>\n");
@@ -663,6 +674,17 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		else return false;
 	}
 
+	private FreenetURI getSubIndex(String word) {
+		if(word == null) return null;
+		try {
+			return new FreenetURI(DEFAULT_INDEX_SITE + "index_"+searchStr(word)+".xml");
+		} catch (MalformedURLException e) {
+			return null;
+		} catch (Exception e) {
+			return null;
+		}
+	}
+	
 	/*
 	 * gets the index for the given word
 	 */
