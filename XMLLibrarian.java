@@ -78,7 +78,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
-	private int version = 11;
+	private int version = 12;
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
@@ -229,10 +229,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 							searchStr(out,search,indices[i],stylesheet);
 						} catch (FetchException e) {
 							Logger.normal(this, "Search for "+search+" in folder "+folder+" failed: "+e.toString(), e);
-							out.append("<p>Unable to fetch index "+HTMLEncoder.encode(indices[i])+" : "+e.getMessage());
+							out.append("<p>Unable to fetch index: "+e.getMessage());
 						} catch (Exception e) {
 							Logger.error(this, "Search for "+search+" in folder "+folder+" failed "+e.toString(), e);
-							out.append("<p>Unable to search in index "+HTMLEncoder.encode(indices[i])+" : "+e.toString()+"</p>\n");
+							out.append("<p>Unable to search in index: "+e.toString()+"</p>\n");
 						}
 					}}
 				}
@@ -608,10 +608,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					}
 				}
 			} catch (FetchException e) {
-				out.append("<p>Could not fetch sub-index for "+HTMLEncoder.encode(search)+" in "+HTMLEncoder.encode(indexuri)+" : "+e.getMessage()+"</p>\n");
+				out.append("<p>Could not fetch sub-index for "+HTMLEncoder.encode(search)+" : "+e.getMessage()+"</p>\n");
 				Logger.normal(this, "<p>Could not fetch sub-index for "+HTMLEncoder.encode(search)+" in "+HTMLEncoder.encode(indexuri)+" : "+e.toString()+"</p>\n", e);
 			} catch(Exception e) {
-				out.append("<p>Could not complete search for "+HTMLEncoder.encode(search) +" in "+HTMLEncoder.encode(indexuri)+" : "+e.toString()+"</p>\n");
+				out.append("<p>Could not complete search for "+HTMLEncoder.encode(search) +" : "+e.toString()+"</p>\n");
 				Logger.error(this, "Could not complete search for "+search +"in "+indexuri+e.toString(), e);
 			}
 			// Output results
