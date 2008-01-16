@@ -79,7 +79,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
-	private int version = 13;
+	private int version = 14;
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
@@ -616,8 +616,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				String endHref = "";
 				if(uri != null) {
 					String encoded = HTMLEncoder.encode(uri.toString());
-					href="<a href=\"/" + encoded;
-					endHref = "";
+					href="<a href=\"/" + encoded+"\">";
+					endHref = "</a>";
 				}
 				out.append("<p>Could not fetch "+href+"sub-index"+endHref+" for "+HTMLEncoder.encode(search)+" : "+e.getMessage()+"</p>\n");
 				Logger.normal(this, "<p>Could not fetch sub-index for "+HTMLEncoder.encode(search)+" in "+HTMLEncoder.encode(indexuri)+" : "+e.toString()+"</p>\n", e);
