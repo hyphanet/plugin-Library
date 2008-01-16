@@ -78,7 +78,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
-	private int version = 7;
+	private int version = 8;
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	boolean goon = true;
@@ -735,10 +735,13 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				saxParser.parse(is, new LibrarianHandler() );
 				is.close();
 			} catch (Throwable err) {
-				err.printStackTrace ();}
+				err.printStackTrace ();
+				throw new Exception("Could not parse XML: "+err.toString());
+			}
 		}
 		catch(Exception e){
 			Logger.error(this, DEFAULT_INDEX_SITE+"index_"+subIndex+".xml could not be opened "+e.toString(), e);
+			throw e;
 		}
 		return fileuris;
 	}
