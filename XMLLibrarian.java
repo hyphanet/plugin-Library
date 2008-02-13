@@ -117,7 +117,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		out.append("<HTML><HEAD><TITLE>" + plugName + "</TITLE>");
 		if(stylesheet != null)
 			out.append("<link href=\""+stylesheet+"\" type=\"text/css\" rel=\"stylesheet\" />");
-		String s = "<script type=\"text/javascript\">"+"function reloadPage(){ window.location.reload()}</script>";
+		//String s = "<script type=\"text/javascript\">"+"function reloadPage(){ window.location.reload()}</script>";
 		//out.append(s);
 		out.append("</HEAD><BODY>\n");
 		out.append("<CENTER><H1>" + plugName + "</H1><BR/><BR/><BR/>\n");
@@ -827,12 +827,11 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 */
 	public class LibrarianHandler extends DefaultHandler {
 		// now we need to adapt this to read subindexing 
-		private Locator locator = null;
 		private boolean found_match ;
 		public LibrarianHandler() throws Exception{
 		}
 		public void setDocumentLocator(Locator value) {
-			locator =  value;
+
 		}
 		public void endDocument()  throws SAXException{}
 
@@ -928,24 +927,24 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 						String key = attrs.getValue("key");
 						int l = attrs.getLength();
 						String title;
-					synchronized(this){
-						if (l>=3 )
-						{
-						try{
-						 title = attrs.getValue("title");
-//						FileWriter outp = new FileWriter("logfile",true);
-//						outp.write("found title "+title+" == \n");
-//						outp.close();
-						titles.put(id,title);
+						synchronized(this){
+							if (l>=3 )
+							{
+								try{
+									title = attrs.getValue("title");
+//									FileWriter outp = new FileWriter("logfile",true);
+//									outp.write("found title "+title+" == \n");
+//									outp.close();
+									titles.put(id,title);
+								}
+								catch(Exception e){
+									Logger.error(this, "Index Format not compatible "+e.toString(), e);
+								}
+							}
+
+							uris.put(id,key);
 						}
-						catch(Exception e){
-							Logger.error(this, "Index Format not compatible "+e.toString(), e);
-						}
-						}
-						
-						uris.put(id,key);
-					}
-						String[] words = (String[]) uris.values().toArray(new String[uris.size()]);
+						//String[] words = (String[]) uris.values().toArray(new String[uris.size()]);
 					}
 					catch(Exception e){Logger.error(this,"File id and key could not be retrieved. May be due to format clash",e);}
 				}
