@@ -775,35 +775,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		return fileuris;
 	}
 
-	/**
-	 * Gets the key of the matched uri.
-	 * @param id 	id of the uri which contains the searched word
-	 * @return		key of the uri
-	 * @throws Exception
-	 */
-	private String getURI(String id) throws Exception
-	{
-		try{
-			DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-			Document doc = docBuilder.parse(DEFAULT_FILE);
-			Element root = doc.getDocumentElement();
-			NodeList fileList = root.getElementsByTagName("file");
-			for(int i = 0;i<fileList.getLength();i++){
-				Element file = (Element) fileList.item(i);
-				String fileId = file.getAttribute("id");
-				if(fileId.equals(id)) return file.getAttribute("key");
-			}
-
-		}
-		catch(Exception e){
-			Logger.error(this, "uri for id ="+id+" could not be retrieved "+e.toString(), e);
-
-		}
-		return "not available";
-	}
-
-
 	public void runPlugin(PluginRespirator pr) {
 		this.pr = pr;
 		this.test = true;
