@@ -82,7 +82,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	private int version = 14;
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
-	boolean goon = true;
+	private volatile boolean goon = true;
 	private PluginRespirator pr;
 	private final String plugName = "XMLLibrarian "+version;
 	private String word ;
