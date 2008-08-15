@@ -94,6 +94,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	private String prefix_match;
 	private int prefix;
 	private boolean test;
+	
+	private static final long MAX_SIZE = 2 * 1024 * 1024 * 1024; //2GB
 	/**
 	 * indexList contains the index folders 
 	 * each folder has a name and a list of indices added to that folder
@@ -740,6 +742,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		//search for the word in the given subIndex
 		fileuris = new Vector();
 		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
+		hlsc.setMaxIntermediateLength(MAX_SIZE);
+		hlsc.setMaxLength(MAX_SIZE);
 		try{
 			FreenetURI u = new FreenetURI(DEFAULT_INDEX_SITE + "index_"+subIndex+".xml");
 
