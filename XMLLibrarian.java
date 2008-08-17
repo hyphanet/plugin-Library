@@ -627,7 +627,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 				Logger.normal(this, "<p>Could not fetch sub-index for "+HTMLEncoder.encode(search)+" in "+HTMLEncoder.encode(indexuri)+" : "+e.toString()+"</p>\n", e);
 			} catch(Exception e) {
 				out.append("<p>Could not complete search for "+HTMLEncoder.encode(search) +" : "+e.toString()+"</p>\n");
-				out.append(String.valueOf(e.printStackTrace()));
+				out.append(String.valueOf(e.getStackTrace()));
 				Logger.error(this, "Could not complete search for "+search +"in "+indexuri+e.toString(), e);
 			}
 			// Output results
