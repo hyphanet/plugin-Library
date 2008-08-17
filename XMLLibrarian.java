@@ -745,11 +745,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		//search for the word in the given subIndex
 		fileuris = new Vector();
 		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
-		hlsc.setMaxIntermediateLength(MAX_SIZE);
-		hlsc.setMaxLength(MAX_SIZE);
 		try{
 			FreenetURI u = new FreenetURI(DEFAULT_INDEX_SITE + "index_"+subIndex+".xml");
-
 			FetchResult res;
 			while(true) {
 				try {
