@@ -232,7 +232,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 							searchStr(out,search,indices[i],stylesheet);
 						} catch (FetchException e) {
 							Logger.normal(this, "Search for "+search+" in folder "+folder+" failed: "+e.toString(), e);
-							out.append("<p>Unable to fetch index: "+e.getMessage());
+							out.append("<p>Unable to fetch index: "+indices[i]);
+							out.append(e.getMessage());
+							out.append(String.valueOf(e.getStackTrace()));
 						} catch (Exception e) {
 							Logger.error(this, "Search for "+search+" in folder "+folder+" failed "+e.toString(), e);
 							out.append("<p>Unable to search in index: "+e.toString()+"</p>\n");
