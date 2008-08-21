@@ -95,7 +95,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	private int prefix;
 	private boolean test;
 	
-	private static final long MAX_SIZE = 2 * 1024 * 1024 * 1024; //2GB
 	/**
 	 * indexList contains the index folders 
 	 * each folder has a name and a list of indices added to that folder
