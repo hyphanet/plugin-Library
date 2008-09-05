@@ -113,7 +113,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		return null;
 	}
 
-	private void appendDefaultPageStart(StringBuffer out, String stylesheet) {
+	private void appendDefaultPageStart(StringBuilder out, String stylesheet) {
 		
 		out.append("<HTML><HEAD><TITLE>" + plugName + "</TITLE>");
 		if(stylesheet != null)
@@ -124,7 +124,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		out.append("<CENTER><H1>" + plugName + "</H1><BR/><BR/><BR/>\n");
 	}
 
-	private void appendDefaultPageEnd(StringBuffer out) {
+	private void appendDefaultPageEnd(StringBuilder out) {
 		out.append("</CENTER></BODY></HTML>");
 	}
 
@@ -136,7 +136,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * @param index
 	 */
 	
-	public void appendDefaultPostFields(StringBuffer out, String search, String index) {
+	public void appendDefaultPostFields(StringBuilder out, String search, String index) {
 		search = HTMLEncoder.encode(search);
 		index = HTMLEncoder.encode(index);
 		String s = "<div style=\"visibility:hidden;\"><input type=submit name = \"find\" value=\"Find!\" TABINDEX=1/></div>";
@@ -188,7 +188,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 
 		if(test) {reloadOld(configfile); test= false;}
 
-		StringBuffer out = new StringBuffer();
+		StringBuilder out = new StringBuilder();
 		String search = request.getParam("search");
 		search = search.toLowerCase();
 		String stylesheet = request.getParam("stylesheet", null);
@@ -490,7 +490,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	/*
 	 * save the current configuration to the specified file, default being configfile
 	 */
-	private void save(StringBuffer out, String file){
+	private void save(StringBuilder out, String file){
 		File outputFile = new File(file);
 		StreamResult resultStream;
 		resultStream = new StreamResult(outputFile);
@@ -559,7 +559,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * @param indexuri
 	 * @param stylesheet
 	 */
-	private void searchStr(StringBuffer out,String search,String indexuri,String stylesheet) throws Exception{
+	private void searchStr(StringBuilder out,String search,String indexuri,String stylesheet) throws Exception{
 
 		if (search.equals("")) {
 			out.append("Give a valid string to search\n");
@@ -928,7 +928,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	}
 
 	private static String convertToHex(byte[] data) {
-		StringBuffer buf = new StringBuffer();
+		StringBuilder buf = new StringBuilder();
 		for (int i = 0; i < data.length; i++) {
 			int halfbyte = (data[i] >>> 4) & 0x0F;
 			int two_halfs = 0;
