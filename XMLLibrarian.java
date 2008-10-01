@@ -105,10 +105,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		goon = false;
 	
 	}
-
-	public String handleHTTPPut(HTTPRequest request) throws PluginHTTPException {
-		return null;
-	}
 	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException {
 		return null;
 	}
