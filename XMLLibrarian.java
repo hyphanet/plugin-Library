@@ -79,7 +79,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
-	private int version = 14;
+	private int version = 15;
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	private volatile boolean goon = true;
@@ -345,7 +345,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 		 */
 		else if(choice.equals("index")){
 			try{
-				if(indexuri.equals(""))out.append("Specify a valid index \n");
+				if(indexuri.equals("")) out.append("Specify a valid index \n");
 				else	searchStr(out,search,indexuri,stylesheet);}
 			catch(Exception e){
 				Logger.error(this, "Searching for the word "+search+" in index "+indexuri+" failed "+e.toString(), e);
@@ -634,6 +634,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					URIWrapper o = (URIWrapper)it.next();
 					String showurl = o.URI;
 					String showtitle = o.descr;
+					if(showtitle.trim().length() == 0)
+						showtitle = "not available";
 					if(showtitle.equals("not available")) showtitle = showurl;
 					String description = HTMLEncoder.encode(o.descr);
 					if(!description.equals("not available")){
