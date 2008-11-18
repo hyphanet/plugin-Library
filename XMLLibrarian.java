@@ -74,12 +74,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 */
 //	public String DEFAULT_INDEX_SITE="SSK@OvRy7HP~dMKxitNNtZDXMFqI2IIWf7RifXrT61Nlk6c,F5f2AS9NFVTsR2okQFkbUh9EM~HNrD-f8LidYThN3MU,AQACAAE/testsite/";
 	//public  String DEFAULT_INDEX_SITE="SSK@0yc3irwbhLYU1j3MdzGuwC6y1KboBHJ~1zIi8AN2XC0,5j9hrd2LLcew6ieoX1yC-hXRueSKziKYnRaD~aLnAYE,AQACAAE/testsite/";
-	public String DEFAULT_INDEX_SITE="USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/15/";
+	public String DEFAULT_INDEX_SITE="USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/16/";
 	/*
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
-	private int version = 15;
+	private int version = 16;
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	private volatile boolean goon = true;
