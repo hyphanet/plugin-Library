@@ -832,9 +832,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 						if((md5.substring(0,prefix-i)).equals(attrs.getValue("key"))){ 
 							prefix_match=md5.substring(0, prefix-i);
 							Logger.normal(this, "match found "+prefix_match);
-							FileWriter outp = new FileWriter("logfile",true);
-							outp.write("word searched = "+word+" prefix matcheed = "+prefix_match+"\n");
-							outp.close();
+							Logger.minor(this, "word searched = "+word+" prefix matcheed = "+prefix_match);
 							break;
 						}
 					}
@@ -854,9 +852,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					String match = attrs.getValue("v");
 					if(match.equals(word)) found_match = true;
 					//if((attrs.getValue("v")).equals(word)) found_match = true;
-					FileWriter outp = new FileWriter("logfile",true);
-					outp.write("word searched = "+word+" matched \n");
-					outp.close();
+					Logger.minor(this, "word searched = "+word+" matched");
 				}catch(Exception e){Logger.error(this, "word key doesn't match"+e.toString(), e); }
 			}
 
@@ -873,9 +869,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 					URIWrapper uri = new URIWrapper();
 					try{
 						uri.URI =  (uris.get(attrs.getValue("id"))).toString();
-						FileWriter outp = new FileWriter("logfile",true);
-						outp.write("word searched = "+word+" file id = "+uri.URI+" \n");
-						outp.close();
+						Logger.minor(this, "word searched = "+word+" file id = "+uri.URI);
 					//uri.descr = "not available";
 					synchronized(this){
 						if(titles.containsKey(attrs.getValue("id")))
