@@ -186,7 +186,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 
 		StringBuilder out = new StringBuilder();
 		String search = request.getParam("search");
-		search = search.toLowerCase();
 		String stylesheet = request.getParam("stylesheet", null);
 		String choice = request.getParam("choice");
 
@@ -556,7 +555,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * @param stylesheet
 	 */
 	private void searchStr(StringBuilder out,String search,String indexuri,String stylesheet) throws Exception{
-
+		search = search.toLowerCase();
 		if (search.equals("")) {
 			out.append("Give a valid string to search\n");
 			return;
@@ -567,7 +566,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 			// Get search result
 			out.append("<p>Index Site: "+HTMLEncoder.encode(indexuri)+"</p>");
 			DEFAULT_INDEX_SITE = indexuri;
-			String searchWords[] = search.split(" ");
+			String[] searchWords = search.split("[^\\p{L}\\{N}]");
 			// Return results in order.
 			LinkedHashSet hs = new LinkedHashSet();
 			Vector keyuris;
