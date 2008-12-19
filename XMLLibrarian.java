@@ -865,13 +865,13 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 				if(processingWord == true && found_match == true){
 					URIWrapper uri = new URIWrapper();
 					try{
-						uri.URI =  (uris.get(attrs.getValue("id"))).toString();
+						uri.URI = uris.get(attrs.getValue("id"));
 						Logger.minor(this, "word searched = "+word+" file id = "+uri.URI);
 					//uri.descr = "not available";
 					synchronized(this){
 						if(titles.containsKey(attrs.getValue("id")))
 						{
-						uri.descr = (titles.get(attrs.getValue("id"))).toString();
+						uri.descr = titles.get(attrs.getValue("id"));
 						if ((uri.URI).equals(uri.descr)) uri.descr = "not available";
 						}
 					else uri.descr = "not available";
