@@ -413,12 +413,14 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 				String file = request.getParam("datafile");
 				try{
 					FileWriter outp = new FileWriter(file,true);
-
-					String[] indices = indexList.get(folder);
-					for(int i = 0;i<indices.length;i++){
-						outp.write(indices[i]+"\n");
+					try {
+						String[] indices = indexList.get(folder);
+						for(int i = 0;i<indices.length;i++){
+							outp.write(indices[i]+"\n");
+						}
+					} finally {
+						outp.close();
 					}
-					outp.close();
 				}
 				catch(Exception e){
 					out.append("Could not write index list of folder \""+folder+"\" to external file \""+file+"\"");
