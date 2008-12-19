@@ -90,7 +90,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
-	private volatile boolean goon = true;
 	private PluginRespirator pr;	
 	private String word ;
 	private boolean processingWord ;
@@ -106,7 +105,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	private HashMap<String, String[]> indexList = new HashMap<String, String[]>();
 
 	public void terminate() {
-		goon = false;
 	
 	}
 	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException {
@@ -662,16 +660,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			e.printStackTrace();
 		}
 	}
-	private boolean Contains(String str, Vector<URIWrapper> keyuris){
-		if(keyuris.size() > 0){
-			for(int i = 0; i<keyuris.size();i++){
-				if(str.equals(((keyuris.elementAt(i)).URI))) return true;
-			}
-			return false;
-		}
-		else return false;
-	}
-
+	
 	private FreenetURI getSubIndex(String word) {
 		if(word == null) return null;
 		try {
