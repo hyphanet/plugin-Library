@@ -13,6 +13,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.Vector;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -96,7 +98,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	
 	private HashMap<String, String> uris;
 	private HashMap<String, String> titles;
-	private Vector<URIWrapper> fileuris;
 	private String prefix_match;
 	private int prefix;
 	private boolean test;
@@ -730,7 +731,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		try {
 			SAXParser saxParser = factory.newSAXParser();
 			InputStream is = res.asBucket().getInputStream();
-			saxParser.parse(is, new LibrarianHandler() );
+			saxParser.parse(is, new LibrarianHandler(new Vector<URIWrapper>()) );
 			is.close();
 		} catch (Throwable err) {
 			err.printStackTrace ();}
@@ -747,7 +748,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 */
 	public Vector<URIWrapper> getEntry(String str,String subIndex)throws Exception{
 		//search for the word in the given subIndex
-		fileuris = new Vector<URIWrapper>();
+		Vector<URIWrapper> fileuris = new Vector<URIWrapper>();
 		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
 		try{
 			FreenetURI u = new FreenetURI(DEFAULT_INDEX_SITE + "index_"+subIndex+".xml");
@@ -769,7 +770,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			try {
 				SAXParser saxParser = factory.newSAXParser();
 				InputStream is = res.asBucket().getInputStream();
-				saxParser.parse(is, new LibrarianHandler() );
+				saxParser.parse(is, new LibrarianHandler(fileuris) );
 				is.close();
 			} catch (Throwable err) {
 				err.printStackTrace ();
@@ -807,7 +808,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	public class LibrarianHandler extends DefaultHandler {
 		// now we need to adapt this to read subindexing 
 		private boolean found_match ;
-		public LibrarianHandler() throws Exception{
+		private List<URIWrapper> fileuris;
+		public LibrarianHandler(List<URIWrapper> fileuris) throws Exception{
+			this.fileuris = fileuris;
 		}
 		public void setDocumentLocator(Locator value) {
 
