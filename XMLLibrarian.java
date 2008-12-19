@@ -95,8 +95,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	private String word ;
 	private boolean processingWord ;
 	
-	private HashMap<String, String> uris;
-	private HashMap<String, String> titles;
 	private String prefix_match;
 	private int prefix;
 	private boolean test;
@@ -803,6 +801,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	public class LibrarianHandler extends DefaultHandler {
 		// now we need to adapt this to read subindexing 
 		private boolean found_match ;
+		/** file id -> uri */
+		private HashMap<String, String> uris;
+		/** file id -> title */
+		private HashMap<String, String> titles;
 		private List<URIWrapper> fileuris;
 
 		public LibrarianHandler(List<URIWrapper> fileuris) throws Exception {
