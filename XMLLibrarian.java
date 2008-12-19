@@ -223,7 +223,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 					String[] indices = indexList.get(folder);
 					
 					String firstIndex = indices[0]; 
-					if(firstIndex.equals(new String("0"))){
+					if (firstIndex.equals("0")) {
 						out.append("No indices found in folder \""+folder+"\"");
 					}
 					else{
@@ -259,7 +259,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 				String newFolder = request.getParam("newfolder");
 				synchronized(this){
 				if(newFolder.equals("")) out.append("Invalid folder name \n");
-				else {indexList.put(newFolder, new String[]{new String("0")});
+				else {
+						indexList.put(newFolder, new String[] { "0" });
 				out.append("New folder "+HTMLEncoder.encode(newFolder)+" added. Kindly refresh the page<br/> ");
 				}}
 			}
@@ -307,7 +308,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 					String[] old = indexList.get(folder);
 					String firstIndex = old[0]; 
 					String[] indices;
-					if(firstIndex.equals(new String("0"))){
+					if (firstIndex.equals("0")) {
 						indices = new String[]{indexuri};
 					}
 					else{
