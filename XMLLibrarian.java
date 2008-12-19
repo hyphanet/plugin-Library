@@ -571,7 +571,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			// Get search result
 			out.append("<p>Index Site: "+HTMLEncoder.encode(indexuri)+"</p>");
 			DEFAULT_INDEX_SITE = indexuri;
-			String[] searchWords = search.split("[^\\p{L}\\{N}]");
+			String[] searchWords = search.split("[^\\p{L}\\{N}]+");
 			// Return results in order.
 			LinkedHashSet<URIWrapper> hs = new LinkedHashSet<URIWrapper>();
 			/*
