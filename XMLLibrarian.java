@@ -94,9 +94,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	private String word ;
 	private boolean processingWord ;
 	
-	private HashMap uris;
-	private HashMap titles;
-	private Vector fileuris;
+	private HashMap<String, String> uris;
+	private HashMap<String, String> titles;
+	private Vector<URIWrapper> fileuris;
 	private String prefix_match;
 	private int prefix;
 	private boolean test;
@@ -105,7 +105,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * indexList contains the index folders 
 	 * each folder has a name and a list of indices added to that folder
 	 */
-	private HashMap indexList = new HashMap();
+	private HashMap<String, String[]> indexList = new HashMap<String, String[]>();
 
 	public void terminate() {
 		goon = false;
@@ -157,7 +157,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		out.append("<p><input type=\"radio\" name=\"choice\" value=\"folder\">Folder");
 		out.append("<select name=\"folderList\">");
 
-		String[] words = (String[]) indexList.keySet().toArray(new String[indexList.size()]);
+		String[] words = indexList.keySet().toArray(new String[indexList.size()]);
 
 		for(int i =0;i<words.length;i++)
 		{
@@ -220,7 +220,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			{
 				String folder = request.getParam("folderList");
 				try{
-					String[] indices = (String [])indexList.get(folder);
+					String[] indices = indexList.get(folder);
 					
 					String firstIndex = indices[0]; 
 					if(firstIndex.equals(new String("0"))){
@@ -304,7 +304,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			else{
 				DEFAULT_INDEX_SITE = indexuri;
 				try{
-					String[] old = (String []) indexList.get(folder);
+					String[] old = indexList.get(folder);
 					String firstIndex = old[0]; 
 					String[] indices;
 					if(firstIndex.equals(new String("0"))){
@@ -334,7 +334,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 
 			String folder = request.getParam("folderList");
 			try{
-				String[] indices = (String[]) indexList.get(folder);
+				String[] indices = indexList.get(folder);
 				for(int i = 0;i<indices.length;i++){
 					out.append("<p>\n<table class=\"librarian-result\" width=\"100%\" border=1><tr><td align=center bgcolor=\"#D0D0D0\" class=\"librarian-result-url\">\n");
 					out.append("  <A HREF=\"").append(HTMLEncoder.encode(indices[i])).append("\">").append(indices[i]).append("</A>");
@@ -364,7 +364,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			if((request.getParam("actionList")).equals("Import From File")){
 				String folder = request.getParam("folderList");
 				String file = request.getParam("datafile");
-				Vector indices=new Vector();
+				Vector<String> indices=new Vector<String>();
 				try{
 					BufferedReader inp = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF8"));
 				
@@ -375,20 +375,20 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 						out.append("index :"+HTMLEncoder.encode(index));
 						index = inp.readLine();
 					}
-					String[] old = (String []) indexList.get(folder);
+					String[] old = indexList.get(folder);
 					String[] finalIndex;
 					if(old[0].equals("0")) 
 					{
 						finalIndex = new String[indices.size()];
 						for(int i = 0;i<indices.size();i++){
-							finalIndex[i] = (String) indices.elementAt(i);
+							finalIndex[i] = indices.elementAt(i);
 						}
 					}
 					else{
 						finalIndex = new String[old.length + indices.size()];
 						System.arraycopy(old, 0, finalIndex, 0, old.length);
 						for(int i = 0;i<indices.size();i++){
-							finalIndex[old.length + i] = (String) indices.elementAt(i);
+							finalIndex[old.length + i] = indices.elementAt(i);
 						}
 					}
 					synchronized(this){
@@ -413,7 +413,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 				try{
 					FileWriter outp = new FileWriter(file,true);
 
-					String[] indices = ((String [])indexList.get(folder));
+					String[] indices = indexList.get(folder);
 					for(int i = 0;i<indices.length;i++){
 						outp.write(indices[i]+"\n");
 					}
@@ -513,14 +513,14 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		xmlDoc = impl.createDocument(null, "XMLLibrarian", null);
 		rootElement = xmlDoc.getDocumentElement();
 
-		String[] folders = (String[]) indexList.keySet().toArray(new String[indexList.size()]);
+		String[] folders = indexList.keySet().toArray(new String[indexList.size()]);
 		for(int i=0;i<folders.length;i++)
 		{
 			Element folder = xmlDoc.createElement("folder");
 			String folderName = folders[i];
 			folder.setAttribute("name", folderName);
 
-			String[] indices = (String[]) indexList.get(folderName);
+			String[] indices = indexList.get(folderName);
 			for(int j =0;j<indices.length;j++)
 			{
 				Element index = xmlDoc.createElement("index");
@@ -574,8 +574,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			DEFAULT_INDEX_SITE = indexuri;
 			String[] searchWords = search.split("[^\\p{L}\\{N}]");
 			// Return results in order.
-			LinkedHashSet hs = new LinkedHashSet();
-			Vector keyuris;
+			LinkedHashSet<URIWrapper> hs = new LinkedHashSet<URIWrapper>();
+			Vector<URIWrapper> keyuris;
 			/*
 			 * search for each string in the search list
 			 * only the common results to all words are returned as final result 
@@ -589,7 +589,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 						synchronized(hs){
 							hs.clear();
 							if (keyuris != null) {
-								Iterator it = keyuris.iterator();
+								Iterator<URIWrapper> it = keyuris.iterator();
 								while (it.hasNext()){
 									hs.add(it.next());	
 								}
@@ -600,9 +600,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 						try{
 							synchronized(hs){
 								if(keyuris.size() > 0){
-									Iterator it = hs.iterator();
+									Iterator<URIWrapper> it = hs.iterator();
 									while(it.hasNext()){
-										URIWrapper uri = (URIWrapper) it.next();
+										URIWrapper uri = it.next();
 										if(!Contains(uri.URI,keyuris)) it.remove();
 									}
 								}
@@ -633,10 +633,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			// Output results
 			int results = 0;
 			out.append("<table class=\"librarian-results\"><tr>\n");
-			Iterator it = hs.iterator();
+			Iterator<URIWrapper> it = hs.iterator();
 			try{
 				while (it.hasNext()) {
-					URIWrapper o = (URIWrapper)it.next();
+					URIWrapper o = it.next();
 					String showurl = o.URI;
 					String showtitle = o.descr;
 					if(showtitle.trim().length() == 0)
@@ -671,10 +671,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			e.printStackTrace();
 		}
 	}
-	private boolean Contains(String str, Vector keyuris){
+	private boolean Contains(String str, Vector<URIWrapper> keyuris){
 		if(keyuris.size() > 0){
 			for(int i = 0; i<keyuris.size();i++){
-				if(str.equals((((URIWrapper) (keyuris.elementAt(i))).URI))) return true;
+				if(str.equals(((keyuris.elementAt(i)).URI))) return true;
 			}
 			return false;
 		}
@@ -695,9 +695,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	/*
 	 * gets the index for the given word
 	 */
-	private Vector getIndex(String word) throws Exception{
+	private Vector<URIWrapper> getIndex(String word) throws Exception{
 		String subIndex = searchStr(word);
-		Vector index = new Vector();
+		Vector<URIWrapper> index = new Vector<URIWrapper>();
 		index = getEntry(word,subIndex);
 		return index;
 	}
@@ -743,9 +743,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * @param str search string
 	 * @subIndex subIndex containing the word
 	 */
-	public Vector getEntry(String str,String subIndex)throws Exception{
+	public Vector<URIWrapper> getEntry(String str,String subIndex)throws Exception{
 		//search for the word in the given subIndex
-		fileuris = new Vector();
+		fileuris = new Vector<URIWrapper>();
 		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
 		try{
 			FreenetURI u = new FreenetURI(DEFAULT_INDEX_SITE + "index_"+subIndex+".xml");
@@ -815,8 +815,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		public void startDocument () throws SAXException
 		{
 			found_match = false;
-			uris = new HashMap();
-			titles = new HashMap();
+			uris = new HashMap<String, String>();
+			titles = new HashMap<String, String>();
 		}
 		public void startElement(String nameSpaceURI, String localName, String rawName, Attributes attrs) throws SAXException {
 			if (rawName == null) {
