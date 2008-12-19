@@ -574,7 +574,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			String[] searchWords = search.split("[^\\p{L}\\{N}]");
 			// Return results in order.
 			LinkedHashSet<URIWrapper> hs = new LinkedHashSet<URIWrapper>();
-			Vector<URIWrapper> keyuris;
 			/*
 			 * search for each string in the search list
 			 * only the common results to all words are returned as final result 
@@ -583,7 +582,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			try{
 				for(int i = 0;i<searchWords.length;i++){
 					searchWord = searchWords[i];
-					keyuris = getIndex(searchWords[i]);
+					Vector<URIWrapper> keyuris = getIndex(searchWords[i]);
 					if (i == 0)
 						hs.addAll(keyuris);
 					else
