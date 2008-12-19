@@ -700,8 +700,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 */
 	private Vector<URIWrapper> getIndex(String word) throws Exception{
 		String subIndex = searchStr(word);
-		Vector<URIWrapper> index = new Vector<URIWrapper>();
-		index = getEntry(word,subIndex);
+		Vector<URIWrapper> index = getEntry(word,subIndex);
 		return index;
 	}
 
