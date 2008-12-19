@@ -765,14 +765,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		this.test = true;
 	}
 
-	private class URIWrapper implements Comparable {
+	private class URIWrapper implements Comparable<URIWrapper> {
 		public String URI;
 		public String descr;
 
-		public int compareTo(Object o) {
-			if (o instanceof URIWrapper)
-				return URI.compareTo(((URIWrapper)o).URI);
-			return -1;
+		public int compareTo(URIWrapper o) {
+			return URI.compareTo(o.URI);
 		}
 		
 		public boolean equals(Object o) {
