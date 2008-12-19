@@ -584,24 +584,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 				for(int i = 0;i<searchWords.length;i++){
 					searchWord = searchWords[i];
 					keyuris = getIndex(searchWords[i]);
-					if(i == 0){
-						synchronized(hs){
-							hs.clear();
-							if (keyuris != null) {
-								hs.addAll(keyuris);
-							}
-						}
-					}
-					else{
-						try{
-							synchronized(hs){
-								hs.retainAll(keyuris);
-							}
-						}
-						catch(Exception e){
-							e.getMessage();
-						}
-					}
+					if (i == 0)
+						hs.addAll(keyuris);
+					else
+						hs.retainAll(keyuris);
 				}
 			} catch (FetchException e) {
 				FreenetURI uri = getSubIndex(searchWord);
