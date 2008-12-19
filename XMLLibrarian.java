@@ -592,24 +592,14 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 						synchronized(hs){
 							hs.clear();
 							if (keyuris != null) {
-								Iterator<URIWrapper> it = keyuris.iterator();
-								while (it.hasNext()){
-									hs.add(it.next());	
-								}
+								hs.addAll(keyuris);
 							}
 						}
 					}
 					else{
 						try{
 							synchronized(hs){
-								if(keyuris.size() > 0){
-									Iterator<URIWrapper> it = hs.iterator();
-									while(it.hasNext()){
-										URIWrapper uri = it.next();
-										if(!Contains(uri.URI,keyuris)) it.remove();
-									}
-								}
-								if(keyuris.size() == 0) hs.clear();
+								hs.retainAll(keyuris);
 							}
 						}
 						catch(Exception e){
@@ -796,6 +786,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			if (o instanceof URIWrapper)
 				return URI.compareTo(((URIWrapper)o).URI);
 			return -1;
+		}
+		
+		public boolean equals(Object o) {
+			if (o == null || o.getClass() != getClass())
+				return false;
+			return URI.equals(((URIWrapper) o).URI);
 		}
 	}
 
