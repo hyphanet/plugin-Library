@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Vector;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -731,7 +730,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		try {
 			SAXParser saxParser = factory.newSAXParser();
 			InputStream is = res.asBucket().getInputStream();
-			saxParser.parse(is, new LibrarianHandler(new Vector<URIWrapper>()) );
+			saxParser.parse(is, new LibrarianHandler(new Vector<URIWrapper>()));
 			is.close();
 		} catch (Throwable err) {
 			err.printStackTrace ();}
@@ -770,7 +769,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			try {
 				SAXParser saxParser = factory.newSAXParser();
 				InputStream is = res.asBucket().getInputStream();
-				saxParser.parse(is, new LibrarianHandler(fileuris) );
+				saxParser.parse(is, new LibrarianHandler(fileuris));
 				is.close();
 			} catch (Throwable err) {
 				err.printStackTrace ();
@@ -809,7 +808,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		// now we need to adapt this to read subindexing 
 		private boolean found_match ;
 		private List<URIWrapper> fileuris;
-		public LibrarianHandler(List<URIWrapper> fileuris) throws Exception{
+
+		public LibrarianHandler(List<URIWrapper> fileuris) throws Exception {
 			this.fileuris = fileuris;
 		}
 		public void setDocumentLocator(Locator value) {
