@@ -936,10 +936,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	public static String MD5(String text) throws NoSuchAlgorithmException, UnsupportedEncodingException  {
 		MessageDigest md;
 		md = MessageDigest.getInstance("MD5");
-		byte[] md5hash = new byte[32];
 		byte[] b = text.getBytes("UTF-8");
 		md.update(b, 0, b.length);
-		md5hash = md.digest();
+		byte[] md5hash = md.digest();
 		return convertToHex(md5hash);
 	}
 }
