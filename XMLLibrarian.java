@@ -44,6 +44,7 @@ import freenet.keys.FreenetURI;
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginHTTP;
 import freenet.pluginmanager.FredPluginThreadless;
+import freenet.pluginmanager.FredPluginVersioned;
 import freenet.pluginmanager.PluginHTTPException;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLEncoder;
@@ -66,7 +67,7 @@ import freenet.support.api.HTTPRequest;
  * @author swatigoyal
  *
  */
-public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThreadless {
+public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersioned, FredPluginThreadless {
 	/**
 	 * Gives the default index site displayed in the browser.
 	 * <p>Change this parameter accordingly.
@@ -79,12 +80,17 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginThrea
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
-	private int version = 17;
+	private int version = 18;
+	private final String plugName = "XMLLibrarian " + version;
+
+	public String getVersion() {
+		return version + " r" + Version.getSvnRevision();
+	}
+	
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
 	private volatile boolean goon = true;
-	private PluginRespirator pr;
-	private final String plugName = "XMLLibrarian "+version;
+	private PluginRespirator pr;	
 	private String word ;
 	private boolean processingWord ;
 	
