@@ -701,6 +701,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			is.close();
 		} catch (Throwable err) {
 			err.printStackTrace ();}
+		} finally {
+		    res.asBucket().free();
+		}
 
 
 		return prefix_match;
