@@ -573,18 +573,19 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			DEFAULT_INDEX_SITE = indexuri;
 			String[] searchWords = search.split("[^\\p{L}\\{N}]+");
 			// Return results in order.
-			LinkedHashSet<URIWrapper> hs;
+			LinkedHashSet<URIWrapper> hs = null;
 			/*
 			 * search for each string in the search list
 			 * only the common results to all words are returned as final result 
 			 * 
 			*/
 			try{
-				for(String searchWord : searchWords[i]) {
+				for (String s : searchWords) {
+					searchWord = s;
 					if (searchWord.length() < 3)
 						continue;		// xmlspider don't include words length < 3, have to fix this
 
-					Vector<URIWrapper> keyuris = getIndex(searchWords[i]);
+					Vector<URIWrapper> keyuris = getIndex(searchWord);
 					if (hs == null)
 						hs = new LinkedHashSet<URIWrapper>(keyuris);
 					else
@@ -700,11 +701,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			saxParser.parse(is, new LibrarianHandler(new Vector<URIWrapper>()));
 			is.close();
 		} catch (Throwable err) {
-			err.printStackTrace ();}
+			err.printStackTrace();
 		} finally {
 		    res.asBucket().free();
 		}
-
 
 		return prefix_match;
 
