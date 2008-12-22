@@ -45,7 +45,9 @@ import freenet.pluginmanager.PluginHTTPException;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLEncoder;
 import freenet.support.Logger;
+import freenet.support.api.Bucket;
 import freenet.support.api.HTTPRequest;
+import freenet.support.io.FileBucket;
 /**
  * XMLLibrarian is a modified version of the old librarian.
  * It uses the Xml index files for searching. 
@@ -582,11 +584,11 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 				if (hs == null)
 					hs = new LinkedHashSet<URIWrapper>();
 			} catch (FetchException e) {
-				FreenetURI uri = getSubIndex(indexuri, searchWord);
+				String uri = getSubIndex(indexuri, searchWord);
 				String href = "";
 				String endHref = "";
 				if(uri != null) {
-					String encoded = HTMLEncoder.encode(uri.toString());
+					String encoded = HTMLEncoder.encode(uri);
 					href="<a href=\"/" + encoded+"\">";
 					endHref = "</a>";
 				}
@@ -639,10 +641,17 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		}
 	}
 	
-	private FreenetURI getSubIndex(String indexuri, String word) {
+	private String getSubIndex(String indexuri, String word) {
 		if(word == null) return null;
+		
 		try {
-			return new FreenetURI(indexuri + "index_" + getSubindex(indexuri, word) + ".xml");
+			String subindex = getSubindex(indexuri, word);
+			File file = new File(indexuri + "index_" + subindex + ".xml");
+
+			if (file.exists())
+				return file.toURI().toASCIIString();
+
+			return new FreenetURI(indexuri + "index_" + subindex + ".xml").toASCIIString();
 		} catch (MalformedURLException e) {
 			return null;
 		} catch (Exception e) {
@@ -659,6 +668,33 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		return index;
 	}
 
+	private Bucket fetchBucket(String uri) throws FetchException, MalformedURLException {
+		// File
+		File file = new File(uri);
+		if (file.exists() && file.canRead()) {
+			return new FileBucket(file, true, false, false, false, false);
+		}
+
+		// FreenetURI
+		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
+		FreenetURI u = new FreenetURI(uri);
+		FetchResult res;
+		while (true) {
+			try {
+				res = hlsc.fetch(u);
+				break;
+			} catch (FetchException e) {
+				if (e.newURI != null) {
+					u = e.newURI;
+					continue;
+				} else
+					throw e;
+			}
+		}
+		
+		return res.asBucket();
+	}
+	
 	/**
 	 * Parses through the main index file(index.xml) looking for the subindex containing the entry for the search string.
 	 * @param str  word to be searched
@@ -666,24 +702,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * @throws Exception
 	 */
 	public String getSubindex(String indexuri, String str) throws Exception {
-		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
-		FreenetURI u = new FreenetURI(indexuri + DEFAULT_FILE);
-		FetchResult res;
-		while(true) {
-			try {
-				res = hlsc.fetch(u);
-				break;
-			} catch (FetchException e) {
-				if(e.newURI != null) {
-					u = e.newURI;
-					continue;
-				} else throw e;
-			}
-		}
+		Bucket bucket = fetchBucket(indexuri + DEFAULT_FILE);
+		
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 		try {
 			SAXParser saxParser = factory.newSAXParser();
-			InputStream is = res.asBucket().getInputStream();
+			InputStream is = bucket.getInputStream();
 			LibrarianHandler lib = new LibrarianHandler(str, new Vector<URIWrapper>());
 			saxParser.parse(is, lib);
 			is.close();
@@ -692,7 +716,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		} catch (Throwable err) {
 			err.printStackTrace();
 		} finally {
-		    res.asBucket().free();
+			bucket.free();
 		}
 
 		return null;
@@ -706,31 +730,21 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	public Vector<URIWrapper> getEntry(String str, String indexuri, String subIndex) throws Exception {
 		//search for the word in the given subIndex
 		Vector<URIWrapper> fileuris = new Vector<URIWrapper>();
-		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
-		try{
-			FreenetURI u = new FreenetURI(indexuri + "index_" + subIndex + ".xml");
-			FetchResult res;
-			while(true) {
+		
 				try {
-					res = hlsc.fetch(u);
-					break;
-				} catch (FetchException e) {
-					if(e.newURI != null) {
-						u = e.newURI;
-						continue;
-					} else throw e;
-				}
-			}
-
+			Bucket bucket = fetchBucket(indexuri + "index_" + subIndex + ".xml");
+	
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			try {
 				SAXParser saxParser = factory.newSAXParser();
-				InputStream is = res.asBucket().getInputStream();
+				InputStream is = bucket.getInputStream();
 				saxParser.parse(is, new LibrarianHandler(str, fileuris));
 				is.close();
 			} catch (Throwable err) {
 				err.printStackTrace ();
 				throw new Exception("Could not parse XML: "+err.toString());
+			} finally {
+				bucket.free();
 			}
 		}
 		catch(Exception e){
