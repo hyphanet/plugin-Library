@@ -90,8 +90,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	
 	private String configfile = "XMLLibrarian.xml";
 	private  String DEFAULT_FILE = "index.xml";
-	private PluginRespirator pr;	
-	private String word ;
+	private PluginRespirator pr;
+
 	private boolean processingWord ;
 	
 	private String prefix_match;
@@ -693,12 +693,11 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 				} else throw e;
 			}
 		}
-		word = str;
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 		try {
 			SAXParser saxParser = factory.newSAXParser();
 			InputStream is = res.asBucket().getInputStream();
-			saxParser.parse(is, new LibrarianHandler(new Vector<URIWrapper>()));
+			saxParser.parse(is, new LibrarianHandler(str, new Vector<URIWrapper>()));
 			is.close();
 		} catch (Throwable err) {
 			err.printStackTrace();
@@ -733,13 +732,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 					} else throw e;
 				}
 			}
-			word = str; //word to be searched
 
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			try {
 				SAXParser saxParser = factory.newSAXParser();
 				InputStream is = res.asBucket().getInputStream();
-				saxParser.parse(is, new LibrarianHandler(fileuris));
+				saxParser.parse(is, new LibrarianHandler(str, fileuris));
 				is.close();
 			} catch (Throwable err) {
 				err.printStackTrace ();
@@ -779,6 +777,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 *
 	 */
 	public class LibrarianHandler extends DefaultHandler {
+		private String word;
 		// now we need to adapt this to read subindexing 
 		private boolean found_match ;
 		/** file id -> uri */
@@ -787,7 +786,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		private HashMap<String, String> titles;
 		private List<URIWrapper> fileuris;
 
-		public LibrarianHandler(List<URIWrapper> fileuris) throws Exception {
+		public LibrarianHandler(String word, List<URIWrapper> fileuris) throws Exception {
 			this.fileuris = fileuris;
 		}
 		public void setDocumentLocator(Locator value) {
