@@ -646,7 +646,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	private FreenetURI getSubIndex(String word) {
 		if(word == null) return null;
 		try {
-			return new FreenetURI(DEFAULT_INDEX_SITE + "index_"+searchStr(word)+".xml");
+			return new FreenetURI(DEFAULT_INDEX_SITE + "index_"+getSubindex(word)+".xml");
 		} catch (MalformedURLException e) {
 			return null;
 		} catch (Exception e) {
@@ -658,7 +658,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * gets the index for the given word
 	 */
 	private Vector<URIWrapper> getIndex(String word) throws Exception{
-		String subIndex = searchStr(word);
+		String subIndex = getSubindex(word);
 		Vector<URIWrapper> index = getEntry(word,subIndex);
 		return index;
 	}
@@ -669,7 +669,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * @return
 	 * @throws Exception
 	 */
-	public String searchStr(String str) throws Exception{
+	public String getSubindex(String str) throws Exception{
 		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
 		FreenetURI u = new FreenetURI(DEFAULT_INDEX_SITE + DEFAULT_FILE);
 		FetchResult res;
