@@ -3,8 +3,6 @@
  */
 package plugins.XMLLibrarian;
 
-import plugins.XMLLibrarian.XMLLibrarian.URIWrapper;
-
 class URIWrapper implements Comparable<URIWrapper> {
 	public String URI;
 	public String descr;
