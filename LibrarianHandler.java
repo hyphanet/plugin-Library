@@ -28,9 +28,12 @@ import freenet.support.Logger;
 		/** file id -> title */
 		private HashMap<String, String> titles;
 		private List<URIWrapper> fileuris;
+		private String md5;
 
 		public LibrarianHandler(String word, List<URIWrapper> fileuris) throws Exception {
 			this.fileuris = fileuris;
+			this.word = word;
+			md5 = XMLLibrarian.MD5(word);
 		}
 		public void setDocumentLocator(Locator value) {
 
@@ -56,13 +59,12 @@ import freenet.support.Logger;
 			}
 			if(elt_name.equals("subIndex")){
 				try{
-					String md5 = XMLLibrarian.MD5(word);
 					//here we need to match and see if any of the subindices match the required substring of the word.
 					for(int i=0;i<prefix;i++){
 						if((md5.substring(0,prefix-i)).equals(attrs.getValue("key"))){ 
 							prefixMatch = md5.substring(0, prefix - i);
 						Logger.normal(this, "match found " + prefixMatch);
-						Logger.minor(this, "word searched = " + word + " prefix matcheed = " + getPrefixMatch());
+						Logger.minor(this, "word searched = " + word + " prefix matcheed = " + prefixMatch);
 							break;
 						}
 					}
