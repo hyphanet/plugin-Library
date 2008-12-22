@@ -109,7 +109,8 @@ import freenet.support.Logger;
 						}
 					else uri.descr = "not available";
 					
-					fileuris.add(uri);
+						if (fileuris != null)
+							fileuris.add(uri);
 					}
 					}
 					catch(Exception e){
