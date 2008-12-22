@@ -16,7 +16,9 @@ import freenet.support.Logger;
 	 *
 	 */
 	public class LibrarianHandler extends DefaultHandler {
-		private String word;
+		private final String word;
+	private final String md5;
+		
 		private int prefix;
 		private boolean processingWord;
 		private String prefixMatch;
@@ -28,7 +30,6 @@ import freenet.support.Logger;
 		/** file id -> title */
 		private HashMap<String, String> titles;
 		private List<URIWrapper> fileuris;
-		private String md5;
 
 		public LibrarianHandler(String word, List<URIWrapper> fileuris) throws Exception {
 			this.fileuris = fileuris;
