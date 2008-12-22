@@ -92,10 +92,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	private  String DEFAULT_FILE = "index.xml";
 	private PluginRespirator pr;
 
-	private boolean processingWord ;
-	
-	private String prefix_match;
-	private int prefix;
 	private boolean test;
 	
 	/**
@@ -697,16 +693,18 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		try {
 			SAXParser saxParser = factory.newSAXParser();
 			InputStream is = res.asBucket().getInputStream();
-			saxParser.parse(is, new LibrarianHandler(str, new Vector<URIWrapper>()));
+			LibrarianHandler lib = new LibrarianHandler(str, new Vector<URIWrapper>());
+			saxParser.parse(is, lib);
 			is.close();
+			
+			return lib.getPrefix_match();
 		} catch (Throwable err) {
 			err.printStackTrace();
 		} finally {
 		    res.asBucket().free();
 		}
 
-		return prefix_match;
-
+		return null;
 	}
 
 	/**
@@ -756,7 +754,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		this.test = true;
 	}
 
-	private class URIWrapper implements Comparable<URIWrapper> {
+	private static class URIWrapper implements Comparable<URIWrapper> {
 		public String URI;
 		public String descr;
 
@@ -776,8 +774,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * @author swati
 	 *
 	 */
-	public class LibrarianHandler extends DefaultHandler {
+	public static class LibrarianHandler extends DefaultHandler {
 		private String word;
+		private int prefix;
+		private boolean processingWord;
+		private String prefix_match;
+		
 		// now we need to adapt this to read subindexing 
 		private boolean found_match ;
 		/** file id -> uri */
@@ -817,9 +819,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 					//here we need to match and see if any of the subindices match the required substring of the word.
 					for(int i=0;i<prefix;i++){
 						if((md5.substring(0,prefix-i)).equals(attrs.getValue("key"))){ 
-							prefix_match=md5.substring(0, prefix-i);
-							Logger.normal(this, "match found "+prefix_match);
-							Logger.minor(this, "word searched = "+word+" prefix matcheed = "+prefix_match);
+							setPrefix_match(md5.substring(0, prefix - i));
+							Logger.normal(this, "match found " + getPrefix_match());
+							Logger.minor(this, "word searched = " + word + " prefix matcheed = " + getPrefix_match());
 							break;
 						}
 					}
@@ -902,6 +904,13 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 					catch(Exception e){Logger.error(this,"File id and key could not be retrieved. May be due to format clash",e);}
 				}
 			}
+		}
+		public void setPrefix_match(String prefix_match) {
+			this.prefix_match = prefix_match;
+		}
+
+		public String getPrefix_match() {
+			return prefix_match;
 		}
 
 	}
