@@ -692,7 +692,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			saxParser.parse(is, lib);
 			is.close();
 			
-			return lib.getPrefix_match();
+			return lib.getPrefixMatch();
 		} catch (Throwable err) {
 			err.printStackTrace();
 		} finally {

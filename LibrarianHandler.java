@@ -19,7 +19,7 @@ import freenet.support.Logger;
 		private String word;
 		private int prefix;
 		private boolean processingWord;
-		private String prefix_match;
+		private String prefixMatch;
 		
 		// now we need to adapt this to read subindexing 
 		private boolean found_match ;
@@ -60,9 +60,9 @@ import freenet.support.Logger;
 					//here we need to match and see if any of the subindices match the required substring of the word.
 					for(int i=0;i<prefix;i++){
 						if((md5.substring(0,prefix-i)).equals(attrs.getValue("key"))){ 
-							prefix_match = md5.substring(0, prefix - i);
-							Logger.normal(this, "match found " + getPrefix_match());
-							Logger.minor(this, "word searched = " + word + " prefix matcheed = " + getPrefix_match());
+							prefixMatch = md5.substring(0, prefix - i);
+						Logger.normal(this, "match found " + prefixMatch);
+						Logger.minor(this, "word searched = " + word + " prefix matcheed = " + getPrefixMatch());
 							break;
 						}
 					}
@@ -147,8 +147,8 @@ import freenet.support.Logger;
 			}
 		}
 		
-		public String getPrefix_match() {
-			return prefix_match;
+		public String getPrefixMatch() {
+		return prefixMatch;
 		}
 
 	}
