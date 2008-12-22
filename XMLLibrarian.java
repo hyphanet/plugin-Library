@@ -576,7 +576,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 					if (searchWord.length() < 3)
 						continue;		// xmlspider don't include words length < 3, have to fix this
 
-					Vector<URIWrapper> keyuris = getIndex(searchWord);
+					Vector<URIWrapper> keyuris = searchWord(searchWord);
 					if (hs == null)
 						hs = new LinkedHashSet<URIWrapper>(keyuris);
 					else
@@ -654,10 +654,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		}
 	}
 	
-	/*
-	 * gets the index for the given word
+	/**
+	 * Search for a word
 	 */
-	private Vector<URIWrapper> getIndex(String word) throws Exception{
+	private Vector<URIWrapper> searchWord(String word) throws Exception{
 		String subIndex = getSubindex(word);
 		Vector<URIWrapper> index = getEntry(word,subIndex);
 		return index;
