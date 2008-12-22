@@ -65,13 +65,9 @@ import freenet.support.api.HTTPRequest;
  */
 public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersioned, FredPluginThreadless {
 	/**
-	 * Gives the default index site displayed in the browser.
-	 * <p>Change this parameter accordingly.
-	 * 
+	 * Default index site
 	 */
-//	public String DEFAULT_INDEX_SITE="SSK@OvRy7HP~dMKxitNNtZDXMFqI2IIWf7RifXrT61Nlk6c,F5f2AS9NFVTsR2okQFkbUh9EM~HNrD-f8LidYThN3MU,AQACAAE/testsite/";
-	//public  String DEFAULT_INDEX_SITE="SSK@0yc3irwbhLYU1j3MdzGuwC6y1KboBHJ~1zIi8AN2XC0,5j9hrd2LLcew6ieoX1yC-hXRueSKziKYnRaD~aLnAYE,AQACAAE/testsite/";
-	public String DEFAULT_INDEX_SITE="USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/17/";
+	public final String DEFAULT_INDEX_SITE = "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/17/";
 	/*
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
@@ -192,7 +188,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		}
 
 		String indexuri = request.getParam("index", DEFAULT_INDEX_SITE);
-		DEFAULT_INDEX_SITE = HTMLEncoder.encode(indexuri);
+		String indexSite = HTMLEncoder.encode(indexuri);
 		appendDefaultPageStart(out, stylesheet);
 		appendDefaultPostFields(out, search, indexuri);
 		appendDefaultPageEnd(out);
@@ -290,7 +286,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			indexuri = request.getParam("index",DEFAULT_INDEX_SITE);
 			if(folder.equals("") || indexuri.equals(""))out.append("Index \""+HTMLEncoder.encode(indexuri)+"\" could not be added to folder \""+HTMLEncoder.encode(folder)+"\"");
 			else{
-				DEFAULT_INDEX_SITE = indexuri;
+				indexSite = indexuri;
 				try{
 					String[] old = indexList.get(folder);
 					String firstIndex = old[0]; 
@@ -561,7 +557,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			out.append("<p><span class=\"librarian-searching-for-header\">Searching: </span><span class=\"librarian-searching-for-target\">").append(HTMLEncoder.encode(search)).append("</span></p>\n");
 			// Get search result
 			out.append("<p>Index Site: "+HTMLEncoder.encode(indexuri)+"</p>");
-			DEFAULT_INDEX_SITE = indexuri;
+			
 			String[] searchWords = search.split("[^\\p{L}\\{N}]+");
 			// Return results in order.
 			LinkedHashSet<URIWrapper> hs = null;
@@ -576,7 +572,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 					if (searchWord.length() < 3)
 						continue;		// xmlspider don't include words length < 3, have to fix this
 
-					Vector<URIWrapper> keyuris = searchWord(searchWord);
+					Vector<URIWrapper> keyuris = searchWord(indexuri, searchWord);
 					if (hs == null)
 						hs = new LinkedHashSet<URIWrapper>(keyuris);
 					else
@@ -586,7 +582,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 				if (hs == null)
 					hs = new LinkedHashSet<URIWrapper>();
 			} catch (FetchException e) {
-				FreenetURI uri = getSubIndex(searchWord);
+				FreenetURI uri = getSubIndex(indexuri, searchWord);
 				String href = "";
 				String endHref = "";
 				if(uri != null) {
@@ -643,10 +639,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		}
 	}
 	
-	private FreenetURI getSubIndex(String word) {
+	private FreenetURI getSubIndex(String indexuri, String word) {
 		if(word == null) return null;
 		try {
-			return new FreenetURI(DEFAULT_INDEX_SITE + "index_"+getSubindex(word)+".xml");
+			return new FreenetURI(indexuri + "index_" + getSubindex(indexuri, word) + ".xml");
 		} catch (MalformedURLException e) {
 			return null;
 		} catch (Exception e) {
@@ -657,9 +653,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	/**
 	 * Search for a word
 	 */
-	private Vector<URIWrapper> searchWord(String word) throws Exception{
-		String subIndex = getSubindex(word);
-		Vector<URIWrapper> index = getEntry(word,subIndex);
+	private Vector<URIWrapper> searchWord(String indexuri, String word) throws Exception {
+		String subIndex = getSubindex(indexuri, word);
+		Vector<URIWrapper> index = getEntry(word, indexuri, subIndex);
 		return index;
 	}
 
@@ -669,9 +665,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * @return
 	 * @throws Exception
 	 */
-	public String getSubindex(String str) throws Exception{
+	public String getSubindex(String indexuri, String str) throws Exception {
 		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
-		FreenetURI u = new FreenetURI(DEFAULT_INDEX_SITE + DEFAULT_FILE);
+		FreenetURI u = new FreenetURI(indexuri + DEFAULT_FILE);
 		FetchResult res;
 		while(true) {
 			try {
@@ -707,12 +703,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * @param str search string
 	 * @subIndex subIndex containing the word
 	 */
-	public Vector<URIWrapper> getEntry(String str,String subIndex)throws Exception{
+	public Vector<URIWrapper> getEntry(String str, String indexuri, String subIndex) throws Exception {
 		//search for the word in the given subIndex
 		Vector<URIWrapper> fileuris = new Vector<URIWrapper>();
 		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
 		try{
-			FreenetURI u = new FreenetURI(DEFAULT_INDEX_SITE + "index_"+subIndex+".xml");
+			FreenetURI u = new FreenetURI(indexuri + "index_" + subIndex + ".xml");
 			FetchResult res;
 			while(true) {
 				try {
@@ -738,7 +734,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			}
 		}
 		catch(Exception e){
-			Logger.error(this, DEFAULT_INDEX_SITE+"index_"+subIndex+".xml could not be opened "+e.toString(), e);
+			Logger.error(this, indexuri + "index_" + subIndex + ".xml could not be opened " + e.toString(), e);
 			throw e;
 		}
 		return fileuris;
