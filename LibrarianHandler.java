@@ -60,7 +60,7 @@ import freenet.support.Logger;
 					//here we need to match and see if any of the subindices match the required substring of the word.
 					for(int i=0;i<prefix;i++){
 						if((md5.substring(0,prefix-i)).equals(attrs.getValue("key"))){ 
-							setPrefix_match(md5.substring(0, prefix - i));
+							prefix_match = md5.substring(0, prefix - i);
 							Logger.normal(this, "match found " + getPrefix_match());
 							Logger.minor(this, "word searched = " + word + " prefix matcheed = " + getPrefix_match());
 							break;
@@ -146,10 +146,7 @@ import freenet.support.Logger;
 				}
 			}
 		}
-		public void setPrefix_match(String prefix_match) {
-			this.prefix_match = prefix_match;
-		}
-
+		
 		public String getPrefix_match() {
 			return prefix_match;
 		}
