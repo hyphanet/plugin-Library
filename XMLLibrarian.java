@@ -190,6 +190,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		}
 
 		String indexuri = request.getParam("index", DEFAULT_INDEX_SITE);
+		if (!indexuri.endsWith("/")) indexuri += "/";
+
 		String indexSite = HTMLEncoder.encode(indexuri);
 		appendDefaultPageStart(out, stylesheet);
 		appendDefaultPostFields(out, search, indexuri);
