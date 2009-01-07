@@ -8,6 +8,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
@@ -34,6 +36,7 @@ import org.w3c.dom.NodeList;
 import freenet.client.FetchException;
 import freenet.client.FetchResult;
 import freenet.client.HighLevelSimpleClient;
+import freenet.clients.http.HTTPRequestImpl;
 import freenet.clients.http.filter.CommentException;
 import freenet.clients.http.filter.FilterCallback;
 import freenet.keys.FreenetURI;
@@ -74,7 +77,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * Current configuration gets saved by default in the configfile.
 	 * To Save the current configuration use "Save Configuration"
 	 */
-	private int version = 18;
+	private int version = 19;
 	private final String plugName = "XMLLibrarian " + version;
 
 	public String getVersion() {
@@ -96,8 +99,26 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	public void terminate() {
 	
 	}
-	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException {
-		return null;
+	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
+		if(test) {reloadOld(configfile); test= false;}
+
+		String search = request.getParam("search");
+		String stylesheet = request.getParam("stylesheet");
+		String choice = request.getParam("choice");
+		String indexuri = request.isParameterSet("index") ? request.getParam("index") : DEFAULT_INDEX_SITE;
+		String find = request.getParam("find");
+		String folder = request.getParam("folderList");
+		String newFolder = request.getParam("newFolder");
+		String addNew = (request.getParam("addNew"));
+		String help = (request.getParam("help"));
+		String delete = (request.getParam("delete"));
+		String list = (request.getParam("List"));
+		String addToFolder = (request.getParam("addToFolder"));
+		String go = (request.getParam("go"));
+		String actionList = request.getParam("actionList");
+		String file = request.getParam("datafile");
+		
+		return handleInner(request.getPath(), search, stylesheet, choice, indexuri, find, folder, newFolder, addNew, help, delete, list, addToFolder, go, actionList, file);
 	}
 
 	private void appendDefaultPageStart(StringBuilder out, String stylesheet) {
@@ -127,13 +148,14 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		search = HTMLEncoder.encode(search);
 		index = HTMLEncoder.encode(index);
 		String s = "<div style=\"visibility:hidden;\"><input type=submit name = \"find\" value=\"Find!\" TABINDEX=1/></div>";
-		out.append("<form method=\"GET\">");
+		out.append("<form method=\"POST\">");
 		out.append(s);
 		out.append("<table><tr><td><input type=submit name=\"addToFolder\" value=\"Add to folder\" tabindex=9 /></td><td>");
 		out.append("<input type=submit name=\"newFolder\" value=\"New Folder\" tabindex=8/></td>");
 		out.append("<td><input type=submit name=\"List\" value=\"List\" tabindex=7/></td>");
 		out.append("<td><input type=submit name=\"help\" value=\"Help!\" tabindex=6/></td>");
 		out.append("<td><input type=submit name=\"delete\" value=\"Delete Folder\" tabindex=5/></td>");
+		out.append("<input type=hidden name=formPassword value=\""+pr.getNode().clientCore.formPassword+"\">");
 		out.append("</tr></table>");
 		out.append("Search for:<br/>");
 		out.append("<p><input type=\"text\" value=\"").append(search).append("\" name=\"search\" size=80/>");
@@ -160,6 +182,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		out.append("<option value=\"Load Configuration\">Load Configuration</option>");
 		out.append("<option value=\"Save Configuration\">Save Configuration</option></select>");
 		out.append("<input type=submit name=\"go\" value=\"Go!\" />");
+		out.append("</form>");
 	//	out.append("SetDefaultButton(this.Page, \"search\",\"find\") ");
 		// index - key to index
 		// search - text to search for
@@ -171,17 +194,33 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * 
 	 * @param request
 	 */
-	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
+	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException {
 
 		if(test) {reloadOld(configfile); test= false;}
 
+		String search = request.getPartAsString("search", 80);
+		String stylesheet = request.getPartAsString("stylesheet", 200);
+		String choice = request.getPartAsString("choice", 80);
+		String indexuri = request.isPartSet("index") ? request.getPartAsString("index", 200) : DEFAULT_INDEX_SITE;
+		String find = request.getPartAsString("find",80);
+		String folder = request.getPartAsString("folderList", 100);
+		String newFolder = request.getPartAsString("newFolder",80);
+		String addNew = (request.getPartAsString("addNew",80));
+		String help = (request.getPartAsString("help",80));
+		String delete = (request.getPartAsString("delete",80));
+		String list = (request.getPartAsString("List",80));
+		String addToFolder = (request.getPartAsString("addToFolder",80));
+		String go = (request.getPartAsString("go",80));
+		String actionList = request.getPartAsString("actionList",80);
+		String file = request.getPartAsString("datafile",80);
+		
+		return handleInner(request.getPath(), search, stylesheet, choice, indexuri, find, folder, newFolder, addNew, help, delete, list, addToFolder, go, actionList, file);
+	}
+	
+	private String handleInner(String path, String search, String stylesheet, String choice, String indexuri, String find, String folder, String newFolder, String addNew, String help, String delete, String list, String addToFolder, String go, String actionList, String file) {
 		StringBuilder out = new StringBuilder();
-		String search = request.getParam("search");
-		String stylesheet = request.getParam("stylesheet", null);
-		String choice = request.getParam("choice");
-
-		if(stylesheet != null) {
-			FilterCallback cb = pr.makeFilterCallback(request.getPath());
+		if(stylesheet != null && !(stylesheet.length() == 0)) {
+			FilterCallback cb = pr.makeFilterCallback(path);
 			try {
 				stylesheet = cb.processURI(stylesheet, "text/css");
 			} catch (CommentException e) {
@@ -189,7 +228,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			}
 		}
 
-		String indexuri = request.getParam("index", DEFAULT_INDEX_SITE);
 		if (!indexuri.endsWith("/")) indexuri += "/";
 
 		String indexSite = HTMLEncoder.encode(indexuri);
@@ -197,15 +235,14 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		appendDefaultPostFields(out, search, indexuri);
 		appendDefaultPageEnd(out);
 		
-		if(((request.getParam("find")).equals("Find!")) && !choice.equals("folder") && !choice.equals("index"))
+		if(((find.equals("Find!")) && !choice.equals("folder") && !choice.equals("index")))
 			out.append(HTMLEncoder.encode("Choose an index or a folder for search\n"));
 		/*
 		 * search for the given string in the chosen folder 
 		 */
 		if(choice.equals("folder")){
-			if((request.getParam("find")).equals("Find!"))
+			if((find.equals("Find!")))
 			{
-				String folder = request.getParam("folderList");
 				try{
 					String[] indices = indexList.get(folder);
 					
@@ -236,14 +273,14 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		/*
 		 * create a new folder
 		 */
-		else if((request.getParam("newFolder")).equals("New Folder")){
+		else if((newFolder).equals("New Folder")){
 			out.append("<p>Name of the new Folder<br/>");
 			out.append("<form><input type=\"text\" name=\"newfolder\" size=20/> ");
+			out.append("<input type=hidden name=formPassword value=\""+pr.getNode().clientCore.formPassword+"\">");
 			out.append("<input type=submit value=\"Add\" name=\"addNew\" />");
 		}	 
-		else if((request.getParam("addNew")).equals("Add")){
+		else if(addNew.equals("Add")){
 			try{
-				String newFolder = request.getParam("newfolder");
 				synchronized(this){
 				if(newFolder.equals("")) out.append("Invalid folder name \n");
 				else {
@@ -259,7 +296,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		/*
 		 * list the usage of various buttons
 		 */
-		else if((request.getParam("help")).equals("Help!")){
+		else if(help.equals("Help!")){
 			out.append("<h3>Find</h3>");
 			out.append("<p>Search for the queried word in either an index site or a selected folder of indices <br/>");
 			out.append("If searching in a folder of indices, select the appropriate folder and check the button for folder<br/>");
@@ -273,8 +310,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		/*
 		 * delete the chosen folder
 		 */
-		else if((request.getParam("delete")).equals("Delete Folder")){
-			String folder = request.getParam("folderList");
+		else if(delete.equals("Delete Folder")){
 			synchronized(this){
 			if(folder.equals("")) out.append("Choose an existing folder for deletion");
 			else{
@@ -285,9 +321,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		/*
 		 * add the current index to the current folder
 		 */
-		else if((request.getParam("addToFolder")).equals("Add to folder")){
-			String folder = request.getParam("folderList");
-			indexuri = request.getParam("index",DEFAULT_INDEX_SITE);
+		else if(addToFolder.equals("Add to folder")){
 			if(folder.equals("") || indexuri.equals(""))out.append("Index \""+HTMLEncoder.encode(indexuri)+"\" could not be added to folder \""+HTMLEncoder.encode(folder)+"\"");
 			else{
 				indexSite = indexuri;
@@ -318,9 +352,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		/*
 		 * list the indices added to the current folder
 		 */
-		else if((request.getParam("List")).equals("List")){
+		else if(list.equals("List")){
 
-			String folder = request.getParam("folderList");
 			try{
 				String[] indices = indexList.get(folder);
 				for(int i = 0;i<indices.length;i++){
@@ -345,13 +378,11 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			}
 		}
 		
-		else if((request.getParam("go")).equals("Go!")){
+		else if(go.equals("Go!")){
 			/*
 			 * import the list of indices from a file on disk to the current folder
 			 */
-			if((request.getParam("actionList")).equals("Import From File")){
-				String folder = request.getParam("folderList");
-				String file = request.getParam("datafile");
+			if((actionList.equals("Import From File"))){
 				Vector<String> indices=new Vector<String>();
 				try{
 					BufferedReader inp = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF8"));
@@ -394,10 +425,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			/*
 			 * export the current list of indices from the current folder to the specified file
 			 */
-			else if((request.getParam("actionList")).equals("Export To File")){
+			else if((actionList.equals("Export To File"))){
 
-				String folder = request.getParam("folderList");
-				String file = request.getParam("datafile");
 				try{
 					FileWriter outp = new FileWriter(file,true);
 					try {
@@ -418,10 +447,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			 * save the current configuration to the specified file
 			 * default configuration file is configfile
 			 */
-			else if((request.getParam("actionList")).equals("Save Configuration")){
+			else if(actionList.equals("Save Configuration")){
 				synchronized(this){
 				try{
-					String file = request.getParam("datafile");
 					if(file.equals("")) file = configfile;
 					save(out,file);
 					out.append("Saved Configuration to file \""+file+"\"");
@@ -433,8 +461,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			/*
 			 * load a previously saved configuration
 			 */
-			else if((request.getParam("actionList")).equals("Load Configuration")){
-				String file = request.getParam("datafile");
+			else if(actionList.equals("Load Configuration")){
 				if(file.equals("")) out.append("Choose an existing file \n");
 				else{
 					reloadOld(file);
