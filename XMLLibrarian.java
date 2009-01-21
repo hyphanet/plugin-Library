@@ -148,14 +148,13 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		search = HTMLEncoder.encode(search);
 		index = HTMLEncoder.encode(index);
 		String s = "<div style=\"visibility:hidden;\"><input type=submit name = \"find\" value=\"Find!\" TABINDEX=1/></div>";
-		out.append("<form method=\"POST\">");
+		out.append("<form method=\"GET\">");
 		out.append(s);
 		out.append("<table><tr><td><input type=submit name=\"addToFolder\" value=\"Add to folder\" tabindex=9 /></td><td>");
 		out.append("<input type=submit name=\"newFolder\" value=\"New Folder\" tabindex=8/></td>");
 		out.append("<td><input type=submit name=\"List\" value=\"List\" tabindex=7/></td>");
 		out.append("<td><input type=submit name=\"help\" value=\"Help!\" tabindex=6/></td>");
 		out.append("<td><input type=submit name=\"delete\" value=\"Delete Folder\" tabindex=5/></td>");
-		out.append("<input type=hidden name=formPassword value=\""+pr.getNode().clientCore.formPassword+"\">");
 		out.append("</tr></table>");
 		out.append("Search for:<br/>");
 		out.append("<p><input type=\"text\" value=\"").append(search).append("\" name=\"search\" size=80/>");
