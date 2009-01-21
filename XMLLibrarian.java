@@ -214,8 +214,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		String actionList = request.getPartAsString("actionList",80);
 		String file = request.getPartAsString("datafile",80);
 		
-		// FIXME convert to a redirect to a GET passed through fixLink for a secureid, so that the results can be bookmarked.
-		
 		return handleInner(request.getPath(), search, stylesheet, choice, indexuri, find, folder, newFolder, addNew, help, delete, list, addToFolder, go, actionList, file);
 	}
 	
