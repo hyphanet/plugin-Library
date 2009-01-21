@@ -37,7 +37,6 @@ import freenet.client.FetchException;
 import freenet.client.FetchResult;
 import freenet.client.HighLevelSimpleClient;
 import freenet.clients.http.HTTPRequestImpl;
-import freenet.clients.http.LinkFixer;
 import freenet.clients.http.filter.CommentException;
 import freenet.clients.http.filter.FilterCallback;
 import freenet.keys.FreenetURI;
@@ -126,7 +125,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		
 		out.append("<HTML><HEAD><TITLE>" + plugName + "</TITLE>");
 		if(stylesheet != null)
-			out.append("<link href=\""+getFixer().fixLink(stylesheet)+"\" type=\"text/css\" rel=\"stylesheet\" />");
+			out.append("<link href=\""+stylesheet+"\" type=\"text/css\" rel=\"stylesheet\" />");
 		//String s = "<script type=\"text/javascript\">"+"function reloadPage(){ window.location.reload()}</script>";
 		//out.append(s);
 		out.append("</HEAD><BODY>\n");
@@ -361,7 +360,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 				String[] indices = indexList.get(folder);
 				for(int i = 0;i<indices.length;i++){
 					out.append("<p>\n<table class=\"librarian-result\" width=\"100%\" border=1><tr><td align=center bgcolor=\"#D0D0D0\" class=\"librarian-result-url\">\n");
-					out.append("  <A HREF=\"").append(HTMLEncoder.encode(getFixer().fixLink(indices[i]))).append("\">").append(indices[i]).append("</A>");
+					out.append("  <A HREF=\"").append(HTMLEncoder.encode(indices[i])).append("\">").append(indices[i]).append("</A>");
 					out.append("</td></tr><tr><td align=left class=\"librarian-result-summary\">\n");
 					out.append("</td></tr></table>\n");
 				}}
@@ -620,7 +619,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 				String href = "";
 				String endHref = "";
 				if(uri != null) {
-					String encoded = HTMLEncoder.encode(getFixer().fixLink(uri));
+					String encoded = HTMLEncoder.encode(uri);
 					href="<a href=\"/" + encoded+"\">";
 					endHref = "</a>";
 				}
@@ -655,7 +654,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 					String realurl = (o.URI.startsWith("/")?"":"/") + o.URI;
 					realurl = HTMLEncoder.encode(realurl);
 					out.append("<p>\n<table class=\"librarian-result\" width=\"100%\" border=1><tr><td align=center bgcolor=\"#D0D0D0\" class=\"librarian-result-url\">\n");
-					out.append("  <A HREF=\"").append(getFixer().fixLink(realurl)).append("\" title=\"").append(o.URI).append("\">").append(showtitle).append("</A>\n");
+					out.append("  <A HREF=\"").append(realurl).append("\" title=\"").append(o.URI).append("\">").append(showtitle).append("</A>\n");
 					out.append("</td></tr><tr><td align=left class=\"librarian-result-summary\">\n");
 					out.append("</td></tr></table>\n");
 					results++;
@@ -789,10 +788,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	public void runPlugin(PluginRespirator pr) {
 		this.pr = pr;
 		this.test = true;
-	}
-	
-	public LinkFixer getFixer() {
-		return pr.getNode().getLinkFilter();
 	}
 
 	private static String convertToHex(byte[] data) {
