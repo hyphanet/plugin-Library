@@ -150,37 +150,13 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		String s = "<div style=\"visibility:hidden;\"><input type=submit name = \"find\" value=\"Find!\" TABINDEX=1/></div>";
 		out.append("<form method=\"GET\">");
 		out.append(s);
-		out.append("<table><tr><td><input type=submit name=\"addToFolder\" value=\"Add to folder\" tabindex=9 /></td><td>");
-		out.append("<input type=submit name=\"newFolder\" value=\"New Folder\" tabindex=8/></td>");
-		out.append("<td><input type=submit name=\"List\" value=\"List\" tabindex=7/></td>");
-		out.append("<td><input type=submit name=\"help\" value=\"Help!\" tabindex=6/></td>");
-		out.append("<td><input type=submit name=\"delete\" value=\"Delete Folder\" tabindex=5/></td>");
-		out.append("</tr></table>");
 		out.append("Search for:<br/>");
 		out.append("<p><input type=\"text\" value=\"").append(search).append("\" name=\"search\" size=80/>");
 		out.append("<input type=submit name = \"find\" value=\"Find!\" TABINDEX=1/></p>\n");
-		out.append("Using the index or folder <br/>");
-		out.append("<p><input type=\"radio\" name=\"choice\" value=\"folder\">Folder");
-		out.append("<select name=\"folderList\">");
-
-		String[] words = indexList.keySet().toArray(new String[indexList.size()]);
-
-		for(int i =0;i<words.length;i++)
-		{
-			out.append("<option value=\"").append(words[i]).append("\">").append(HTMLEncoder.encode(words[i])).append("</option></p>");
-		}
+		out.append("Using the index <br/>");
+		out.append("<p>
 		out.append("</p><p><input type=\"radio\" name=\"choice\" value=\"index\" checked=\"checked\" >Index");
 		out.append("<input type=\"text\" name=\"index\" value=\"").append(index).append("\" size=50/><br/>");
-
-
-
-		out.append("<br/><br/><p><input type=\"file\" name=\"datafile\" /> ");
-		out.append("<select name=\"actionList\" >");
-		out.append("<option value=\"Import From File\">Import From File</option>");
-		out.append("<option value=\"Export To File\">Export To File</option>");
-		out.append("<option value=\"Load Configuration\">Load Configuration</option>");
-		out.append("<option value=\"Save Configuration\">Save Configuration</option></select>");
-		out.append("<input type=submit name=\"go\" value=\"Go!\" />");
 		out.append("</form>");
 	//	out.append("SetDefaultButton(this.Page, \"search\",\"find\") ");
 		// index - key to index
