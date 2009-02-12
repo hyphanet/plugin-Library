@@ -154,7 +154,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		out.append("<p><input type=\"text\" value=\"").append(search).append("\" name=\"search\" size=80/>");
 		out.append("<input type=submit name = \"find\" value=\"Find!\" TABINDEX=1/></p>\n");
 		out.append("Using the index <br/>");
-		out.append("<p>
 		out.append("</p><p><input type=\"radio\" name=\"choice\" value=\"index\" checked=\"checked\" >Index");
 		out.append("<input type=\"text\" name=\"index\" value=\"").append(index).append("\" size=50/><br/>");
 		out.append("</form>");
