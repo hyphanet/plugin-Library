@@ -326,6 +326,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 		try {
+			factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
 			SAXParser saxParser = factory.newSAXParser();
 			InputStream is = bucket.getInputStream();
 			LibrarianHandler lib = new LibrarianHandler(str, new Vector<URIWrapper>());
@@ -358,6 +359,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			try {
+				factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
 				SAXParser saxParser = factory.newSAXParser();
 				InputStream is = bucket.getInputStream();
 				saxParser.parse(is, new LibrarianHandler(str, fileuris));
