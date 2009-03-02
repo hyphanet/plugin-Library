@@ -14,8 +14,6 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import freenet.client.FetchException;
-import freenet.client.FetchResult;
-import freenet.client.HighLevelSimpleClient;
 import freenet.keys.FreenetURI;
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginHTTP;
@@ -27,7 +25,6 @@ import freenet.support.HTMLEncoder;
 import freenet.support.Logger;
 import freenet.support.api.Bucket;
 import freenet.support.api.HTTPRequest;
-import freenet.support.io.FileBucket;
 
 /**
  * XMLLibrarian is a modified version of the old librarian. It uses the Xml index files for
@@ -285,33 +282,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		return index;
 	}
 
-	private Bucket fetchBucket(String uri) throws FetchException, MalformedURLException {
-		// File
-		File file = new File(uri);
-		if (file.exists() && file.canRead()) {
-			return new FileBucket(file, true, false, false, false, false);
-		}
-
-		// FreenetURI
-		HighLevelSimpleClient hlsc = pr.getHLSimpleClient();
-		FreenetURI u = new FreenetURI(uri);
-		FetchResult res;
-		while (true) {
-			try {
-				res = hlsc.fetch(u);
-				break;
-			} catch (FetchException e) {
-				if (e.newURI != null) {
-					u = e.newURI;
-					continue;
-				} else
-					throw e;
-			}
-		}
-
-		return res.asBucket();
-	}
-
+	
 	/**
 	 * Parses through the main index file(index.xml) looking for the subindex containing the entry
 	 * for the search string.
@@ -322,7 +293,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * @throws Exception
 	 */
 	private String getSubindex(String indexuri, String str) throws Exception {
-		Bucket bucket = fetchBucket(indexuri + DEFAULT_FILE);
+		Bucket bucket = Util.fetchBucket(indexuri + DEFAULT_FILE, pr);
 
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 		try {
@@ -355,7 +326,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		Vector<URIWrapper> fileuris = new Vector<URIWrapper>();
 
 		try {
-			Bucket bucket = fetchBucket(indexuri + "index_" + subIndex + ".xml");
+			Bucket bucket = Util.fetchBucket(indexuri + "index_" + subIndex + ".xml", pr);
 
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			try {
