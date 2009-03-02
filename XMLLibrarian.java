@@ -1,20 +1,10 @@
 package plugins.XMLLibrarian;
 
-import java.io.File;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.Vector;
-
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
+import java.util.List;
 
 import freenet.client.FetchException;
-import freenet.keys.FreenetURI;
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginHTTP;
 import freenet.pluginmanager.FredPluginThreadless;
@@ -23,7 +13,6 @@ import freenet.pluginmanager.PluginHTTPException;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLEncoder;
 import freenet.support.Logger;
-import freenet.support.api.Bucket;
 import freenet.support.api.HTTPRequest;
 
 /**
@@ -58,7 +47,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		return version + " r" + Version.getSvnRevision();
 	}
 
-	private static final String DEFAULT_FILE = "index.xml";
 	private PluginRespirator pr;
 
 	public void terminate() {
@@ -121,9 +109,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	private String handleInner(String path, String search, String indexuri) {
 		StringBuilder out = new StringBuilder();
 
-		if (!indexuri.endsWith("/"))
-			indexuri += "/";
-
 		appendDefaultPageStart(out);
 		appendDefaultPostFields(out, search, indexuri);
 		appendDefaultPageEnd(out);
@@ -157,7 +142,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			out.append("Give a valid string to search\n");
 			return;
 		}
-		String searchWord = null;
 		try {
 			out
 			        .append(
@@ -168,36 +152,17 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 
 			String[] searchWords = search.split("[^\\p{L}\\{N}]+");
 			// Return results in order.
-			LinkedHashSet<URIWrapper> hs = null;
+			List<URIWrapper> hs = null;
 			/*
 			 * search for each string in the search list only the common results to all words are
 			 * returned as final result
 			 */
 			try {
-				for (String s : searchWords) {
-					searchWord = s;
-					if (searchWord.length() < 3)
-						continue; // xmlspider don't include words length < 3, have to fix this
-
-					Vector<URIWrapper> keyuris = searchWord(indexuri, searchWord);
-					if (hs == null)
-						hs = new LinkedHashSet<URIWrapper>(keyuris);
-					else
-						hs.retainAll(keyuris);
-				}
-
-				if (hs == null)
-					hs = new LinkedHashSet<URIWrapper>();
+				Index idx = new Index(indexuri, pr);
+				idx.fetch();
+				hs = idx.search(searchWords);
 			} catch (FetchException e) {
-				String uri = getSubIndex(indexuri, searchWord);
-				String href = "";
-				String endHref = "";
-				if (uri != null) {
-					String encoded = HTMLEncoder.encode(uri);
-					href = "<a href=\"/" + encoded + "\">";
-					endHref = "</a>";
-				}
-				out.append("<p>Could not fetch " + href + "sub-index" + endHref + " for " + HTMLEncoder.encode(search)
+				out.append("<p>Could not fetch sub-index for " + HTMLEncoder.encode(search)
 				        + " : " + e.getMessage() + "</p>\n");
 				Logger.normal(this, "<p>Could not fetch sub-index for " + HTMLEncoder.encode(search) + " in "
 				        + HTMLEncoder.encode(indexuri) + " : " + e.toString() + "</p>\n", e);
@@ -252,102 +217,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			Logger.error(this, "Could not complete search for " + search + " in " + indexuri + e.toString(), e);
 			e.printStackTrace();
 		}
-	}
-
-	private String getSubIndex(String indexuri, String word) {
-		if (word == null)
-			return null;
-
-		try {
-			String subindex = getSubindex(indexuri, word);
-			File file = new File(indexuri + "index_" + subindex + ".xml");
-
-			if (file.exists())
-				return file.toURI().toASCIIString();
-
-			return new FreenetURI(indexuri + "index_" + subindex + ".xml").toASCIIString();
-		} catch (MalformedURLException e) {
-			return null;
-		} catch (Exception e) {
-			return null;
-		}
-	}
-
-	/**
-	 * Search for a word
-	 */
-	private Vector<URIWrapper> searchWord(String indexuri, String word) throws Exception {
-		String subIndex = getSubindex(indexuri, word);
-		Vector<URIWrapper> index = getEntry(word, indexuri, subIndex);
-		return index;
-	}
-
+	} 
 	
-	/**
-	 * Parses through the main index file(index.xml) looking for the subindex containing the entry
-	 * for the search string.
-	 * 
-	 * @param str
-	 *            word to be searched
-	 * @return
-	 * @throws Exception
-	 */
-	private String getSubindex(String indexuri, String str) throws Exception {
-		Bucket bucket = Util.fetchBucket(indexuri + DEFAULT_FILE, pr);
-
-		SAXParserFactory factory = SAXParserFactory.newInstance();
-		try {
-			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-			SAXParser saxParser = factory.newSAXParser();
-			InputStream is = bucket.getInputStream();
-			LibrarianHandler lib = new LibrarianHandler(str, new Vector<URIWrapper>());
-			saxParser.parse(is, lib);
-			is.close();
-
-			return lib.getPrefixMatch();
-		} catch (Throwable err) {
-			err.printStackTrace();
-		} finally {
-			bucket.free();
-		}
-
-		return null;
-	}
-
-	/**
-	 * Searches through the chosen subindex for the files containing the searc word
-	 * 
-	 * @param str
-	 *            search string
-	 * @subIndex subIndex containing the word
-	 */
-	private Vector<URIWrapper> getEntry(String str, String indexuri, String subIndex) throws Exception {
-		//search for the word in the given subIndex
-		Vector<URIWrapper> fileuris = new Vector<URIWrapper>();
-
-		try {
-			Bucket bucket = Util.fetchBucket(indexuri + "index_" + subIndex + ".xml", pr);
-
-			SAXParserFactory factory = SAXParserFactory.newInstance();
-			try {
-				factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-				SAXParser saxParser = factory.newSAXParser();
-				InputStream is = bucket.getInputStream();
-				saxParser.parse(is, new LibrarianHandler(str, fileuris));
-				is.close();
-			} catch (Throwable err) {
-				err.printStackTrace();
-				throw new Exception("Could not parse XML: " + err.toString());
-			} finally {
-				bucket.free();
-			}
-		} catch (Exception e) {
-			Logger.error(this, indexuri + "index_" + subIndex + ".xml could not be opened " + e.toString(), e);
-			throw e;
-		}
-		return fileuris;
-	}
-
 	public void runPlugin(PluginRespirator pr) {
 		this.pr = pr;
 	}
