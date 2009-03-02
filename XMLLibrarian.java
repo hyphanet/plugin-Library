@@ -369,12 +369,15 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	}
 
 	//this function will return the String representation of the MD5 hash for the input string 
-	public static String MD5(String text) throws NoSuchAlgorithmException, UnsupportedEncodingException {
-		MessageDigest md;
-		md = MessageDigest.getInstance("MD5");
-		byte[] b = text.getBytes("UTF-8");
-		md.update(b, 0, b.length);
-		byte[] md5hash = md.digest();
-		return convertToHex(md5hash);
+	public static String MD5(String text) {
+		try {
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			byte[] b = text.getBytes("UTF-8");
+			md.update(b, 0, b.length);
+			byte[] md5hash = md.digest();
+			return convertToHex(md5hash);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 	}
 }
