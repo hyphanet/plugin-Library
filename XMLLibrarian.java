@@ -7,6 +7,7 @@ import java.util.List;
 import freenet.client.FetchException;
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginHTTP;
+import freenet.pluginmanager.FredPluginRealVersioned;
 import freenet.pluginmanager.FredPluginThreadless;
 import freenet.pluginmanager.FredPluginVersioned;
 import freenet.pluginmanager.PluginHTTPException;
@@ -31,7 +32,7 @@ import freenet.support.api.HTTPRequest;
  * @author swatigoyal
  * 
  */
-public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersioned, FredPluginThreadless {
+public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersioned, FredPluginRealVersioned, FredPluginThreadless {
 	/**
 	 * Default index site
 	 */
@@ -45,6 +46,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 
 	public String getVersion() {
 		return version + " r" + Version.getSvnRevision();
+	}
+	
+	public long getRealVersion() {
+		return version;
 	}
 
 	private PluginRespirator pr;
