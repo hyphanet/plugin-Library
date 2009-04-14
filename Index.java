@@ -69,12 +69,17 @@ public class Index {
 	 * @throws IOException
 	 * @throws FetchException
 	 * @throws SAXException
-	 */
+	 */ 
 	public synchronized void fetch() throws IOException, FetchException, SAXException {
+        fetch(new Progress(""));
+    }
+	public synchronized void fetch(Progress progress) throws IOException, FetchException, SAXException {
 		if (fetched)
 			return;
 
+        progress.set("Getting base index");
 		Bucket bucket = Util.fetchBucket(baseURI + DEFAULT_FILE, pr);
+        progress.set("Fetched base index");
 		try {
 			InputStream is = bucket.getInputStream();
 			parse(is);
@@ -128,11 +133,17 @@ public class Index {
 	}
 
 	protected List<URIWrapper> search(String keyword) throws Exception {
+        return search(keyword, new Progress(""));
+    }
+
+	protected List<URIWrapper> search(String keyword, Progress progress) throws Exception {
 		List<URIWrapper> result = new LinkedList<URIWrapper>();
 		String subIndex = getSubIndex(keyword);
 
 		try {
+            progress.set("Getting subindex "+subIndex+" to search for "+keyword);
 			Bucket bucket = Util.fetchBucket(baseURI + subIndex, pr);
+            progress.set("Fetched subindex "+subIndex+" to search for "+keyword);
 
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			try {
@@ -155,12 +166,16 @@ public class Index {
 	}
 
 	public List<URIWrapper> search(String[] keywords) throws Exception {
+        return search(keywords, new Progress(""));
+    }
+
+	public List<URIWrapper> search(String[] keywords, Progress progress) throws Exception {
 		List<URIWrapper> result = null;
 
 		for (String keyword : keywords) {
 			if (keyword.length() < 3)
 				continue;
-			List<URIWrapper> s = search(keyword);
+			List<URIWrapper> s = search(keyword, progress);
 
 			if (result == null)
 				result = s;

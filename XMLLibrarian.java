@@ -1,8 +1,7 @@
 package plugins.XMLLibrarian;
 
 import java.security.MessageDigest;
-import java.util.Iterator;
-import java.util.List;
+import java.util.HashMap;
 
 import freenet.client.FetchException;
 import freenet.pluginmanager.FredPlugin;
@@ -15,6 +14,8 @@ import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLEncoder;
 import freenet.support.Logger;
 import freenet.support.api.HTTPRequest;
+
+
 
 /**
  * XMLLibrarian is a modified version of the old librarian. It uses the Xml index files for
@@ -32,6 +33,7 @@ import freenet.support.api.HTTPRequest;
  * @author swatigoyal
  * 
  */
+
 public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersioned, FredPluginRealVersioned, FredPluginThreadless {
 	/**
 	 * Default index site
@@ -41,8 +43,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * Current configuration gets saved by default in the configfile. To Save the current
 	 * configuration use "Save Configuration"
 	 */
-	private static int version = 20;
+	private static int version = 21;
 	private static final String plugName = "XMLLibrarian " + version;
+    private HashMap<String, Progress> progressmap = new HashMap();
+    private StringBuilder logs = new StringBuilder();
 
 	public String getVersion() {
 		return version + " r" + Version.getSvnRevision();
@@ -59,17 +63,30 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	}
 
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
+        if(request.getPath().endsWith("logs"))
+            return logs.toString();
+                
 		String search = request.getParam("search");
-		String indexuri = request.isParameterSet("index") ? request.getParam("index") : DEFAULT_INDEX_SITE;
+        if(request.getPath().endsWith("progress")){
+            if (progressmap.containsKey(search))
+                return progressmap.get(search).get(request.getParam("pushonupdate").equals("true"));
+            else return "No asyncronous search for "+search+" found.";
+        }else if(request.getPath().endsWith("result")){
+            if (progressmap.containsKey(search))
+                return progressmap.remove(search).getresult();
+            else return "No asyncronous search for "+search+" found.";
+        }else{
+            String indexuri = request.isParameterSet("index") ? request.getParam("index") : DEFAULT_INDEX_SITE;
+            logs.append("show progress = "+request.getParam("showprogress")+"<br />");
+            boolean showprogress = (request.getParam("showprogress").equals("true"));
 
-		return handleInner(request.getPath(), search, indexuri);
+            return handleInner(request.getPath(), search, indexuri, showprogress);
+        }
 	}
 
 	private void appendDefaultPageStart(StringBuilder out) {
 
-		out.append("<HTML><HEAD><TITLE>" + plugName + "</TITLE>");
-		out.append("</HEAD><BODY>\n");
-		out.append("<CENTER><H1>" + plugName + "</H1><BR/><BR/><BR/>\n");
+		out.append("<HTML><HEAD><TITLE>"+plugName+"</TITLE></HEAD><BODY>");
 	}
 
 	private void appendDefaultPageEnd(StringBuilder out) {
@@ -87,16 +104,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	private void appendDefaultPostFields(StringBuilder out, String search, String index) {
 		search = HTMLEncoder.encode(search);
 		index = HTMLEncoder.encode(index);
-		String s = "<div style=\"visibility:hidden;\"><input type=submit name = \"find\" value=\"Find!\" TABINDEX=1/></div>";
-		out.append("<form method=\"GET\">");
-		out.append(s);
-		out.append("Search for:<br/>");
-		out.append("<p><input type=\"text\" value=\"").append(search).append("\" name=\"search\" size=80/>");
-		out.append("<input type=submit name = \"find\" value=\"Find!\" TABINDEX=1/></p>\n");
-		out.append("Using the index <br/>");
-		out.append("</p><p>Index");
-		out.append("<input type=\"text\" name=\"index\" value=\"").append(index).append("\" size=50/><br/>");
-		out.append("</p></form>");
+		out.append("<form method=\"GET\"><table><tr>\n");
+		out.append("<td rowspan=2 width=280><H1>"+plugName+"</H1></td>\n");
+		out.append("<div style=\"visibility:hidden;\"><input type=submit name = \"find\" value=\"Find!\" TABINDEX=1/><input name=\"showprogress\" value=\"false\" /></div>\n");
+		out.append("<td width=400><input type=\"text\" value=\"").append(search).append("\" name=\"search\" size=40/><input type=submit name = \"find\" value=\"Find!\" TABINDEX=1/><td rowspan=\"2\" id=\"librarian-info\">If you had JavaScript enabled, you would be able to see some status information for your search.</td></tr>\n");
+		out.append("<tr><td>Index <input type=\"text\" name=\"index\" value=\"").append(index).append("\" size=50/>\n");
+		out.append("</tr></table></form><script language=\"JavaScript\">document.forms[0].showprogress.value=\"true\";document.getElementById(\"librarian-info\").innerHTML=\"You have JavaScript enabled so you should be able to see live progress of your search, please note this does not currently function properly with simultanious searches.\"</script>\n\n");
 	}
 
 	/**
@@ -107,123 +120,78 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException {
 		String search = request.getPartAsString("search", 80);
 		String indexuri = request.isPartSet("index") ? request.getPartAsString("index", 200) : DEFAULT_INDEX_SITE;
+		boolean showprogress = (request.getPartAsString("showprogress", 5).equals("true"));
 
-		return handleInner(request.getPath(), search, indexuri);
+		return handleInner(request.getPath(), search, indexuri, showprogress);
 	}
 
-	private String handleInner(String path, String search, String indexuri) {
+	private String handleInner(String path, String search, String indexuri, boolean showprogress) {
 		StringBuilder out = new StringBuilder();
 
 		appendDefaultPageStart(out);
 		appendDefaultPostFields(out, search, indexuri);
-		appendDefaultPageEnd(out);
 
 		try {
 			if (indexuri.equals(""))
 				out.append("Specify a valid index \n");
-			else
-				searchStr(out, search, indexuri);
+			else if(search.equals(""))
+                out.append("Give a valid string to search ");
+            else{
+                Search.setup(pr, this);
+
+
+                out.append("<table><tr><td colspan=\"2\"><span class=\"librarian-searching-for-header\">Searching for </span>\n");
+                out.append("<span class=\"librarian-searching-for-target\"><b>"+HTMLEncoder.encode(search)+"</b></span> in index <i>"+HTMLEncoder.encode(indexuri)+"</i></td></tr>\n");
+                
+                if(showprogress){
+                    out.append("<tr><td width=\"140\">&nbsp;&nbsp;Search status : </td><td><div id=\"librarian-search-status\"></div></td></tr></table>\n");
+                    out.append("<p></p>\n\n");
+                    out.append("<script language=\"JavaScript\">\n");
+                    out.append("function getresult(){\n");
+                    out.append("	var xmlHttp=new XMLHttpRequest();\n");
+                    out.append("	xmlHttp.onreadystatechange = function(){\n");
+                    out.append("		if(xmlHttp.readyState==4)\n");
+                    out.append("                document.getElementById(\"librarian-search-results\").innerHTML=xmlHttp.responseText;\n");
+                    out.append("    }\n");
+                    out.append("	xmlHttp.open(\"GET\",\"/plugins/plugins.XMLLibrarian.XMLLibrarian/result?search="+search+"\",true);\n");
+                    out.append("	xmlHttp.send(null);\n}\n");
+
+                    out.append("function requestStatus(){\n");
+                    out.append("	var xmlHttp=new XMLHttpRequest();\n");
+                    out.append("	xmlHttp.onreadystatechange = function(){\n");
+                    out.append("		if(xmlHttp.readyState==4){\n");
+                    out.append("            if(xmlHttp.responseText.charAt(0)=='.'){\n");
+                    out.append("                document.getElementById(\"librarian-search-status\").innerHTML=xmlHttp.responseText.substr(1);\n");
+                    out.append("                requestStatus();\n");
+                    out.append("            }else{\n");
+                    out.append("                document.getElementById(\"librarian-search-status\").innerHTML=xmlHttp.responseText;\n");
+                    out.append("                getresult();\n      }\n");
+                    out.append("        }\n    }\n");
+                    out.append("	xmlHttp.open(\"GET\",\"/plugins/plugins.XMLLibrarian.XMLLibrarian/progress?search="+search+"&pushonupdate=true\",true);\n");
+                    out.append("	xmlHttp.send(null);\n}\n");
+                    out.append("requestStatus();\n");
+                    out.append("</script>\n");
+
+                    // Set up progressing
+                    Progress progress = new Progress("Searching for "+search);
+                    pr.getHLSimpleClient().addGlobalHook(progress);
+                    progressmap.put(search, progress);
+                    Search.searchStrAsync(out, search, indexuri, progress);
+                }else{
+                    out.append("</table><p></p>\n\n");
+                    Search.searchStr(out, search, indexuri);
+                }
+            }
 		} catch (Exception e) {
 			Logger.error(this,
 			        "Searching for the word " + search + " in index " + indexuri + " failed " + e.toString(), e);
 		}
 
+		appendDefaultPageEnd(out);
 		return out.toString();
 	}
 
-	/**
-	 * Searches for the string in the specified index. In case of a folder searches in all included
-	 * indices
-	 * 
-	 * @param out
-	 * @param search
-	 *            - string to be searched
-	 * @param indexuri
-	 * @param stylesheet
-	 */
-	private void searchStr(StringBuilder out, String search, String indexuri) throws Exception {
-		search = search.toLowerCase();
-		if (search.equals("")) {
-			out.append("Give a valid string to search\n");
-			return;
-		}
-		try {
-			out
-			        .append(
-			                "<p><span class=\"librarian-searching-for-header\">Searching: </span><span class=\"librarian-searching-for-target\">")
-			        .append(HTMLEncoder.encode(search)).append("</span></p>\n");
-			// Get search result
-			out.append("<p>Index Site: " + HTMLEncoder.encode(indexuri) + "</p>");
 
-			String[] searchWords = search.split("[^\\p{L}\\{N}]+");
-			// Return results in order.
-			List<URIWrapper> hs = null;
-			/*
-			 * search for each string in the search list only the common results to all words are
-			 * returned as final result
-			 */
-			try {
-				Index idx = new Index(indexuri, pr);
-				idx.fetch();
-				hs = idx.search(searchWords);
-			} catch (FetchException e) {
-				out.append("<p>Could not fetch sub-index for " + HTMLEncoder.encode(search)
-				        + " : " + e.getMessage() + "</p>\n");
-				Logger.normal(this, "<p>Could not fetch sub-index for " + HTMLEncoder.encode(search) + " in "
-				        + HTMLEncoder.encode(indexuri) + " : " + e.toString() + "</p>\n", e);
-			} catch (Exception e) {
-				out.append("<p>Could not complete search for " + HTMLEncoder.encode(search) + " : " + e.toString()
-				        + "</p>\n");
-				out.append(String.valueOf(e.getStackTrace()));
-				Logger.error(this, "Could not complete search for " + search + "in " + indexuri + e.toString(), e);
-			}
-			// Output results
-			int results = 0;
-			out.append("<table class=\"librarian-results\"><tr>\n");
-			Iterator<URIWrapper> it = hs.iterator();
-			try {
-				while (it.hasNext()) {
-					URIWrapper o = it.next();
-					String showurl = o.URI;
-					String showtitle = o.descr;
-					if (showtitle.trim().length() == 0)
-						showtitle = "not available";
-					if (showtitle.equals("not available"))
-						showtitle = showurl;
-					String description = HTMLEncoder.encode(o.descr);
-					if (!description.equals("not available")) {
-						description = description.replaceAll("(\n|&lt;(b|B)(r|R)&gt;)", "<br>");
-						description = description.replaceAll("  ", "&nbsp; ");
-						description = description.replaceAll("&lt;/?[a-zA-Z].*/?&gt;", "");
-					}
-					showurl = HTMLEncoder.encode(showurl);
-					if (showurl.length() > 60)
-						showurl = showurl.substring(0, 15) + "&hellip;" + showurl.replaceFirst("[^/]*/", "/");
-					String realurl = (o.URI.startsWith("/") ? "" : "/") + o.URI;
-					realurl = HTMLEncoder.encode(realurl);
-					out
-					        .append("<p>\n<table class=\"librarian-result\" width=\"100%\" border=1><tr><td align=center bgcolor=\"#D0D0D0\" class=\"librarian-result-url\">\n");
-					out.append("  <A HREF=\"").append(realurl).append("\" title=\"").append(o.URI).append("\">")
-					        .append(showtitle).append("</A>\n");
-					out.append("</td></tr><tr><td align=left class=\"librarian-result-summary\">\n");
-					out.append("</td></tr></table>\n");
-					results++;
-				}
-			} catch (Exception e) {
-				out.append("Could not display results for " + search + e.toString());
-				Logger.error(this, "Could not display search results for " + search + e.toString(), e);
-			}
-			out.append("</tr><table>\n");
-			out
-			        .append(
-			                "<p><span class=\"librarian-summary-found-text\">Found: </span><span class=\"librarian-summary-found-number\">")
-			        .append(results).append(" results</span></p>\n");
-		} catch (Exception e) {
-			Logger.error(this, "Could not complete search for " + search + " in " + indexuri + e.toString(), e);
-			e.printStackTrace();
-		}
-	} 
-	
 	public void runPlugin(PluginRespirator pr) {
 		this.pr = pr;
 	}
