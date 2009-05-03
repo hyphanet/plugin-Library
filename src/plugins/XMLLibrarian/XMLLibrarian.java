@@ -71,7 +71,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
         }
         
         // Set up progressing
-        Progress progress = new Progress("test", "3", pr.getHLSimpleClient());
+        Progress progress = new Progress("test", "3", pr);
         progressmap.put("test", progress);
         try{
             Thread.sleep(1000);
@@ -228,7 +228,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
                 
                 if(!progressmap.containsKey(search)){ // If identical search is not taking place
                     // Set up progressing
-                    Progress progress = new Progress(search, "Searching for "+HTMLEncoder.encode(search), pr.getHLSimpleClient());
+                    Progress progress = new Progress(search, "Searching for "+HTMLEncoder.encode(search), pr);
                     progressmap.put(search, progress);
                     //Start search
                     Search.searchStrAsync(out, search, indexuri, progress);

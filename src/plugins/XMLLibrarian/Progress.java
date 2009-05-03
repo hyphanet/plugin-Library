@@ -8,43 +8,36 @@ import com.db4o.ObjectContainer;
 import freenet.client.HighLevelSimpleClient;
 import freenet.client.FetchContext;
 import freenet.support.MultiValueTable;
+import freenet.node.RequestStarter;
+import freenet.pluginmanager.PluginRespirator;
 
 
 /**
  * Stores and provides access to status of searches
  * @author MikeB
  */
-public class Progress implements ClientEventListener, RequestClient
+public class Progress implements ClientEventListener
 {
     private final String search;
-    private FetchContext fcontext;
+    private HighLevelSimpleClient hlsc;
     private boolean retrieved;
     private boolean complete;
     private String msg;
     private String result;
     private String eventDescription;
 
-    public Progress(String search, String initialmsg, HighLevelSimpleClient hlsc){
+    public Progress(String search, String initialmsg, PluginRespirator pr){
         this.search = search;
         retrieved = false;
         complete = false;
         msg = initialmsg;
         
-        fcontext = hlsc.getFetchContext();
-        fcontext.eventProducer.addEventListener(this);
+        hlsc = pr.getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+        hlsc.addGlobalHook(this);
     }
     
-    public boolean persistent() {
-        return false;
-    }
-
-    public void removeFrom(ObjectContainer container) {
-        throw new UnsupportedOperationException();
-    }
-
-    
-    public FetchContext getFetchContext(){
-        return fcontext;
+    public HighLevelSimpleClient getHLSC(){
+        return hlsc;
     }
 
     public void set(String _msg){
@@ -123,7 +116,4 @@ public class Progress implements ClientEventListener, RequestClient
 	public void onRemoveEventProducer(ObjectContainer container){
 
     }
-
-
-
 }

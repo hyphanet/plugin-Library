@@ -78,7 +78,7 @@ public class Index {
 			return;
 
         if(progress!=null) progress.set("Getting base index");
-		Bucket bucket = Util.fetchBucket(baseURI + DEFAULT_FILE, pr, progress);
+		Bucket bucket = Util.fetchBucket(baseURI + DEFAULT_FILE, progress);
         if(progress!=null) progress.set("Fetched base index");
 		try {
 			InputStream is = bucket.getInputStream();
@@ -142,7 +142,7 @@ public class Index {
 
 		try {
             if(progress!=null) progress.set("Getting subindex "+subIndex+" to search for "+keyword);
-			Bucket bucket = Util.fetchBucket(baseURI + subIndex, pr, progress);
+			Bucket bucket = Util.fetchBucket(baseURI + subIndex, progress);
             if(progress!=null) progress.set("Fetched subindex "+subIndex+" to search for "+keyword);
 
 			SAXParserFactory factory = SAXParserFactory.newInstance();

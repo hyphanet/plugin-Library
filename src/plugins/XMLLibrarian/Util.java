@@ -24,19 +24,18 @@ import freenet.support.io.FileBucket;
 public class Util {
     public static HighLevelSimpleClient hlsc;
     
-	public static Bucket fetchBucket(String uri, PluginRespirator pluginRespirator, Progress progress) throws FetchException, MalformedURLException {
+	public static Bucket fetchBucket(String uri, Progress progress) throws FetchException, MalformedURLException {
 		// try local file first
 		File file = new File(uri);
 		if (file.exists() && file.canRead()) 
 			return new FileBucket(file, true, false, false, false, false);
 
 		// FreenetURI, try to fetch from freenet
-		HighLevelSimpleClient hlsc = pluginRespirator.getHLSimpleClient();
 		FreenetURI u = new FreenetURI(uri);
 		FetchResult res;
 		while (true) {
 			try {
-				res = fetch(u, progress);
+				res = progress.getHLSC().fetch(u);
 				break;
 			} catch (FetchException e) {
 				if (e.newURI != null) {
@@ -49,15 +48,6 @@ public class Util {
 
 		return res.asBucket();
 	}
-
-
-    private static FetchResult fetch(FreenetURI uri, Progress progress) throws FetchException {
-        if(uri == null) throw new NullPointerException();
-		FetchContext context = progress.getFetchContext();
-		FetchWaiter fw = new FetchWaiter();
-		ClientGetter get = hlsc.fetch(uri, -1, progress, fw, context);
-		return fw.waitForCompletion();
-    }
 }
 
 
