@@ -19,6 +19,7 @@ import freenet.pluginmanager.PluginRespirator;
 public class Progress implements ClientEventListener
 {
     private final String search;
+    private final String index;
     private HighLevelSimpleClient hlsc;
     private boolean retrieved;
     private boolean complete;
@@ -26,11 +27,12 @@ public class Progress implements ClientEventListener
     private String result;
     private String eventDescription;
 
-    public Progress(String search, String initialmsg, PluginRespirator pr){
+    public Progress(String search, String indexuri, String initialmsg, PluginRespirator pr){
         this.search = search;
         retrieved = false;
         complete = false;
         msg = initialmsg;
+        index = indexuri;
         
         hlsc = pr.getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
         hlsc.addGlobalHook(this);
@@ -73,7 +75,7 @@ public class Progress implements ClientEventListener
         
         if(format.equals("html")){
             if(complete){
-                return "<html><body>"+msg+" - <a href=\"/plugins/plugins.XMLLibrarian.XMLLibrarian?search="+search+"\" target=\"_parent\">Click to reload &amp; view results</a><br />"+eventDescription+"</body></html>";
+                return "<html><body>"+msg+" - <a href=\"/plugins/plugins.XMLLibrarian.XMLLibrarian?search="+search+"&index="+index+"\" target=\"_parent\">Click to reload &amp; view results</a><br />"+eventDescription+"</body></html>";
             }else
                 return "<html><head><meta http-equiv=\"refresh\" content=\"1\" /></head><body>"+msg+"<br />"+eventDescription+"</body></html>";
         }else{

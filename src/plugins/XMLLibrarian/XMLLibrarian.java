@@ -45,7 +45,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * Current configuration gets saved by default in the configfile. To Save the current
 	 * configuration use "Save Configuration"
 	 */
-	private static int version = 21;
+	private static int version = 22;
 	private static final String plugName = "XMLLibrarian " + version;
     private HashMap<String, Progress> progressmap = new HashMap();
     //private StringBuilder logs = new StringBuilder();
@@ -63,52 +63,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 
 	}
     
-    private String dotest(){
-        try{
-            Thread.sleep(6000);
-        }catch(java.lang.InterruptedException e){
-
-        }
-        
-        // Set up progressing
-        Progress progress = new Progress("test", "3", pr);
-        progressmap.put("test", progress);
-        try{
-            Thread.sleep(1000);
-        }catch(java.lang.InterruptedException e){
-
-        }
-        
-        progress.set("2");
-        try{
-            Thread.sleep(1000);
-        }catch(java.lang.InterruptedException e){
-
-        }
-        progress.set("1");
-        try{
-            Thread.sleep(1000);
-        }catch(java.lang.InterruptedException e){
-
-        }
-        progress.done("done", "result!");
-        try{
-            Thread.sleep(1000);
-        }catch(java.lang.InterruptedException e){
-
-        }
-        return "done";
-    }
-    
     public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException
     {
         //if(request.getPath().endsWith("logs"))
         //    return logs.toString();
                 
-		String search = request.getParam("search");
-        if(request.getPath().endsWith("test")){
-                return dotest();
-        }else if(request.getPath().endsWith("progress")){
+		String search = request.getParam("search");if(request.getPath().endsWith("progress")){
             if (progressmap.containsKey(search))
                 return progressmap.get(search).get(request.getParam("format"));
             else
@@ -228,7 +188,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
                 
                 if(!progressmap.containsKey(search)){ // If identical search is not taking place
                     // Set up progressing
-                    Progress progress = new Progress(search, "Searching for "+HTMLEncoder.encode(search), pr);
+                    Progress progress = new Progress(search, indexuri, "Searching for "+HTMLEncoder.encode(search), pr);
                     progressmap.put(search, progress);
                     //Start search
                     Search.searchStrAsync(out, search, indexuri, progress);
