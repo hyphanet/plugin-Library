@@ -71,15 +71,15 @@ public class Index {
 	 * @throws SAXException
 	 */ 
 	public synchronized void fetch() throws IOException, FetchException, SAXException {
-        fetch(new Progress(""));
+        fetch(null);
     }
 	public synchronized void fetch(Progress progress) throws IOException, FetchException, SAXException {
 		if (fetched)
 			return;
 
-        progress.set("Getting base index");
-		Bucket bucket = Util.fetchBucket(baseURI + DEFAULT_FILE, pr);
-        progress.set("Fetched base index");
+        if(progress!=null) progress.set("Getting base index");
+		Bucket bucket = Util.fetchBucket(baseURI + DEFAULT_FILE, pr, progress);
+        if(progress!=null) progress.set("Fetched base index");
 		try {
 			InputStream is = bucket.getInputStream();
 			parse(is);
@@ -133,7 +133,7 @@ public class Index {
 	}
 
 	protected List<URIWrapper> search(String keyword) throws Exception {
-        return search(keyword, new Progress(""));
+        return search(keyword, null);
     }
 
 	protected List<URIWrapper> search(String keyword, Progress progress) throws Exception {
@@ -141,9 +141,9 @@ public class Index {
 		String subIndex = getSubIndex(keyword);
 
 		try {
-            progress.set("Getting subindex "+subIndex+" to search for "+keyword);
-			Bucket bucket = Util.fetchBucket(baseURI + subIndex, pr);
-            progress.set("Fetched subindex "+subIndex+" to search for "+keyword);
+            if(progress!=null) progress.set("Getting subindex "+subIndex+" to search for "+keyword);
+			Bucket bucket = Util.fetchBucket(baseURI + subIndex, pr, progress);
+            if(progress!=null) progress.set("Fetched subindex "+subIndex+" to search for "+keyword);
 
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			try {
@@ -166,7 +166,7 @@ public class Index {
 	}
 
 	public List<URIWrapper> search(String[] keywords) throws Exception {
-        return search(keywords, new Progress(""));
+        return search(keywords, null);
     }
 
 	public List<URIWrapper> search(String[] keywords, Progress progress) throws Exception {
