@@ -35,7 +35,7 @@ public class Progress implements ClientEventListener
         index = indexuri;
         
         hlsc = pr.getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
-        hlsc.addGlobalHook(this);
+        hlsc.addEventHook(this);
     }
     
     public HighLevelSimpleClient getHLSC(){
@@ -78,12 +78,13 @@ public class Progress implements ClientEventListener
                 return "<html><body>"+msg+" - <a href=\"/plugins/plugins.XMLLibrarian.XMLLibrarian?search="+search+"&index="+index+"\" target=\"_parent\">Click to reload &amp; view results</a><br />"+eventDescription+"</body></html>";
             }else
                 return "<html><head><meta http-equiv=\"refresh\" content=\"1\" /></head><body>"+msg+"<br />"+eventDescription+"</body></html>";
-        }else{
+        }else if(format.equals("coded")){
             if(complete)
                 return msg+"<br />"+eventDescription;
             else
                 return "."+msg+"<br />"+eventDescription;
-        }
+        }else
+                return msg+"<br />"+eventDescription;
     }
 
     public String getresult(){

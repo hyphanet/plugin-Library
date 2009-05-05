@@ -127,13 +127,10 @@ class Search extends Thread{
         // check search term is valid
 		search = search.toLowerCase();
 		if (search.equals("")) {
-			out.append("Give a valid string to search\n");
+			//out.append("Give a valid string to search\n");
             //logs.append("Give a valid string to search<br />");
 			return;
 		}
-        
-        // need to put XMLHttp callback for loading results
-        out.append("<div id=\"librarian-search-results\">\n</div>\n");
 
         Search searcher = new Search(search, indexuri, progress);
         searcher.start();
