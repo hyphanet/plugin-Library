@@ -1,0 +1,36 @@
+= Index =
+
+== Purpose ==
+
+Internal representation of an index
+
+
+== To Do ==
+
+Put appropriate access modifiers on everything.
+
+== Format of data ==
+
+ |-- contains
+
+IndexTree
+ |-- [metadata]                                     SSK@X/interdex-n/meta
+ |-- IndexNode                          manifest    SSK@X/interdex-n/
+      |-- IndexFilter                               SSK@X/interdex-n/filter
+      |-- IndexNode                     manifest    SSK@X/interdex-n/h/
+      |-- IndexEntry                    redirect    SSK@X/interdex-n/h/hash
+          IndexRedirectionEntry
+           |-> IndexTree                            SSK@Y/interdex-n/
+          IndexTokenEntry
+           |-- TokenIndex                           CHK@key
+                |-- TokenEntry
+
+
+IndexTreeSerialiser
+
+
+PREVENT  IndexNode cycles!
+PREVENT  IndexTree cycles!
+
+IndexTree
+
