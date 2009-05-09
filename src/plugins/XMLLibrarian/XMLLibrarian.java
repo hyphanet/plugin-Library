@@ -6,7 +6,6 @@ import java.util.HashMap;
 import freenet.client.FetchException;
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginHTTP;
-import freenet.pluginmanager.FredPluginHTTPAdvanced;
 import freenet.pluginmanager.FredPluginRealVersioned;
 import freenet.pluginmanager.FredPluginThreadless;
 import freenet.pluginmanager.FredPluginVersioned;
@@ -15,7 +14,7 @@ import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLEncoder;
 import freenet.support.Logger;
 import freenet.support.api.HTTPRequest;
-import freenet.support.MultiValueTable;
+
 
 
 
