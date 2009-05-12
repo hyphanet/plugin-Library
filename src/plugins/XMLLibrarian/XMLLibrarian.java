@@ -115,9 +115,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
     }
     
     
-    private void appendStatusDisplay(StringBuilder out, String search, String indexuri)
+    private void appendStatusDisplay(StringBuilder out, String search, String indexuri, Progress prog)
     {
-        out.append("<tr><td width=\"140\">Search status : </td><td><div id=\"librarian-search-status\">"+progressmap.get(search).get("plain")+"</div></td></tr></table>\n");
+        out.append("<tr><td width=\"140\">Search status : </td><td><div id=\"librarian-search-status\">"+prog.get("plain")+"</div></td></tr></table>\n");
         out.append("<p></p>\n\n");
     }
 
@@ -125,10 +125,14 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		StringBuilder out = new StringBuilder();
         
         search = HTMLEncoder.encode(search);
+	Progress prog = progressmap.get(search);
         
 		out.append("<HTML><HEAD><TITLE>"+plugName+"</TITLE>\n");
-        if(!indexuri.equals("") && !search.equals("") && (!progressmap.containsKey(search) || !progressmap.get(search).isdone()))
-            out.append("<meta http-equiv=\"refresh\" content=\"1\" />\n");
+	out.append("<!-- indexuri=\""+indexuri+"\" search=\""+search+"\" progressmap.containsKey="+(prog != null));
+	if(prog != null) out.append("done="+prog.isdone());
+	out.append(" -->");
+        if((!indexuri.equals("")) && (!search.equals("")) && (prog == null || (!prog.isdone())))
+            out.append("<meta http-equiv=\"refresh\" content=\"5\" />\n");
         out.append("</HEAD><BODY>\n");
         
 		appendDefaultPostFields(out, search, indexuri);
@@ -139,10 +143,11 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 			else if(search.equals(""))
                 out.append("Give a valid string to search ");
             else{
-                if(!progressmap.containsKey(search)){ // If identical search is not taking place
+                if(prog == null){ // If identical search is not taking place
                     Search.setup(pr, this);          // Start search
                     // Set up progressing
                     Progress progress = new Progress(search, indexuri, "Searching for "+HTMLEncoder.encode(search), pr);
+		    prog = progress;
                     progressmap.put(search, progress);
                     //Start search
                     Search.searchStrAsync(out, search, indexuri, progress);
@@ -153,12 +158,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
                 out.append("<span class=\"librarian-searching-for-target\"><b>"+HTMLEncoder.encode(search)+"</b></span> in index <i>"+HTMLEncoder.encode(indexuri)+"</i></td></tr>\n");
                 
                 // Search status
-                if(progressmap.containsKey(search))
-                    appendStatusDisplay(out, search, indexuri);
+                if(prog != null)
+                    appendStatusDisplay(out, search, indexuri, prog);
                 
                 
-                if (progressmap.containsKey(search) && progressmap.get(search).isdone()){     // If search is conplete show results
-                    out.append(progressmap.get(search).getresult());
+                if (prog != null && prog.isdone()){     // If search is conplete show results
+                    out.append(prog.getresult());
                     progressmap.remove(search);
                 }
             }
