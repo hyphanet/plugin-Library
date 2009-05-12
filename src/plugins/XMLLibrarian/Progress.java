@@ -35,7 +35,7 @@ public class Progress implements ClientEventListener
         index = indexuri;
         
         hlsc = pr.getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
-        hlsc.addEventHook(this);
+        hlsc.addGlobalHook(this);
     }
     
     public HighLevelSimpleClient getHLSC(){
