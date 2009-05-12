@@ -136,7 +136,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	if(prog != null) out.append("done="+prog.isdone());
 	out.append(" -->");
         if((!indexuri.equals("")) && (!search.equals("")) && (prog == null || (!prog.isdone())))
-            out.append("<meta http-equiv=\"refresh\" content=\"5\" />\n");
+            out.append("<meta http-equiv=\"refresh\" content=\"1\" />\n");
         out.append("</HEAD><BODY>\n");
         
 		appendDefaultPostFields(out, search, indexuri);
