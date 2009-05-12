@@ -115,9 +115,9 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
     }
     
     
-    private void appendStatusDisplay(StringBuilder out, String search, String indexuri, Progress prog)
+    private void appendStatusDisplay(StringBuilder out, String search, String indexuri, Progress prog, String got)
     {
-        out.append("<tr><td width=\"140\">Search status : </td><td><div id=\"librarian-search-status\">"+prog.get("plain")+"</div></td></tr></table>\n");
+        out.append("<tr><td width=\"140\">Search status : </td><td><div id=\"librarian-search-status\">"+got+"</div></td></tr></table>\n");
         out.append("<p></p>\n\n");
     }
 
@@ -126,7 +126,11 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
         
         search = HTMLEncoder.encode(search);
 	Progress prog = progressmap.get(search);
-        
+	
+	String got = null;
+	if(prog != null)
+        	got = prog.get("plain");
+	
 		out.append("<HTML><HEAD><TITLE>"+plugName+"</TITLE>\n");
 	out.append("<!-- indexuri=\""+indexuri+"\" search=\""+search+"\" progressmap.containsKey="+(prog != null));
 	if(prog != null) out.append("done="+prog.isdone());
@@ -148,6 +152,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
                     // Set up progressing
                     Progress progress = new Progress(search, indexuri, "Searching for "+HTMLEncoder.encode(search), pr);
 		    prog = progress;
+		    got = prog.get("plain");
                     progressmap.put(search, progress);
                     //Start search
                     Search.searchStrAsync(out, search, indexuri, progress);
@@ -159,7 +164,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
                 
                 // Search status
                 if(prog != null)
-                    appendStatusDisplay(out, search, indexuri, prog);
+                    appendStatusDisplay(out, search, indexuri, prog, got);
                 
                 
                 if (prog != null && prog.isdone()){     // If search is conplete show results
