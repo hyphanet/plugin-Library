@@ -73,18 +73,20 @@ public class Progress implements ClientEventListener
             }
         retrieved = true;
         
+	String ed = eventDescription;
+	if(ed == null) ed = "";
         if(format.equals("html")){
             if(complete){
-                return "<html><body>"+msg+" - <a href=\"/plugins/plugins.XMLLibrarian.XMLLibrarian?search="+search+"&index="+index+"\" target=\"_parent\">Click to reload &amp; view results</a><br />"+eventDescription+"</body></html>";
+                return "<html><body>"+msg+" - <a href=\"/plugins/plugins.XMLLibrarian.XMLLibrarian?search="+search+"&index="+index+"\" target=\"_parent\">Click to reload &amp; view results</a><br />"+ed+"</body></html>";
             }else
-                return "<html><head><meta http-equiv=\"refresh\" content=\"1\" /></head><body>"+msg+"<br />"+eventDescription+"</body></html>";
+                return "<html><head><meta http-equiv=\"refresh\" content=\"1\" /></head><body>"+msg+"<br />"+ed+"</body></html>";
         }else if(format.equals("coded")){
             if(complete)
-                return msg+"<br />"+eventDescription;
+                return msg+"<br />"+ed;
             else
-                return "."+msg+"<br />"+eventDescription;
+                return "."+msg+"<br />"+ed;
         }else
-                return msg+"<br />"+eventDescription;
+                return msg+"<br />"+ed;
     }
 
     public String getresult(){
