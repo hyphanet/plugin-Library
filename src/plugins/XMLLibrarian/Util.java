@@ -24,7 +24,7 @@ import freenet.support.io.FileBucket;
 public class Util {
     public static HighLevelSimpleClient hlsc;
     
-	public static Bucket fetchBucket(String uri, Progress progress) throws FetchException, MalformedURLException {
+	public static Bucket fetchBucket(String uri, Search search) throws FetchException, MalformedURLException {
 		// try local file first
 		File file = new File(uri);
 		if (file.exists() && file.canRead()) 
@@ -35,7 +35,7 @@ public class Util {
 		FetchResult res;
 		while (true) {
 			try {
-				res = progress.getHLSC().fetch(u);
+				res = search.getHLSC().fetch(u);
 				break;
 			} catch (FetchException e) {
 				if (e.newURI != null) {

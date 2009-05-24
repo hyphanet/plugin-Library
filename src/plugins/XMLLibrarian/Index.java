@@ -73,13 +73,13 @@ public class Index {
 	public synchronized void fetch() throws IOException, FetchException, SAXException {
         fetch(null);
     }
-	public synchronized void fetch(Progress progress) throws IOException, FetchException, SAXException {
+	public synchronized void fetch(Search search) throws IOException, FetchException, SAXException {
 		if (fetched)
 			return;
 
-        if(progress!=null) progress.set("Getting base index");
-		Bucket bucket = Util.fetchBucket(baseURI + DEFAULT_FILE, progress);
-        if(progress!=null) progress.set("Fetched base index");
+        if(search!=null) search.setprogress("Getting base index");
+		Bucket bucket = Util.fetchBucket(baseURI + DEFAULT_FILE, search);
+        if(search!=null) search.setprogress("Fetched base index");
 		try {
 			InputStream is = bucket.getInputStream();
 			parse(is);
@@ -132,25 +132,22 @@ public class Index {
 		return subIndice.get(subIndiceList.get(idx));
 	}
 
-	protected List<URIWrapper> search(String keyword) throws Exception {
-        return search(keyword, null);
-    }
 
-	protected List<URIWrapper> search(String keyword, Progress progress) throws Exception {
+	protected List<URIWrapper> search(Search search) throws Exception {
 		List<URIWrapper> result = new LinkedList<URIWrapper>();
-		String subIndex = getSubIndex(keyword);
+		String subIndex = getSubIndex(search.getQuery());
 
 		try {
-            if(progress!=null) progress.set("Getting subindex "+subIndex+" to search for "+keyword);
-			Bucket bucket = Util.fetchBucket(baseURI + subIndex, progress);
-            if(progress!=null) progress.set("Fetched subindex "+subIndex+" to search for "+keyword);
+            if(progress!=null) search.setprogress("Getting subindex "+subIndex+" to search for "+search.getQuery());
+			Bucket bucket = Util.fetchBucket(baseURI + subIndex, search);
+            if(progress!=null) search.setprogress("Fetched subindex "+subIndex+" to search for "+search.getQuery());
 
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			try {
 				factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 				SAXParser saxParser = factory.newSAXParser();
 				InputStream is = bucket.getInputStream();
-				saxParser.parse(is, new LibrarianHandler(keyword, result));
+				saxParser.parse(is, new LibrarianHandler(search.getQuery(), result));
 				is.close();
 			} catch (Throwable err) {
 				err.printStackTrace();

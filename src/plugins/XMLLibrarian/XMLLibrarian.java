@@ -46,8 +46,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 */
 	private static int version = 22;
 	private static final String plugName = "XMLLibrarian " + version;
-    private HashMap<String, Progress> progressmap = new HashMap();
-    //private StringBuilder logs = new StringBuilder();
+    private HashMap<String, Search> searches = new HashMap();
 	private PluginRespirator pr;
 
 	public String getVersion() {
@@ -66,122 +65,50 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
     { 
 		String search = request.getParam("search");
         
-        if(request.getPath().endsWith("progress")){
-            if (progressmap.containsKey(search))
-                return progressmap.get(search).get(request.getParam("format"));
+        if(request.getPath().endsWith("progress")){ // mini progress display for use with JS
+            if (searches.containsKey(search))
+                return searches.get(search).getprogress(request.getParam("format"));
             else
                 return "No asyncronous search for "+HTMLEncoder.encode(search)+" found.";
         
-        }else if(request.getPath().endsWith("result")){
-//            logs.append("Requested result for "+HTMLEncoder.encode(search)+"<br />\n");
-            if (progressmap.containsKey(search)){
-                String result = progressmap.get(search).getresult();
-                progressmap.remove(search);
-//                logs.append("Returning result for "+HTMLEncoder.encode(search)+"<br />\n");
+        }else if(request.getPath().endsWith("result")){ // just get result for JS
+            if (searches.containsKey(search)){
+                String result = searches.get(search).getresult();
+                searches.remove(search);
                 return result;
             }else return "No asyncronous search for "+HTMLEncoder.encode(search)+" found.";
         
-        }else{
+        }else if(search == null){   // no search main
+            // generate HTML and set it to no refresh
+            return WebUI.searchpage(null, false);
+        
+        }else{  // Full main searchpage
             String indexuri = request.isParameterSet("index") ? request.getParam("index") : DEFAULT_INDEX_SITE;
-
-            return handleInner(request.getPath(), search, indexuri);
+            
+            Search searchobject;
+            
+            try{
+                if (searches.containsKey(search))   // If search is taking place get it
+                    searchobject = searches.get(search);
+                else{                               // else start a new one
+                    searches.put(search, searchobject);
+                    //Start search
+                    searchobject = Search.startSearch(search, indexuri);
+                }
+                
+                // generate HTML for search object and set it to refresh
+                return WebUI.searchpage(searchobject, true, null);
+            }catch(Exception e){
+                return WebUI.searchpage(searchobject, true, e);
+            }
         }
     }
     
+    
 	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException{
-        String search = request.getPartAsString("search", 80);
-		String indexuri = request.isPartSet("index") ? request.getPartAsString("index", 200) : DEFAULT_INDEX_SITE;
-
-		return handleInner(request.getPath(), search, indexuri);
+        // generate HTML and set it to no refresh
+        return WebUI.searchpage(null, false);
     }
-
-
-	/**
-	 * appendDefaultPostFields generates the main interface to the XMLLibrarian
-	 * 
-	 * @param out
-	 * @param search
-	 * @param index
-	 */
-	private void appendDefaultPostFields(StringBuilder out, String search, String index) {
-		search = HTMLEncoder.encode(search);
-		index = HTMLEncoder.encode(index);
-		out.append("<form method=\"GET\"><table width=\"100%\">\n");
-		out.append("    <tr><td rowspan=2 width=\"300\"><H1>"+plugName+"</H1></td>\n");
-		out.append("        <td width=400><input type=\"text\" value=\"").append(search).append("\" name=\"search\" size=40/>\n");
-		out.append("            <input type=submit name=\"find\" value=\"Find!\" TABINDEX=1/></td></tr>\n");
-		out.append("    <tr><td>Index <input type=\"text\" name=\"index\" value=\"").append(index).append("\" size=40/>\n");
-		out.append("</tr></table></form>\n");
-    }
-    
-    
-    private void appendStatusDisplay(StringBuilder out, String search, String indexuri, Progress prog, String got)
-    {
-        out.append("<tr><td width=\"140\">Search status : </td><td><div id=\"librarian-search-status\">"+got+"</div></td></tr></table>\n");
-        out.append("<p></p>\n\n");
-    }
-
-	private String handleInner(String path, String search, String indexuri) {
-		StringBuilder out = new StringBuilder();
-        
-        search = HTMLEncoder.encode(search);
-	Progress prog = progressmap.get(search);
-	
-	String got = null;
-	if(prog != null)
-        	got = prog.get("plain");
-	
-		out.append("<HTML><HEAD><TITLE>"+plugName+"</TITLE>\n");
-	out.append("<!-- indexuri=\""+indexuri+"\" search=\""+search+"\" progressmap.containsKey="+(prog != null));
-	if(prog != null) out.append("done="+prog.isdone());
-	out.append(" -->");
-        if((!indexuri.equals("")) && (!search.equals("")) && (prog == null || (!prog.isdone())))
-            out.append("<meta http-equiv=\"refresh\" content=\"1\" />\n");
-        out.append("</HEAD><BODY>\n");
-        
-		appendDefaultPostFields(out, search, indexuri);
-
-		try {
-			if (indexuri.equals(""))
-				out.append("Specify a valid index \n");
-			else if(search.equals(""))
-                out.append("Give a valid string to search ");
-            else{
-                if(prog == null){ // If identical search is not taking place
-                    Search.setup(pr, this);          // Start search
-                    // Set up progressing
-                    Progress progress = new Progress(search, indexuri, "Searching for "+HTMLEncoder.encode(search), pr);
-		    prog = progress;
-		    got = prog.get("plain");
-                    progressmap.put(search, progress);
-                    //Start search
-                    Search.searchStrAsync(out, search, indexuri, progress);
-                }
-
-                // Search description
-                out.append("<table width=\"100%\"><tr><td colspan=\"2\"><span class=\"librarian-searching-for-header\">Searching for </span>\n");
-                out.append("<span class=\"librarian-searching-for-target\"><b>"+HTMLEncoder.encode(search)+"</b></span> in index <i>"+HTMLEncoder.encode(indexuri)+"</i></td></tr>\n");
-                
-                // Search status
-                if(prog != null)
-                    appendStatusDisplay(out, search, indexuri, prog, got);
-                
-                
-                if (prog != null && prog.isdone()){     // If search is conplete show results
-                    out.append(prog.getresult());
-                    progressmap.remove(search);
-                }
-            }
-		} catch (Exception e) {
-			Logger.error(this,
-			        "Searching for the word " + search + " in index " + indexuri + " failed " + e.toString(), e);
-		}
-
-		out.append("</CENTER></BODY></HTML>");
-		return out.toString();
-	}
-
-
 
 
 
@@ -189,6 +116,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		this.pr = pr;
         //Util.logs = logs;
         Util.hlsc = pr.getHLSimpleClient();
+        Search.setup(pr, this);
 	}
 
 	private static String convertToHex(byte[] data) {
