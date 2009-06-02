@@ -2,8 +2,9 @@ package plugins.XMLLibrarian;
 
 import java.util.List;
 import java.util.Iterator;
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import freenet.client.FetchException;
 import freenet.client.events.ClientEventListener;
 import freenet.client.HighLevelSimpleClient;
@@ -50,12 +51,12 @@ public class Search extends Thread implements ClientEventListener{
 		if (search.equals("")) {
 			throw new InvalidSearchException("Search string cannot be empty");
 		}
-		Logger.normal(this, "Search " + search + " in " + indexuri);
+		Logger.normal(xl, "Search " + search + " in " + indexuri);
 		
 		this.search = search;
-		HashSet<Index> indices = Index.getIndices(indexuri, xl.getPluginRespirator());
+		ArrayList<Index> indices = Index.getIndices(indexuri, xl.getPluginRespirator());
 		if(indices.size() == 1){
-			this.index = indices.iterator().next();
+			this.index = indices.get(0);
 			subsearches = splitQuery(search, index);
 		}else{
 			this.index = null;

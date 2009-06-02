@@ -33,7 +33,7 @@ public class WebUI{
         String search = searchobject !=null ? HTMLEncoder.encode(searchobject.getQuery()) : "";
         String indexuri = searchobject !=null ? HTMLEncoder.encode(searchobject.getIndex().getIndexURI()) : "";
 
-		if(searchobject.isSuccess())
+		if(searchobject==null || searchobject.isSuccess())
 			refresh = false;
 
         out.append("<HTML><HEAD><TITLE>"+plugName+"</TITLE>\n");
@@ -57,7 +57,7 @@ public class WebUI{
         // Show any errors
         if (e != null)
             out.append(HTMLEncoder.encode(e.toString()));
-		if (searchobject.getError() != null)
+		if (searchobject != null && searchobject.getError() != null)
 			out.append(HTMLEncoder.encode(searchobject.getError().toString()));
 
         // If showing a search

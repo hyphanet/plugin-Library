@@ -1,5 +1,6 @@
 package plugins.XMLLibrarian;
 
+import java.net.MalformedURLException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.ArrayList;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -59,9 +61,16 @@ public class Index {
 	 *            Base URI of the index (exclude the <tt>index.xml</tt> part)
 	 * @param pluginRespirator
 	 */
-	public Index(String baseURI, PluginRespirator pluginRespirator) {
+	private Index(String baseURI, PluginRespirator pluginRespirator) throws InvalidSearchException {
 		if (!baseURI.endsWith("/"))
 			baseURI += "/";
+			
+		// check if index is valid file or URI
+		try{
+			Util.checkValid(baseURI);
+		}catch (MalformedURLException e){
+			throw new InvalidSearchException(baseURI + " is neither a valid file nor valid Freenet URI");
+		}
 
 		this.baseURI = baseURI;
 		this.pr = pluginRespirator;
@@ -75,9 +84,9 @@ public class Index {
 	 * @param indexuris list of index specifiers separated by spaces
 	 * @return Set of Index objects
 	 */
-	public static HashSet<Index> getIndices(String indexuris, PluginRespirator pr){
+	public static ArrayList<Index> getIndices(String indexuris, PluginRespirator pr) throws InvalidSearchException{
 		String[] uris = indexuris.split(" ");
-		HashSet<Index> indices = new HashSet<Index>(uris.length);
+		ArrayList<Index> indices = new ArrayList<Index>(uris.length);
 
 		for ( String uri : uris){
 			if (allindices.containsKey(uri))
