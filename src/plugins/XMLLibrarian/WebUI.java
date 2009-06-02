@@ -6,23 +6,35 @@ import freenet.support.HTMLEncoder;
 
 
 public class WebUI{
+	static String plugName;
+	
+	public static void setup(String plugName){
+		WebUI.plugName = plugName;
+	}
 
     private static void appendStatusDisplay(StringBuilder out, Search searchobject){
         out.append("<tr><td width=\"140\">Search status : </td><td><div id=\"librarian-search-status\">"+searchobject.getprogress("plain")+"</div></td></tr></table>\n");
         out.append("<p></p>\n\n");
     }
 
-
+	/**
+	 * Build an empty search page
+	 **/
+	public static String searchpage(){
+		return searchpage(null, false, null);
+	}
+	
     /**
      * Build a search page for search in it's current state
      **/
     public static String searchpage(Search searchobject, boolean refresh, Exception e){
         StringBuilder out = new StringBuilder();
 
-        String search = searchobject ? HTMLEncoder.encode(searchobject.getQuery()) : "";
-        String indexuri = searchobject ? HTMLEncoder.encode(searchobject.getindex().getIndexURI()) : "";
+        String search = searchobject !=null ? HTMLEncoder.encode(searchobject.getQuery()) : "";
+        String indexuri = searchobject !=null ? HTMLEncoder.encode(searchobject.getIndex().getIndexURI()) : "";
 
-
+		if(searchobject.isSuccess())
+			refresh = false;
 
         out.append("<HTML><HEAD><TITLE>"+plugName+"</TITLE>\n");
         out.append("<!-- indexuri=\""+ indexuri +"\" search=\""+search+"\" searchobject="+searchobject);
@@ -45,6 +57,8 @@ public class WebUI{
         // Show any errors
         if (e != null)
             out.append(HTMLEncoder.encode(e.toString()));
+		if (searchobject.getError() != null)
+			out.append(HTMLEncoder.encode(searchobject.getError().toString()));
 
         // If showing a search
         if(searchobject != null){
@@ -57,7 +71,11 @@ public class WebUI{
 
             // If search is complete show results
             if (searchobject.isdone())
-                out.append(searchobject.getresult());
+				try{
+					out.append(searchobject.getresult());
+				}catch(Exception ex){
+					out.append(HTMLEncoder.encode(ex.toString()));
+				}
         }
 
 		out.append("</CENTER></BODY></HTML>");

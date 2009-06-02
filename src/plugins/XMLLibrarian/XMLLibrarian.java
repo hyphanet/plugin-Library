@@ -56,58 +56,55 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	public long getRealVersion() {
 		return version;
 	}
+	
+	public PluginRespirator getPluginRespirator(){
+		return pr;
+	}
 
 	public void terminate() {
 
 	}
     
-    public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException
-    { 
-		String search = request.getParam("search");
-        
-        if(request.getPath().endsWith("progress")){ // mini progress display for use with JS
-            if (searches.containsKey(search))
-                return searches.get(search).getprogress(request.getParam("format"));
-            else
-                return "No asyncronous search for "+HTMLEncoder.encode(search)+" found.";
-        
-        }else if(request.getPath().endsWith("result")){ // just get result for JS
-            if (searches.containsKey(search)){
-                String result = searches.get(search).getresult();
-                searches.remove(search);
-                return result;
-            }else return "No asyncronous search for "+HTMLEncoder.encode(search)+" found.";
-        
-        }else if(search == null){   // no search main
-            // generate HTML and set it to no refresh
-            return WebUI.searchpage(null, false);
-        
-        }else{  // Full main searchpage
-            String indexuri = request.isParameterSet("index") ? request.getParam("index") : DEFAULT_INDEX_SITE;
-            
-            Search searchobject;
-            
-            try{
-                if (searches.containsKey(search))   // If search is taking place get it
-                    searchobject = searches.get(search);
-                else{                               // else start a new one
-                    searches.put(search, searchobject);
-                    //Start search
-                    searchobject = Search.startSearch(search, indexuri);
-                }
-                
-                // generate HTML for search object and set it to refresh
-                return WebUI.searchpage(searchobject, true, null);
-            }catch(Exception e){
-                return WebUI.searchpage(searchobject, true, e);
-            }
-        }
-    }
+	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{ 
+		String searchstring = request.getParam("search");
+		
+		if(request.getPath().endsWith("progress")){ // mini progress display for use with JS
+			if (searches.containsKey(searchstring))
+				return searches.get(searchstring).getprogress(request.getParam("format"));
+			else
+				return "No asyncronous search for "+HTMLEncoder.encode(searchstring)+" found.";
+			
+		}else if(request.getPath().endsWith("result")){ // just get result for JS
+			if (searches.containsKey(searchstring)){
+				String result = searches.get(searchstring).getresult();
+				searches.remove(searchstring);
+				return result;
+			}else return "No asyncronous search for "+HTMLEncoder.encode(searchstring)+" found.";
+			
+		}else if(searchstring == null){   // no search main
+			// generate HTML and set it to no refresh
+			return WebUI.searchpage();
+			
+		}else{  // Full main searchpage
+			String indexuri = request.isParameterSet("index") ? request.getParam("index") : DEFAULT_INDEX_SITE;
+			Search searchobject = null;
+			
+			try{
+				//get Search object
+				searchobject = Search.startSearch(searchstring, indexuri);
+				
+				// generate HTML for search object and set it to refresh
+				return WebUI.searchpage(searchobject, true, null);
+			}catch(Exception e){
+				return WebUI.searchpage(searchobject, true, e);
+			}
+		}
+	}
     
     
 	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException{
         // generate HTML and set it to no refresh
-        return WebUI.searchpage(null, false);
+        return WebUI.searchpage();
     }
 
 
@@ -116,8 +113,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		this.pr = pr;
         //Util.logs = logs;
         Util.hlsc = pr.getHLSimpleClient();
-        Search.setup(pr, this);
+        Search.setup(this);
+		WebUI.setup(plugName);
 	}
+
+
+
 
 	private static String convertToHex(byte[] data) {
 		StringBuilder buf = new StringBuilder();

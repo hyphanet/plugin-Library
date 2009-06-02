@@ -8,6 +8,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.HashMap;
+import java.util.HashSet;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -49,6 +51,8 @@ public class Index {
 
 	protected List<String> subIndiceList;
 	protected SortedMap<String, String> subIndice;
+	//  Map of all indexes currently open
+	private static HashMap<String, Index> allindices = new HashMap<String, Index>();
 
 	/**
 	 * @param baseURI
@@ -61,6 +65,27 @@ public class Index {
 
 		this.baseURI = baseURI;
 		this.pr = pluginRespirator;
+		allindices.put(baseURI, this);
+	}
+	
+	/**
+	 * Returns a set of Index objects one for each of the uri's specified
+	 * gets an existing one if its there else makes a new one
+	 * 
+	 * @param indexuris list of index specifiers separated by spaces
+	 * @return Set of Index objects
+	 */
+	public static HashSet<Index> getIndices(String indexuris, PluginRespirator pr){
+		String[] uris = indexuris.split(" ");
+		HashSet<Index> indices = new HashSet<Index>(uris.length);
+
+		for ( String uri : uris){
+			if (allindices.containsKey(uri))
+				indices.add(allindices.get(uri));
+			else
+				indices.add(new Index(uri, pr));
+		}
+		return indices;
 	}
 
 	/**
@@ -123,6 +148,10 @@ public class Index {
 			throw new SAXException(e);
 		}
 	}
+	
+	public String getIndexURI(){
+		return baseURI;
+	}
 
 	protected String getSubIndex(String keyword) {
 		String md5 = XMLLibrarian.MD5(keyword);
@@ -133,20 +162,23 @@ public class Index {
 	}
 
 
-	protected List<URIWrapper> search(Search search) throws Exception {
+	public List<URIWrapper> search(Search search) throws Exception {
+		fetch(search);
 		List<URIWrapper> result = new LinkedList<URIWrapper>();
 		String subIndex = getSubIndex(search.getQuery());
-
+		
+		// TODO make sure each subindex only gets fetched & parsed once
 		try {
-            if(progress!=null) search.setprogress("Getting subindex "+subIndex+" to search for "+search.getQuery());
+			search.setprogress("Getting subindex "+subIndex+" to search for "+search.getQuery());
 			Bucket bucket = Util.fetchBucket(baseURI + subIndex, search);
-            if(progress!=null) search.setprogress("Fetched subindex "+subIndex+" to search for "+search.getQuery());
+			search.setprogress("Fetched subindex "+subIndex+" to search for "+search.getQuery());
 
 			SAXParserFactory factory = SAXParserFactory.newInstance();
 			try {
 				factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 				SAXParser saxParser = factory.newSAXParser();
 				InputStream is = bucket.getInputStream();
+				search.setprogress("Fetched subindex "+subIndex+" to search for "+search.getQuery());
 				saxParser.parse(is, new LibrarianHandler(search.getQuery(), result));
 				is.close();
 			} catch (Throwable err) {
@@ -162,17 +194,17 @@ public class Index {
 		return result;
 	}
 
-	public List<URIWrapper> search(String[] keywords) throws Exception {
+	/*public List<URIWrapper> search(String[] keywords) throws Exception {
         return search(keywords, null);
     }
 
-	public List<URIWrapper> search(String[] keywords, Progress progress) throws Exception {
+	public List<URIWrapper> search(String[] keywords, Search search) throws Exception {
 		List<URIWrapper> result = null;
 
 		for (String keyword : keywords) {
 			if (keyword.length() < 3)
 				continue;
-			List<URIWrapper> s = search(keyword, progress);
+			List<URIWrapper> s = search(keyword, search);
 
 			if (result == null)
 				result = s;
@@ -182,5 +214,5 @@ public class Index {
 		if (result == null)
 			result = new LinkedList<URIWrapper>();
 		return result;
-	}
+	}*/
 }

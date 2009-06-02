@@ -2,7 +2,15 @@ package plugins.XMLLibrarian;
 
 import java.util.List;
 import java.util.Iterator;
+import java.util.HashSet;
+import java.util.HashMap;
 import freenet.client.FetchException;
+import freenet.client.events.ClientEventListener;
+import freenet.client.HighLevelSimpleClient;
+import freenet.client.events.ClientEvent;
+import freenet.client.async.ClientContext;
+import com.db4o.ObjectContainer;
+import freenet.node.RequestStarter;
 import freenet.support.HTMLEncoder;
 import freenet.support.Logger;
 import freenet.support.api.HTTPRequest;
@@ -14,151 +22,148 @@ import freenet.pluginmanager.PluginRespirator;
  * @author MikeB
  */
 public class Search extends Thread implements ClientEventListener{
-    static private XMLLibrarian xl;
-    String search;
-    Index index;
-    // For progress:
-    // Each Search has it's own HLSC to fetch indexes
-    private HighLevelSimpleClient hlsc;
-    private boolean retrieved;
-    private boolean complete;
-    private String msg;
-    private String result;
-    private String eventDescription;
+	static private XMLLibrarian xl;
+	String search;
+	Index index;
+	// For progress:
+	// Each Search has it's own HLSC to fetch indexes
+	private HighLevelSimpleClient hlsc;
+	private boolean retrieved;
+	private boolean complete;
+	private String msg;
+	private String result;
+	private String eventDescription;
+	private HashSet<Search> subsearches;
+	private static HashMap<String, Search> allsearches = new HashMap<String, Search>();
+	private Exception error;
+	private List<URIWrapper> resultList = null;
 
-
-    /**
-     * Creates Search instance
-     * 
-     * @param search string query
-     * @param index Index to be used for this search
-     * @throws InvalidSearchException if the search is invalid
-     **/
-    private Search(String search, Index index) throws InvalidSearchException{
-        // check search term is valid
+	/**
+	 * Creates Search instance, can take a list of indexes separated by spaces
+	 * 
+	 * @param search string query
+	 * @param indexuri Index(s) to be used for this search, separated by spaces
+	 * @throws InvalidSearchException if the search is invalid
+	 **/
+	private Search(String search, String indexuri) throws InvalidSearchException{
+		// check search term is valid
 		if (search.equals("")) {
 			throw new InvalidSearchException("Search string cannot be empty");
 		}
-        
-        this.search = search;
-        this.index = index;
-        
-        retrieved = false;
-        complete = false;
-        msg = "Searching for "+HTMLEncoder.encode(search);
-        
-        hlsc = xl.getPluginRespirator().getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
-        hlsc.addEventHook(this);
-        
-        
-        // TODO create subsearches for search tokens
-    }
+		Logger.normal(this, "Search " + search + " in " + indexuri);
+		
+		this.search = search;
+		HashSet<Index> indices = Index.getIndices(indexuri, xl.getPluginRespirator());
+		if(indices.size() == 1){
+			this.index = indices.iterator().next();
+			subsearches = splitQuery(search, index);
+		}else{
+			this.index = null;
+			for(Index index : indices)
+				subsearches.add(new Search(search, index));
+		}
+		
+		
+		retrieved = false;
+		complete = false;
+		msg = "Searching for "+HTMLEncoder.encode(search) + " in " + indices.size() + " indexes";
+		
+		// Probably dont need this
+		hlsc = xl.getPluginRespirator().getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+		hlsc.addEventHook(this);
+	
+		allsearches.put(search + indexuri, this);
+	}
 
-    /**
-     * Sets the parent plugin to be used for logging & plugin api
-     * @param xl Parent plugin
-     */
-    public static void setup(XMLLibrarian xl){
-        Search.xl = xl;
-    }
-    
-    
-    /**
+	/**
+	 * Creates Search instance
+	 * 
+	 * @param search string query
+	 * @param index Index to be used for this search
+	 * @throws InvalidSearchException if the search is invalid
+	 **/
+	private Search(String search, Index index) throws InvalidSearchException{
+		// check search term is valid
+		if (search.equals("")) {
+			throw new InvalidSearchException("Search string cannot be empty");
+		}
+		
+		this.search = search;
+		this.index = index;
+		subsearches = splitQuery(search, index);
+		
+		retrieved = false;
+		complete = false;
+		msg = "Searching for "+HTMLEncoder.encode(search);
+		
+		// Probably dont need this
+		hlsc = xl.getPluginRespirator().getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+		hlsc.addEventHook(this);
+	}
+	
+	/**
+	 * Splits query into multiple searches, will be used for advanced queries
+	 * 
+	 * @return Set of subsearches or null if theres only one search
+	 */
+	private HashSet<Search> splitQuery(String query, Index index) throws InvalidSearchException{
+		String[] searchWords = search.split("[^\\p{L}\\{N}]+");
+		if (searchWords.length < 2)
+			return null; // Just one search term
+		
+		HashSet<Search> searches = new HashSet<Search>(searchWords.length);
+		for ( String searchtoken : searchWords)
+			searches.add(new Search(searchtoken, index));
+		return searches;
+	}
+
+
+	/**
+	 * Sets the parent plugin to be used for logging & plugin api
+	 * @param xl Parent plugin
+	 */
+	public static void setup(XMLLibrarian xl){
+		Search.xl = xl;
+		Search.allsearches = new HashMap<String, Search>();
+	}
+	
+	
+	/**
 	 * Creates a search instance for a single index, starts and returns it
 	 *
 	 * @param search string to be searched
-	 * @param indexuri URI of index to be used
-     * @throws InvalidSearchException if any part of the search is invalid
+	 * @param indexuri URI of index(s) to be used
+	 * @throws InvalidSearchException if any part of the search is invalid
 	 */
 	public static Search startSearch(String search, String indexuri) throws InvalidSearchException{
 		search = search.toLowerCase();
         
-        
-        // get index
-        Index index = new Index(indexuri);
-        // create search
-        Search searcher = new Search(search, index);
-        // start search
-        searcher.start();
-        return searcher;
+		// See if the same search exists
+		if (allsearches.containsKey(search + indexuri))
+			return allsearches.get(search + indexuri);
+
+
+		// create search
+		Search searcher = new Search(search, indexuri);
+		// start search
+		searcher.start();
+		return searcher;
 	}
 
     /**
      * Start search
      */
     public void run(){
-
 		try {
-			String[] searchWords = search.split("[^\\p{L}\\{N}]+");
-			// Return results in order.
-			List<URIWrapper> hs = null;
-			/*
-			 * search for each string in the search list only the common results to all words are
-			 * returned as final result
-			 */
-			try {
-                setprogress("Fetching index");
-				index.fetch(progress);
-                setprogress("Searching in index");
-                //logs.append("Searching in index<br />\n");
-				hs = index.search(searchWords, progress);
-                setprogress("Formatting results");
-			} catch (FetchException e) {
-				progress.done("Could not fetch sub-index for " + HTMLEncoder.encode(search)
-				        + " : " + HTMLEncoder.encode(e.getMessage()) + "\n");
-				Logger.normal(xl, "Could not fetch sub-index for " + search + " in "
-				        + indexuri + " : " + e.toString() + "\n", e);
-                return;
-			} catch (Exception e) {
-				progress.done("Could not complete search for " + HTMLEncoder.encode(search) + " : " + HTMLEncoder.encode(e.toString())
-				        + "\n" + HTMLEncoder.encode(String.valueOf(e.getStackTrace())));
-				Logger.error(xl, "Could not complete search for " + search + "in " + indexuri + e.toString(), e);
-                return;
-			}
-			// Output results
-			int results = 0;
-            StringBuilder out = new StringBuilder();
-			out.append("<table class=\"librarian-results\"><tr>\n");
-			Iterator<URIWrapper> it = hs.iterator();
-			try {
-				while (it.hasNext()) {
-					URIWrapper o = it.next();
-					String showurl = o.URI;
-					String showtitle = o.descr;
-					if (showtitle.trim().length() == 0)
-						showtitle = "not available";
-					if (showtitle.equals("not available"))
-						showtitle = showurl;
-					String description = HTMLEncoder.encode(o.descr);
-					if (!description.equals("not available")) {
-						description = description.replaceAll("(\n|&lt;(b|B)(r|R)&gt;)", "<br>");
-						description = description.replaceAll("  ", "&nbsp; ");
-						description = description.replaceAll("&lt;/?[a-zA-Z].*/?&gt;", "");
-					}
-					showurl = HTMLEncoder.encode(showurl);
-					if (showurl.length() > 60)
-						showurl = showurl.substring(0, 15) + "&hellip;" + showurl.replaceFirst("[^/]*/", "/");
-					String realurl = (o.URI.startsWith("/") ? "" : "/") + o.URI;
-					realurl = HTMLEncoder.encode(realurl);
-					out
-					        .append("<p>\n<table class=\"librarian-result\" width=\"100%\" border=1><tr><td align=center bgcolor=\"#D0D0D0\" class=\"librarian-result-url\">\n");
-					out.append("  <A HREF=\"").append(realurl).append("\" title=\"").append(o.URI).append("\">")
-					        .append(showtitle).append("</A>\n");
-					out.append("</td></tr><tr><td align=left class=\"librarian-result-summary\">\n");
-					out.append("</td></tr></table>\n");
-					results++;
-				}
-			} catch (Exception e) {
-				progress.done("Could not display results for " + search + e.toString());
-				Logger.error(xl, "Could not display search results for " + search + e.toString(), e);
-			}
-			out.append("</tr><table>\n");
-			out.append("<p><span class=\"librarian-summary-found-text\">Found: </span><span class=\"librarian-summary-found-number\">")
-			        .append(results).append(" results</span></p>\n");
-            progress.done("Complete.", out.toString());
+			// TODO if there are subsearches start them & wait for updates, else ...
+			
+			
+			// Perform for one search on one index
+			resultList = index.search(this);
+            done("Complete.");
 		} catch (Exception e) {
-            progress.done("Could not complete search for " + search + " in " + indexuri + e.toString());
-			Logger.error(xl, "Could not complete search for " + search + " in " + indexuri + e.toString(), e);
+            error(e);
+			Logger.error(xl, "Could not complete search for " + search + " in " + index + e.toString(), e);
 			e.printStackTrace();
 		}
     }
@@ -166,6 +171,10 @@ public class Search extends Thread implements ClientEventListener{
     public String getQuery(){
         return search;
     }
+	
+	public Index getIndex(){
+		return index;
+	}
     
     // All these moved from Progress
     
@@ -187,10 +196,25 @@ public class Search extends Thread implements ClientEventListener{
         this.msg = msg;
         this.result = (result==null) ? "" : result;
     }
+	
+	public void error(Exception e){
+		retrieved = false;
+        complete = true;
+        this.msg = "Error whilst performing asyncronous search : " + e.toString();
+		error = e;
+	}
+	
+	public Exception getError(){
+		return error;
+	}
     
     public boolean isdone(){
         return complete;
     }
+	
+	public boolean isSuccess(){
+		return resultList != null;
+	}
 
     // TODO better status format
     public String getprogress(String format){
@@ -221,12 +245,55 @@ public class Search extends Thread implements ClientEventListener{
     }
 
     public String getresult(){
-        while(!complete)   // whilst theres no results
+        while(resultList==null)   // whilst theres no results
             try{
                 Thread.sleep(500);
             }catch(java.lang.InterruptedException e){
 
             }
+		
+		// Output results
+		int results = 0;
+		StringBuilder out = new StringBuilder();
+		out.append("<table class=\"librarian-results\"><tr>\n");
+		Iterator<URIWrapper> it = resultList.iterator();
+		try {
+			while (it.hasNext()) {
+				URIWrapper o = it.next();
+				String showurl = o.URI;
+				String showtitle = o.descr;
+				if (showtitle.trim().length() == 0)
+					showtitle = "not available";
+				if (showtitle.equals("not available"))
+					showtitle = showurl;
+				String description = HTMLEncoder.encode(o.descr);
+				if (!description.equals("not available")) {
+					description = description.replaceAll("(\n|&lt;(b|B)(r|R)&gt;)", "<br>");
+					description = description.replaceAll("  ", "&nbsp; ");
+					description = description.replaceAll("&lt;/?[a-zA-Z].*/?&gt;", "");
+				}
+				showurl = HTMLEncoder.encode(showurl);
+				if (showurl.length() > 60)
+					showurl = showurl.substring(0, 15) + "&hellip;" + showurl.replaceFirst("[^/]*/", "/");
+				String realurl = (o.URI.startsWith("/") ? "" : "/") + o.URI;
+				realurl = HTMLEncoder.encode(realurl);
+				out
+						.append("<p>\n<table class=\"librarian-result\" width=\"100%\" border=1><tr><td align=center bgcolor=\"#D0D0D0\" class=\"librarian-result-url\">\n");
+				out.append("  <A HREF=\"").append(realurl).append("\" title=\"").append(o.URI).append("\">")
+						.append(showtitle).append("</A>\n");
+				out.append("</td></tr><tr><td align=left class=\"librarian-result-summary\">\n");
+				out.append("</td></tr></table>\n");
+				results++;
+			}
+		} catch (Exception e) {
+			done("Could not display results for " + search + e.toString());
+			Logger.error(xl, "Could not display search results for " + search + e.toString(), e);
+		}
+		out.append("</tr><table>\n");
+		out.append("<p><span class=\"librarian-summary-found-text\">Found: </span><span class=\"librarian-summary-found-number\">")
+				.append(results).append(" results</span></p>\n");
+		done("Complete.", out.toString());
+		
         return result;
     }
 
