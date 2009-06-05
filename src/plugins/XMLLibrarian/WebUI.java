@@ -119,7 +119,7 @@ public class WebUI{
             // If search is complete show results
             if (searchobject.isdone())
 				try{
-					searchobject.getresult(bodyNode.addChild("div", "id", "results"));
+					searchobject.getResult(bodyNode.addChild("div", "id", "results"));
 				}catch(Exception ex){
 					addError(errorDiv, ex);
 				}

@@ -39,7 +39,6 @@ public class Search extends Thread implements ClientEventListener{
 	private static HashMap<String, Search> allsearches = new HashMap<String, Search>();
 	private Exception error;
 	private List<URIWrapper> resultList = null;
-	private Object resultLock = new Object();
 
 	/**
 	 * Creates Search instance, can take a list of indexes separated by spaces
@@ -199,17 +198,17 @@ public class Search extends Thread implements ClientEventListener{
         done(msg, null);
     }
     public synchronized void done(String msg, String result){
-        retrieved = false;
-        complete = true;
-        this.msg = msg;
-        this.result = (result==null) ? "" : result;
+		retrieved = false;
+		complete = true;
+		this.msg = msg;
+		this.result = (result==null) ? "" : result;
 		this.notifyAll();
     }
 	
 	public synchronized void error(Exception e){
 		retrieved = false;
-        complete = true;
-        this.msg = "Error whilst performing asyncronous search : " + e.toString();
+		complete = true;
+		this.msg = "Error whilst performing asyncronous search : " + e.toString();
 		error = e;
 		this.notifyAll();
 	}
@@ -255,36 +254,24 @@ public class Search extends Thread implements ClientEventListener{
     }
 	
 	
-    public void getprogress(HTMLNode node){
+    public synchronized void getprogress(HTMLNode node){
         // look for a progress update
-		while(retrieved && !complete)   // whilst theres no new msg
-            try{
-                Thread.sleep(500);
-            }catch(java.lang.InterruptedException e){
-
-            }
-		/*try{
+		try{
 			if(retrieved && !complete)
 				this.wait();
 		}catch(java.lang.InterruptedException ex){
 			node.addChild("#", ex.toString());
 			node.addChild("br");
-		}*/
+		}
         retrieved = true;
         
         node.addChild("#", msg);
 		node.addChild("br");
 		node.addChild("#", eventDescription);
     }
+	
 
     public String getresult(){
-        while(resultList==null)   // whilst theres no results
-            try{
-                Thread.sleep(500);
-            }catch(java.lang.InterruptedException e){
-
-            }
-		
 		// Output results
 		int results = 0;
 		StringBuilder out = new StringBuilder();
@@ -330,27 +317,12 @@ public class Search extends Thread implements ClientEventListener{
         return result;
     }
 	
-	public void getresult(HTMLNode node){
-		while(resultList==null)   // whilst theres no results
-            try{
-                Thread.sleep(500);
-            }catch(java.lang.InterruptedException e){
 
-            }
-		/*synchronized( resultLock){
-			try{
-				if(resultList==null)
-					resultLock.wait();
-			}catch(java.lang.InterruptedException ex){
-				node.addChild("#", ex.toString());
-				node.addChild("br");
-			}
-		}*/
-		
+	public void getResult(HTMLNode node){
 		// Output results
 		int results = 0;
 		
-		HTMLNode resultTable = node.addChild("table", new String[]{"width", "class"}, new String[]{"100%", "librarian-results"});
+		HTMLNode resultTable = node.addChild("table", new String[]{"width", "class"}, new String[]{"95%", "librarian-results"});
 		Iterator<URIWrapper> it = resultList.iterator();
 		try {
 			while (it.hasNext()) {
