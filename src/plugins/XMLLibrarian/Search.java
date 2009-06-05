@@ -15,6 +15,7 @@ import freenet.node.RequestStarter;
 import freenet.support.HTMLEncoder;
 import freenet.support.Logger;
 import freenet.support.api.HTTPRequest;
+import freenet.support.HTMLNode;
 import freenet.pluginmanager.PluginRespirator;
 
 
@@ -38,6 +39,7 @@ public class Search extends Thread implements ClientEventListener{
 	private static HashMap<String, Search> allsearches = new HashMap<String, Search>();
 	private Exception error;
 	private List<URIWrapper> resultList = null;
+	private Object resultLock = new Object();
 
 	/**
 	 * Creates Search instance, can take a list of indexes separated by spaces
@@ -48,21 +50,25 @@ public class Search extends Thread implements ClientEventListener{
 	 **/
 	private Search(String search, String indexuri) throws InvalidSearchException{
 		// check search term is valid
-		if (search.equals("")) {
+		if (search == null || search.equals("")) {
 			throw new InvalidSearchException("Search string cannot be empty");
 		}
-		Logger.normal(xl, "Search " + search + " in " + indexuri);
 		
-		this.search = search;
 		ArrayList<Index> indices = Index.getIndices(indexuri, xl.getPluginRespirator());
 		if(indices.size() == 1){
 			this.index = indices.get(0);
 			subsearches = splitQuery(search, index);
 		}else{
 			this.index = null;
+			subsearches = new HashSet<Search>();
 			for(Index index : indices)
 				subsearches.add(new Search(search, index));
 		}
+		
+		
+		Logger.normal(xl, "Search " + search + " in " + indexuri);
+		
+		this.search = search;
 		
 		
 		retrieved = false;
@@ -108,7 +114,7 @@ public class Search extends Thread implements ClientEventListener{
 	 * @return Set of subsearches or null if theres only one search
 	 */
 	private HashSet<Search> splitQuery(String query, Index index) throws InvalidSearchException{
-		String[] searchWords = search.split("[^\\p{L}\\{N}]+");
+		String[] searchWords = query.split("[^\\p{L}\\{N}]+");
 		if (searchWords.length < 2)
 			return null; // Just one search term
 		
@@ -179,30 +185,33 @@ public class Search extends Thread implements ClientEventListener{
     
     // All these moved from Progress
     
-    public void setprogress(String _msg){
+    public synchronized void setprogress(String _msg){
         msg = _msg;
         retrieved = false;
+		this.notifyAll();
     }
     
     public HighLevelSimpleClient getHLSC(){
         return hlsc;
     }
     
-    public void done(String msg){
+    public synchronized void done(String msg){
         done(msg, null);
     }
-    public void done(String msg, String result){
+    public synchronized void done(String msg, String result){
         retrieved = false;
         complete = true;
         this.msg = msg;
         this.result = (result==null) ? "" : result;
+		this.notifyAll();
     }
 	
-	public void error(Exception e){
+	public synchronized void error(Exception e){
 		retrieved = false;
         complete = true;
         this.msg = "Error whilst performing asyncronous search : " + e.toString();
 		error = e;
+		this.notifyAll();
 	}
 	
 	public Exception getError(){
@@ -243,6 +252,29 @@ public class Search extends Thread implements ClientEventListener{
                     return "."+msg+"<br />"+ed;
             }else
                     return msg+"<br />"+ed;
+    }
+	
+	
+    public void getprogress(HTMLNode node){
+        // look for a progress update
+		while(retrieved && !complete)   // whilst theres no new msg
+            try{
+                Thread.sleep(500);
+            }catch(java.lang.InterruptedException e){
+
+            }
+		/*try{
+			if(retrieved && !complete)
+				this.wait();
+		}catch(java.lang.InterruptedException ex){
+			node.addChild("#", ex.toString());
+			node.addChild("br");
+		}*/
+        retrieved = true;
+        
+        node.addChild("#", msg);
+		node.addChild("br");
+		node.addChild("#", eventDescription);
     }
 
     public String getresult(){
@@ -296,6 +328,62 @@ public class Search extends Thread implements ClientEventListener{
 		done("Complete.", out.toString());
 		
         return result;
+    }
+	
+	public void getresult(HTMLNode node){
+		while(resultList==null)   // whilst theres no results
+            try{
+                Thread.sleep(500);
+            }catch(java.lang.InterruptedException e){
+
+            }
+		/*synchronized( resultLock){
+			try{
+				if(resultList==null)
+					resultLock.wait();
+			}catch(java.lang.InterruptedException ex){
+				node.addChild("#", ex.toString());
+				node.addChild("br");
+			}
+		}*/
+		
+		// Output results
+		int results = 0;
+		
+		HTMLNode resultTable = node.addChild("table", new String[]{"width", "class"}, new String[]{"100%", "librarian-results"});
+		Iterator<URIWrapper> it = resultList.iterator();
+		try {
+			while (it.hasNext()) {
+				HTMLNode entry = resultTable.addChild("tr").addChild("td").addChild("p").addChild("table", new String[]{"class", "width", "border"}, new String[]{"librarian-result", "95%", "1"});
+				URIWrapper o = it.next();
+				String showurl = o.URI;
+				String showtitle = o.descr;
+				if (showtitle.trim().length() == 0)
+					showtitle = "not available";
+				if (showtitle.equals("not available"))
+					showtitle = showurl;
+				String description = HTMLEncoder.encode(o.descr);
+				if (!description.equals("not available")) {
+					description = description.replaceAll("(\n|&lt;(b|B)(r|R)&gt;)", "<br>");
+					description = description.replaceAll("  ", "&nbsp; ");
+					description = description.replaceAll("&lt;/?[a-zA-Z].*/?&gt;", "");
+				}
+				showurl = HTMLEncoder.encode(showurl);
+				if (showurl.length() > 60)
+					showurl = showurl.substring(0, 15) + "&hellip;" + showurl.replaceFirst("[^/]*/", "/");
+				String realurl = (o.URI.startsWith("/") ? "" : "/") + o.URI;
+				realurl = HTMLEncoder.encode(realurl);
+				entry.addChild("tr").addChild("td", new String[]{"align", "bgcolor", "class"}, new String[]{"center", "#D0D0D0", "librarian-result-url"})
+					.addChild("a", new String[]{"href", "title"}, new String[]{realurl, o.URI}, showtitle);
+				entry.addChild("tr").addChild("td", new String[]{"align", "class"}, new String[]{"left", "librarian-result-summary"});
+				results++;
+			}
+		} catch (Exception e) {
+			done("Could not display results for " + search + e.toString());
+			Logger.error(xl, "Could not display search results for " + search + e.toString(), e);
+		}
+		node.addChild("p").addChild("span", "class", "librarian-summary-found", xl.getString("Found")+results+xl.getString("results"));
+		done("Complete.", node.generate());
     }
 
 

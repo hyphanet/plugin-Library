@@ -14,6 +14,9 @@ import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLEncoder;
 import freenet.support.Logger;
 import freenet.support.api.HTTPRequest;
+import freenet.pluginmanager.FredPluginL10n;
+import freenet.l10n.L10n;
+import freenet.l10n.L10n.LANGUAGE;
 
 
 
@@ -35,7 +38,7 @@ import freenet.support.api.HTTPRequest;
  * 
  */
 
-public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersioned, FredPluginRealVersioned, FredPluginThreadless {
+public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersioned, FredPluginRealVersioned, FredPluginThreadless, FredPluginL10n {
 	/**
 	 * Default index site
 	 */
@@ -114,7 +117,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
         //Util.logs = logs;
         Util.hlsc = pr.getHLSimpleClient();
         Search.setup(this);
-		WebUI.setup(plugName);
+		WebUI.setup(this, plugName);
 	}
 
 
@@ -147,5 +150,41 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	LANGUAGE lang;
+	
+	public String getString(String key){
+		lang = L10n.getSelectedLanguage();
+		if("Index".equals(key))
+			switch(lang){
+				case ENGLISH:
+				default:
+					return "Index ";
+				}
+		else if("Searching-for".equals(key))
+			switch(lang){
+				case ENGLISH:
+				default:
+					return "Searching for ";
+				}
+		else if("in-index".equals(key))
+			switch(lang){
+				case ENGLISH:
+				default:
+					return " in index ";
+				}
+		else if("Search-status".equals(key))
+			switch(lang){
+				case ENGLISH:
+				default:
+					return "Search status : ";
+				}
+		else
+			return key;
+	}
+	
+	public void setLanguage(LANGUAGE newLanguage){
+		lang = newLanguage;
 	}
 }
