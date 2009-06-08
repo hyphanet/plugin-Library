@@ -17,6 +17,9 @@ public class URIKey extends AbstractPrefixKey implements PrefixKey {
 	// TODO
 	final FreenetURI uri;
 
+	public URIKey() {
+		uri = null;
+	}
 	public URIKey(FreenetURI u) {
 		uri = u;
 	}
@@ -30,29 +33,14 @@ public class URIKey extends AbstractPrefixKey implements PrefixKey {
 
 	public Object clone() { throw new UnsupportedOperationException("Not implemented."); }
 
-	/**
-	** Returns the number of possible symbols at each cell of the key.
-	*/
 	public int symbols() { throw new UnsupportedOperationException("Not implemented."); }
 
-	/**
-	** Returns the size of the key.
-	*/
 	public int size() { throw new UnsupportedOperationException("Not implemented."); }
 
-	/**
-	** Gets one cell of the key.
-	*/
 	public int get(int i) { throw new UnsupportedOperationException("Not implemented."); }
 
-	/**
-	** Sets one cell of the key.
-	*/
 	public void set(int i, int v) { throw new UnsupportedOperationException("Not implemented."); }
 
-	/**
-	** Clears one cell of the key.
-	*/
 	public void clear(int i) { throw new UnsupportedOperationException("Not implemented."); }
 
 

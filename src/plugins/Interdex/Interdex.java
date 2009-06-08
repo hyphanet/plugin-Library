@@ -3,61 +3,49 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex;
 
-import java.io.IOException;
-
+import freenet.client.FetchException;
 import freenet.pluginmanager.FredPlugin;
-import freenet.pluginmanager.FredPluginFCP;
 import freenet.pluginmanager.FredPluginHTTP;
 import freenet.pluginmanager.FredPluginRealVersioned;
+import freenet.pluginmanager.FredPluginThreadless;
 import freenet.pluginmanager.FredPluginVersioned;
 import freenet.pluginmanager.PluginHTTPException;
-import freenet.pluginmanager.PluginReplySender;
 import freenet.pluginmanager.PluginRespirator;
-import freenet.support.HTMLNode;
+import freenet.support.HTMLEncoder;
 import freenet.support.Logger;
-import freenet.support.SimpleFieldSet;
-import freenet.support.api.Bucket;
 import freenet.support.api.HTTPRequest;
 
 /**
 ** @author infinity0
 */
-public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginFCP, FredPluginVersioned, FredPluginRealVersioned {
+public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned, FredPluginRealVersioned, FredPluginThreadless {
 
-	private static final String plugName = "Interdex " + Version.version;
+	private static int version = 2;
+	private static final String plugName = "Interdex " + version;
 	private PluginRespirator pr;
 
-	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
-		return "testing";
-	}
-
-	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException {
-		return "testing2";
-	}
-
-	public void handle(PluginReplySender replysender, SimpleFieldSet params, Bucket data, int accesstype) {
-		return;
-	}
-
-	public void runPlugin(PluginRespirator p) {
-		pr = p;
-	}
-
-	public void terminate() {
-		// TODO kill all 'session handles'
-		// TODO kill all requests
-	}
-
 	public String getVersion() {
-		return Version.svnRevision;
-	}
-
-	public String getString(String key) {
-		return key;
+		return version + " r" + Version.getSvnRevision();
 	}
 
 	public long getRealVersion() {
-		return Version.version;
+		return version;
+	}
+
+	public void terminate() {
+		// pass
+	}
+
+	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
+		return request.toString();
+	}
+
+	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException {
+		return request.toString();
+	}
+
+	public void runPlugin(PluginRespirator pr) {
+		this.pr = pr;
 	}
 
 }

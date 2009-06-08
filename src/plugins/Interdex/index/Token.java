@@ -21,8 +21,14 @@ public class Token extends AbstractPrefixKey implements PrefixKey {
 	final byte[] hash;
 
 	public Token(byte[] h) {
-		hash = new byte[h.length];
-		for (int i=0; i<h.length; ++i) { hash[i] = h[i]; }
+		if (h.length != 16) {
+			throw new IllegalArgumentException("Byte array must be 16 bits long for a MD5 hash.");
+		}
+		hash = new byte[16];
+		for (int i=0; i<16; ++i) { hash[i] = h[i]; }
+	}
+	public Token() {
+		hash = new byte[16];
 	}
 	public Token(String w) {
 		hash = MD5(w);

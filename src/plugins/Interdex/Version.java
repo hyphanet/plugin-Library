@@ -7,14 +7,9 @@ package plugins.Interdex;
 ** @author infinity0
 */
 public class Version {
+	private static final String svnRevision = "@custom@";
 
-	/** SVN revision number. Only set if the plugin is compiled properly e.g. by emu. */
-	static final String svnRevision = "@custom@";
-
-	/** Version number of the plugin for getRealVersion(). Increment this on making
-	 * a major change, a significant bugfix etc. These numbers are used in auto-update
-	 * etc, at a minimum any build inserted into auto-update should have a unique
-	 * version. */
-	public static long version = 1;
-
+	static String getSvnRevision() {
+		return svnRevision;
+	}
 }
