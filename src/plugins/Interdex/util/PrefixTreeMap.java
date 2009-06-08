@@ -16,6 +16,12 @@ import java.util.Set;
 import java.util.Collection;
 
 /**
+** Trie-like map with each node mapping keys that match a given prefix. Each
+** node in the tree will admit a certain maximum number of mappings before it
+** starts creating subtrees.
+*
+* TODO: make this implement SortedMap
+*
 ** @author infinity0
 */
 public class PrefixTreeMap<K extends PrefixTreeMap.PrefixKey, V> extends AbstractMap<K, V>
@@ -24,39 +30,39 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 /*, Cloneable, Serializable*/ {
 
 	/**
-	 * The prefix that all keys in this tree must match.
+	** The prefix that all keys in this tree must match.
 	*/
 	final K prefix;
 
 	/**
-	 * The length of the prefix for this tree.
+	** The length of the prefix for this tree.
 	*/
 	final int preflen;
 
 	/**
-	 * Array holding the child trees. There is one cell in the array for each
-	 * symbol in the alphabet of the key.
+	** Array holding the child trees. There is one cell in the array for each
+	** symbol in the alphabet of the key.
 	*/
-	PrefixTreeMap<K, V>[] child; // prefix_bytes + i == child[i].prefix_bytes
+	final PrefixTreeMap<K, V>[] child; // prefix_bytes + i == child[i].prefix_bytes
 
 	/**
-	 * The size of the child array.
+	** The size of the child array.
 	*/
 	final int subtreesMax;
 
 	/**
-	 * TreeMap holding the entries which don't need to be stored in their own
-	 * tree yet.
+	** TreeMap holding the entries which don't need to be stored in their own
+	** tree yet.
 	*/
-	TreeMap<K, V> tmap = new TreeMap<K, V>();
+	final TreeMap<K, V> tmap = new TreeMap<K, V>();
 
 	/**
-	 * Maximum size of the TreeMap before we start to create subtrees.
+	** Maximum size of the TreeMap before we start to create subtrees.
 	*/
 	final int sizeMax;
 
 	/**
-	 * Number of subtrees. By definition it <= subtreesMax.
+	** Number of subtrees. By definition it <= subtreesMax.
 	*/
 	int subtrees = 0;
 
@@ -156,109 +162,14 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 
 	}
 
-	/************************************************************************
-	 * public interface Map
-	 ************************************************************************/
-
-	//public void clear();
-	//public boolean containsKey(Object key);
-	//public boolean containsValue(Object value);
-
-	public Set<Map.Entry<K,V>> entrySet() {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
-	//public boolean equals(Object o);
-
-	public V get(Object key) {
-		K k; if (!(key instanceof PrefixKey) ||
-			!(k = (K) key).match(prefix, preflen)) { return null; }
-
-		int i = k.get(preflen);
-		if (child[i] != null) {
-			return child[i].get(k);
-		} else {
-			return tmap.get(k);
-		}
-
-	}
-
-	//public int hashCode();
-	//public boolean isEmpty();
-	//public Set<K> keySet();
-
-	public V put(K key, V value) {
-		K k; if (!(key instanceof PrefixKey) ||
-			!(k = (K) key).match(prefix, preflen)) { return null; }
-
-		int i = k.get(preflen);
-		if (child[i] != null) {
-			return child[i].put(k, value);
-		} else if (tmap.size() < sizeMax - subtrees) {
-			return tmap.put(k, value);
-		} else {
-			/* create a new tree. satisfying conditions:
-			** - tmap.size >= sizeMax - subtrees (above else-if condition)
-			** - sizeMax >= subtreesMax (constructor)
-			** - subtreesMax >= subtrees (by definition)
-			** so tmap.size >= 0, but tmap.size != 0 (otherwise we would be
-			** executing the (child[i] != null) block). So tmap.size > 0.
-			*/
-			makeSubTree();
-
-			// same as the above
-			if (child[i] != null) {
-				return child[i].put(k, value);
-			} else {
-				return tmap.put(k, value);
-			}
-		}
-
-	}
-
-	//public void putAll(Map<? extends K,? extends V> t);
-
-	public V remove(Object key) {
-		K k; if (!(key instanceof PrefixKey) ||
-			!(k = (K) key).match(prefix, preflen)) { return null; }
-
-		int i = k.get(preflen);
-		if (child[i] != null) {
-			V v = child[i].remove(k);
-
-			if (child[i].subtrees == 0 &&
-				child[i].tmap.size() <= sizeMax - tmap.size()) {
-				tmap.putAll(child[i].tmap);
-				child[i] = null;
-			}
-			return v;
-
-		} else {
-			return tmap.remove(k);
-		}
-
-	}
-
-	public int size() {
-		// TODO: could be more efficient if we cache this in a "size" field
-		// and detect changes to tmap and propagate this up the tree...
-		int s = tmap.size();
-		for (PrefixTreeMap<K, V> t: child) {
-			s += t.size();
-		}
-		return s;
-	}
-
-	//public Collection<V> values();
-
 	/**
-	 * Build a subtree from the largest subset of tmap consisting of (keys that
-	 * share a common prefix of length one greater than that of this tree).
-	 *
-	 * For efficiency, this method *assumes* that such a set exists and is
-	 * non-empty; it is up to the calling code to make sure this is correct.
-	 *
-	 * @return The index of the new subtree.
+	** Build a subtree from the largest subset of tmap consisting of (keys that
+	** share a common prefix of length one greater than that of this tree).
+	**
+	** For efficiency, this method *assumes* that such a set exists and is
+	** non-empty; it is up to the calling code to make sure this is correct.
+	**
+	** @return The index of the new subtree.
 	*/
 	private int makeSubTree() {
 		assert(tmap.size() > 0);
@@ -304,5 +215,132 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 
 		return msym;
 	}
+
+	/************************************************************************
+	 * public interface Map
+	 ************************************************************************/
+
+	public void clear() {
+		for (int i=0; i<child.length; ++i) {
+			child[i] = null;
+		}
+		subtrees = 0;
+		tmap.clear();
+	}
+
+	public boolean containsKey(Object key) {
+		K k; if (!(key instanceof PrefixKey) ||
+			!(k = (K) key).match(prefix, preflen)) { return false; }
+
+		int i = k.get(preflen);
+		if (child[i] != null) {
+			return child[i].containsKey(k);
+		} else {
+			return tmap.containsKey(k);
+		}
+	}
+
+	public boolean containsValue(Object value) {
+		if (tmap.containsValue(value)) { return true; }
+		for (PrefixTreeMap<K, V> t: child) {
+			if (t.containsValue(value)) { return true; }
+		}
+		return false;
+	}
+
+	public Set<Map.Entry<K,V>> entrySet() {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	//public boolean equals(Object o);
+
+	public V get(Object key) {
+		K k; if (!(key instanceof PrefixKey) ||
+			!(k = (K) key).match(prefix, preflen)) { return null; }
+
+		int i = k.get(preflen);
+		if (child[i] != null) {
+			return child[i].get(k);
+		} else {
+			return tmap.get(k);
+		}
+	}
+
+	//public int hashCode();
+
+	public boolean isEmpty() {
+		if (!tmap.isEmpty()) { return false; }
+		for (PrefixTreeMap<K, V> t: child) {
+			if (!t.isEmpty()) { return false; }
+		}
+		return true;
+	}
+
+	//public Set<K> keySet();
+
+	public V put(K key, V value) {
+		if (!key.match(prefix, preflen)) {
+			throw new IllegalArgumentException("Key does not match prefix for this tree.");
+		}
+
+		int i = key.get(preflen);
+		if (child[i] != null) {
+			return child[i].put(key, value);
+		} else if (tmap.size() < sizeMax - subtrees) {
+			return tmap.put(key, value);
+		} else {
+			/* create a new tree. satisfying conditions:
+			** - tmap.size >= sizeMax - subtrees (above else-if condition)
+			** - sizeMax >= subtreesMax (constructor)
+			** - subtreesMax >= subtrees (by definition)
+			** so tmap.size >= 0, but tmap.size != 0 (otherwise we would be
+			** executing the (child[i] != null) block). So tmap.size > 0.
+			*/
+			int j = makeSubTree();
+
+			// same as the above
+			if (i == j) {
+				return child[i].put(key, value);
+			} else {
+				return tmap.put(key, value);
+			}
+		}
+	}
+
+	//public void putAll(Map<? extends K,? extends V> t);
+
+	public V remove(Object key) {
+		K k; if (!(key instanceof PrefixKey) ||
+			!(k = (K) key).match(prefix, preflen)) { return null; }
+
+		int i = k.get(preflen);
+		if (child[i] != null) {
+			V v = child[i].remove(k);
+
+			if (child[i].subtrees == 0 &&
+				tmap.size() + child[i].tmap.size() <= sizeMax - subtrees) {
+				// remove the subtree since it is now small enough to fit here
+				tmap.putAll(child[i].tmap);
+				child[i] = null;
+				--subtrees;
+			}
+			return v;
+
+		} else {
+			return tmap.remove(k);
+		}
+	}
+
+	public int size() {
+		// TODO: could be more efficient if we cache this in a "size" field
+		// and detect changes to tmap and propagate this up the tree...
+		int s = tmap.size();
+		for (PrefixTreeMap<K, V> t: child) {
+			s += t.size();
+		}
+		return s;
+	}
+
+	//public Collection<V> values();
 
 }
