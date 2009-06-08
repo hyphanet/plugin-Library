@@ -8,18 +8,17 @@ import freenet.keys.FreenetURI;
 import plugins.Interdex.util.PrefixTreeMap;
 
 /**
-** This class handles serialisation of an IndexTree into an SSK. This includes
-** metadata, filters, and {IndexNode}s. {TokenIndex}s are stored in CHKs.
+** This class handles serialisation of an IndexTree into a filetree.
 **
 ** @author infinity0
 */
-public class IndexSSKSerialiser extends IndexSerialiser {
+public class IndexFileSerialiser extends IndexSerialiser {
 
-	public IndexSSKSerialiser(FreenetURI u) {
+	public IndexFileSerialiser(FreenetURI u) {
 		super(u);
 	}
 
-	public IndexSSKSerialiser(Index t) {
+	public IndexFileSerialiser(Index t) {
 		super(t);
 	}
 
@@ -32,9 +31,5 @@ public class IndexSSKSerialiser extends IndexSerialiser {
 	void deflateIndex() {}
 	void deflateMeta() {}
 	void deflatePMN(PrefixTreeMap node) {}
-
-	public void deflate(Token tk) {
-		throw new UnsupportedOperationException("SSKSerialiser does not support token-deflate.");
-	}
 
 }

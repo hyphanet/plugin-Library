@@ -3,14 +3,12 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.index;
 
-import java.util.HashSet;
-
 /**
 ** @author infinity0
 */
-public class TokenIndex {
+public class TokenRedirectionEntry extends TokenEntry {
 
 	// TODO
-	HashSet<TokenEntry> entry;
+	Index index;
 
 }

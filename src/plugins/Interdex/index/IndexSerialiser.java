@@ -5,6 +5,8 @@ package plugins.Interdex.index;
 
 import freenet.keys.FreenetURI;
 
+import plugins.Interdex.util.PrefixTreeMap;
+
 /**
 ** This class handles serialisation of an IndexTree. inflate(), deflate() act
 ** on the IndexTree and all its parts; inflate(Token), deflate(Token) act only
@@ -12,7 +14,7 @@ import freenet.keys.FreenetURI;
 **
 ** Data considered as "part" of the IndexTree include:
 **   * metadata
-**   * all {IndexNode,IndexFilter,TokenEntry}s reachable from it
+**   * all {PrefixTreeMap,TokenEntry}s reachable from it
 **
 ** Data considered as not part of the IndexTree include:
 **   * other {IndexTree}s pointed to by an {IndexRedirectionEntry}
@@ -21,7 +23,7 @@ import freenet.keys.FreenetURI;
 */
 public abstract class IndexSerialiser {
 
-	IndexTree tree;
+	Index index;
 	FreenetURI uri;
 	// TODO: make thread-safe?
 
@@ -30,15 +32,15 @@ public abstract class IndexSerialiser {
 		// probably use a SSK-ID instead of FreenetURI, if there is a class for that
 		// or the WoT object for an ID
 		uri = u;
-		tree = new IndexTree();
+		index = new Index();
 	}
 
-	public IndexSerialiser(IndexTree t) {
+	public IndexSerialiser(Index t) {
 		// TODO: research
 		// probably use a SSK-ID instead of FreenetURI, if there is a class for that
 		// or the WoT object for an ID
 		uri = new FreenetURI("", "");
-		tree = t;
+		index = t;
 	}
 
 	/************************************************************************
@@ -46,32 +48,32 @@ public abstract class IndexSerialiser {
 	 ************************************************************************/
 
 	public void deflate() {
-		deflateIndexNodeRecursive(tree.root);
-		deflateIndexMeta();
+		deflatePMTRecursive(index.utab);
+		deflatePMTRecursive(index.tktab);
+		deflatePMTRecursive(index.filtab);
+		deflateMeta();
 		deflateIndex();
 	}
 
-	void deflateIndexNodeRecursive(IndexNode node) {
-		deflateIndexFilter(node.filter);
-		for (IndexNode ch: node.child) {
-			deflateIndexNode(ch);
+	void deflatePMTRecursive(PrefixTreeMap node) {
+		/*for (PrefixTreeMap ch: node.child) {
+			deflatePMN(ch);
 		}
-		for (Token tk: node.tmap.keySet()) {
-			IndexEntry en = node.tmap.get(tk);
+		for (K tk: node.hmap.keySet()) {
+			V en = node.hmap.get(tk);
 			if (en instanceof IndexTokenEntry) {
 				deflateTokenIndex(((IndexTokenEntry)en).index);
 			} else if (en instanceof IndexRedirectionEntry) {
 				// pass, this is someone else's problem
 			}
-		}
-		deflateIndexNode(node);
+		}*/
+		throw new UnsupportedOperationException("Not implemented.");
+		//deflatePMN(node);
 	}
 
 	abstract void deflateIndex();
-	abstract void deflateIndexMeta();
-	abstract void deflateIndexNode(IndexNode node);
-	abstract void deflateIndexFilter(IndexFilter filter);
-	abstract void deflateTokenIndex(TokenIndex index);
+	abstract void deflateMeta();
+	abstract void deflatePMN(PrefixTreeMap node);
 
 	/************************************************************************
 	 * INFLATE
@@ -79,19 +81,19 @@ public abstract class IndexSerialiser {
 
 	public void inflate() {
 		inflateIndex();
-		inflateIndexMeta();
-		inflateIndexNodeRecursive(tree.root);
+		inflateMeta();
+		inflatePMTRecursive(index.filtab);
+		inflatePMTRecursive(index.tktab);
+		inflatePMTRecursive(index.utab);
 	}
 
-	void inflateIndexNodeRecursive(IndexNode node) {
+	void inflatePMTRecursive(PrefixTreeMap node) {
 		// TODO
 	}
 
 	abstract void inflateIndex();
-	abstract void inflateIndexMeta();
-	abstract void inflateIndexNode(IndexNode node);
-	abstract void inflateIndexFilter(IndexFilter filter);
-	abstract void inflateTokenIndex(TokenIndex index);
+	abstract void inflateMeta();
+	abstract void inflatePMN(PrefixTreeMap node);
 
 	/************************************************************************
 	 * TOKEN-DEFLATE
@@ -103,12 +105,14 @@ public abstract class IndexSerialiser {
 	** @param	tk	The token to look for
 	*/
 	public void deflate(Token tk) {
-		deflateIndexNodeRecursive(tree.root, tk);
-		deflateIndexMeta();
+		deflatePMTRecursive(index.utab, tk);
+		deflatePMTRecursive(index.tktab, tk);
+		deflatePMTRecursive(index.filtab, tk);
+		deflateMeta();
 		deflateIndex();
 	}
 
-	void deflateIndexNodeRecursive(IndexNode node, Token tk) {
+	void deflatePMTRecursive(PrefixTreeMap node, Token tk) {
 		// TODO
 	}
 
@@ -123,14 +127,17 @@ public abstract class IndexSerialiser {
 	*/
 	public void inflate(Token tk) {
 		inflateIndex();
-		inflateIndexMeta();
-		inflateIndexNodeRecursive(tree.root, tk);
+		inflateMeta();
+		inflatePMTRecursive(index.filtab, tk);
+		inflatePMTRecursive(index.tktab, tk);
+		inflatePMTRecursive(index.utab, tk);
 	}
 
-	void inflateIndexNodeRecursive(IndexNode node, Token tk) {
-		inflateIndexNode(node);
-
-		IndexEntry en = node.tmap.get(tk);
+	void inflatePMTRecursive(PrefixTreeMap node, Token tk) {
+		throw new UnsupportedOperationException("Not implemented.");
+		//inflatePMN(node);
+		/*
+		IndexEntry en = node.hmap.get(tk);
 		if (en == null) { return; }
 
 		if (en instanceof IndexTokenEntry) {
@@ -142,10 +149,10 @@ public abstract class IndexSerialiser {
 		inflateIndexFilter(node.filter);
 		if (node.filter != null && !node.filter.has(tk)) { return; }
 
-		for (IndexNode ch: node.child) {
+		for (PrefixTreeMap ch: node.child) {
 			// TODO if ch.prefix_bytes do not match t, continue
-			inflateIndexNodeRecursive(ch, tk);
-		}
+			inflatePMTRecursive(ch, tk);
+		}*/
 
 	}
 

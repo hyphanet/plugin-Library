@@ -6,10 +6,9 @@ package plugins.Interdex.index;
 /**
 ** @author infinity0
 */
-public class TokenEntry {
+public abstract class TokenEntry { // TODO: or interface?
 
 	// TODO
-	String token;
-	Token tokenhash;
+	// don't actually know what to put here, lol... constructors?
 
 }

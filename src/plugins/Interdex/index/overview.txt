@@ -15,16 +15,28 @@ Put appropriate access modifiers on everything.
 
 IndexTree
  |-- [metadata]                                     SSK@X/interdex-n/meta
- |-- IndexNode                          manifest    SSK@X/interdex-n/
-      |-- IndexFilter                               SSK@X/interdex-n/filter
-      |-- IndexNode                     manifest    SSK@X/interdex-n/h/
-      |-- IndexEntry                    redirect    SSK@X/interdex-n/h/hash
-          IndexRedirectionEntry
-           |-> IndexTree                            SSK@Y/interdex-n/
-          IndexTokenEntry
-           |-- TokenIndex                           CHK@key
-                |-- TokenEntry
+ |-- PrefixTreeMap<URIKey,URIEntry> utab
+ |-- PrefixTreeMap<Token,HashSet<TokenEntry>> tktab
+ |-- PrefixTreeMap<Token,TokenFilter> filtab
 
+PrefixTreeMap<K,V>
+ |-- PrefixTreeMap<K,V>
+ |    |-- HashMap<K,V>
+ |         |-- K : V
+ |-- HashMap<K,V>
+
+TokenEntry (abstract)
+ : TokenRedirectionEntry
+ : TokenURIEntry
+
+TokenURIEntry
+ |- FreenetURI uri
+ |- String s
+ |- relevance, position
+
+URIEntry
+ |- FreenetURI uri
+ |- title, date_checked, size, mime-type
 
 IndexTreeSerialiser
 

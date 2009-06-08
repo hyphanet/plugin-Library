@@ -13,7 +13,7 @@ package plugins.Interdex.index;
 **
 ** @author infinity0
 */
-public interface IndexFilter {
+public interface TokenFilter {
 
 	public boolean has(Token token);
 	public void put(Token token);

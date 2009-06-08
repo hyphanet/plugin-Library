@@ -3,6 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.index;
 
+import freenet.keys.FreenetURI;
+
 import plugins.Interdex.util.PrefixTreeMap.PrefixKey;
 import plugins.Interdex.util.PrefixTreeMap.AbstractPrefixKey;
 
@@ -10,19 +12,16 @@ import plugins.Interdex.util.PrefixTreeMap.AbstractPrefixKey;
 ** @author infinity0
 ** @see PrefixTreeMap.PrefixKey
 */
-public class Token extends AbstractPrefixKey implements PrefixKey { // TODO: maybe turn this into MD5Token extends AbstractToken?
+public class URIKey extends AbstractPrefixKey implements PrefixKey {
 
 	// TODO
-	final String token; // MD5 hash
+	final FreenetURI uri;
 
-	public Token(String md5hash) { token = md5hash; }
-	public Token(String keyword, boolean whatever) {
-		// TODO: MD5 it
-		// token = MD5(keyword)
-		token = "";
+	public URIKey(FreenetURI u) {
+		uri = u;
 	}
 
-	public String toString() { return token; }
+	public String toString() { return uri.toString(); }
 
 
 	/************************************************************************

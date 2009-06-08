@@ -3,12 +3,19 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.index;
 
+import freenet.keys.FreenetURI;
+
 /**
 ** @author infinity0
 */
-public abstract class IndexEntry { // TODO: or interface?
+public class TokenURIEntry extends TokenEntry {
 
 	// TODO
-	// don't actually know what to put here, lol... constructors?
+	FreenetURI uri;
+
+	String word;
+	int position;
+
+	int relevance;
 
 }

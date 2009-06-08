@@ -32,7 +32,7 @@ import freenet.keys.FreenetURI;
 **
 ** @author infinity0
 */
-public class IndexBloomFilter implements IndexFilter {
+public class TokenBloomFilter implements TokenFilter {
 
 	// TODO
 	// filter data structure
