@@ -11,9 +11,9 @@ import java.util.SortedMap;
 import java.util.Collection;
 
 /**
-** Emulates a PrefixTreeMap where some of the data has not been fully loaded.
+** Emulates a TreeMap where some of the data has not been fully loaded.
 ** Operations on this data structure will throw a DataNotLoadedException when
-** it encounters dummy objects such as DummyEntry.
+** it encounters dummy objects such as DummyValue.
 **
 ** This object can be safely casted to a TreeMap if isComplete() returns true,
 ** which occurs if and only if no mappings point to null or DummyValue objects.
@@ -83,14 +83,14 @@ implements IncompleteMap<K, V> {
 	}
 
 	public IncompleteTreeMap(Map<? extends K,? extends V> m) {
-		tmap = new TreeMap<K, Value<V>>();
+		tmap = new TreeMap<K, Value<V>>(m.comparator());
 		for (K key: m.keySet()) {
 			tmap.put(key, new Value<V>(m.get(key)));
 		}
 	}
 
 	public IncompleteTreeMap(SortedMap<K,? extends V> m) {
-		tmap = new TreeMap<K, Value<V>>();
+		tmap = new TreeMap<K, Value<V>>(m.comparator());
 		for (K key: m.keySet()) {
 			tmap.put(key, new Value<V>(m.get(key)));
 		}
@@ -128,7 +128,7 @@ implements IncompleteMap<K, V> {
 		if (!isComplete()) {
 			throw new DataNotLoadedException("TreeMap not fully loaded.", this, "*");
 		} else {
-			Map<K, V> ctree = new TreeMap<K, V>();
+			Map<K, V> ctree = new TreeMap<K, V>(comparator());
 			for (K k: tmap.keySet()) {
 				ctree.put(k, tmap.get(k).get());
 			}
@@ -158,7 +158,22 @@ implements IncompleteMap<K, V> {
 		}
 	}
 
-	//public Set<Map.Entry<K,V>> entrySet()
+	public Set<Map.Entry<K,V>> entrySet() {
+		// TODO: The best/easiest way to implement this (and the other Map
+		// methods that involve the V parameter) would probably be to throw
+		// DataNotFoundException if isComplete() is false. Otherwise, have a
+		// cache for complete() and return cache.entrySet()
+		//
+		// We should NOT return an entrySet when isComplete() is false, because
+		// then it would be possible to iterate over this entrySet and call
+		// entry.getValue(), possibly returning a DummyValue, which is against
+		// the point of this class. There would have to be some major hackery
+		// involved to make this throw DataNotFoundException instead.
+		//
+		// (for the record, sdiz thinks it's a bad idea to have made this into
+		// a collections class in the first place.)
+		throw new UnsupportedOperationException("Not implemented.");
+	}
 
 	public K firstKey() { return tmap.firstKey(); }
 
@@ -170,7 +185,9 @@ implements IncompleteMap<K, V> {
 		return (v == null)? null: v.get();
 	}
 
-	//public SortedMap<K,V> headMap(K toKey)
+	public SortedMap<K,V> headMap(K toKey) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
 
 	public Set<K> keySet() { return tmap.keySet(); }
 
@@ -181,7 +198,9 @@ implements IncompleteMap<K, V> {
 		return (v == null)? null: v.get();
 	}
 
-	//public void putAll(Map<? extends K,? extends V> map)
+	public void putAll(Map<? extends K,? extends V> map) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
 
 	public V remove(Object key) {
 		Value<V> v = tmap.remove(key);
@@ -190,16 +209,28 @@ implements IncompleteMap<K, V> {
 
 	public int size() { return tmap.size(); }
 
-	//public SortedMap<K,V> subMap(K fromKey, K toKey)
-	//public SortedMap<K,V> tailMap(K fromKey)
-	//public Collection<V> values()
+	public SortedMap<K,V> subMap(K fromKey, K toKey) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	public SortedMap<K,V> tailMap(K fromKey) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	public Collection<V> values() {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
 
 	/************************************************************************
 	 * public class AbstractMap
 	 ************************************************************************/
 
-	// TODO
-	//public boolean equals(Object o) { }
+	public boolean equals(Object o) {
+		if (o instanceof IncompleteTreeMap) {
+			return tmap.equals(((IncompleteTreeMap)o).tmap);
+		}
+		return tmap.equals(o);
+	}
 	public int hashCode() { return tmap.hashCode(); }
 	public boolean isEmpty() { return tmap.isEmpty(); }
 	public String toString() { return tmap.toString(); }
