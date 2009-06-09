@@ -125,16 +125,16 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		StringBuilder out = new StringBuilder();
         
         search = HTMLEncoder.encode(search);
-	Progress prog = progressmap.get(search);
-	
-	String got = null;
-	if(prog != null)
+        Progress prog = progressmap.get(search);
+        
+        String got = null;
+        if(prog != null)
         	got = prog.get("plain");
-	
+        
 		out.append("<HTML><HEAD><TITLE>"+plugName+"</TITLE>\n");
-	out.append("<!-- indexuri=\""+indexuri+"\" search=\""+search+"\" progressmap.containsKey="+(prog != null));
-	if(prog != null) out.append("done="+prog.isdone());
-	out.append(" -->");
+		out.append("<!-- indexuri=\""+indexuri+"\" search=\""+search+"\" progressmap.containsKey="+(prog != null));
+		if(prog != null) out.append("done="+prog.isdone());
+		out.append(" -->");
         if((!indexuri.equals("")) && (!search.equals("")) && (prog == null || (!prog.isdone())))
             out.append("<meta http-equiv=\"refresh\" content=\"1\" />\n");
         out.append("</HEAD><BODY>\n");
@@ -151,8 +151,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
                     Search.setup(pr, this);          // Start search
                     // Set up progressing
                     Progress progress = new Progress(search, indexuri, "Searching for "+HTMLEncoder.encode(search), pr);
-		    prog = progress;
-		    got = prog.get("plain");
+                    prog = progress;
+                    got = prog.get("plain");
                     progressmap.put(search, progress);
                     //Start search
                     Search.searchStrAsync(out, search, indexuri, progress);
