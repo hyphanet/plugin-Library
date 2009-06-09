@@ -44,8 +44,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * Current configuration gets saved by default in the configfile. To Save the current
 	 * configuration use "Save Configuration"
 	 */
-	private static int version = 22;
-	private static final String plugName = "XMLLibrarian " + version;
+	private static int version = 23;
+	private static final String plugName = "Search Freenet (XMLLibrarian " + version+")";
     private HashMap<String, Progress> progressmap = new HashMap();
     //private StringBuilder logs = new StringBuilder();
 	private PluginRespirator pr;
@@ -131,7 +131,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
         if(prog != null)
         	got = prog.get("plain");
         
-		out.append("<HTML><HEAD><TITLE>"+plugName+"</TITLE>\n");
+        String title = plugName;
+        if(search != null && !search.equals("") && indexuri != null && !indexuri.equals(""))
+        	title = "\"" + search + "\" - "+plugName;
+		out.append("<HTML><HEAD><TITLE>"+title+"</TITLE>\n");
 		out.append("<!-- indexuri=\""+indexuri+"\" search=\""+search+"\" progressmap.containsKey="+(prog != null));
 		if(prog != null) out.append("done="+prog.isdone());
 		out.append(" -->");
