@@ -5,7 +5,9 @@ package plugins.Interdex.util;
 
 import java.util.TreeMap;
 import java.util.Map;
+import java.util.Comparator;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.Collection;
 
 /**
@@ -29,11 +31,26 @@ implements IncompleteMap<K, V> {
 	public static class Value<V> {
 
 		final V value;
+
 		public Value(V v) {
 			value = v;
 		}
+
 		public V get() {
 			return value;
+		}
+
+		/************************************************************************
+		 * public class Object
+		 ************************************************************************/
+
+		public boolean equals(Object o) {
+			if (o instanceof Value) { return value.equals(((Value)o).get()); }
+			return value.equals(o);
+		}
+
+		public int hashCode() {
+			return value.hashCode();
 		}
 
 	}
@@ -52,23 +69,70 @@ implements IncompleteMap<K, V> {
 
 	}
 
-	final TreeMap<K, Value<V>> tmap = new TreeMap<K, Value<V>>();
+	/**
+	** A TreeMap of Value containers backing up this map.
+	*/
+	final TreeMap<K, Value<V>> tmap;
+
+	public IncompleteTreeMap() {
+		tmap = new TreeMap<K, Value<V>>();
+	}
+
+	public IncompleteTreeMap(Comparator<? super K> c) {
+		tmap = new TreeMap<K, Value<V>>(c);
+	}
+
+	public IncompleteTreeMap(Map<? extends K,? extends V> m) {
+		tmap = new TreeMap<K, Value<V>>();
+		for (K key: m.keySet()) {
+			tmap.put(key, new Value<V>(m.get(key)));
+		}
+	}
+
+	public IncompleteTreeMap(SortedMap<K,? extends V> m) {
+		tmap = new TreeMap<K, Value<V>>();
+		for (K key: m.keySet()) {
+			tmap.put(key, new Value<V>(m.get(key)));
+		}
+	}
+
+	public IncompleteTreeMap(TreeMap<K, Value<V>> m, boolean clone) {
+		tmap = (clone)? (TreeMap<K, Value<V>>)m.clone(): m;
+	}
+
+	public V putDummy(K key) {
+		Value<V> v = tmap.put(key, new DummyValue<V>(null));
+		return (v == null)? null: v.get();
+	}
+
+	public V putDummy(K key, V value) {
+		Value<V> v = tmap.put(key, new DummyValue<V>(value));
+		return (v == null)? null: v.get();
+	}
+
 
 	/************************************************************************
 	 * public interface IncompleteMap
 	 ************************************************************************/
 
 	public boolean isComplete() {
-		// TODO
-		return false;
+		for (Value<V> v: tmap.values()) {
+			if (v == null || v instanceof DummyValue) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	public Map<K, V> complete() {
 		if (!isComplete()) {
 			throw new DataNotLoadedException("TreeMap not fully loaded.", this, "*");
 		} else {
-			//TODO
-			return null;
+			Map<K, V> ctree = new TreeMap<K, V>();
+			for (K k: tmap.keySet()) {
+				ctree.put(k, tmap.get(k).get());
+			}
+			return ctree;
 		}
 	}
 
@@ -76,22 +140,56 @@ implements IncompleteMap<K, V> {
 	 * public class TreeMap
 	 ************************************************************************/
 
-	// TODO
-	//public void clear()
-	//public Object clone()
-	//public Comparator<? super K> comparator()
-	//public boolean containsKey(Object key)
-	//public boolean containsValue(Object value)
+	public void clear() { tmap.clear(); }
+
+	public Object clone() {
+		return new IncompleteTreeMap(tmap, true);
+	}
+
+	public Comparator<? super K> comparator() { return tmap.comparator(); }
+
+	public boolean containsKey(Object key) { return tmap.containsKey(key); }
+
+	public boolean containsValue(Object value) {
+		if (!isComplete()) {
+			throw new DataNotLoadedException("TreeMap not fully loaded.", this, "*");
+		} else {
+			return tmap.containsValue(new Value(value));
+		}
+	}
+
 	//public Set<Map.Entry<K,V>> entrySet()
-	//public K firstKey()
-	//public V get(Object key)
+
+	public K firstKey() { return tmap.firstKey(); }
+
+	public V get(Object key) {
+		Value<V> v = tmap.get(key);
+		if (v instanceof DummyValue) {
+			throw new DataNotLoadedException("Value not loaded for key " + key, ((DummyValue)v).get(), key);
+		}
+		return (v == null)? null: v.get();
+	}
+
 	//public SortedMap<K,V> headMap(K toKey)
-	//public Set<K> keySet()
-	//public K lastKey()
-	//public V put(K key, V value)
+
+	public Set<K> keySet() { return tmap.keySet(); }
+
+	public K lastKey() { return tmap.lastKey(); }
+
+	public V put(K key, V value) {
+		Value<V> v = tmap.put(key, new Value<V>(value));
+		return (v == null)? null: v.get();
+	}
+
 	//public void putAll(Map<? extends K,? extends V> map)
-	//public V remove(Object key)
-	//public int size()
+
+	public V remove(Object key) {
+		Value<V> v = tmap.remove(key);
+		return (v == null)? null: v.get();
+	}
+
+	public int size() { return tmap.size(); }
+
 	//public SortedMap<K,V> subMap(K fromKey, K toKey)
 	//public SortedMap<K,V> tailMap(K fromKey)
 	//public Collection<V> values()

@@ -130,7 +130,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	** TreeMap holding the entries which don't need to be stored in their own
 	** tree yet.
 	*/
-	final TreeMap<K, V> tmap = new TreeMap<K, V>();
+	final TreeMap<K, V> tmap;
 
 	/**
 	** Maximum size of the TreeMap before we start to create subtrees.
@@ -147,6 +147,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		prefix.prefix(len);
 		preflen = len;
 
+		tmap = new TreeMap<K, V>();
 		subtreesMax = p.symbols();
 		child = (PrefixTreeMap<K, V>[])new PrefixTreeMap[subtreesMax];
 
