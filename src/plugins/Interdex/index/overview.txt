@@ -4,7 +4,6 @@
 
 Internal representation of an index
 
-
 == To Do ==
 
 Put appropriate access modifiers on everything.
@@ -12,12 +11,13 @@ Put appropriate access modifiers on everything.
 == Format of data ==
 
  |-- contains
+ :   subclass of
 
 IndexTree
- |-- [metadata]                                     SSK@X/interdex-n/meta
- |-- PrefixTreeMap<URIKey,URIEntry> utab
- |-- PrefixTreeMap<Token,HashSet<TokenEntry>> tktab
- |-- PrefixTreeMap<Token,TokenFilter> filtab
+ |-- [metadata]                                          SSK@X/index-n/meta
+ |-- PrefixTreeMap<URIKey,URIEntry> utab                 SSK@X/index-n/u/
+ |-- PrefixTreeMap<Token,HashSet<TokenEntry>> tktab      SSK@X/index-n/tk/
+ |-- PrefixTreeMap<Token,TokenFilter> filtab             SSK@X/index-n/fil/
 
 PrefixTreeMap<K,V>
  |-- PrefixTreeMap<K,V>

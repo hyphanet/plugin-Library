@@ -19,72 +19,15 @@ import java.util.Collection;
 ** Trie-like map with each node mapping keys that match a given prefix. Each
 ** node in the tree will admit a certain maximum number of mappings before it
 ** starts creating subtrees.
-*
-* TODO: make this implement SortedMap
-*
+**
+** TODO: make this implement SortedMap
+**
 ** @author infinity0
 */
 public class PrefixTreeMap<K extends PrefixTreeMap.PrefixKey, V> extends AbstractMap<K, V>
 implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 /*, ConcurrentMap<K,V>, ConcurrentNavigableMap<K,V>
 /*, Cloneable, Serializable*/ {
-
-	/**
-	** The prefix that all keys in this tree must match.
-	*/
-	final K prefix;
-
-	/**
-	** The length of the prefix for this tree.
-	*/
-	final int preflen;
-
-	/**
-	** Array holding the child trees. There is one cell in the array for each
-	** symbol in the alphabet of the key.
-	*/
-	final PrefixTreeMap<K, V>[] child; // prefix_bytes + i == child[i].prefix_bytes
-
-	/**
-	** The size of the child array.
-	*/
-	final int subtreesMax;
-
-	/**
-	** TreeMap holding the entries which don't need to be stored in their own
-	** tree yet.
-	*/
-	final TreeMap<K, V> tmap = new TreeMap<K, V>();
-
-	/**
-	** Maximum size of the TreeMap before we start to create subtrees.
-	*/
-	final int sizeMax;
-
-	/**
-	** Number of subtrees. By definition it <= subtreesMax.
-	*/
-	int subtrees = 0;
-
-	public PrefixTreeMap(K p, int len, int maxsz) {
-		prefix = p;
-		prefix.prefix(len);
-		preflen = len;
-
-		subtreesMax = p.symbols();
-		child = (PrefixTreeMap<K, V>[])new PrefixTreeMap[subtreesMax];
-
-		if (maxsz < subtreesMax) {
-			throw new IllegalArgumentException("Tree must be able to hold all its potential children, of which there are " + subtreesMax);
-		}
-		sizeMax = maxsz;
-	}
-	public PrefixTreeMap(K p, int maxsz) {
-		this(p, 0, maxsz);
-	}
-	public PrefixTreeMap(K p) {
-		this(p, 0, p.symbols());
-	}
 
 	/**
 	** Defines an interface that provides prefix-related operations, such as
@@ -160,6 +103,63 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 			return true;
 		}
 
+	}
+
+	/**
+	** The prefix that all keys in this tree must match.
+	*/
+	final K prefix;
+
+	/**
+	** The length of the prefix for this tree.
+	*/
+	final int preflen;
+
+	/**
+	** Array holding the child trees. There is one cell in the array for each
+	** symbol in the alphabet of the key.
+	*/
+	final PrefixTreeMap<K, V>[] child; // prefix_bytes + i == child[i].prefix_bytes
+
+	/**
+	** The size of the child array.
+	*/
+	final int subtreesMax;
+
+	/**
+	** TreeMap holding the entries which don't need to be stored in their own
+	** tree yet.
+	*/
+	final TreeMap<K, V> tmap = new TreeMap<K, V>();
+
+	/**
+	** Maximum size of the TreeMap before we start to create subtrees.
+	*/
+	final int sizeMax;
+
+	/**
+	** Number of subtrees. By definition it <= subtreesMax.
+	*/
+	int subtrees = 0;
+
+	public PrefixTreeMap(K p, int len, int maxsz) {
+		prefix = p;
+		prefix.prefix(len);
+		preflen = len;
+
+		subtreesMax = p.symbols();
+		child = (PrefixTreeMap<K, V>[])new PrefixTreeMap[subtreesMax];
+
+		if (maxsz < subtreesMax) {
+			throw new IllegalArgumentException("Tree must be able to hold all its potential children, of which there are " + subtreesMax);
+		}
+		sizeMax = maxsz;
+	}
+	public PrefixTreeMap(K p, int maxsz) {
+		this(p, 0, maxsz);
+	}
+	public PrefixTreeMap(K p) {
+		this(p, 0, p.symbols());
 	}
 
 	/**

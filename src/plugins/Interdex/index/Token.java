@@ -34,9 +34,9 @@ public class Token extends AbstractPrefixKey implements PrefixKey {
 		hash = MD5(w);
 	}
 
-	public String toString() { return new String(hash); }
+	public String toString() { return hexString(hash); }
 
-	public String toHexString() { return hexString(hash); }
+	public String toByteString() { return new String(hash); }
 
 	/**
 	** Returns the hex representation of a byte array. From XMLLibrarian.

@@ -32,7 +32,7 @@ public abstract class IndexSerialiser {
 		// probably use a SSK-ID instead of FreenetURI, if there is a class for that
 		// or the WoT object for an ID
 		uri = u;
-		index = new Index();
+		//index = new Index();
 	}
 
 	public IndexSerialiser(Index t) {
