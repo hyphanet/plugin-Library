@@ -35,8 +35,15 @@ implements IncompleteMap<K, V> {
 	implements IncompleteMap<K, V> {
 
 		public DummyPrefixTreeMap(K p, int len, int maxsz) {
-			// TODO
 			super(p, len, maxsz);
+		}
+
+		public DummyPrefixTreeMap(K p, int maxsz) {
+			super(p, 0, maxsz);
+		}
+
+		public DummyPrefixTreeMap(K p) {
+			super(p, 0, p.symbols());
 		}
 
 		/************************************************************************
@@ -100,20 +107,113 @@ implements IncompleteMap<K, V> {
 
 	}
 
-	public IncompletePrefixTreeMap(K p, int len, int maxsz) {
-		super(p, len, maxsz);
+	/**
+	** The constructor points this to the same object as tmap, so we don't have
+	** to keep casting tmap when we want to access IncompleteTreeMap methods.
+	*/
+	final IncompleteTreeMap<K, V> itmap;
+
+	public IncompletePrefixTreeMap(K p, int len, int maxsz, boolean[] chd, K[] keys, V[] values) {
+		this(p, len, maxsz);
+		putDummyChildren(chd);
+		putDummySubmap(keys, values);
 	}
-	// TODO better constructors
-	/*public IncompletePrefixTreeMap(K p, int maxsz) {
+
+	public IncompletePrefixTreeMap(K p, int len, int maxsz, int[] chd, K[] keys, V[] values) {
+		this(p, len, maxsz);
+		putDummyChildren(chd);
+		putDummySubmap(keys, values);
+	}
+
+	public IncompletePrefixTreeMap(K p, int len, int maxsz) {
+		super(p, len, maxsz, new IncompleteTreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()]);
+		itmap = (IncompleteTreeMap<K, V>)tmap;
+	}
+
+	public IncompletePrefixTreeMap(K p, int maxsz) {
 		this(p, 0, maxsz);
 	}
+
 	public IncompletePrefixTreeMap(K p) {
 		this(p, 0, p.symbols());
-	}*/
+	}
 
-	public boolean assimilate(IncompletePrefixTreeMap<K, V> sub) {
-		// TODO
-		return false;
+	/**
+	** Puts DummyPrefixTreeMap objects into the child array.
+	**
+	** @param chd An array of booleans indicating whether to attach a dummy
+	** @throws ArrayIndexOutOfBoundsException when the input array is smaller
+	**         than the child array
+	*/
+	public void putDummyChildren(boolean[] chd) {
+		for (int i=0; i<child.length; ++i) {
+			if (chd[i]) { putDummyChild(i); }
+		}
+	}
+
+	/**
+	** Puts DummyPrefixTreeMap objects into the child array.
+	**
+	** @param chd An array of ints indicating the indexes to attach a dummy to
+	*/
+	public void putDummyChildren(int[] chd) {
+		for (int i: chd) {
+			putDummyChild(i);
+		}
+	}
+
+	/**
+	** Put a DummyPrefixTreeMap object into the child array.
+	**
+	** @param i The index to attach the dummy to
+	*/
+	public void putDummyChild(int i) {
+		K newprefix = (K)prefix.clone();
+		newprefix.set(preflen, i);
+		child[i] = new DummyPrefixTreeMap(newprefix, preflen+1, sizeMax);
+	}
+
+	/**
+	** Put dummy mappings onto the submap.
+	**
+	** @param keys The array of keys of the map
+	** @param values The array of values of the map
+	*/
+	public void putDummySubmap(K[] keys, V[] values) {
+		for (int i=0; i<keys.length; ++i) {
+			itmap.putDummy(keys[i], values[i]);
+		}
+	}
+
+	/**
+	** Assimilate an existing IncompletePrefixTreeMap into this one. The prefix
+	** must match and there must already be a DummyPrefixTreeMap in its place
+	** in the child array.
+	**
+	** @param subtree The tree to assimilate
+	*/
+	public void assimilate(IncompletePrefixTreeMap<K, V> t) {
+		if (t.preflen <= preflen) {
+			throw new IllegalArgumentException("Only subtrees can be spliced onto an IncompletePrefixTreeMap.");
+		}
+		if (!t.prefix.match(prefix, preflen)) {
+			throw new IllegalArgumentException("Key does not match prefix for this tree.");
+		}
+
+		int i = t.prefix.get(preflen);
+		if (child[i] == null) {
+			throw new IllegalArgumentException("This tree does not have a subtree with prefix " + t.prefix);
+		}
+		if (child[i] instanceof DummyPrefixTreeMap) {
+			child[i] = t;
+		} else if (child[i] instanceof IncompletePrefixTreeMap) {
+			if (t.preflen > child[i].preflen) {
+				((IncompletePrefixTreeMap)child[i]).assimilate(t);
+			} else {
+				// t.preflen == child.preflen since t.preflen > this.preflen
+				throw new IllegalArgumentException("This tree has already assimilated a subtree with prefix " + t.prefix);
+			}
+		}
 	}
 
 	/************************************************************************
@@ -121,16 +221,30 @@ implements IncompleteMap<K, V> {
 	 ************************************************************************/
 
 	public boolean isComplete() {
-		// TODO
-		return false;
+		if (!itmap.isComplete()) { return false; }
+		for (PrefixTreeMap t: child) {
+			if (t instanceof DummyPrefixTreeMap) { return false; }
+			if (t instanceof IncompletePrefixTreeMap && !((IncompletePrefixTreeMap)t).isComplete()) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	public Map<K, V> complete() {
 		if (!isComplete()) {
 			throw new DataNotLoadedException("PrefixTreeMap not fully loaded for " + prefix.toString(), this, prefix);
 		} else {
-			//TODO
-			return null;
+			TreeMap<K, V> ntmap = (TreeMap<K, V>)itmap.complete();
+			PrefixTreeMap<K, V>[] nchild = (PrefixTreeMap<K, V>[])new PrefixTreeMap[subtreesMax];
+
+			for (int i=0; i<subtreesMax; ++i) {
+				if (child[i] != null) {
+					nchild[i] = (PrefixTreeMap<K, V>)((IncompletePrefixTreeMap<K, V>)child[i]).complete();
+				}
+			}
+
+			return new PrefixTreeMap(prefix, preflen, sizeMax, ntmap, nchild);
 		}
 	}
 

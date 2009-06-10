@@ -83,7 +83,7 @@ implements IncompleteMap<K, V> {
 	}
 
 	public IncompleteTreeMap(Map<? extends K,? extends V> m) {
-		tmap = new TreeMap<K, Value<V>>(m.comparator());
+		tmap = new TreeMap<K, Value<V>>();
 		for (K key: m.keySet()) {
 			tmap.put(key, new Value<V>(m.get(key)));
 		}

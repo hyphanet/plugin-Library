@@ -142,23 +142,40 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	*/
 	int subtrees = 0;
 
-	public PrefixTreeMap(K p, int len, int maxsz) {
+	protected PrefixTreeMap(K p, int len, int maxsz, TreeMap<K, V> tm, PrefixTreeMap<K, V>[] chd) {
+		if (tm.size() > maxsz) {
+			throw new IllegalArgumentException("The TreeMap being attached has too many children (> " + maxsz + ")");
+		}
+		if (chd.length != p.symbols()) {
+			throw new IllegalArgumentException("The child array must be able to exactly hold all its potential children, of which there are " + p.symbols());
+		}
+		if (maxsz < p.symbols()) {
+			throw new IllegalArgumentException("This tree must be able to hold all its potential children, of which there are " + p.symbols());
+		}
+
+		for (PrefixTreeMap<K, V> c: chd) {
+			if (c != null) { ++subtrees; }
+		}
+
 		prefix = p;
 		prefix.prefix(len);
 		preflen = len;
 
-		tmap = new TreeMap<K, V>();
+		tmap = tm;
 		subtreesMax = p.symbols();
-		child = (PrefixTreeMap<K, V>[])new PrefixTreeMap[subtreesMax];
+		child = chd;
 
-		if (maxsz < subtreesMax) {
-			throw new IllegalArgumentException("Tree must be able to hold all its potential children, of which there are " + subtreesMax);
-		}
 		sizeMax = maxsz;
 	}
+
+	public PrefixTreeMap(K p, int len, int maxsz) {
+		this(p, len, maxsz, new TreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()]);
+	}
+
 	public PrefixTreeMap(K p, int maxsz) {
 		this(p, 0, maxsz);
 	}
+
 	public PrefixTreeMap(K p) {
 		this(p, 0, p.symbols());
 	}
@@ -168,7 +185,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	** share a common prefix of length one greater than that of this tree).
 	**
 	** For efficiency, this method *assumes* that such a set exists and is
-	** non-empty; it is up to the calling code to make sure this is correct.
+	** non-empty; it is up to the calling code to make sure this is true.
 	**
 	** @return The index of the new subtree.
 	*/
