@@ -35,7 +35,10 @@ public class Util {
 		FetchResult res;
 		while (true) {
 			try {
-				res = progress.getHLSC().fetch(u);
+				if (progress != null)
+					res = progress.getHLSC().fetch(u);
+				else
+					res = hlsc.fetch(u);
 				break;
 			} catch (FetchException e) {
 				if (e.newURI != null) {
