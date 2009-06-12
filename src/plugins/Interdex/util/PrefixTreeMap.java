@@ -35,7 +35,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	**
 	** @author infinity0
 	*/
-	public interface PrefixKey extends Cloneable {
+	public interface PrefixKey extends Cloneable, Comparable {
 
 		public Object clone();
 
@@ -103,6 +103,19 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 			return true;
 		}
 
+		public int compareTo(Object o) throws ClassCastException {
+			PrefixKey p = (PrefixKey) o;
+			int a = size();
+			int b = p.size();
+			int c = (a < b)? a: b;
+			for (int i=0; i<c; ++i) {
+				int x = get(i);
+				int y = p.get(i);
+				if (x != y) { return x-y; }
+			}
+			return a-b;
+		}
+
 	}
 
 	/**
@@ -133,14 +146,33 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	final TreeMap<K, V> tmap;
 
 	/**
-	** Maximum size of the TreeMap before we start to create subtrees.
+	** Maximum size of (tmap + child) before we start to create subtrees.
 	*/
 	final int sizeMax;
 
 	/**
-	** Number of subtrees. By definition it <= subtreesMax.
+	** Number of subtrees (ie. non-null members of child).
 	*/
-	int subtrees = 0;
+	protected int subtrees = 0;
+
+	/**
+	** Number of elements contained in the tree. It should have the correct
+	** value at all times.
+	*/
+	protected int size = 0;
+
+	/**
+	** Counts the number of elements with the next element of the prefix being
+	** the index into the array.
+	*/
+	final protected int sizePrefix[];
+
+	/**
+	** Cache for the smallestChild. If null, then either there are no subtrees
+	** (check subtrees == 0) or the cache has been invalidated.
+	*/
+	transient protected PrefixTreeMap<K, V> smallestChild_ = null;
+
 
 	protected PrefixTreeMap(K p, int len, int maxsz, TreeMap<K, V> tm, PrefixTreeMap<K, V>[] chd) {
 		if (tm.size() > maxsz) {
@@ -164,6 +196,8 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		tmap = tm;
 		subtreesMax = p.symbols();
 		child = chd;
+		sizePrefix = new int[child.length];
+		sizePrefix = new int[child.length];
 
 		sizeMax = maxsz;
 	}
@@ -181,6 +215,13 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	}
 
 	/**
+	** Returns the value at the last significant index of the prefix
+	*/
+	public int lastIndex() {
+		return prefix.get(preflen-1);
+	}
+
+	/**
 	** Build a subtree from the largest subset of tmap consisting of (keys that
 	** share a common prefix of length one greater than that of this tree).
 	**
@@ -189,7 +230,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	**
 	** @return The index of the new subtree.
 	*/
-	private int makeSubTree() {
+	protected int bindSubTree() {
 		assert(tmap.size() > 0);
 		assert(subtrees < subtreesMax);
 
@@ -200,6 +241,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		int mi = 0;
 		int ci = 0;
 
+		// TODO make this use SortedMap methods after this class implements SortedMap
 		for (K ikey: tmap.keySet()) {
 			int isym = ikey.get(preflen);
 			if (isym != csym) {
@@ -231,8 +273,50 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 			child[msym].put(mkeys[i], tmap.remove(mkeys[i]));
 		}
 
+		// update cache
+		if (smallestChild_ == null || child[msym].size() < smallestChild_.size()) {
+			smallestChild_ = child[msym];
+		}
+
 		return msym;
 	}
+
+	/**
+	** Put all entries of a subtree into this node, if there is enough space.
+	** (If there is enough space, then this implies that the subtree itself has
+	** no child trees, due to the size constraints in the constructor.)
+	**
+	** @param i Index of the subtree to free
+	** @return Whether there was enough space, and the operation completed.
+	*/
+	protected boolean freeSubTree(int i) {
+		if (tmap.size() + subtrees + child[i].size() - 1 <= sizeMax) {
+
+			// cache invalidated due to child removal
+			if (child[i] == smallestChild_) { smallestChild_ = null; }
+
+			tmap.putAll(child[i].tmap);
+			child[i] = null;
+			--subtrees;
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	** Returns the smallest child.
+	*/
+	protected PrefixTreeMap<K, V> smallestChild() {
+		if (smallestChild_ == null && subtrees > 0) {
+			for (PrefixTreeMap<K, V> ch: child) {
+				if (ch != null && (smallestChild_ == null || ch.size() < smallestChild_.size())) {
+					smallestChild_ = ch;
+				}
+			}
+		}
+		return smallestChild_;
+	}
+
 
 	/************************************************************************
 	 * public interface Map
@@ -296,33 +380,52 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 
 	//public Set<K> keySet();
 
+	/**
+	** Standard put operation on a map. This implementation puts the mapping
+	** into the local tmap for this node, unless there is no space left (as
+	** defined by sizeMax). In these cases, the algorithm will move some
+	** entries into new subtrees, with big subtrees taking priority, until
+	** there is enough space to fit the remaining entries. In other words,
+	** for all i, j: (child[i] != null && child[j] == null) if and only if
+	** (sizePrefix[i] >= sizePrefix[j]).
+	*/
 	public V put(K key, V value) {
 		if (!key.match(prefix, preflen)) {
 			throw new IllegalArgumentException("Key does not match prefix for this tree.");
 		}
 
 		int i = key.get(preflen);
-		if (child[i] != null) {
-			return child[i].put(key, value);
-		} else if (tmap.size() < sizeMax - subtrees) {
-			return tmap.put(key, value);
-		} else {
-			/* create a new tree. satisfying conditions:
-			** - tmap.size >= sizeMax - subtrees (above else-if condition)
-			** - sizeMax >= subtreesMax (constructor)
-			** - subtreesMax >= subtrees (by definition)
-			** so tmap.size >= 0, but tmap.size != 0 (otherwise we would be
-			** executing the (child[i] != null) block). So tmap.size > 0.
-			*/
-			int j = makeSubTree();
+		Map<K, V> map = (child[i] == null)? tmap: child[i];
 
-			// same as the above
-			if (i == j) {
-				return child[i].put(key, value);
+		int s = map.size();
+		V v = map.put(key, value);
+		if (map.size() == s) { return v; } // size hasn't changed, do nothing
+
+		++sizePrefix[i]; ++size;
+
+		if (child[i] != null) {
+			// cache possibly invalidated due to put operation on child
+			if (child[i] == smallestChild_) { smallestChild_ = null; }
+
+		} else {
+
+			if (tmap.size() + subtrees > sizeMax) {
+				bindSubTree();
+				// smallestChild is not null due to bindSubTree
+				freeSubTree(smallestChild().lastIndex());
+
 			} else {
-				return tmap.put(key, value);
+				PrefixTreeMap<K, V> sm = smallestChild();
+				if (sm != null && sm.size() < sizePrefix[i]) {
+					// TODO: make a bindSubTree(i) method
+					int j = bindSubTree();
+					assert(i == j);
+					freeSubTree(sm.lastIndex());
+				}
 			}
 		}
+
+		return v;
 	}
 
 	//public void putAll(Map<? extends K,? extends V> t);
@@ -332,31 +435,38 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 			!(k = (K) key).match(prefix, preflen)) { return null; }
 
 		int i = k.get(preflen);
-		if (child[i] != null) {
-			V v = child[i].remove(k);
+		Map<K, V> map = (child[i] == null)? tmap: child[i];
 
-			if (child[i].subtrees == 0 &&
-				tmap.size() + child[i].tmap.size() <= sizeMax - subtrees) {
-				// remove the subtree since it is now small enough to fit here
-				tmap.putAll(child[i].tmap);
-				child[i] = null;
-				--subtrees;
+		int s = map.size();
+		V v = map.remove(key);
+		if (map.size() == s) { return v; } // size hasn't changed, do nothing
+
+		--sizePrefix[i]; --size;
+
+		if (child[i] != null) {
+
+			if (sizePrefix[i] < smallestChild_.size()) {
+				// we potentially have a new smallestChild, but wait and see...
+
+				if (!freeSubTree(i)) {
+					// if the tree wasn't freed then we have a new smallestChild
+					smallestChild_ = child[i];
+				}
+			} else {
+				// smallestChild is not null due to previous if block
+				freeSubTree(smallestChild().lastIndex());
 			}
-			return v;
 
 		} else {
-			return tmap.remove(k);
+			PrefixTreeMap<K, V> t = smallestChild();
+			if (t != null) { freeSubTree(t.lastIndex()); }
 		}
+
+		return v;
 	}
 
 	public int size() {
-		// TODO: could be more efficient if we cache this in a "size" field
-		// and detect changes to tmap and propagate this up the tree...
-		int s = tmap.size();
-		for (PrefixTreeMap<K, V> t: child) {
-			s += t.size();
-		}
-		return s;
+		return size;
 	}
 
 	//public Collection<V> values();

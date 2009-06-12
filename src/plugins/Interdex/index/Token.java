@@ -88,7 +88,7 @@ public class Token extends AbstractPrefixKey implements PrefixKey {
 	}
 
 	public int get(int i) {
-		return hash[i];
+		return hash[i] & 0xFF;
 	}
 
 	public void set(int i, int v) {

@@ -171,6 +171,7 @@ implements IncompleteMap<K, V> {
 		K newprefix = (K)prefix.clone();
 		newprefix.set(preflen, i);
 		child[i] = new DummyPrefixTreeMap(newprefix, preflen+1, sizeMax);
+		++subtrees;
 	}
 
 	/**
@@ -228,6 +229,8 @@ implements IncompleteMap<K, V> {
 				return false;
 			}
 		}
+		// TODO verify node population restrictions
+		// int space = sizeMax - subtrees;
 		return true;
 	}
 
