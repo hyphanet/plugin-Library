@@ -151,25 +151,31 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	final int sizeMax;
 
 	/**
-	** Number of subtrees (ie. non-null members of child).
+	** Number of subtrees. At all times, this should equal the number of
+	** non-null members of the child array.
 	*/
 	protected int subtrees = 0;
 
 	/**
-	** Number of elements contained in the tree. It should have the correct
-	** value at all times.
+	** Number of elements contained in the tree. At all times, it should equal
+	** the sum of the size of the subtrees, plus the size of the local tmap.
 	*/
 	protected int size = 0;
 
 	/**
 	** Counts the number of elements with the next element of the prefix being
-	** the index into the array.
+	** the index into the array. At all times, the sum of all array elements
+	** should equal the size field. Additionally,
+	** for all i: (child[i] != null) implies (sizePrefix[i] == child[i].size())
+	** and tmap.size() == sum{ sizePrefix[j] : child[j] == null }
 	*/
 	final protected int sizePrefix[];
 
 	/**
-	** Cache for the smallestChild. If null, then either there are no subtrees
-	** (check subtrees == 0) or the cache has been invalidated.
+	** Cache for the smallestChild. At all times, this should either be null,
+	** or point to the subtree with the smallest size. If null, then either
+	** there are no subtrees (check subtrees == 0) or the cache has been
+	** invalidated.
 	*/
 	transient protected PrefixTreeMap<K, V> smallestChild_ = null;
 
@@ -183,6 +189,9 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		}
 		if (maxsz < p.symbols()) {
 			throw new IllegalArgumentException("This tree must be able to hold all its potential children, of which there are " + p.symbols());
+		}
+		if (len > p.size()) {
+			throw new IllegalArgumentException("The key is shorter than the length specified.");
 		}
 
 		for (PrefixTreeMap<K, V> c: chd) {
@@ -384,9 +393,11 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	** into the local tmap for this node, unless there is no space left (as
 	** defined by sizeMax). In these cases, the algorithm will move some
 	** entries into new subtrees, with big subtrees taking priority, until
-	** there is enough space to fit the remaining entries. In other words,
-	** for all i, j: (child[i] != null && child[j] == null) if and only if
-	** (sizePrefix[i] >= sizePrefix[j]).
+	** there is enough space to fit the remaining entries. In other words, the
+	** algorithm will ensure that there exists sz such that for all i:
+	** (chd[i] == null) implies sizePrefix[i] <= sz
+	** (chd[i] != null) implies sizePrefix[i] >= sz
+	** smallestChild.size() == sz and tmap.size() + subtrees + sz > maxSize
 	*/
 	public V put(K key, V value) {
 		if (!key.match(prefix, preflen)) {

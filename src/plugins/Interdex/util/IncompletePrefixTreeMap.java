@@ -116,6 +116,8 @@ implements IncompleteMap<K, V> {
 	public IncompletePrefixTreeMap(K p, int len, int maxsz, boolean[] chd, K[] keys, V[] values) {
 		this(p, len, maxsz);
 		// TODO make this take into account all the non-transient check vars of PrefixTreeMap
+		// ie. size, subtrees, sizePrefix
+		// TODO check size == sum { sizePrefix }
 		putDummyChildren(chd);
 		putDummySubmap(keys, values);
 	}
@@ -146,7 +148,12 @@ implements IncompleteMap<K, V> {
 	** @throws ArrayIndexOutOfBoundsException when the input array is smaller
 	**         than the child array
 	*/
-	public void putDummyChildren(boolean[] chd) {
+	protected void putDummyChildren(boolean[] chd) {
+		// TODO check count{ i : chd[i] == true } == subtrees
+		// TODO check that there exists sz such that for all i:
+		// (chd[i] == null) => sizePrefix[i] <= sz
+		// (chd[i] != null) => sizePrefix[i] >= sz
+		// TODO check that sum{ sizePrefix[j] : child[j] == null } + subtrees + sz > maxSize
 		for (int i=0; i<child.length; ++i) {
 			if (chd[i]) { putDummyChild(i); }
 		}
@@ -157,7 +164,12 @@ implements IncompleteMap<K, V> {
 	**
 	** @param chd An array of ints indicating the indexes to attach a dummy to
 	*/
-	public void putDummyChildren(int[] chd) {
+	protected void putDummyChildren(int[] chd) {
+		// TODO check unique(chd).length == subtrees
+		// TODO check that there exists sz such that for all i:
+		// (chd[i] == null) => sizePrefix[i] <= sz
+		// (chd[i] != null) => sizePrefix[i] >= sz
+		// TODO check that sum{ sizePrefix[j] : child[j] == null } + subtrees + sz > maxSize
 		for (int i: chd) {
 			putDummyChild(i);
 		}
@@ -168,11 +180,11 @@ implements IncompleteMap<K, V> {
 	**
 	** @param i The index to attach the dummy to
 	*/
-	public void putDummyChild(int i) {
+	protected void putDummyChild(int i) {
 		K newprefix = (K)prefix.clone();
 		newprefix.set(preflen, i);
 		child[i] = new DummyPrefixTreeMap(newprefix, preflen+1, sizeMax);
-		++subtrees;
+		// ++subtrees;
 	}
 
 	/**
@@ -181,10 +193,14 @@ implements IncompleteMap<K, V> {
 	** @param keys The array of keys of the map
 	** @param values The array of values of the map
 	*/
-	public void putDummySubmap(K[] keys, V[] values) {
+	protected void putDummySubmap(K[] keys, V[] values) {
 		for (int i=0; i<keys.length; ++i) {
 			itmap.putDummy(keys[i], values[i]);
 		}
+		// TODO check that keys honours sizePrefix[i] and child[i]
+		// TODO check tmap.size() == sum{ sizePrefix[j] : child[j] == null }
+		// (this check means that this method must be called after
+		// putDummyChildren() for the test to pass)
 	}
 
 	/**
@@ -203,6 +219,7 @@ implements IncompleteMap<K, V> {
 		}
 
 		int i = t.prefix.get(preflen);
+		// TODO check t.size == sizePrefix[i]
 		if (child[i] == null) {
 			throw new IllegalArgumentException("This tree does not have a subtree with prefix " + t.prefix);
 		}
