@@ -49,12 +49,17 @@ public class Util {
 		return res.asBucket();
 	}
 	
-	public static void checkValid(String uri) throws MalformedURLException {
+	public static boolean isValid(String uri) {
 		// try local file first
 		File file = new File(uri);
 		if (!file.exists() || !file.canRead()) {
 			// FreenetURI, try to fetch from freenet
-			FreenetURI u = new FreenetURI(uri);
+			try{
+				FreenetURI u = new FreenetURI(uri);
+			}catch(MalformedURLException e){
+				return false;
+			}
+			return true;
 		}
 	}
 }

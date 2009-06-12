@@ -1,9 +1,6 @@
 package plugins.XMLLibrarian;
 
 import java.security.MessageDigest;
-import java.util.HashMap;
-
-import freenet.client.FetchException;
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginHTTP;
 import freenet.pluginmanager.FredPluginRealVersioned;
@@ -49,12 +46,16 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 */
 	private static int version = 22;
 	private static final String plugName = "XMLLibrarian " + version;
-    private HashMap<String, Search> searches = new HashMap();
 	private PluginRespirator pr;
+	
+	
+	// FredPluginVersioned
 
 	public String getVersion() {
 		return version + " r" + Version.getSvnRevision();
 	}
+	
+	// FredPluginRealVersioned
 	
 	public long getRealVersion() {
 		return version;
@@ -65,49 +66,18 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	}
 
 	public void terminate() {
-
 	}
+	
+	
+	// FredPluginHTTP
     
-	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{ 
-		String searchstring = request.getParam("search");
-		
-		if(request.getPath().endsWith("progress")){ // mini progress display for use with JS
-			if (searches.containsKey(searchstring))
-				return searches.get(searchstring).getprogress(request.getParam("format"));
-			else
-				return "No asyncronous search for "+HTMLEncoder.encode(searchstring)+" found.";
-			
-		}else if(request.getPath().endsWith("result")){ // just get result for JS
-			if (searches.containsKey(searchstring)){
-				String result = searches.get(searchstring).getresult();
-				searches.remove(searchstring);
-				return result;
-			}else return "No asyncronous search for "+HTMLEncoder.encode(searchstring)+" found.";
-			
-		}else if(searchstring == null){   // no search main
-			// generate HTML and set it to no refresh
-			return WebUI.searchpage();
-			
-		}else{  // Full main searchpage
-			String indexuri = request.isParameterSet("index") ? request.getParam("index") : DEFAULT_INDEX_SITE;
-			Search searchobject = null;
-			
-			try{
-				//get Search object
-				searchobject = Search.startSearch(searchstring, indexuri);
-				
-				// generate HTML for search object and set it to refresh
-				return WebUI.searchpage(searchobject, true, null);
-			}catch(Exception e){
-				return WebUI.searchpage(searchobject, true, e);
-			}
-		}
+	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
+		return WebUI.handleHTTPGet(request);
 	}
     
     
 	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException{
-        // generate HTML and set it to no refresh
-        return WebUI.searchpage();
+        return WebUI.handleHTTPPost(request);
     }
 
 
@@ -118,6 +88,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
         Util.hlsc = pr.getHLSimpleClient();
         Search.setup(this);
 		WebUI.setup(this, plugName);
+		Index.setup(this);
 	}
 
 
@@ -152,39 +123,14 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		}
 	}
 	
-	LANGUAGE lang;
 	
+	
+	// FredPluginL10n
 	public String getString(String key){
-		lang = L10n.getSelectedLanguage();
-		if("Index".equals(key))
-			switch(lang){
-				case ENGLISH:
-				default:
-					return "Index ";
-				}
-		else if("Searching-for".equals(key))
-			switch(lang){
-				case ENGLISH:
-				default:
-					return "Searching for ";
-				}
-		else if("in-index".equals(key))
-			switch(lang){
-				case ENGLISH:
-				default:
-					return " in index ";
-				}
-		else if("Search-status".equals(key))
-			switch(lang){
-				case ENGLISH:
-				default:
-					return "Search status : ";
-				}
-		else
-			return key;
+		return L10nString.getString(key);
 	}
 	
 	public void setLanguage(LANGUAGE newLanguage){
-		lang = newLanguage;
+		L10nString.setLanguage(newLanguage);
 	}
 }

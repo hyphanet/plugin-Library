@@ -1,6 +1,9 @@
 package plugins.XMLLibrarian;
 
+import freenet.pluginmanager.PluginHTTPException;
+import freenet.pluginmanager.FredPluginHTTP;
 import freenet.support.HTMLNode;
+import freenet.support.api.HTTPRequest;
 import freenet.support.HTMLEncoder;
 import freenet.l10n.L10n;
 
@@ -15,6 +18,48 @@ public class WebUI{
 		WebUI.plugName = plugName;
 		WebUI.xl = xl;
 	}
+
+
+	// FredPluginHTTP
+    
+	public static String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
+		String searchstring = request.getParam("search");
+		String indexuri = request.isParameterSet("index") ? request.getParam("index") : xl.DEFAULT_INDEX_SITE;
+		
+		if(request.getPath().endsWith("progress")){ // mini progress display for use with JS
+			if (Search.hasSearch(searchstring, indexuri))
+				return Search.getSearch(searchstring, indexuri).getprogress("format");
+			else
+				return "No asyncronous search for "+HTMLEncoder.encode(searchstring)+" found.";
+			
+		}else if(request.getPath().endsWith("result")){ // just get result for JS
+			if (Search.hasSearch(searchstring, indexuri)){
+				return Search.getSearch(searchstring, indexuri).getresult();
+			}else return "No asyncronous search for "+HTMLEncoder.encode(searchstring)+" found.";
+			
+		}else if(searchstring == null){   // no search main
+			// generate HTML and set it to no refresh
+			return WebUI.searchpage();
+			
+		}else{  // Full main searchpage
+			Search searchobject = null;
+			
+			try{
+				//get Search object
+				searchobject = Search.startSearch(searchstring, indexuri);
+				
+				// generate HTML for search object and set it to refresh
+				return searchpage(searchobject, true, null);
+			}catch(Exception e){
+				return searchpage(searchobject, true, e);
+			}
+		}
+	}
+    
+	public static String handleHTTPPost(HTTPRequest request) throws PluginHTTPException{
+        return searchpage();
+    }
+
 
 
 	/**
@@ -55,7 +100,7 @@ public class WebUI{
 		String indexuri = "";
 		try{
 			search = searchobject !=null ? HTMLEncoder.encode(searchobject.getQuery()) : "";
-			indexuri = searchobject !=null ? HTMLEncoder.encode(searchobject.getIndex().getIndexURI()) : "";
+			indexuri = searchobject !=null ? HTMLEncoder.encode(searchobject.getIndex().getIndexURI()) : xl.DEFAULT_INDEX_SITE;
 		}catch(Exception exe){
 			addError(errorDiv, exe);
 		}

@@ -23,7 +23,7 @@ import freenet.pluginmanager.PluginRespirator;
  * Performs searches, both async & sync
  * @author MikeB
  */
-public class Search extends Thread implements ClientEventListener{
+public class Search extends Request implements ClientEventListener, Runnable{
 	static private XMLLibrarian xl;
 	String search;
 	Index index;
@@ -48,12 +48,13 @@ public class Search extends Thread implements ClientEventListener{
 	 * @throws InvalidSearchException if the search is invalid
 	 **/
 	private Search(String search, String indexuri) throws InvalidSearchException{
+		super(Request.RequestType.SEARCH, search+"%"+indexuri);
 		// check search term is valid
 		if (search == null || search.equals("")) {
 			throw new InvalidSearchException("Search string cannot be empty");
 		}
 		
-		ArrayList<Index> indices = Index.getIndices(indexuri, xl.getPluginRespirator());
+		ArrayList<Index> indices = Index.getIndices(indexuri);
 		if(indices.size() == 1){
 			this.index = indices.get(0);
 			subsearches = splitQuery(search, index);
@@ -89,6 +90,7 @@ public class Search extends Thread implements ClientEventListener{
 	 * @throws InvalidSearchException if the search is invalid
 	 **/
 	private Search(String search, Index index) throws InvalidSearchException{
+		super(Request.RequestType.SEARCH, search+"%"+index.getIndexURI());
 		// check search term is valid
 		if (search.equals("")) {
 			throw new InvalidSearchException("Search string cannot be empty");
@@ -145,15 +147,30 @@ public class Search extends Thread implements ClientEventListener{
 		search = search.toLowerCase();
         
 		// See if the same search exists
-		if (allsearches.containsKey(search + indexuri))
-			return allsearches.get(search + indexuri);
-
+		if (hasSearch(search, indexuri))
+			return getSearch(search, indexuri);
 
 		// create search
 		Search searcher = new Search(search, indexuri);
 		// start search
 		searcher.start();
 		return searcher;
+	}
+	
+	public static Search getSearch(String search, String indexuri){
+		search = search.toLowerCase();
+        
+		// See if the same search exists
+		if (hasSearch(search, indexuri))
+			return allsearches.get(search + indexuri);
+		else
+			return null;
+	}
+	
+	public static boolean hasSearch(String search, String indexuri){
+		if(search==null || indexuri==null)
+			return false;
+		return allsearches.containsKey(search + indexuri);
 	}
 
     /**
@@ -165,7 +182,7 @@ public class Search extends Thread implements ClientEventListener{
 			
 			
 			// Perform for one search on one index
-			resultList = index.search(this);
+			resultList = index.find(search, this);
             done("Complete.");
 		} catch (Exception e) {
             error(e);
@@ -258,7 +275,7 @@ public class Search extends Thread implements ClientEventListener{
         // look for a progress update
 		try{
 			if(retrieved && !complete)
-				this.wait();
+				this.wait(5000);
 		}catch(java.lang.InterruptedException ex){
 			node.addChild("#", ex.toString());
 			node.addChild("br");
