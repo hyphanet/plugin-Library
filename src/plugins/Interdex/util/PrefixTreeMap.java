@@ -197,7 +197,6 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		subtreesMax = p.symbols();
 		child = chd;
 		sizePrefix = new int[child.length];
-		sizePrefix = new int[child.length];
 
 		sizeMax = maxsz;
 	}

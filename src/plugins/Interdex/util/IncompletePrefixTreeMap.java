@@ -115,6 +115,7 @@ implements IncompleteMap<K, V> {
 
 	public IncompletePrefixTreeMap(K p, int len, int maxsz, boolean[] chd, K[] keys, V[] values) {
 		this(p, len, maxsz);
+		// TODO make this take into account all the non-transient check vars of PrefixTreeMap
 		putDummyChildren(chd);
 		putDummySubmap(keys, values);
 	}
