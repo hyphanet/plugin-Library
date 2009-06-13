@@ -15,6 +15,12 @@ import freenet.support.HTMLEncoder;
 import freenet.support.Logger;
 import freenet.support.api.HTTPRequest;
 
+import org.ho.yaml.*;
+import plugins.Interdex.util.*;
+import plugins.Interdex.index.Token;
+import java.io.File;
+import java.util.HashMap;
+
 /**
 ** @author infinity0
 */
@@ -37,6 +43,15 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 	}
 
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
+		/*HashMap<Token, String> test = new HashMap<Token, String>();
+		test.put(new Token("test"), "test");
+		File x = new File("test.yml");
+		try {
+			Yaml.dump(test, x);
+			return request.toString() + "<br />Hi<br />" + x.getAbsolutePath();
+		} catch (java.io.FileNotFoundException e) {
+			return request.toString() + "<br />Hi<br />" + e;
+		}*/
 		return request.toString();
 	}
 

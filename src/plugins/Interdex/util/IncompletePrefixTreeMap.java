@@ -113,17 +113,22 @@ implements IncompleteMap<K, V> {
 	*/
 	final IncompleteTreeMap<K, V> itmap;
 
-	public IncompletePrefixTreeMap(K p, int len, int maxsz, boolean[] chd, K[] keys, V[] values) {
+	public IncompletePrefixTreeMap(K p, int len, int maxsz, int sz, int subs, int[] szPre, boolean[] chd, K[] keys, V[] values) {
 		this(p, len, maxsz);
-		// TODO make this take into account all the non-transient check vars of PrefixTreeMap
-		// ie. size, subtrees, sizePrefix
-		// TODO check size == sum { sizePrefix }
-		putDummyChildren(chd);
-		putDummySubmap(keys, values);
-	}
 
-	public IncompletePrefixTreeMap(K p, int len, int maxsz, int[] chd, K[] keys, V[] values) {
-		this(p, len, maxsz);
+		// check size == sum { sizePrefix }
+		int s = 0;
+		for (int pre: szPre) { s += pre; }
+		if (sz != s) {
+			throw new IllegalArgumentException("Invariant broken: size == sum{ sizePrefix }");
+		}
+
+		size = sz;
+		subtrees = subs;
+		for (int i=0; i<szPre.length; ++i) {
+			sizePrefix[i] = szPre[i];
+		}
+
 		putDummyChildren(chd);
 		putDummySubmap(keys, values);
 	}
@@ -149,29 +154,54 @@ implements IncompleteMap<K, V> {
 	**         than the child array
 	*/
 	protected void putDummyChildren(boolean[] chd) {
-		// TODO check count{ i : chd[i] == true } == subtrees
-		// TODO check that there exists sz such that for all i:
-		// (chd[i] == null) => sizePrefix[i] <= sz
-		// (chd[i] != null) => sizePrefix[i] >= sz
-		// TODO check that sum{ sizePrefix[j] : child[j] == null } + subtrees + sz > maxSize
+
+		// check count{ i : chd[i] == true } == subtrees
+		int s = 0;
+		for (boolean b: chd) {
+			if (b) { ++s; }
+		}
+		if (subtrees != s) {
+			throw new IllegalArgumentException("Invariant broken: subtrees == count{ non-null children }");
+		}
+
+		// check that there exists sz such that for all i:
+		// (chd[i] == false) => sizePrefix[i] <= sz
+		// (chd[i] != false) => sizePrefix[i] >= sz
+		int sz = sizeMax;
+		// find the size of the smallest child. if the smallest child is larger
+		// than maxSize, then maxSize will be returned instead, but this makes
+		// no difference to the tests below (think about it...)
+		for (int i=0; i<child.length; ++i) {
+			if (chd[i]) {
+				if (sizePrefix[i] < sz) {
+					sz = sizePrefix[i];
+				}
+			}
+		}
+		// see if there are any non-child prefix groups larger than the
+		// smallest child. whilst we're at it, calculate sum{ sizePrefix[j]:
+		// chd[j] == false } for the next test.
+		s = 0;
+		for (int i=0; i<child.length; ++i) {
+			if (!chd[i]) {
+				s += sizePrefix[i];
+				if (sizePrefix[i] > sz) {
+					throw new IllegalArgumentException(
+					"Invariant broken: there exists sz such that for all i: " +
+					"(child[i] == null) => sizePrefix[i] <= sz and " +
+					"(child[i] != null) => sizePrefix[i] >= sz"
+					);
+				}
+			}
+		}
+
+		// check that sum{ sizePrefix[j] : chd[j] == false } + subtrees + sz > sizeMax
+		if (s + subtrees + sz <= sizeMax) {
+			throw new IllegalArgumentException("Invariant broken: count{ non-child prefix groups } + subtrees + sz > maxSize");
+		}
+
 		for (int i=0; i<child.length; ++i) {
 			if (chd[i]) { putDummyChild(i); }
-		}
-	}
-
-	/**
-	** Puts DummyPrefixTreeMap objects into the child array.
-	**
-	** @param chd An array of ints indicating the indexes to attach a dummy to
-	*/
-	protected void putDummyChildren(int[] chd) {
-		// TODO check unique(chd).length == subtrees
-		// TODO check that there exists sz such that for all i:
-		// (chd[i] == null) => sizePrefix[i] <= sz
-		// (chd[i] != null) => sizePrefix[i] >= sz
-		// TODO check that sum{ sizePrefix[j] : child[j] == null } + subtrees + sz > maxSize
-		for (int i: chd) {
-			putDummyChild(i);
 		}
 	}
 
@@ -184,23 +214,49 @@ implements IncompleteMap<K, V> {
 		K newprefix = (K)prefix.clone();
 		newprefix.set(preflen, i);
 		child[i] = new DummyPrefixTreeMap(newprefix, preflen+1, sizeMax);
-		// ++subtrees;
 	}
 
 	/**
-	** Put dummy mappings onto the submap.
+	** Put dummy mappings onto the submap. This method carries out certain
+	** tests which assume that the child array has already been populated by
+	** putDummyChildren.
 	**
 	** @param keys The array of keys of the map
 	** @param values The array of values of the map
 	*/
 	protected void putDummySubmap(K[] keys, V[] values) {
+		if (keys.length != values.length) {
+			throw new IllegalArgumentException("keys/values length mismatch");
+		}
+
+		// check that keys agrees with child[i]
+		int[] szPre = new int[sizePrefix.length];
+		for (int i=0; i<keys.length; ++i) {
+			int p = keys[i].get(preflen);
+			if (child[p] != null) {
+				throw new IllegalArgumentException("A subtree already exists for this key: " + keys[i]);
+			}
+			++szPre[p];
+		}
+
+		// check keys.length == sum{ sizePrefix[j] : child[j] == null } and
+		// that keys agrees with sizePrefix
+		int sz = 0;
+		for (int i=0; i<sizePrefix.length; ++i) {
+			if (child[i] == null) {
+				sz += szPre[i];
+				if (sizePrefix[i] != szPre[i]) {
+					throw new IllegalArgumentException("The keys given contradicts the sizePrefix array");
+				}
+			}
+		}
+		if (sz != keys.length) {
+			throw new IllegalArgumentException("The keys given contradicts the sizePrefix array");
+		}
+
 		for (int i=0; i<keys.length; ++i) {
 			itmap.putDummy(keys[i], values[i]);
 		}
-		// TODO check that keys honours sizePrefix[i] and child[i]
-		// TODO check tmap.size() == sum{ sizePrefix[j] : child[j] == null }
-		// (this check means that this method must be called after
-		// putDummyChildren() for the test to pass)
 	}
 
 	/**
@@ -219,10 +275,15 @@ implements IncompleteMap<K, V> {
 		}
 
 		int i = t.prefix.get(preflen);
-		// TODO check t.size == sizePrefix[i]
+
 		if (child[i] == null) {
 			throw new IllegalArgumentException("This tree does not have a subtree with prefix " + t.prefix);
 		}
+		// check t.size == sizePrefix[i]
+		if (t.size != sizePrefix[i]) {
+			throw new IllegalArgumentException("The size of this tree contradicts the parent's sizePrefix");
+		}
+
 		if (child[i] instanceof DummyPrefixTreeMap) {
 			child[i] = t;
 		} else if (child[i] instanceof IncompletePrefixTreeMap) {
@@ -247,8 +308,6 @@ implements IncompleteMap<K, V> {
 				return false;
 			}
 		}
-		// TODO verify node population restrictions
-		// int space = sizeMax - subtrees;
 		return true;
 	}
 

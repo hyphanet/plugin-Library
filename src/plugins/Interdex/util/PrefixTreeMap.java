@@ -163,9 +163,9 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	protected int size = 0;
 
 	/**
-	** Counts the number of elements with the next element of the prefix being
-	** the index into the array. At all times, the sum of all array elements
-	** should equal the size field. Additionally,
+	** Counts the number of mappings in each prefix group, meaning the set of
+	** all mappings whose keys give the same key.get(preflen). At all times,
+	** the sum the array elements should equal the size field. Additionally,
 	** for all i: (child[i] != null) implies (sizePrefix[i] == child[i].size())
 	** and tmap.size() == sum{ sizePrefix[j] : child[j] == null }
 	*/
@@ -395,9 +395,9 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	** entries into new subtrees, with big subtrees taking priority, until
 	** there is enough space to fit the remaining entries. In other words, the
 	** algorithm will ensure that there exists sz such that for all i:
-	** (chd[i] == null) implies sizePrefix[i] <= sz
-	** (chd[i] != null) implies sizePrefix[i] >= sz
-	** smallestChild.size() == sz and tmap.size() + subtrees + sz > maxSize
+	** (child[i] == null) implies sizePrefix[i] <= sz
+	** (child[i] != null) implies sizePrefix[i] >= sz
+	** smallestChild.size() == sz and tmap.size() + subtrees + sz > sizeMax
 	*/
 	public V put(K key, V value) {
 		if (!key.match(prefix, preflen)) {
