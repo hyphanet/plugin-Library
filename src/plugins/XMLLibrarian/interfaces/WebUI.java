@@ -1,4 +1,4 @@
-package plugins.XMLLibrarian;
+package plugins.XMLLibrarian.interfaces;
 
 import freenet.pluginmanager.PluginHTTPException;
 import freenet.pluginmanager.FredPluginHTTP;
@@ -7,7 +7,8 @@ import freenet.support.api.HTTPRequest;
 import freenet.support.HTMLEncoder;
 import freenet.l10n.L10n;
 
-
+import plugins.XMLLibrarian.Search;
+import plugins.XMLLibrarian.XMLLibrarian;
 
 
 public class WebUI{

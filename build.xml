@@ -88,6 +88,7 @@
 		description="generate the distribution" >
 		<jar jarfile="${dist}/XMLLibrarian.jar" duplicate="fail">
 			<manifest>
+				<attribute name="Main-Class" value="plugins.XMLLibrarian.TestInterface"/>
 				<attribute name="Plugin-Main-Class" value="plugins.XMLLibrarian.XMLLibrarian"/>
 			</manifest>
 			<fileset dir="src/" casesensitive="no">

@@ -15,7 +15,7 @@ import freenet.pluginmanager.FredPluginL10n;
 import freenet.l10n.L10n;
 import freenet.l10n.L10n.LANGUAGE;
 
-
+import plugins.XMLLibrarian.interfaces.WebUI;
 
 
 /**

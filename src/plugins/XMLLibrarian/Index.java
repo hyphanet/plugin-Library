@@ -13,13 +13,14 @@ import freenet.support.Logger;
  * 
  * 
  */
-public class Index {
+public class Index implements Status{
 	static protected PluginRespirator pr;
 	
 	protected String indexuri;
 
 	protected boolean fetched;
 	protected int version;
+	protected ArrayList<Request> requests = new ArrayList<Request>();
 
 	protected HashMap<String, String> indexMeta;
 	
@@ -64,9 +65,9 @@ public class Index {
 			return allindices.get(indexuri);
 		
 		if(indexuri.startsWith("xml:"))
-			return new XMLIndex(indexuri);
+			return new XMLIndex(indexuri.substring(4));
 		
-		throw new UnsupportedOperationException("Unrecognised index type, id format is <type>:<key>");
+		throw new UnsupportedOperationException("Unrecognised index type, id format is <type>:<key> {"+indexuri+"}");
 	}
 
 	
@@ -74,14 +75,8 @@ public class Index {
 		return indexuri;
 	}
 	
-	public Request find(String term){
-		Request request = new Request(Request.RequestType.FIND, term);
-		find(term, request);
-		return request;
-	}
-
-	public void find(String term, Request request) {
-		throw new UnsupportedOperationException("No find() method implemented in index "+this.getClass().getDeclaringClass().getName()+" : "+indexuri);
+	public Request find(String term) throws Exception{
+		throw new UnsupportedOperationException("No find() method implemented in index "+this.toString()+" : "+indexuri);
 	}
 	
 	public Request getPage(String pageid){
@@ -96,6 +91,10 @@ public class Index {
 	
 	public static void setup(XMLLibrarian xl){
 		pr = xl.getPluginRespirator();
+	}
+	
+	public long getDownloadedBlocks(){
+		return -1;
 	}
 }
 

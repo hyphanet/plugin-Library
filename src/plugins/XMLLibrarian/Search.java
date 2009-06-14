@@ -153,7 +153,7 @@ public class Search extends Request implements ClientEventListener, Runnable{
 		// create search
 		Search searcher = new Search(search, indexuri);
 		// start search
-		searcher.start();
+/// 		searcher.start();
 		return searcher;
 	}
 	
@@ -182,7 +182,7 @@ public class Search extends Request implements ClientEventListener, Runnable{
 			
 			
 			// Perform for one search on one index
-			resultList = index.find(search, this);
+///			resultList = index.find(search, this);
             done("Complete.");
 		} catch (Exception e) {
             error(e);

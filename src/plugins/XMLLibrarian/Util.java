@@ -59,8 +59,8 @@ public class Util {
 			}catch(MalformedURLException e){
 				return false;
 			}
-			return true;
 		}
+		return true;
 	}
 }
 
