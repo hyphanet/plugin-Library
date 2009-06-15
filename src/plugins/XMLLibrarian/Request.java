@@ -7,7 +7,7 @@ import com.db4o.ObjectContainer;
 import freenet.client.async.ClientContext;
 
 
-class Request{
+class Request<E> implements Comparable<Request>{
 	public enum RequestType { FIND, PAGE, SEARCH };
 	public enum RequestStatus { UNSTARTED, INPROGRESS, PARTIALRESULT, FINISHED };
 	
@@ -16,7 +16,7 @@ class Request{
 	protected int stage=0;
 	protected RequestStatus status;
 	protected Status statusgiver;
-	
+	E result;
 	
 	
 	public Request(RequestType type, String subject){
@@ -37,6 +37,24 @@ class Request{
 	
 	public String getSubject(){
 		return subject;
+	}
+	
+	public void setResult(E result){
+		status = RequestStatus.PARTIALRESULT;
+		this.result = result;
+	}
+	
+	public E getResult(){
+		return result;
+	}
+	
+	public void finished(){
+		status=RequestStatus.FINISHED;
+	}
+	
+	
+	public int compareTo(Request right){
+		return 1024 * status.compareTo(right.status) + subject.compareTo(right.subject);
 	}
 	
 	public String toString(){

@@ -18,7 +18,11 @@ public class Index implements Status{
 	
 	protected String indexuri;
 
-	protected boolean fetched;
+	public enum FetchStatus{UNFETCHED, FETCHING, FETCHED, FAILED}
+	protected FetchStatus fetchStatus = FetchStatus.UNFETCHED;
+	protected ArrayList<Request> waitingOnMainIndex = new ArrayList<Request>();
+	
+	protected String mainIndexDescription;
 	protected int version;
 	protected ArrayList<Request> requests = new ArrayList<Request>();
 
@@ -61,11 +65,16 @@ public class Index implements Status{
 	 * @return Index object
 	 */
 	public static Index getIndex(String indexuri) throws InvalidSearchException{
+		if (!indexuri.endsWith("/"))
+			indexuri += "/";
 		if (allindices.containsKey(indexuri))
 			return allindices.get(indexuri);
 		
-		if(indexuri.startsWith("xml:"))
-			return new XMLIndex(indexuri.substring(4));
+		if(indexuri.startsWith("xml:")){
+			Index index = new XMLIndex(indexuri.substring(4));
+			allindices.put(indexuri, index);
+			return index;
+		}
 		
 		throw new UnsupportedOperationException("Unrecognised index type, id format is <type>:<key> {"+indexuri+"}");
 	}
@@ -79,12 +88,13 @@ public class Index implements Status{
 		throw new UnsupportedOperationException("No find() method implemented in index "+this.toString()+" : "+indexuri);
 	}
 	
+	/// allow many? is there an advantage?
 	public Request getPage(String pageid){
 		Request request = new Request(Request.RequestType.PAGE, pageid);
-		getPage(pageid, request);
 		return request;
 	}
 
+	/// GONe
 	public void getPage(String pageid, Request request) {
 		throw new UnsupportedOperationException("No getPage() method implemented in index "+this.getClass().getDeclaringClass().getName()+" : "+indexuri);
 	}
@@ -95,6 +105,10 @@ public class Index implements Status{
 	
 	public long getDownloadedBlocks(){
 		return -1;
+	}
+	
+	public String toString(){
+		return "Index : "+indexuri+" "+fetchStatus+" "+mainIndexDescription+" "+waitingOnMainIndex;
 	}
 }
 

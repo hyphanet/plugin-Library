@@ -49,6 +49,33 @@ public class Util {
 		return res.asBucket();
 	}
 	
+	public static Bucket fetchBucket(String uri, HighLevelSimpleClient hlsc) throws FetchException, MalformedURLException {
+		// try local file first
+		File file = new File(uri);
+		if (file.exists() && file.canRead()) 
+			return new FileBucket(file, true, false, false, false, false);
+		else if (hlsc==null)
+			throw new NullPointerException("No client or file "+uri+" found");
+		
+		// FreenetURI, try to fetch from freenet
+		FreenetURI u = new FreenetURI(uri);
+		FetchResult res;
+		while (true) {
+			try {
+				res = hlsc.fetch(u);
+				break;
+			} catch (FetchException e) {
+				if (e.newURI != null) {
+					u = e.newURI;
+					continue;
+				} else
+					throw e;
+			}
+		}
+
+		return res.asBucket();
+	}
+	
 	public static boolean isValid(String uri) {
 		// try local file first
 		File file = new File(uri);

@@ -30,7 +30,7 @@ class Library{
 	
 	
 	
-	private Index getIndex(String indexid) throws InvalidSearchException{
+	public Index getIndex(String indexid) throws InvalidSearchException{
 		if (indexid.startsWith("bookmark:"))
 			return bookmarks.get(indexid.substring(9));
 		else

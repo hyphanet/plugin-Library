@@ -41,8 +41,6 @@ class XMLIndex extends Index{
 
 	private HighLevelSimpleClient hlsc;
 
-	public enum FetchStatus{UNFETCHED, FETCHING, FETCHED, FAILED}
-	protected FetchStatus fetchStatus = FetchStatus.UNFETCHED;
 	/**
 	 * Index format version:
 	 * <ul>
@@ -54,9 +52,6 @@ class XMLIndex extends Index{
 
 	protected List<String> subIndiceList;
 	protected SortedMap<String, SubIndex> subIndice;
-	protected ArrayList<Request> waitingOnMainIndex = new ArrayList<Request>();
-	
-	protected String mainIndexDescription;
 	protected int downloadProgress;
 	protected int downloadSize;
 
@@ -74,7 +69,6 @@ class XMLIndex extends Index{
 		if(!Util.isValid(baseURI))
 			throw new InvalidSearchException(baseURI + " is neither a valid file nor valid Freenet URI");
 
-		allindices.put(baseURI, this);
 		
 		if(pr!=null){
 			hlsc = pr.getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
@@ -218,7 +212,7 @@ class XMLIndex extends Index{
 
 				for (String key : parser.getSubIndice()) {
 					subIndiceList.add(key);
-					subIndice.put(key, new SubIndex("index_" + key + ".xml"));
+					subIndice.put(key, new SubIndex(indexuri, "index_" + key + ".xml"));
 				}
 				Collections.sort(subIndiceList);
 			}
@@ -228,6 +222,12 @@ class XMLIndex extends Index{
 		}
 	}
 	
+	public String toString(){
+		String output = "Index : "+indexuri+" "+fetchStatus+" "+mainIndexDescription+" "+waitingOnMainIndex+"\n\t"+subIndice;
+		//for (SubIndex s : subIndice)
+		//	output = output+"\n -"+s;
+		return output;
+	}
 	
 	protected SubIndex getSubIndex(String keyword) {
 		String md5 = XMLLibrarian.MD5(keyword);
@@ -252,13 +252,14 @@ class XMLIndex extends Index{
 			waitingOnMainIndex.add(request);
 			request.setStage(Request.RequestStatus.INPROGRESS,1, this);
 			startFetch();
-		}else{
+		}else if (!getSubIndex(request.getSubject()).isAlive()){
 			System.out.println(" adding search as subindex dependency "+request.getSubject());
 			SubIndex subindex = getSubIndex(request.getSubject());
 			System.out.println(" added search as subindex dependency "+subindex);
 			request.setStage(Request.RequestStatus.INPROGRESS,2, subindex);
 			subindex.addRequest(request);
-			// fetch
+			if(subindex.getFetchStatus()==FetchStatus.UNFETCHED)
+				subindex.start();
 		}
 	}
 	
@@ -301,23 +302,96 @@ class XMLIndex extends Index{
 		return downloadProgress;
 	}
 	
-	private class SubIndex implements Status{
-		String filename;
+	private class SubIndex extends Thread implements Status{
+		String indexuri, filename;
 		ArrayList<Request> waitingOnSubindex=new ArrayList<Request>();
+		FetchStatus fetchStatus = FetchStatus.UNFETCHED;
+		long downloadProgress, downloadSize;
+		HighLevelSimpleClient hlsc;
+		Bucket bucket;
+		Exception error;
 		
-		SubIndex(String filename){
+		ClientEventListener subIndexListener = new ClientEventListener(){
+			/**
+			 * Hears an event.
+			 **/
+			public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context){
+				//mainIndexDescription = ce.getDescription();
+				downloadProgress = Integer.parseInt(ce.getDescription().split("[/\b]")[3]);
+				downloadSize = Integer.parseInt(ce.getDescription().split("[/\b]")[4]);
+			}
+			public void onRemoveEventProducer(ObjectContainer container){}
+		};
+		
+		SubIndex(String indexuri, String filename){
+			this.indexuri = indexuri;
 			this.filename = filename;
+			
+			if(pr!=null){
+				hlsc = pr.getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+				hlsc.addEventHook(subIndexListener);
+			}
 		}
 		
 		String getFileName(){
 			return filename;
 		}
+		
+		FetchStatus getFetchStatus(){
+			return fetchStatus;
+		}
+		
 		void addRequest(Request request){
-			waitingOnSubindex.add(request);
+			synchronized(waitingOnSubindex){
+				waitingOnSubindex.add(request);
+			}
 		}
 		
 		public long getDownloadedBlocks(){
-			return -1;
+			return downloadProgress;
+		}
+		
+		public String toString(){
+			return filename+" "+fetchStatus+" "+waitingOnSubindex;
+		}
+		
+		public synchronized void run(){ // TODO  conditions and simultanious parsing and file list
+			try{
+				while(waitingOnSubindex.size()>0){
+					if(fetchStatus==FetchStatus.UNFETCHED){
+						try {
+							fetchStatus = FetchStatus.FETCHING;
+							bucket = Util.fetchBucket(indexuri + filename, hlsc);
+							fetchStatus = FetchStatus.FETCHED;
+							
+						} catch (Exception e) {
+							Logger.error(this, indexuri + filename + " could not be opened: " + e.toString(), e);
+							throw e;
+						}
+					}else if(fetchStatus==FetchStatus.FETCHED){
+						SAXParserFactory factory = SAXParserFactory.newInstance();
+						try {
+							factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+							SAXParser saxParser = factory.newSAXParser();
+							InputStream is = bucket.getInputStream();
+							synchronized(waitingOnSubindex){
+								saxParser.parse(is, new LibrarianHandler(waitingOnSubindex, null, null));
+								for(Request r : waitingOnSubindex)
+									r.finished();
+								waitingOnSubindex.clear();
+							}
+							is.close();
+						} catch (Throwable err) {
+							err.printStackTrace();
+							throw new Exception("Could not parse XML: " + err.toString());
+						}
+					}else
+						break;
+				}
+			}catch(Exception e){
+				fetchStatus = FetchStatus.FAILED;
+				this.error = e;
+			}
 		}
 	}
 }

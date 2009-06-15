@@ -19,13 +19,17 @@ public class TestInterface{
 			do{
 				command = br.readLine().split(" ");
 				
-				if("find".equals(command[0])){
+				if("f".equals(command[0])){
 					requests.put(""+requestcount,lib.findTerm("xml:index", command[1]));
 					System.out.println("Started request "+requestcount);
 					requestcount++;
 				}
-				if("progress".equals(command[0]))
+				if("p".equals(command[0]))
 					System.out.println(requests.get(command[1]).toString());
+				if("r".equals(command[0]))
+					System.out.println(requests.get(command[1]).getResult());
+				if("i".equals(command[0]))
+					System.out.println(lib.getIndex("xml:index"));
 			}while(!"exit".equals(command[0]));
 		}catch(Exception e){
 			e.printStackTrace();
