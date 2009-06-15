@@ -16,6 +16,7 @@ class Library{
 	}
 	
 	public Request findTerm(String indexid, String term) throws Exception{
+		System.out.println(" find "+term);
 		Index index = getIndex(indexid);
 		Request request = index.find(term);
 		return request;
