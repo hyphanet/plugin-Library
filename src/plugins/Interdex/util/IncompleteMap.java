@@ -25,4 +25,16 @@ public interface IncompleteMap<K, V> extends Map<K, V> {
 	*/
 	public Map<K, V> complete() throws DataNotLoadedException;
 
+	/*
+	public void inflate(Map<K, V> m);
+	public void deflate(Map<K, V> m);
+
+	public void inflate(Map.Entry<K, V> e);
+	public void deflate(Map.Entry<K, V> e);
+
+	public IncompleteMap.Serialiser getSerialiser();
+	public IncompleteMap.Serialiser setSerialiser();
+	*/
+
+
 }

@@ -10,12 +10,15 @@ import freenet.keys.FreenetURI;
 */
 public class TokenURIEntry extends TokenEntry {
 
-	// TODO
-	FreenetURI uri;
+	final FreenetURI uri;
+	final String word;
 
-	String word;
 	int position;
-
 	int relevance;
+
+	public TokenURIEntry(String w, FreenetURI u) {
+		word = w;
+		uri = u;
+	}
 
 }

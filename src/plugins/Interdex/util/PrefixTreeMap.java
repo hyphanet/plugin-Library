@@ -65,12 +65,14 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		public void clear(int i);
 
 		/**
-		** Returns a new key matching a given-sized prefix of this key, with
-		** the other cells blank.
-		**
-		** @param len The number of cells to match
+		** Returns a new key with a new value set for one of the cells.
 		*/
-		public void prefix(int len);
+		public PrefixKey spawn(int i, int v);
+
+		/**
+		** Clears all cells from a given index.
+		*/
+		public void clearFrom(int len);
 
 		/**
 		** Whether two keys have matching prefixes.
@@ -92,7 +94,13 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 
 		abstract public Object clone();
 
-		public void prefix(int len) {
+		public PrefixKey spawn(int i, int v) {
+			PrefixKey p = (PrefixKey)clone();
+			p.set(i, v);
+			return p;
+		}
+
+		public void clearFrom(int len) {
 			for (int i=len; i<size(); ++i) { clear(i); }
 		}
 
@@ -199,7 +207,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		}
 
 		prefix = p;
-		prefix.prefix(len);
+		prefix.clearFrom(len);
 		preflen = len;
 
 		tmap = tm;
@@ -272,9 +280,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		}
 
 		assert(child[msym] == null);
-		K newprefix = (K)prefix.clone();
-		newprefix.set(preflen, msym);
-		child[msym] = new PrefixTreeMap<K, V>(newprefix, preflen+1, sizeMax);
+		child[msym] = new PrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, sizeMax);
 		++subtrees;
 
 		for (int i=0; i<mi; ++i) {

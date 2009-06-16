@@ -3,6 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.index;
 
+import java.util.Date;
+
 import freenet.keys.FreenetURI;
 
 /**
@@ -10,12 +12,16 @@ import freenet.keys.FreenetURI;
 */
 public class URIEntry {
 
-	// TODO
-	FreenetURI uri;
+	final FreenetURI uri;
+	Date date_checked;
 
 	String title;
-	int date_checked;
 	int size;
 	String mime_type;
+
+	public URIEntry(FreenetURI u) {
+		uri = u;
+		date_checked = new Date();
+	}
 
 }

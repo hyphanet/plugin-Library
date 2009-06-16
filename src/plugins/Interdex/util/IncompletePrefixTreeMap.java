@@ -211,9 +211,7 @@ implements IncompleteMap<K, V> {
 	** @param i The index to attach the dummy to
 	*/
 	protected void putDummyChild(int i) {
-		K newprefix = (K)prefix.clone();
-		newprefix.set(preflen, i);
-		child[i] = new DummyPrefixTreeMap(newprefix, preflen+1, sizeMax);
+		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, sizeMax);
 	}
 
 	/**
