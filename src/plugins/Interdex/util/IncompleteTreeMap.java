@@ -7,8 +7,11 @@ import java.util.TreeMap;
 import java.util.Map;
 import java.util.Comparator;
 import java.util.Set;
+import java.util.AbstractSet;
 import java.util.SortedMap;
 import java.util.Collection;
+import java.util.AbstractCollection;
+import java.util.Iterator;
 
 /**
 ** Emulates a TreeMap where some of the data has not been fully loaded.
@@ -24,90 +27,56 @@ public class IncompleteTreeMap<K, V> extends TreeMap<K, V>
 implements IncompleteMap<K, V> {
 
 	/**
-	** Represents a value which has been loaded.
-	**
-	** @author infinity0
+	** A TreeMap of objects tracking the load status of each key.
 	*/
-	public static class Value<V> {
-
-		final V value;
-
-		public Value(V v) {
-			value = v;
-		}
-
-		public V get() {
-			return value;
-		}
-
-		/************************************************************************
-		 * public class Object
-		 ************************************************************************/
-
-		public boolean equals(Object o) {
-			if (o instanceof Value) { return value.equals(((Value)o).get()); }
-			return value.equals(o);
-		}
-
-		public int hashCode() {
-			return value.hashCode();
-		}
-
-	}
-
-	/**
-	** Represents a value which has not been loaded, but which a key refers to,
-	** and we have a skeleton/dummy value for.
-	**
-	** @author infinity0
-	*/
-	public static class DummyValue<V> extends Value<V> {
-
-		public DummyValue(V v) {
-			super(v);
-		}
-
-	}
-
-	/**
-	** A TreeMap of Value containers backing up this map.
-	*/
-	final TreeMap<K, Value<V>> tmap;
+	final TreeMap<K, Object> loaded;
 
 	public IncompleteTreeMap() {
-		tmap = new TreeMap<K, Value<V>>();
+		super();
+		loaded = new TreeMap<K, Object>();
 	}
 
 	public IncompleteTreeMap(Comparator<? super K> c) {
-		tmap = new TreeMap<K, Value<V>>(c);
+		super(c);
+		loaded = new TreeMap<K, Object>(c);
 	}
 
 	public IncompleteTreeMap(Map<? extends K,? extends V> m) {
-		tmap = new TreeMap<K, Value<V>>();
+		super(m);
+		loaded = new TreeMap<K, Object>();
 		for (K key: m.keySet()) {
-			tmap.put(key, new Value<V>(m.get(key)));
+			loaded.put(key, Boolean.FALSE);
 		}
 	}
 
 	public IncompleteTreeMap(SortedMap<K,? extends V> m) {
-		tmap = new TreeMap<K, Value<V>>(m.comparator());
+		super(m);
+		loaded = new TreeMap<K, Object>(m.comparator());
 		for (K key: m.keySet()) {
-			tmap.put(key, new Value<V>(m.get(key)));
+			loaded.put(key, Boolean.FALSE);
 		}
 	}
 
-	public IncompleteTreeMap(TreeMap<K, Value<V>> m, boolean clone) {
-		tmap = (clone)? (TreeMap<K, Value<V>>)m.clone(): m;
+	public IncompleteTreeMap(IncompleteTreeMap<K, V> m) {
+		super(m);
+		loaded = (TreeMap<K, Object>)m.loaded.clone();
 	}
 
-	public V putDummy(K key) {
-		Value<V> v = tmap.put(key, new DummyValue<V>(null));
-		return (v == null)? null: v.get();
+	public IncompleteTreeMap(K[] keys) {
+		loaded = new TreeMap<K, Object>();
+		for (K k: keys) {
+			putDummy(k);
+		}
 	}
 
-	public V putDummy(K key, V value) {
-		Value<V> v = tmap.put(key, new DummyValue<V>(value));
-		return (v == null)? null: v.get();
+	public Object putDummy(K key) {
+		put(key, null);
+		return loaded.put(key, Boolean.FALSE);
+	}
+
+	public Object putDummy(K key, Object o) {
+		put(key, null);
+		return loaded.put(key, o);
 	}
 
 
@@ -116,23 +85,17 @@ implements IncompleteMap<K, V> {
 	 ************************************************************************/
 
 	public boolean isComplete() {
-		for (Value<V> v: tmap.values()) {
-			if (v == null || v instanceof DummyValue) {
-				return false;
-			}
+		for (Object o: loaded.values()) {
+			if (o != null) { return false; }
 		}
 		return true;
 	}
 
 	public Map<K, V> complete() {
 		if (!isComplete()) {
-			throw new DataNotLoadedException("TreeMap not fully loaded.", this, "*");
+			throw new DataNotLoadedException("TreeMap not fully loaded.", this);
 		} else {
-			Map<K, V> ctree = new TreeMap<K, V>(comparator());
-			for (K k: tmap.keySet()) {
-				ctree.put(k, tmap.get(k).get());
-			}
-			return ctree;
+			return new TreeMap(this);
 		}
 	}
 
@@ -140,74 +103,119 @@ implements IncompleteMap<K, V> {
 	 * public class TreeMap
 	 ************************************************************************/
 
-	public void clear() { tmap.clear(); }
-
-	public Object clone() {
-		return new IncompleteTreeMap(tmap, true);
+	public void clear() {
+		super.clear();
+		loaded.clear();
 	}
 
-	public Comparator<? super K> comparator() { return tmap.comparator(); }
+	public Object clone() {
+		return new IncompleteTreeMap(this);
+	}
 
-	public boolean containsKey(Object key) { return tmap.containsKey(key); }
+	public Comparator<? super K> comparator() { return super.comparator(); }
+
+	public boolean containsKey(Object key) { return loaded.containsKey(key); }
 
 	public boolean containsValue(Object value) {
 		if (!isComplete()) {
-			throw new DataNotLoadedException("TreeMap not fully loaded.", this, "*");
+			throw new DataNotLoadedException("TreeMap not fully loaded.", this);
 		} else {
-			return tmap.containsValue(new Value(value));
+			return super.containsValue(value);
 		}
 	}
 
+	private Set<Map.Entry<K,V>> entries;
 	public Set<Map.Entry<K,V>> entrySet() {
-		// TODO: The best/easiest way to implement this (and the other Map
-		// methods that involve the V parameter) would probably be to throw
-		// DataNotFoundException if isComplete() is false. Otherwise, have a
-		// cache for complete() and return cache.entrySet()
-		//
-		// We should NOT return an entrySet when isComplete() is false, because
-		// then it would be possible to iterate over this entrySet and call
-		// entry.getValue(), possibly returning a DummyValue, which is against
-		// the point of this class. There would have to be some major hackery
-		// involved to make this throw DataNotFoundException instead.
-		//
-		// (for the record, sdiz thinks it's a bad idea to have made this into
-		// a collections class in the first place.)
-		throw new UnsupportedOperationException("Not implemented.");
+		if (entries == null) {
+			entries = new AbstractSet<Map.Entry<K, V>>() {
+
+				public int size() { return IncompleteTreeMap.this.size(); }
+
+				public Iterator<Map.Entry<K, V>> iterator() {
+					return new CombinedIterator(IncompleteTreeMap.super.entrySet().iterator(), IncompleteTreeMap.this.loaded.entrySet().iterator(), CombinedIterator.ENTRY);
+				}
+
+				public void clear() {
+					IncompleteTreeMap.this.clear();
+				}
+
+				public boolean contains(Object o) {
+					if (!(o instanceof Map.Entry)) { return false; }
+					Map.Entry e = (Map.Entry)o;
+					return IncompleteTreeMap.this.get(e.getKey()).equals(e.getValue());
+				}
+
+				public boolean remove(Object o) {
+					boolean c = contains(o);
+					if (c) {
+						Map.Entry e = (Map.Entry)o;
+						IncompleteTreeMap.this.remove(e.getKey());
+					}
+					return c;
+				}
+
+			};
+		}
+		return entries;
 	}
 
-	public K firstKey() { return tmap.firstKey(); }
+	public K firstKey() { return loaded.firstKey(); }
 
 	public V get(Object key) {
-		Value<V> v = tmap.get(key);
-		if (v instanceof DummyValue) {
-			throw new DataNotLoadedException("Value not loaded for key " + key, ((DummyValue)v).get(), key);
+		Object o = loaded.get(key);
+		if (o != null) {
+			throw new DataNotLoadedException("Data not loaded for key " + key + ": " + o, this, key, o);
 		}
-		return (v == null)? null: v.get();
+		return super.get(key);
 	}
 
 	public SortedMap<K,V> headMap(K toKey) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public Set<K> keySet() { return tmap.keySet(); }
+	private Set<K> keys;
+	public Set<K> keySet() {
+		if (keys == null) {
+			keys = new AbstractSet<K>() {
 
-	public K lastKey() { return tmap.lastKey(); }
+				public int size() { return IncompleteTreeMap.this.size(); }
+
+				public Iterator<K> iterator() {
+					return new CombinedIterator(IncompleteTreeMap.super.keySet().iterator(), IncompleteTreeMap.this.loaded.keySet().iterator(), CombinedIterator.KEY);
+				}
+
+				public void clear() { IncompleteTreeMap.this.clear(); }
+
+				public boolean contains(Object o) {
+					return IncompleteTreeMap.this.containsKey(o);
+				}
+
+				public boolean remove(Object o) {
+					boolean c = contains(o);
+					IncompleteTreeMap.this.remove(o);
+					return c;
+				}
+
+			};
+		}
+		return keys;
+	}
+
+	public K lastKey() { return loaded.lastKey(); }
 
 	public V put(K key, V value) {
-		Value<V> v = tmap.put(key, new Value<V>(value));
-		return (v == null)? null: v.get();
+		loaded.put(key, null);
+		return super.put(key, value);
 	}
 
-	public void putAll(Map<? extends K,? extends V> map) {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
+	//public void putAll(Map<? extends K,? extends V> map);
 
 	public V remove(Object key) {
-		Value<V> v = tmap.remove(key);
-		return (v == null)? null: v.get();
+		loaded.remove(key);
+		return super.remove(key);
 	}
 
-	public int size() { return tmap.size(); }
+	public int size() { return loaded.size(); }
 
 	public SortedMap<K,V> subMap(K fromKey, K toKey) {
 		throw new UnsupportedOperationException("Not implemented.");
@@ -217,8 +225,22 @@ implements IncompleteMap<K, V> {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
+	private Collection<V> values;
 	public Collection<V> values() {
-		throw new UnsupportedOperationException("Not implemented.");
+		if (values == null) {
+			values = new AbstractCollection<V>() {
+
+				public int size() { return IncompleteTreeMap.this.size(); }
+
+				public Iterator<V> iterator() {
+					return new CombinedIterator(IncompleteTreeMap.super.values().iterator(), IncompleteTreeMap.this.loaded.values().iterator(), CombinedIterator.VALUE);
+				}
+
+				public void clear() { IncompleteTreeMap.this.clear(); }
+
+			};
+		}
+		return values;
 	}
 
 	/************************************************************************
@@ -227,12 +249,73 @@ implements IncompleteMap<K, V> {
 
 	public boolean equals(Object o) {
 		if (o instanceof IncompleteTreeMap) {
-			return tmap.equals(((IncompleteTreeMap)o).tmap);
+			return super.equals(o) && loaded.equals(((IncompleteTreeMap)o).loaded);
 		}
-		return tmap.equals(o);
+		return super.equals(o);
 	}
-	public int hashCode() { return tmap.hashCode(); }
-	public boolean isEmpty() { return tmap.isEmpty(); }
-	public String toString() { return tmap.toString(); }
+	public int hashCode() { return super.hashCode() ^ loaded.hashCode(); }
+	public boolean isEmpty() { return loaded.isEmpty(); }
+	// public String toString() { return super.toString(); }
+
+
+	/**
+	** Transparent iterator that throws DataNotLoadedException
+	** TODO expand this doc
+	**
+	** @author infinity0
+	*/
+	private static class CombinedIterator<T> implements Iterator<T> {
+
+		final private Iterator<T> iter;
+		final private Iterator<?> iterloaded;
+
+		final private int type;
+		final private static int KEY = 0;
+		final private static int VALUE = 1;
+		final private static int ENTRY = 2;
+
+		RuntimeException exceptionThrown;
+
+		CombinedIterator(Iterator<T> it, Iterator<?> itl, int t) {
+			iter = it;
+			iterloaded = itl;
+			type = t;
+		}
+
+		public boolean hasNext() {
+			return iterloaded.hasNext();
+		}
+
+		public T next() throws DataNotLoadedException {
+
+			Object o = iterloaded.next();
+
+			switch(type) {
+			case ENTRY:
+				Map.Entry e = (Map.Entry)o;
+				if (e.getValue() != null) {
+					exceptionThrown = new DataNotLoadedException("Data not loaded for key " + e.getKey() + ": " + e.getValue(), this, e.getKey(), e.getValue());
+				}
+				break;
+			case VALUE:
+				if (o != null) {
+					exceptionThrown = new DataNotLoadedException("Data not loaded: " + o, this, null, o);
+				}
+				break;
+			}
+
+			if (exceptionThrown != null) {
+				throw exceptionThrown;
+			}
+
+			return iter.next();
+		}
+
+		public void remove() {
+			iterloaded.remove();
+			iter.remove();
+		}
+
+	}
 
 }

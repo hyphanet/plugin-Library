@@ -3,23 +3,43 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
-import java.util.MissingResourceException;
-
 /**
 ** Thrown when data hasn't been loaded yet, eg. when a data structure hasn't
 ** been fully populated from the network.
 **
 ** @author infinity0
 */
-public class DataNotLoadedException extends MissingResourceException {
+public class DataNotLoadedException extends RuntimeException {
 
-	final Object incomplete;
+	final Object thrower;
 	final Object key;
+	final Object dummyvalue;
 
-	public DataNotLoadedException(String s, Object o, Object k) {
-		super(s, o.getClass().getName(), k.toString());
-		incomplete = o;
+	public DataNotLoadedException(String s, Throwable t, Object c, Object k, Object v) {
+		super(s, t);
+		thrower = c;
 		key = k;
+		dummyvalue = v;
 	}
+
+	public DataNotLoadedException(Throwable t, Object c, Object k, Object v) {
+		this(null, t, c, k, v);
+	}
+
+	public DataNotLoadedException(String s, Object c, Object k, Object v) {
+		this(s, null, c, k, v);
+	}
+
+	public DataNotLoadedException(String s, Object c, Object k) {
+		this(s, null, c, k, null);
+	}
+
+	public DataNotLoadedException(String s, Object c) {
+		this(s, null, c, null, null);
+	}
+
+	public Object getThrower() { return thrower; }
+	public Object getKey() { return key; }
+	public Object getDummyValue() { return dummyvalue; }
 
 }
