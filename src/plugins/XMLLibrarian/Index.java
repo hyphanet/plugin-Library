@@ -92,13 +92,8 @@ public class Index implements Status{
 	
 	/// allow many? is there an advantage?
 	public Request getPage(String pageid){
-		Request request = new Request(Request.RequestType.PAGE, pageid);
-		return request;
-	}
-
-	/// GONe
-	public void getPage(String pageid, Request request) {
 		throw new UnsupportedOperationException("No getPage() method implemented in index "+this.getClass().getDeclaringClass().getName()+" : "+indexuri);
+
 	}
 	
 	public static void setup(XMLLibrarian xl){

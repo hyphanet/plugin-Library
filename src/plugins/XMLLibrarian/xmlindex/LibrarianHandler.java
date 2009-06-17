@@ -36,7 +36,7 @@ public class LibrarianHandler extends DefaultHandler {
 	/** file id -> title */
 	private HashMap<String, String> titles;
 	private List<URIWrapper> fileuris;
-	private List<Integer> fileids;
+	///private List<Integer> fileids;
 	private List<Request> requests;
 	private List<Request> wordMatches;
 
@@ -46,13 +46,13 @@ public class LibrarianHandler extends DefaultHandler {
 		md5 = XMLLibrarian.MD5(word);
 	}
 	
-	public LibrarianHandler(List<Request> requests, HashMap<String, String> uris, HashMap<String, String> titles) throws Exception {
+	public LibrarianHandler(List<Request> requests) throws Exception {
 		this.requests = requests;
-		this.uris = uris;
-		this.titles = titles;
+///		this.uris = uris;
+///		this.titles = titles;
 ///		md5 = XMLLibrarian.MD5(word);
 		for(Request r : requests)
-			r.setResult(new ArrayList<Integer>());
+			r.setResult(new ArrayList<URIWrapper>());
 		word = "";
 		md5="";
 	}
@@ -164,9 +164,22 @@ public class LibrarianHandler extends DefaultHandler {
 								fileuris.add(uri);
 						}
 					}else{
-						Integer id = Integer.valueOf(attrs.getValue("id"));
-						for(Request<ArrayList<Integer>> match : wordMatches){
-							match.getResult().add(id);
+						URIWrapper uri = new URIWrapper();
+						uri.URI = uris.get(attrs.getValue("id"));
+						Logger.minor(this, "word searched = " + word + " file id = " + uri.URI);
+						//uri.descr = "not available";
+						synchronized(this){
+							if(titles.containsKey(attrs.getValue("id")))
+							{
+								uri.descr = titles.get(attrs.getValue("id"));
+								if ((uri.URI).equals(uri.descr))
+									uri.descr = "not available";
+							}
+							else
+								uri.descr = "not available";
+							for(Request<ArrayList<URIWrapper>> match : wordMatches){
+								match.getResult().add(uri);
+							}
 						}
 					}
 				}

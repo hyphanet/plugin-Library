@@ -376,7 +376,7 @@ public class XMLIndex extends Index{
 							SAXParser saxParser = factory.newSAXParser();
 							InputStream is = bucket.getInputStream();
 							synchronized(waitingOnSubindex){
-								saxParser.parse(is, new LibrarianHandler(waitingOnSubindex, null, null));
+								saxParser.parse(is, new LibrarianHandler(waitingOnSubindex));
 								for(Request r : waitingOnSubindex)
 									r.finished();
 								waitingOnSubindex.clear();
