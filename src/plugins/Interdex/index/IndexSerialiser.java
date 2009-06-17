@@ -56,19 +56,11 @@ public abstract class IndexSerialiser {
 	}
 
 	void deflatePMTRecursive(PrefixTreeMap node) {
-		/*for (PrefixTreeMap ch: node.child) {
-			deflatePMN(ch);
-		}
-		for (K tk: node.hmap.keySet()) {
-			V en = node.hmap.get(tk);
-			if (en instanceof IndexTokenEntry) {
-				deflateTokenIndex(((IndexTokenEntry)en).index);
-			} else if (en instanceof IndexRedirectionEntry) {
-				// pass, this is someone else's problem
-			}
-		}*/
 		throw new UnsupportedOperationException("Not implemented.");
-		//deflatePMN(node);
+		/*for (PrefixTreeMap ch: node.child) {
+			deflatePMTRecursive(ch);
+		}
+		deflatePMN(node);*/
 	}
 
 	abstract void deflateIndex();

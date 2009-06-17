@@ -137,6 +137,11 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	final int preflen;
 
 	/**
+	** Pointer to the parent tree.
+	*/
+	final PrefixTreeMap<K, V> parent;
+
+	/**
 	** Array holding the child trees. There is one cell in the array for each
 	** symbol in the alphabet of the key.
 	*/
@@ -188,7 +193,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	transient protected PrefixTreeMap<K, V> smallestChild_ = null;
 
 
-	protected PrefixTreeMap(K p, int len, int maxsz, TreeMap<K, V> tm, PrefixTreeMap<K, V>[] chd) {
+	protected PrefixTreeMap(K p, int len, int maxsz, TreeMap<K, V> tm, PrefixTreeMap<K, V>[] chd, PrefixTreeMap<K, V> par) {
 		if (tm.size() > maxsz) {
 			throw new IllegalArgumentException("The TreeMap being attached has too many children (> " + maxsz + ")");
 		}
@@ -201,6 +206,12 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		if (len > p.size()) {
 			throw new IllegalArgumentException("The key is shorter than the length specified.");
 		}
+		if (len < 0) {
+			throw new IllegalArgumentException("Length cannot be negative.");
+		}
+		if ((par == null && len != 0) || (par != null && (par.preflen != len-1 || !par.prefix.match(p, len-1)))) {
+			throw new IllegalArgumentException("Not a valid parent for this node.");
+		}
 
 		for (PrefixTreeMap<K, V> c: chd) {
 			if (c != null) { ++subtrees; }
@@ -211,23 +222,32 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		preflen = len;
 
 		tmap = tm;
-		subtreesMax = p.symbols();
 		child = chd;
-		sizePrefix = new int[child.length];
+		parent = par;
 
+		subtreesMax = p.symbols();
+		sizePrefix = new int[child.length];
 		sizeMax = maxsz;
 	}
 
-	public PrefixTreeMap(K p, int len, int maxsz) {
-		this(p, len, maxsz, new TreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()]);
+	public PrefixTreeMap(K p, int len, int maxsz, PrefixTreeMap<K, V> par) {
+		this(p, len, maxsz, new TreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()], par);
 	}
 
 	public PrefixTreeMap(K p, int maxsz) {
-		this(p, 0, maxsz);
+		this(p, 0, maxsz, null);
 	}
 
 	public PrefixTreeMap(K p) {
-		this(p, 0, p.symbols());
+		this(p, 0, p.symbols(), null);
+	}
+
+	/**
+	** Returns the prefix in string form.
+	*/
+	public String prefixString() {
+		String ps = prefix.toString();
+		return ps.substring(0, ps.length() * preflen / prefix.size());
 	}
 
 	/**
@@ -250,41 +270,39 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		assert(tmap.size() > 0);
 		assert(subtrees < subtreesMax);
 
-		K[] mkeys = (K[]) new Object[sizeMax];
-		K[] ckeys = (K[]) new Object[sizeMax];
+		int mcount = -1;
 		int msym = 0;
-		int csym = tmap.firstKey().get(preflen);
-		int mi = 0;
-		int ci = 0;
+		for (int i=0; i<sizePrefix.length; ++i) {
+			if (child[i] != null) { continue; }
+			if (sizePrefix[i] > mcount) {
+				mcount = sizePrefix[i];
+				msym = i;
+			}
+		}
+
+		Object[] mkeys = new Object[mcount];
 
 		// TODO make this use SortedMap methods after this class implements SortedMap
+		int i = 0;
 		for (K ikey: tmap.keySet()) {
 			int isym = ikey.get(preflen);
-			if (isym != csym) {
-				if (ci > mi) {
-					mkeys = ckeys;
-					msym = csym;
-					mi = ci;
-					ckeys = (K[]) new Object[sizeMax];
-				}
-				csym = isym;
-				ci = 0;
+			if (isym < msym) {
+				continue;
+			} else if (isym == msym) {
+				mkeys[i] = ikey;
+				++i;
+			} else if (isym > msym) {
+				break;
 			}
-			ckeys[ci] = ikey;
-			++ci;
 		}
-		if (ci > mi) {
-			mkeys = ckeys;
-			msym = csym;
-			mi = ci;
-		}
-
+		assert(i == mkeys.length);
 		assert(child[msym] == null);
-		child[msym] = new PrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, sizeMax);
+
+		child[msym] = makeSubTree(msym);
 		++subtrees;
 
-		for (int i=0; i<mi; ++i) {
-			child[msym].put(mkeys[i], tmap.remove(mkeys[i]));
+		for (i=0; i<mkeys.length; ++i) {
+			child[msym].put((K)mkeys[i], tmap.remove((K)mkeys[i]));
 		}
 
 		// update cache
@@ -293,6 +311,16 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		}
 
 		return msym;
+	}
+
+	/**
+	** Make a subtree with the appropriate prefix.
+	**
+	** @param msym The last symbol in the prefix for the subtree.
+	** @return The subtree.
+	*/
+	protected PrefixTreeMap<K, V> makeSubTree(int msym) {
+		return new PrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, sizeMax, this);
 	}
 
 	/**

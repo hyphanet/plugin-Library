@@ -8,6 +8,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Collection;
 
+import plugins.Interdex.util.Serialiser.SerialiseTask;
+import plugins.Interdex.util.Serialiser.InflateTask;
+import plugins.Interdex.util.Serialiser.DeflateTask;
+
 /**
 ** Emulates a PrefixTreeMap where some of the data has not been fully loaded.
 ** Operations on this data structure will throw a DataNotLoadedException when
@@ -20,6 +24,8 @@ import java.util.Collection;
 ** DummyPrefixTreeMap objects, and it follows the node population restrictions
 ** of a PrefixTreeMap.
 **
+** TODO pass Serialisers in the constructor
+**
 ** @author infinity0
 */
 public class IncompletePrefixTreeMap<K extends PrefixTreeMap.PrefixKey, V> extends PrefixTreeMap<K, V>
@@ -29,21 +35,23 @@ implements IncompleteMap<K, V> {
 	** Represents a PrefixTreeMap which has not been loaded, but which a parent
 	** IncompletePrefixTreeMap (that has been loaded) refers to.
 	**
+	** TODO make this contain a DummyValue
+	**
 	** @author infinity0
 	*/
 	public static class DummyPrefixTreeMap<K extends PrefixTreeMap.PrefixKey, V> extends PrefixTreeMap<K, V>
 	implements IncompleteMap<K, V> {
 
-		public DummyPrefixTreeMap(K p, int len, int maxsz) {
-			super(p, len, maxsz);
+		public DummyPrefixTreeMap(K p, int len, int maxsz, IncompletePrefixTreeMap<K, V> par) {
+			super(p, len, maxsz, par);
 		}
 
 		public DummyPrefixTreeMap(K p, int maxsz) {
-			super(p, 0, maxsz);
+			super(p, 0, maxsz, null);
 		}
 
 		public DummyPrefixTreeMap(K p) {
-			super(p, 0, p.symbols());
+			super(p, 0, p.symbols(), null);
 		}
 
 		/************************************************************************
@@ -51,46 +59,46 @@ implements IncompleteMap<K, V> {
 		 ************************************************************************/
 
 		public void clear() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public boolean containsKey(Object key) {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public boolean containsValue(Object value) {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public Set<Map.Entry<K,V>> entrySet() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public boolean equals(Object o) {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public V get(Object key) {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public int hashCode() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public boolean isEmpty() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public Set<K> keySet() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public V put(K key, V value) {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public void putAll(Map<? extends K,? extends V> t) {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public V remove(Object key) {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public int size() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 		public Collection<V> values() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 
 		/************************************************************************
@@ -102,7 +110,39 @@ implements IncompleteMap<K, V> {
 		}
 
 		public Map<K, V> complete() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
+		}
+
+		public Object inflate() {
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
+		}
+
+		public Object deflate() {
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
+		}
+
+		public Object inflate(IncompleteMap<K, V> m) {
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
+		}
+
+		public Object deflate(IncompleteMap<K, V> m) {
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
+		}
+
+		public Object inflate(K key) {
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
+		}
+
+		public Object deflate(K key) {
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
+		}
+
+		public Serialiser getSerialiser() {
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
+		}
+
+		public void setSerialiser(Serialiser s) {
+			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 
 	}
@@ -113,8 +153,8 @@ implements IncompleteMap<K, V> {
 	*/
 	final IncompleteTreeMap<K, V> itmap;
 
-	public IncompletePrefixTreeMap(K p, int len, int maxsz, int sz, int subs, int[] szPre, boolean[] chd, K[] keys, V[] values) {
-		this(p, len, maxsz);
+	public IncompletePrefixTreeMap(K p, int len, int maxsz, int sz, int subs, int[] szPre, boolean[] chd, K[] keys, V[] values, IncompletePrefixTreeMap<K, V> par) {
+		this(p, len, maxsz, par);
 
 		// check size == sum { sizePrefix }
 		int s = 0;
@@ -133,17 +173,17 @@ implements IncompleteMap<K, V> {
 		putDummySubmap(keys, values);
 	}
 
-	public IncompletePrefixTreeMap(K p, int len, int maxsz) {
-		super(p, len, maxsz, new IncompleteTreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()]);
+	public IncompletePrefixTreeMap(K p, int len, int maxsz, IncompletePrefixTreeMap<K, V> par) {
+		super(p, len, maxsz, new IncompleteTreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()], par);
 		itmap = (IncompleteTreeMap<K, V>)tmap;
 	}
 
 	public IncompletePrefixTreeMap(K p, int maxsz) {
-		this(p, 0, maxsz);
+		this(p, 0, maxsz, null);
 	}
 
 	public IncompletePrefixTreeMap(K p) {
-		this(p, 0, p.symbols());
+		this(p, 0, p.symbols(), null);
 	}
 
 	/**
@@ -211,7 +251,7 @@ implements IncompleteMap<K, V> {
 	** @param i The index to attach the dummy to
 	*/
 	protected void putDummyChild(int i) {
-		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, sizeMax);
+		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, sizeMax, this);
 	}
 
 	/**
@@ -295,6 +335,17 @@ implements IncompleteMap<K, V> {
 	}
 
 	/************************************************************************
+	 * public class PrefixTreeMap
+	 ************************************************************************/
+
+	// We override this method so that the correct serialiser is set
+	protected PrefixTreeMap<K, V> makeSubTree(int msym) {
+		IncompletePrefixTreeMap<K, V> ch = new IncompletePrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, sizeMax, this);
+		ch.setSerialiser(serialiser);
+		return ch;
+	}
+
+	/************************************************************************
 	 * public interface IncompleteMap
 	 ************************************************************************/
 
@@ -311,7 +362,7 @@ implements IncompleteMap<K, V> {
 
 	public Map<K, V> complete() {
 		if (!isComplete()) {
-			throw new DataNotLoadedException("PrefixTreeMap not fully loaded for " + prefix.toString(), this, prefix);
+			throw new DataNotLoadedException("PrefixTreeMap not fully loaded for " + prefix.toString(), this, this);
 		} else {
 			TreeMap<K, V> ntmap = (TreeMap<K, V>)itmap.complete();
 			PrefixTreeMap<K, V>[] nchild = (PrefixTreeMap<K, V>[])new PrefixTreeMap[subtreesMax];
@@ -322,7 +373,66 @@ implements IncompleteMap<K, V> {
 				}
 			}
 
-			return new PrefixTreeMap(prefix, preflen, sizeMax, ntmap, nchild);
+			return new PrefixTreeMap(prefix, preflen, sizeMax, ntmap, nchild, null);
+		}
+	}
+
+	public Object inflate() {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	public Object deflate() {
+		DeflateTask de = serialiser.newDeflateTask(this);
+		de.put("prefix", prefix.toString());
+		de.put("preflen", preflen);
+		de.put("sizeMax", sizeMax);
+		de.put("size", size);
+		de.put("subtreesMax", subtreesMax);
+		de.put("subtrees", subtrees);
+		// TODO snakeYAML says "Arrays of primitives are not fully supported."
+		//de.put("sizePrefix", sizePrefix);
+
+		//boolean chd[] = new boolean[subtreesMax];
+		//for (int i=0; i<subtreesMax; ++i) { chd[i] = (child[i] != null); }
+		//de.put("_child", chd);
+		de.put("_tmap", itmap.deflate());
+
+		de.start();
+		for (PrefixTreeMap<K, V> t: child) {
+			if (t != null) { ((IncompletePrefixTreeMap) t).deflate(); }
+		}
+		return de.join();
+	}
+
+	public Object inflate(IncompleteMap<K, V> m) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	public Object deflate(IncompleteMap<K, V> m) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	public Object inflate(K key) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	public Object deflate(K key) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	private Serialiser serialiser;
+
+	public Serialiser getSerialiser() {
+		return serialiser;
+	}
+
+	public void setSerialiser(Serialiser s) {
+		serialiser = s;
+		itmap.setSerialiser(s);
+		for (PrefixTreeMap<K, V> ch: child) {
+			if (ch != null && ch instanceof IncompletePrefixTreeMap) {
+				((IncompletePrefixTreeMap)ch).setSerialiser(s);
+			}
 		}
 	}
 

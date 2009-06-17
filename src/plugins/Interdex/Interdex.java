@@ -4,6 +4,7 @@
 package plugins.Interdex;
 
 import freenet.client.FetchException;
+import freenet.keys.FreenetURI;
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginHTTP;
 import freenet.pluginmanager.FredPluginRealVersioned;
@@ -15,11 +16,8 @@ import freenet.support.HTMLEncoder;
 import freenet.support.Logger;
 import freenet.support.api.HTTPRequest;
 
-import org.ho.yaml.*;
 import plugins.Interdex.util.*;
-import plugins.Interdex.index.Token;
-import java.io.File;
-import java.util.HashMap;
+import plugins.Interdex.index.*;
 
 /**
 ** @author infinity0
@@ -42,17 +40,26 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 		// pass
 	}
 
+	public String rndStr() {
+		return java.util.UUID.randomUUID().toString();
+	}
+
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
-		/*HashMap<Token, String> test = new HashMap<Token, String>();
-		test.put(new Token("test"), "test");
-		File x = new File("test.yml");
-		try {
-			Yaml.dump(test, x);
-			return request.toString() + "<br />Hi<br />" + x.getAbsolutePath();
-		} catch (java.io.FileNotFoundException e) {
-			return request.toString() + "<br />Hi<br />" + e;
-		}*/
-		return request.toString();
+		IncompletePrefixTreeMap<Token, TokenEntry> test = new IncompletePrefixTreeMap<Token, TokenEntry>(new Token());
+		test.setSerialiser(new IndexFileSerialiser());
+
+		for (int i=0; i<1024; ++i) {
+			String key = rndStr();
+			try {
+				test.put(new Token(key), new TokenURIEntry(key, new FreenetURI("CHK@yeah")));
+			} catch (java.net.MalformedURLException e) {
+				return "malformed URL";
+			}
+		}
+
+		Object o = test.deflate();
+		return request.toString() + "<br />Hi<br />" + o.toString();
+		//return request.toString();
 	}
 
 	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException {

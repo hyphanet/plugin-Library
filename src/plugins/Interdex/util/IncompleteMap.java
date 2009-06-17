@@ -25,16 +25,44 @@ public interface IncompleteMap<K, V> extends Map<K, V> {
 	*/
 	public Map<K, V> complete() throws DataNotLoadedException;
 
-	/*
-	public void inflate(Map<K, V> m);
-	public void deflate(Map<K, V> m);
-
-	public void inflate(Map.Entry<K, V> e);
-	public void deflate(Map.Entry<K, V> e);
-
-	public IncompleteMap.Serialiser getSerialiser();
-	public IncompleteMap.Serialiser setSerialiser();
+	/**
+	** Inflate the entire map. TODO expand docs
 	*/
+	public Object inflate();
 
+	/**
+	** Deflate the entire map.
+	*/
+	public Object deflate();
+
+	/**
+	** Inflate a submap.
+	*/
+	public Object inflate(IncompleteMap<K, V> m);
+
+	/**
+	** Deflate a submap.
+	*/
+	public Object deflate(IncompleteMap<K, V> m);
+
+	/**
+	** Inflate the value for a key.
+	*/
+	public Object inflate(K key);
+
+	/**
+	** Deflate the value for a key.
+	*/
+	public Object deflate(K key);
+
+	/**
+	** Get the serialiser for the map.
+	*/
+	public Serialiser getSerialiser();
+
+	/**
+	** Set the serialiser for the map.
+	*/
+	public void setSerialiser(Serialiser s);
 
 }

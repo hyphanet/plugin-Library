@@ -13,6 +13,10 @@ import java.util.Collection;
 import java.util.AbstractCollection;
 import java.util.Iterator;
 
+import plugins.Interdex.util.Serialiser.SerialiseTask;
+import plugins.Interdex.util.Serialiser.InflateTask;
+import plugins.Interdex.util.Serialiser.DeflateTask;
+
 /**
 ** Emulates a TreeMap where some of the data has not been fully loaded.
 ** Operations on this data structure will throw a DataNotLoadedException when
@@ -97,6 +101,54 @@ implements IncompleteMap<K, V> {
 		} else {
 			return new TreeMap(this);
 		}
+	}
+
+	public Object inflate() {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	public Object deflate() {
+		TreeMap<K, DeflateTask> tm = new TreeMap<K, DeflateTask>();
+		DeflateTask de = serialiser.newDeflateTask(this);
+		for (K k: keySet()) {
+			V v = get(k);
+			DeflateTask d = serialiser.newDeflateTask(v);
+			d.put(null, v);
+			d.start();
+			tm.put(k, d);
+		}
+		for (K k: keySet()) {
+			Object o = tm.get(k).join();
+			de.put(k.toString(), o);
+		}
+		de.start();
+		return de.join();
+	}
+
+	public Object inflate(IncompleteMap<K, V> m) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	public Object deflate(IncompleteMap<K, V> m) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	public Object inflate(K key) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	public Object deflate(K key) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	private Serialiser serialiser;
+
+	public Serialiser getSerialiser() {
+		return serialiser;
+	}
+
+	public void setSerialiser(Serialiser s) {
+		serialiser = s;
 	}
 
 	/************************************************************************
