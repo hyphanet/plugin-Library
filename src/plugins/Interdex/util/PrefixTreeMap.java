@@ -306,7 +306,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		}
 
 		// update cache
-		if (smallestChild_ == null || child[msym].size() < smallestChild_.size()) {
+		if (subtrees == 1 || smallestChild_ != null && child[msym].size() < smallestChild_.size()) {
 			smallestChild_ = child[msym];
 		}
 
@@ -455,7 +455,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 
 			if (tmap.size() + subtrees > sizeMax) {
 				bindSubTree();
-				// smallestChild is not null due to bindSubTree
+				// smallestChild() is not null due to bindSubTree
 				freeSubTree(smallestChild().lastIndex());
 
 			} else {
@@ -489,17 +489,24 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 
 		if (child[i] != null) {
 
-			if (sizePrefix[i] < smallestChild_.size()) {
-				// we potentially have a new smallestChild, but wait and see...
+			if (smallestChild_ == null) {
+				// smallestChild() is not null due to previous if block
+				freeSubTree(smallestChild().lastIndex());
+
+			} else if (sizePrefix[i] < smallestChild_.size()) {
+				// we potentially have a new (real) smallestChild, but wait and see...
 
 				if (!freeSubTree(i)) {
 					// if the tree wasn't freed then we have a new smallestChild
 					smallestChild_ = child[i];
 				}
-			} else {
-				// smallestChild is not null due to previous if block
-				freeSubTree(smallestChild().lastIndex());
+				// on the other hand, if the tree was freed, then freeSubTree()
+				// would not have reset smallestChild_, since it still pointed
+				// to the old value (which was incorrect before the method call
+				// but now correct, so nothing needs to be done).
 			}
+			// else, the smallestChild hasn't changed, so no more trees can be
+			// freed.
 
 		} else {
 			PrefixTreeMap<K, V> t = smallestChild();

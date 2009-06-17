@@ -255,6 +255,15 @@ implements IncompleteMap<K, V> {
 
 	public K lastKey() { return loaded.lastKey(); }
 
+	/**
+	** NOTE: if the value for the key hasn't been loaded yet, then this method
+	** will return **null** instead of returning the actual previous value
+	** (that hasn't been loaded yet).
+	**
+	** TODO: could code a setStrictChecksMode() or something to have this
+	** method throw DataNotLoadedException in such circumstances, at the user's
+	** discretion.
+	*/
 	public V put(K key, V value) {
 		loaded.put(key, null);
 		return super.put(key, value);
@@ -262,6 +271,15 @@ implements IncompleteMap<K, V> {
 
 	//public void putAll(Map<? extends K,? extends V> map);
 
+	/**
+	** NOTE: if the value for the key hasn't been loaded yet, then this method
+	** will return **null** instead of returning the actual previous value
+	** (that hasn't been loaded yet).
+	**
+	** TODO: could code a setStrictChecksMode() or something to have this
+	** method throw DataNotLoadedException in such circumstances, at the user's
+	** discretion.
+	*/
 	public V remove(Object key) {
 		loaded.remove(key);
 		return super.remove(key);
