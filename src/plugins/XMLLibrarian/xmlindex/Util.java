@@ -1,4 +1,4 @@
-package plugins.XMLLibrarian;
+package plugins.XMLLibrarian.xmlindex;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -16,14 +16,13 @@ import freenet.pluginmanager.PluginRespirator;
 import freenet.support.api.Bucket;
 import freenet.support.io.FileBucket;
 
+import plugins.XMLLibrarian.Search;
 /**
  * Utility class
  * 
  * @author  j16sdiz (1024D/75494252)
  */
 public class Util {
-    public static HighLevelSimpleClient hlsc;
-    
 	public static Bucket fetchBucket(String uri, Search search) throws FetchException, MalformedURLException {
 		// try local file first
 		File file = new File(uri);

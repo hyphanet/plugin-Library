@@ -1,4 +1,4 @@
-package plugins.XMLLibrarian;
+package plugins.XMLLibrarian.xmlindex;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -34,9 +34,16 @@ import java.util.List;
 import java.util.TreeMap;
 import java.util.SortedMap;
 
+import plugins.XMLLibrarian.Index;
+import plugins.XMLLibrarian.InvalidSearchException;
+import plugins.XMLLibrarian.Request;
+import plugins.XMLLibrarian.Search;
+import plugins.XMLLibrarian.Status;
+import plugins.XMLLibrarian.URIWrapper;
+import plugins.XMLLibrarian.XMLLibrarian;
 
 
-class XMLIndex extends Index{
+public class XMLIndex extends Index{
 	static final String DEFAULT_FILE = "index.xml";
 
 	private HighLevelSimpleClient hlsc;
@@ -59,7 +66,7 @@ class XMLIndex extends Index{
 	 * @param baseURI
 	 *            Base URI of the index (exclude the <tt>index.xml</tt> part)
 	 */
-	protected XMLIndex(String baseURI) throws InvalidSearchException {
+	public XMLIndex(String baseURI) throws InvalidSearchException {
 		super();
 		if (!baseURI.endsWith("/"))
 			baseURI += "/";

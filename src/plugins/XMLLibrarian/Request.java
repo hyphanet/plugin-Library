@@ -7,7 +7,7 @@ import com.db4o.ObjectContainer;
 import freenet.client.async.ClientContext;
 
 
-class Request<E> implements Comparable<Request>{
+public class Request<E> implements Comparable<Request>{
 	public enum RequestType { FIND, PAGE, SEARCH };
 	public enum RequestStatus { UNSTARTED, INPROGRESS, PARTIALRESULT, FINISHED };
 	

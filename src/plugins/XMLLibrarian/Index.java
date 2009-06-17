@@ -8,6 +8,8 @@ import java.util.HashMap;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Logger;
 
+import plugins.XMLLibrarian.xmlindex.XMLIndex;
+
 /**
  * Index Class
  * 

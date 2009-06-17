@@ -1,4 +1,4 @@
-package plugins.XMLLibrarian;
+package plugins.XMLLibrarian.xmlindex;
 
 import java.util.HashMap;
 import java.util.List;
@@ -10,6 +10,10 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 import freenet.support.Logger;
+
+import plugins.XMLLibrarian.URIWrapper;
+import plugins.XMLLibrarian.Request;
+import plugins.XMLLibrarian.XMLLibrarian;
 
 /**
  * Required for using SAX parser on XML indices

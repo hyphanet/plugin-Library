@@ -84,8 +84,6 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 
 	public void runPlugin(PluginRespirator pr) {
 		this.pr = pr;
-        //Util.logs = logs;
-        Util.hlsc = pr.getHLSimpleClient();
         Search.setup(this);
 		WebUI.setup(this, plugName);
 		Index.setup(this);

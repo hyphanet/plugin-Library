@@ -1,5 +1,5 @@
 package plugins.XMLLibrarian;
 
-interface Status{
+public interface Status{
 	public long getDownloadedBlocks();
 }
