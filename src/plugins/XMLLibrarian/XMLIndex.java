@@ -158,7 +158,6 @@ class XMLIndex extends Index{
 	};
 	
 	private synchronized void startFetch() throws IOException, FetchException, SAXException {
-		System.out.println(" starting fetch");
 		if (fetchStatus != FetchStatus.UNFETCHED)
 			return;
 		fetchStatus = FetchStatus.FETCHING;
@@ -189,7 +188,6 @@ class XMLIndex extends Index{
 	}
 
 	private void parse(InputStream is) throws SAXException, IOException {
-		System.out.println(" parsing main index ");
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 
 		try {
@@ -238,7 +236,6 @@ class XMLIndex extends Index{
 	}
 
 	public synchronized Request find(String term) throws Exception {
-		System.out.println(" find "+term);
 		Request request = new Request(Request.RequestType.FIND, term);
 		requests.add(request);
 		setdependencies(request);
@@ -248,14 +245,11 @@ class XMLIndex extends Index{
 	
 	private synchronized void setdependencies(Request request)throws Exception{
 		if (fetchStatus!=FetchStatus.FETCHED){
-			System.out.println(" adding find as mainindex dependency "+request.getSubject());
 			waitingOnMainIndex.add(request);
 			request.setStage(Request.RequestStatus.INPROGRESS,1, this);
 			startFetch();
 		}else if (!getSubIndex(request.getSubject()).isAlive()){
-			System.out.println(" adding search as subindex dependency "+request.getSubject());
 			SubIndex subindex = getSubIndex(request.getSubject());
-			System.out.println(" added search as subindex dependency "+subindex);
 			request.setStage(Request.RequestStatus.INPROGRESS,2, subindex);
 			subindex.addRequest(request);
 			if(subindex.getFetchStatus()==FetchStatus.UNFETCHED)
