@@ -47,8 +47,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	 * Current configuration gets saved by default in the configfile. To Save the current
 	 * configuration use "Save Configuration"
 	 */
-	private static int version = 23;
-	private static final String plugName = "Search Freenet (XMLLibrarian " + version+")";
+	private static int version = 24;
+	private static final String plugName = "(XMLLibrarian " + version+")";
     private HashMap<String, Progress> progressmap = new HashMap();
     //private StringBuilder logs = new StringBuilder();
 	private PluginRespirator pr;
@@ -110,10 +110,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		search = HTMLEncoder.encode(search);
 		index = HTMLEncoder.encode(index);
 		out.append("<form method=\"GET\"><table width=\"100%\">\n");
-		out.append("    <tr><td rowspan=2 width=\"300\"><H1>"+plugName+"</H1></td>\n");
-		out.append("        <td width=400><input type=\"text\" value=\"").append(search).append("\" name=\"search\" size=40/>\n");
-		out.append("            <input type=submit name=\"find\" value=\"Find!\" TABINDEX=1/></td></tr>\n");
-		out.append("    <tr><td>Index <input type=\"text\" name=\"index\" value=\"").append(index).append("\" size=40/>\n");
+		out.append("    <tr><td>"+plugName+"&nbsp;&nbsp;&nbsp;&nbsp;Use Index <input type=\"text\" name=\"index\" value=\"").append(index).append("\" size=145</td></tr>\n");
+		out.append("    <tr><td><H1>Search Freenet </H1></td></tr>\n");
+		out.append("    <tr><td><input type=\"text\" value=\"").append(search).append("\" name=\"search\" size=40/>\n");
+		out.append("            <input type=submit name=\"find\" value=\"Find!\" TABINDEX=1/></td>\n");
 		out.append("</tr></table></form>\n");
     }
     
