@@ -3,6 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
+import plugins.Interdex.util.PrefixTree.PrefixKey;
+
 import java.util.TreeMap;
 import java.util.Map;
 import java.util.Set;
@@ -28,7 +30,7 @@ import plugins.Interdex.util.Serialiser.DeflateTask;
 **
 ** @author infinity0
 */
-public class IncompletePrefixTreeMap<K extends PrefixTreeMap.PrefixKey, V> extends PrefixTreeMap<K, V>
+public class IncompletePrefixTreeMap<K extends PrefixKey, V> extends PrefixTreeMap<K, V>
 implements IncompleteMap<K, V> {
 
 	/**
@@ -39,7 +41,7 @@ implements IncompleteMap<K, V> {
 	**
 	** @author infinity0
 	*/
-	public static class DummyPrefixTreeMap<K extends PrefixTreeMap.PrefixKey, V> extends PrefixTreeMap<K, V>
+	public static class DummyPrefixTreeMap<K extends PrefixKey, V> extends PrefixTreeMap<K, V>
 	implements IncompleteMap<K, V> {
 
 		public DummyPrefixTreeMap(K p, int len, int maxsz, IncompletePrefixTreeMap<K, V> par) {

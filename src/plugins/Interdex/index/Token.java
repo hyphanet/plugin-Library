@@ -6,8 +6,8 @@ package plugins.Interdex.index;
 import java.security.MessageDigest;
 import java.util.Arrays;
 
-import plugins.Interdex.util.PrefixTreeMap.PrefixKey;
-import plugins.Interdex.util.PrefixTreeMap.AbstractPrefixKey;
+import plugins.Interdex.util.PrefixTree.PrefixKey;
+import plugins.Interdex.util.PrefixTree.AbstractPrefixKey;
 
 /**
 ** MD5 hash of a string, implementing the PrefixKey interface. Used to map

@@ -5,8 +5,8 @@ package plugins.Interdex.index;
 
 import freenet.keys.FreenetURI;
 
-import plugins.Interdex.util.PrefixTreeMap.PrefixKey;
-import plugins.Interdex.util.PrefixTreeMap.AbstractPrefixKey;
+import plugins.Interdex.util.PrefixTree.PrefixKey;
+import plugins.Interdex.util.PrefixTree.AbstractPrefixKey;
 
 /**
 ** @author infinity0

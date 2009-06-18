@@ -3,16 +3,15 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
-import java.util.Map;
-
 /**
-** Defines an interface representing an incompleted data structure which
-** emulates another data structure, with some of the data missing. Operations
-** on the missing data throw DataNotLoadedException.
+** Defines an interface representing an incompleted map or map-like data
+** structure (eg. multimap) which represents another map or map-like data
+** structure, with some of the data missing. Operations on the missing data
+** throw DataNotLoadedException.
 **
 ** @author infinity0
 */
-public interface IncompleteMap<K, V> extends Map<K, V> {
+public interface IncompleteMap<K, V> {
 
 	/**
 	** Whethere the data structure is complete and has no data missing.
@@ -23,7 +22,7 @@ public interface IncompleteMap<K, V> extends Map<K, V> {
 	** If isComplete is true, return a map of the same type as the data
 	** structure being emulated. Otherwise, throw DataNotLoadedException.
 	*/
-	public Map<K, V> complete() throws DataNotLoadedException;
+	public Object complete() throws DataNotLoadedException;
 
 	/**
 	** Inflate the entire map. TODO expand docs
