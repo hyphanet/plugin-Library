@@ -6,7 +6,6 @@ package plugins.Interdex.util;
 import plugins.Interdex.util.PrefixTree.PrefixKey;
 
 import java.util.TreeMap;
-import java.util.AbstractMap;
 import java.util.Map;
 //import java.util.SortedMap;
 //import java.util.NavigableSet;
@@ -23,7 +22,6 @@ import java.util.Collection;
 */
 public class PrefixTreeMap<K extends PrefixKey, V> extends PrefixTree<K, V>
 implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
-/*, ConcurrentMap<K,V>, ConcurrentNavigableMap<K,V>
 /*, Cloneable, Serializable*/ {
 
 	/**
@@ -158,10 +156,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		int s = map.size();
 		V v = map.put(key, value);
 
-		if (map.size() == s) { return v; } // size hasn't changed, do nothing
-		++sizePrefix[i]; ++size;
-
-		reshuffleAfterPut(i);
+		if (map.size() != s) { reshuffleAfterPut(i); }
 		return v;
 	}
 
@@ -178,15 +173,8 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		int s = map.size();
 		V v = map.remove(key);
 
-		if (map.size() == s) { return v; } // size hasn't changed, do nothing
-		--sizePrefix[i]; --size;
-
-		reshuffleAfterRemove(i);
+		if (map.size() != s) { reshuffleAfterRemove(i); }
 		return v;
-	}
-
-	public int size() {
-		return size;
 	}
 
 	public Collection<V> values() {

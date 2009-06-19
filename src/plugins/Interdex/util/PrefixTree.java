@@ -109,10 +109,17 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	}
 
 	/**
-	** Return the size of the data structure.
+	** Return the total number of elements in the data structure.
 	*/
 	public int size() {
 		return size;
+	}
+
+	/**
+	** Return the space left in the local map.
+	*/
+	public int sizeLeft() {
+		return sizeMax - (sizeLocal() + subtrees);
 	}
 
 	/**
@@ -151,6 +158,10 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	**
 	** For efficiency, this method *assumes* that such a set exists and is
 	** non-empty; it is up to the calling code to make sure this is true.
+	**
+	** TODO URGENT consider, in the case of Multimap, when the size of local
+	** map goes above sizeMax and cannot be converted into a subtree (eg. when
+	** there are sizeMax+1 values for the same key).
 	**
 	** @return The index of the new subtree.
 	*/
@@ -210,7 +221,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** @return Whether there was enough space, and the operation completed.
 	*/
 	private boolean freeSubTree(PrefixTree<K, V> ch) {
-		if (sizeLocal() + subtrees + ch.size() - 1 <= sizeMax) {
+		if (ch.size() <= sizeLeft()+1) {
 
 			// cache invalidated due to child removal
 			if (ch == smallestChild_) { smallestChild_ = null; }
@@ -228,27 +239,36 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** After a put operation, move some entries into new subtrees, with big
 	** subtrees taking priority, until there is enough space to fit all the
 	** remaining entries. That is, ensure that there exists sz such that:
-	** smallestChild.size() == sz and sizeLocal() + subtrees + sz > sizeMax
-	** and that for all i:
-	** (child[i] == null) implies sizePrefix[i] <= sz
-	** (child[i] != null) implies sizePrefix[i] >= sz
+	** - smallestChild.size() == sz and sz > sizeLeft()
+	** - and that for all i:
+	**   - (child[i] == null) implies sizePrefix[i] <= sz
+	**   - (child[i] != null) implies sizePrefix[i] >= sz
 	*/
 	protected void reshuffleAfterPut(int i) {
+		++sizePrefix[i]; ++size;
+
 		if (child[i] != null) {
 			// cache possibly invalidated due to put operation on child
 			if (child[i] == smallestChild_) { smallestChild_ = null; }
 
 		} else {
-
-			if (sizeLocal() + subtrees > sizeMax) {
+			if (sizeLeft() < 0) {
 				bindSubTree();
-				// smallestChild() is not null due to bindSubTree
-				freeSubTree(smallestChild());
+				// clearly, a maximum of one subtree can be freed here
+				freeSubTree(smallestChild()); // smallestChild() is not null due to bindSubTree
 
 			} else {
 				PrefixTree<K, V> sm = smallestChild();
 				if (sm != null && sm.size() < sizePrefix[i]) {
-					// TODO: make a bindSubTree(i) method
+					// Let sz be the size of the smallest child, which is (*) greater or
+					// equal to the size of the largest non-child subgroup. Then:
+					// - before the put, the maximum space left in the data structure was sz-1
+					//   since we have sz > sizeLeft()
+					// - before the put, the maximum size of subgroup i was sz, due to (*)
+					// - so the maximum space left after binding this subgroup is 2sz-1
+					//   (any elements added due to the put are irrelevant to this)
+					// - now, the minimum size of two subtrees is 2sz > 2sz-1
+					// - so a maximum of one subtree can be freed after binding the subgroup
 					int j = bindSubTree();
 					assert(i == j);
 					freeSubTree(sm);
@@ -258,20 +278,34 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	}
 
 	/**
+	** Reshuffle after a put operation of many elements, keeping the same
+	** constraints.
+	**
+	** @param i Subgroup of element
+	** @param n Number of elements
+	*/
+	protected void reshuffleAfterPut(int i, int n) {
+		// logic of reshuffleAfterPut is independent of how many elements are
+		// actually added during the put operation
+		sizePrefix[i] += (n-1); size += (n-1);
+		reshuffleAfterPut(i);
+	}
+
+	/**
 	** After a remove operation, merge some subtrees into this node, with small
 	** subtrees taking priority, until there is no more space to fit any more
 	** subtrees. That is, ensure that there exists sz such that:
-	** smallestChild.size() == sz and sizeLocal() + subtrees + sz > sizeMax
-	** and that for all i:
-	** (child[i] == null) implies sizePrefix[i] <= sz
-	** (child[i] != null) implies sizePrefix[i] >= sz
+	** - smallestChild.size() == sz and sz > sizeLeft()
+	** - and that for all i:
+	**   - (child[i] == null) implies sizePrefix[i] <= sz
+	**   - (child[i] != null) implies sizePrefix[i] >= sz
 	*/
 	protected void reshuffleAfterRemove(int i) {
-		if (child[i] != null) {
+		--sizePrefix[i]; --size;
 
+		if (child[i] != null) {
 			if (smallestChild_ == null || child[i] == smallestChild_) {
-				// smallestChild() is not null due to previous if block
-				freeSubTree(smallestChild());
+				freeSubTree(smallestChild()); // smallestChild() is not null since child[i] != null
 
 			} else if (sizePrefix[i] < smallestChild_.size()) {
 				// we potentially have a new (real) smallestChild, but wait and see...
@@ -280,18 +314,40 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 					// if the tree wasn't freed then we have a new smallestChild
 					smallestChild_ = child[i];
 				}
-				// on the other hand, if the tree was freed, then freeSubTree()
-				// would not have reset smallestChild_, since it still pointed
-				// to the old value (which was incorrect before the method call
-				// but now correct, so nothing needs to be done).
+				// else, if the tree was freed, then freeSubTree() would not have reset
+				// smallestChild_, since it still pointed to the old value (which was
+				// incorrect before the method call, but now correct, so nothing needs to
+				// be done).
 			}
-			// else, the smallestChild hasn't changed, so no more trees can be
-			// freed.
+			// else, the smallestChild hasn't changed, so no more trees can be freed.
 
 		} else {
 			PrefixTree<K, V> t = smallestChild();
 			if (t != null) { freeSubTree(t); }
 		}
+	}
+
+	/**
+	** Reshuffle after a remove operation of many elements, keeping the same
+	** constraints.
+	**
+	** @param i Subgroup of element
+	** @param n Number of elements
+	*/
+	protected void reshuffleAfterRemove(int i, int n) {
+		// Let sz be the size of the smallest child, which is (*) greater or equal
+		// to the size of the largest non-child subgroup. Then, in the case where
+		// child[i] == null:
+		// - the maximum space left in the data structure is sz-1, since we have
+		//   sz > sizeLeft()
+		// - the maximum space freed by a remove operation is sz, due to (*)
+		// - so the maximum space left after a remove operation is 2sz-1
+		// - now, the minimum size of two subtrees is 2sz > 2sz-1
+		// - so a maximum of one subtree can be freed after a remove operation
+		// and in the case where child[i] != null, the same logic applies as for
+		// one-element removal
+		sizePrefix[i] -= (n-1); size -= (n-1);
+		reshuffleAfterRemove(i);
 	}
 
 	/**
@@ -303,7 +359,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	abstract protected PrefixTree<K, V> makeSubTree(int msym);
 
 	/**
-	** Returns a set of keys from the local map.
+	** Returns the set of keys of the local map.
 	*/
 	abstract protected Set<K> keySetLocal();
 

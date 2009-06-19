@@ -211,8 +211,8 @@ implements IncompleteMap<K, V> {
 		// (chd[i] != false) => sizePrefix[i] >= sz
 		int sz = sizeMax;
 		// find the size of the smallest child. if the smallest child is larger
-		// than maxSize, then maxSize will be returned instead, but this makes
-		// no difference to the tests below (think about it...)
+		// than maxSize, then maxSize will be returned instead, but this makes no
+		// difference to the tests below (think about it...)
 		for (int i=0; i<child.length; ++i) {
 			if (chd[i]) {
 				if (sizePrefix[i] < sz) {
@@ -220,9 +220,9 @@ implements IncompleteMap<K, V> {
 				}
 			}
 		}
-		// see if there are any non-child prefix groups larger than the
-		// smallest child. whilst we're at it, calculate sum{ sizePrefix[j]:
-		// chd[j] == false } for the next test.
+		// see if there are any non-child prefix groups larger than the smallest
+		// child. whilst we're at it, calculate sum{ sizePrefix[j]: !chd[j] }
+		// for the next test.
 		s = 0;
 		for (int i=0; i<child.length; ++i) {
 			if (!chd[i]) {
@@ -237,7 +237,7 @@ implements IncompleteMap<K, V> {
 			}
 		}
 
-		// check that sum{ sizePrefix[j] : chd[j] == false } + subtrees + sz > sizeMax
+		// check that sum{ sizePrefix[j] : !chd[j] } + subtrees + sz > sizeMax
 		if (s + subtrees + sz <= sizeMax) {
 			throw new IllegalArgumentException("Invariant broken: count{ non-child prefix groups } + subtrees + sz > maxSize");
 		}
@@ -279,8 +279,8 @@ implements IncompleteMap<K, V> {
 			++szPre[p];
 		}
 
-		// check keys.length == sum{ sizePrefix[j] : child[j] == null } and
-		// that keys agrees with sizePrefix
+		// check keys.length == sum{ sizePrefix[j] : child[j] == null } and that
+		// keys agrees with sizePrefix
 		int sz = 0;
 		for (int i=0; i<sizePrefix.length; ++i) {
 			if (child[i] == null) {

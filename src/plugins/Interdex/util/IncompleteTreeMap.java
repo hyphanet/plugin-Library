@@ -327,7 +327,6 @@ implements IncompleteMap<K, V> {
 	public boolean isEmpty() { return loaded.isEmpty(); }
 	// public String toString() { return super.toString(); }
 
-
 	/**
 	** Transparent iterator that throws DataNotLoadedException
 	** TODO expand this doc
