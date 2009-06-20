@@ -7,7 +7,7 @@ package plugins.Interdex.util;
 ** A class that handles serialisation tasks.
 **
 ** TODO think about having Dummy<T> in places instead of object. Then we can
-** have class DummyX<? extends X> implements Dummy<T> etc
+** have class DummyX implements Dummy<X> etc
 **
 ** @author infinity0
 */
@@ -25,15 +25,17 @@ public interface Serialiser<T> {
 
 	/**
 	** Inflate a skeleton data structure from a dummy data structure. Note that
-	** only a skeleton is inflated, so isBare() should return true for the
-	** object returned by this method.
+	** only a skeleton is inflated, so {@link SkeletonMap#isBare()} should
+	** return true for the object returned by this method.
 	**
 	** Implementations of this should provide equivalent behaviour as creating
-	** a new InflateTask, calling put(dummy), start(), join(), then returning
-	** an object with all data retrieved from the task.
+	** a new {@link InflateTask}, calling {@link InflateTask#put(Object)},
+	** {@link SerialiseTask#start()}, {@link SerialiseTask#join()}, then
+	** returning an object with all data retrieved from the task.
 	**
 	** @param dummy The dummy data structure that represents the map.
 	** @return The skeleton data structure that represents the map.
+	** @see SkeletonMap#inflate()
 	*/
 	public T inflate(Object dummy);
 
@@ -42,20 +44,29 @@ public interface Serialiser<T> {
 	** only a skeleton is deflated, so isBare() should return true for the
 	** object passed into this method.
 	**
+	** If {@link SkeletonMap#isBare()} is not true, it is recommended that
+	** implementations throw {@link IllegalArgumentException} rather than
+	** automatically calling {@link SkeletonMap#deflate()} on the object, to
+	** maintain symmetry with the {@link inflate(Object)} method (which does
+	** not automatically call {@link SkeletonMap#inflate()} on the resulting
+	** object), and to provide finer-grained control over the deflate process.
+	**
 	** Implementations of this should provide equivalent behaviour as creating
-	** a new DeflateTask, adding all data to it, calling start(), join(), then
-	** returning get().
+	** a new {@link DeflateTask}, adding all data to it, calling {@link
+	** SerialiseTask#start()}, {@link SerialiseTask#join()}, then returning
+	** {@link DeflateTask#get()}.
 	**
 	** @param skel The skeleton data structure that represents the map.
 	** @return The dummy data structure that represents the map.
+	** @see SkeletonMap#deflate()
 	*/
-	public Object deflate(T skel);
+	public Object deflate(T skel) throws IllegalArgumentException;
 
 
 	/**
 	** Defines a serialisation task. The methods are named such that
-	** implementations of this interface may choose to extend Thread, if they
-	** wish.
+	** implementations of this interface may choose to extend {@link Thread},
+	** if they wish.
 	*/
 	public interface SerialiseTask {
 
@@ -70,7 +81,8 @@ public interface Serialiser<T> {
 		public void join();
 
 		/**
-		** Set a task option. This method should only be called before start().
+		** Set a task option. This method should only be called before
+		** {@link start()}.
 		**
 		** TODO make this less vague..
 		*/
@@ -86,13 +98,13 @@ public interface Serialiser<T> {
 
 		/**
 		** Give a dummy data structure to the task for inflation. This method
-		** should only be called before start().
+		** should only be called before {@link start()}.
 		*/
 		public void put(Object dummy);
 
 		/**
 		** Take the components of the skeleton data structure from the task after
-		** it finishes. This method should only be called after join().
+		** it finishes. This method should only be called after {@link join()}.
 		*/
 		public Object get(String key);
 	}
@@ -105,13 +117,13 @@ public interface Serialiser<T> {
 
 		/**
 		** Give the components of the skeleton data structure to the task for
-		** deflation. This method should only be called before start().
+		** deflation. This method should only be called before {@link start()}.
 		*/
 		public void put(String key, Object o);
 
 		/**
 		** Take the dummy data structure from the task after it finishes. This
-		** method should only be called after join().
+		** method should only be called after {@link join()}.
 		*/
 		public Object get();
 

@@ -14,7 +14,6 @@ import plugins.Interdex.util.PrefixTree.AbstractPrefixKey;
 ** keywords to entries in the index.
 **
 ** @author infinity0
-** @see PrefixTreeMap.PrefixKey
 */
 public class Token extends AbstractPrefixKey implements PrefixKey {
 

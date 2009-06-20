@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.Collection;
 
 /**
-** Implementation of PrefixTree backed by a Multimap.
+** Implementation of {@link PrefixTree} backed by a {@link TreeMap}.
 **
 ** TODO: make this implement SortedMap
 **
@@ -25,8 +25,8 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 /*, Cloneable, Serializable*/ {
 
 	/**
-	** TreeMap holding the entries which don't need to be stored in their own
-	** tree yet.
+	** {@link TreeMap} holding the entries which don't need to be stored in
+	** their own tree yet.
 	*/
 	final TreeMap<K, V> tmap;
 

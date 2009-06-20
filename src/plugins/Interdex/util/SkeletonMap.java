@@ -7,7 +7,7 @@ package plugins.Interdex.util;
 ** Defines an interface for a map or map-like data structure (eg. multimap)
 ** which represents the skeleton of another map or map-like data structure,
 ** with some of the data missing. Operations on the missing data throw
-** DataNotLoadedException.
+** {@link DataNotLoadedException}.
 **
 ** @author infinity0
 */
@@ -21,25 +21,25 @@ public interface SkeletonMap<K, V> {
 
 	/**
 	** Whether the skeleton is bare and has no data loaded at all. In other
-	** words, for all keys k: get(k) will throw DataNotLoadedException.
+	** words, for all keys k: get(k) will throw {@link DataNotLoadedException.}
 	*/
 	public boolean isBare();
 
 	/**
-	** If isFull is true, return a map of the same type as the data
-	** structure being emulated. Otherwise, throw DataNotLoadedException.
+	** If isFull is true, return a map of the same type as the data structure
+	** being emulated. Otherwise, throw {@link DataNotLoadedException.}
 	*/
 	public Object complete() throws DataNotLoadedException;
 
 	/**
-	** Inflate the entire skeleton so that after the method call, isFull()
-	** returns true.
+	** Inflate the entire skeleton so that after the method call, {@link
+	** isFull()} returns true.
 	*/
 	public void inflate();
 
 	/**
-	** If isFull() returns true before the method call, deflate the entire
-	** skeleton.
+	** Deflate the entire skeleton so that after the method call, {@link
+	** isBare()} returns true.
 	*/
 	public void deflate();
 
@@ -58,9 +58,9 @@ public interface SkeletonMap<K, V> {
 	public void deflate(SkeletonMap<K, V> map);
 
 	/**
-	** Inflate the value for a key so that after the method call, get(key)
-	** won't throw a DataNotLoadedException. This method may or may not also
-	** inflate other parts of the skeleton.
+	** Inflate the value for a key so that after the method call, get(key) will
+	** not throw a {@link DataNotLoadedException}. This method may or may not
+	** also inflate other parts of the skeleton.
 	**
 	** @param key The key for whose value to inflate.
 	*/
@@ -68,8 +68,8 @@ public interface SkeletonMap<K, V> {
 
 	/**
 	** Deflate the value for a key, so that after the method call, get(key)
-	** will throw a DataNotLoadedException. This method may or may not also
-	** deflate other parts of the skeleton.
+	** will throw a {@link DataNotLoadedException}. This method may or may not
+	** also deflate other parts of the skeleton.
 	**
 	** @param key The key for whose value to deflate.
 	*/

@@ -18,12 +18,7 @@ import plugins.Interdex.util.Serialiser.InflateTask;
 import plugins.Interdex.util.Serialiser.DeflateTask;
 
 /**
-** Emulates a TreeMap where some of the data has not been fully loaded.
-** Operations on this data structure will throw a DataNotLoadedException when
-** it encounters dummy objects such as DummyValue.
-**
-** This object can be safely casted to a TreeMap if isFull() returns true,
-** which occurs if and only if no mappings point to null or DummyValue objects.
+** A {@link SkeletonMap} of a {@link TreeMap}.
 **
 ** @author infinity0
 */
@@ -158,6 +153,10 @@ implements SkeletonMap<K, V> {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
+
+	/**
+	** A {@link Serialiser} that has access to all the fields of this class.
+	*/
 	abstract public static class TreeMapSerialiser<K, V> implements Serialiser<SkeletonTreeMap<K, V>> {
 
 		public SkeletonTreeMap<K, V> inflate(Object dummy) {
@@ -165,14 +164,23 @@ implements SkeletonMap<K, V> {
 		}
 
 		public Object deflate(SkeletonTreeMap<K, V> map) {
-			// TODO check isBare() stuff...
+			if (!map.isBare()) {
+				throw new IllegalArgumentException("Object passed to deflate is not bare.");
+			}
 			DeflateTask de = newDeflateTask(map);
 			de.start(); de.join();
 			return de.get();
 		}
 
+		/**
+		** Add all the data from a skeleton map to the given {@link DeflateTask}.
+		** It is recommended that this method be called in the constructor of the
+		** {@link DeflateTask} being passed in.
+		**
+		** @param de The task to receive the data.
+		** @param skel The skeleton to add to the task.
+		*/
 		protected void putAll(DeflateTask de, SkeletonTreeMap<K, V> map) {
-			map.deflate();
 			for (K k: map.loaded.keySet()) {
 				de.put(k.toString(), map.loaded.get(k));
 			}
@@ -291,8 +299,8 @@ implements SkeletonMap<K, V> {
 	** (that hasn't been loaded yet).
 	**
 	** TODO: could code a setStrictChecksMode() or something to have this
-	** method throw DataNotLoadedException in such circumstances, at the user's
-	** discretion.
+	** method throw {@link DataNotLoadedException} in such circumstances, at
+	** the user's discretion.
 	*/
 	public V put(K key, V value) {
 		loaded.put(key, null);
@@ -307,8 +315,8 @@ implements SkeletonMap<K, V> {
 	** (that hasn't been loaded yet).
 	**
 	** TODO: could code a setStrictChecksMode() or something to have this
-	** method throw DataNotLoadedException in such circumstances, at the user's
-	** discretion.
+	** method throw {@link DataNotLoadedException} in such circumstances, at
+	** the user's discretion.
 	*/
 	public V remove(Object key) {
 		loaded.remove(key);
@@ -357,11 +365,11 @@ implements SkeletonMap<K, V> {
 
 
 	/**
-	** Iterator that goes through both the loaded map and the object map
-	** simultaneously, throwing DataNotLoadedException when it encounters dummy
-	** elements. After this occurs, all subsequent attempts to fetch the next
-	** value will fail with IllegalStateException with the cause set to the
-	** DataNotLoadedException that was thrown.
+	** Iterator that goes through both the loaded map and the object map at the
+	** same time, throwing {@link DataNotLoadedException} when it encounters
+	** dummy elements. After this occurs, all subsequent attempts to fetch the
+	** next value will fail with {@link IllegalStateException} with the cause
+	** set to the {@link DataNotLoadedException} that was thrown.
 	**
 	** @author infinity0
 	*/

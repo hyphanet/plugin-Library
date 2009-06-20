@@ -15,16 +15,7 @@ import plugins.Interdex.util.Serialiser.InflateTask;
 import plugins.Interdex.util.Serialiser.DeflateTask;
 
 /**
-** Emulates a PrefixTreeMap where some of the data has not been fully loaded.
-** Operations on this data structure will throw a DataNotLoadedException when
-** it encounters dummy objects such as DummyPrefixTreeMap. This data structure
-** can be populated without the node population restrictions of PrefixTreeMap
-** via the constructors and assimilate().
-**
-** This object can be safely casted to a PrefixTreeMap if isFull() returns
-** true, which occurs if and only if it contains no SkeletonTreeMap or
-** DummyPrefixTreeMap objects, and it follows the node population restrictions
-** of a PrefixTreeMap.
+** A {@link SkeletonMap} of a {@link PrefixTreeMap}.
 **
 ** @author infinity0
 */
@@ -374,23 +365,30 @@ implements SkeletonMap<K, V> {
 
 	public void inflate() {
 		throw new UnsupportedOperationException("Not implemented.");
+		//assert(isFull());
 	}
 
 	public void deflate() {
+		if (!itmap.isBare()) { itmap.deflate(); }
 		DeflateTask<SkeletonTreeMap<K, V>> de = serialiserLocal.newDeflateTask(itmap);
 		de.setOption(prefixString());
 		de.start();
 		de.join();
+		// TODO: maybe store de.get() somewhere. it will be necessary when we
+		// implement an algorithm to merge small TreeMaps into one file
 
 		for (int i=0; i<subtreesMax; ++i) {
 			if (child[i] != null && child[i] instanceof SkeletonPrefixTreeMap) {
-				serialiser.deflate((SkeletonPrefixTreeMap<K, V>)child[i]);
+				SkeletonPrefixTreeMap<K, V> ch = (SkeletonPrefixTreeMap<K, V>)child[i];
+				if (!ch.isBare()) { ch.deflate(); }
+				Object o = serialiser.deflate(ch);
+				// TODO: make this use the dummy object returned
 				putDummyChild(i);
 			}
 		}
+		assert(isBare());
 	}
 
-	Object tmapdummy = null; // TODO move this
 	public void inflate(SkeletonMap<K, V> m) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
@@ -407,6 +405,10 @@ implements SkeletonMap<K, V> {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
+
+	/**
+	** A {@link Serialiser} that has access to all the fields of this class.
+	*/
 	abstract public static class PrefixTreeMapSerialiser<K extends PrefixKey, V> implements Serialiser<SkeletonPrefixTreeMap<K, V>> {
 
 		public SkeletonPrefixTreeMap<K, V> inflate(Object dummy) {
@@ -414,14 +416,23 @@ implements SkeletonMap<K, V> {
 		}
 
 		public Object deflate(SkeletonPrefixTreeMap<K, V> skel) {
-			// TODO check isBare stuff, etc
+			if (!skel.isBare()) {
+				throw new IllegalArgumentException("Object passed to deflate is not bare.");
+			}
 			DeflateTask de = newDeflateTask(skel);
 			de.start(); de.join();
 			return de.get();
 		}
 
+		/**
+		** Add all the data from a skeleton map to the given {@link DeflateTask}.
+		** It is recommended that this method be called in the constructor of the
+		** {@link DeflateTask} being passed in.
+		**
+		** @param de The task to receive the data.
+		** @param skel The skeleton to add to the task.
+		*/
 		protected void putAll(DeflateTask de, SkeletonPrefixTreeMap<K, V> skel) {
-			skel.deflate();
 			de.put("prefix", skel.prefix.toString());
 			de.put("preflen", skel.preflen);
 			de.put("sizeMax", skel.sizeMax);

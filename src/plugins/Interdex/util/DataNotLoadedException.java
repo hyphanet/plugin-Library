@@ -7,7 +7,10 @@ package plugins.Interdex.util;
 ** Thrown when data hasn't been loaded yet, eg. when a data structure hasn't
 ** been fully populated from the network.
 **
+** TODO expand docs
+**
 ** @author infinity0
+** @see SkeletonMap
 */
 public class DataNotLoadedException extends RuntimeException {
 

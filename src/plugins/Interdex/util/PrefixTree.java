@@ -32,30 +32,31 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 
 	/**
 	** Array holding the child trees. There is one cell in the array for each
-	** symbol in the alphabet of the key. For all i: child[i] != null, or
-	** child[i].lastIndex() == i.
+	** symbol in the alphabet of the key. For all i: {@link #child}[i] != null,
+	** or {@link #child}[i].{@link #lastIndex()} == i.
 	*/
 	final protected PrefixTree<K, V>[] child;
 
 	/**
-	** The size of the child array.
+	** The size of the {@link #child} array.
 	*/
 	final public int subtreesMax;
 
 	/**
-	** Maximum size of (localmap + child) before we start to create subtrees.
+	** Maximum size of ({@link #sizeLocal()} + {@link #child}) before we start
+	** to create subtrees.
 	*/
 	final public int sizeMax;
 
 	/**
 	** Number of subtrees. At all times, this should equal the number of
-	** non-null members of the child array.
+	** non-null members of {@link #child}.
 	*/
 	protected int subtrees = 0;
 
 	/**
 	** Number of elements contained in the tree. At all times, it should equal
-	** the sum of the size of the subtrees, plus the size of the localmap.
+	** the sum of the size of the subtrees, plus the {@link #sizeLocal()}.
 	*/
 	public int size = 0;
 
@@ -63,16 +64,17 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** Counts the number of mappings in each prefix group, meaning the set of
 	** all mappings whose keys give the same key.get(preflen). At all times,
 	** the sum the array elements should equal the size field. Additionally,
-	** for all i: (child[i] != null) implies (sizePrefix[i] == child[i].size())
-	** and sizeLocal() == sum{ sizePrefix[j] : child[j] == null }
+	** for all i: ({@link #child}[i] != null) implies ({@link #sizePrefix}[i]
+	** == {@link #child}[i].size()) and {@link #sizeLocal()} == sum{ {@link
+	** #sizePrefix}[j] : {@link #child}[j] == null }
 	*/
 	final protected int sizePrefix[];
 
 	/**
-	** Cache for the smallestChild. At all times, this should either be null,
-	** or point to the subtree with the smallest size. If null, then either
-	** there are no subtrees (check subtrees == 0) or the cache has been
-	** invalidated.
+	** Cache for {@link #smallestChild()}. At all times, this should either be
+	** null, or point to the subtree with the smallest size. If null, then
+	** either there are no subtrees (check {@link #subtrees} == 0) or the cache
+	** has been invalidated.
 	*/
 	transient protected PrefixTree<K, V> smallestChild_ = null;
 
@@ -241,10 +243,12 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** After a put operation, move some entries into new subtrees, with big
 	** subtrees taking priority, until there is enough space to fit all the
 	** remaining entries. That is, ensure that there exists sz such that:
-	** - smallestChild.size() == sz and sz > sizeLeft()
+	** - {@link #smallestChild()}.size() == sz and sz > {@link #sizeLeft()}
 	** - and that for all i:
-	**   - (child[i] == null) implies sizePrefix[i] <= sz
-	**   - (child[i] != null) implies sizePrefix[i] >= sz
+	**   - ({@link #child}[i] == null) implies {@link #sizePrefix}[i] <= sz
+	**   - ({@link #child}[i] != null) implies {@link #sizePrefix}[i] >= sz
+	**
+	** @param i Subgroup of element
 	*/
 	protected void reshuffleAfterPut(int i) {
 		++sizePrefix[i]; ++size;
@@ -283,7 +287,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** Reshuffle after a put operation of many elements, keeping the same
 	** constraints.
 	**
-	** @param i Subgroup of element
+	** @param i Subgroup of elements
 	** @param n Number of elements
 	*/
 	protected void reshuffleAfterPut(int i, int n) {
@@ -297,10 +301,12 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** After a remove operation, merge some subtrees into this node, with small
 	** subtrees taking priority, until there is no more space to fit any more
 	** subtrees. That is, ensure that there exists sz such that:
-	** - smallestChild.size() == sz and sz > sizeLeft()
+	** - {@link #smallestChild()}.size() == sz and sz > {@link #sizeLeft()}
 	** - and that for all i:
-	**   - (child[i] == null) implies sizePrefix[i] <= sz
-	**   - (child[i] != null) implies sizePrefix[i] >= sz
+	**   - ({@link #child}[i] == null) implies {@link #sizePrefix}[i] <= sz
+	**   - ({@link #child}[i] != null) implies {@link #sizePrefix}[i] >= sz
+	**
+	** @param i Subgroup of element
 	*/
 	protected void reshuffleAfterRemove(int i) {
 		--sizePrefix[i]; --size;
@@ -333,7 +339,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** Reshuffle after a remove operation of many elements, keeping the same
 	** constraints.
 	**
-	** @param i Subgroup of element
+	** @param i Subgroup of elements
 	** @param n Number of elements
 	*/
 	protected void reshuffleAfterRemove(int i, int n) {
@@ -362,22 +368,24 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 
 	/**
 	** Transfer the value for a key to the appropriate subtree. For efficiency,
-	** this method assumes that child[i] already exists and that its prefix
-	** matches key; it is up to the calling code to ensure that this holds.
+	** this method assumes that {@link #child}[i] already exists and that its
+	** prefix matches the key; it is up to the calling code to ensure that this
+	** holds.
 	*/
 	abstract protected void transferLocalToSubtree(int i, K key);
 
 	/**
 	** Transfer all mappings of a subtree to the local map. For efficiency, the
-	** subtree is assumed to be an actual direct subtree of this map; it is up
-	** to the calling code to ensure that this holds.
+	** subtree is assumed to be an actual direct subtree of this map, ie. the
+	** same object as {@link #child}[i] for some i; it is up to the calling
+	** code to ensure that this holds.
 	*/
 	abstract protected void transferSubtreeToLocal(PrefixTree<K, V> ch);
 
 	/**
 	** Select the object which handles keys with i as the next prefix element.
-	** Should return child[i] if and only if child[i] != null, and a pointer
-	** to the local map otherwise.
+	** Should return {@link #child}[i] if and only if {@link #child}[i] != null
+	** and a pointer to the local map otherwise.
 	*/
 	abstract protected Object selectNode(int i);
 

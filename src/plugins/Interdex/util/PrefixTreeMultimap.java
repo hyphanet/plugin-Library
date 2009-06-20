@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.Collection;
 
 /**
-** Implementation of PrefixTree backed by a Map.
+** Implementation of {@link PrefixTree} backed by a {@link TreeMultimap}.
 **
 ** TODO: make this implement SortedSetMultiMap
 **
@@ -28,8 +28,8 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 /*, Cloneable, Serializable*/ {
 
 	/**
-	** TreeMultimap holding the entries which don't need to be stored in their own
-	** tree yet.
+	** {@link TreeMultimap} holding the entries which don't need to be stored
+	** in their own tree yet.
 	*/
 	final TreeMultimap<K, V> tmap;
 
