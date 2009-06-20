@@ -72,6 +72,26 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return new PrefixTreeMultimap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, sizeMax, this);
 	}
 
+	protected void transferLocalToSubtree(int i, K key) {
+		child[i].putAll(key, tmap.removeAll(key));
+	}
+
+	protected void transferSubtreeToLocal(PrefixTree<K, V> ch) {
+		tmap.putAll(((PrefixTreeMultimap<K, V>)ch).tmap);
+	}
+
+	protected SetMultimap<K, V> selectNode(int i) {
+		return (child[i] == null)? tmap: child[i];
+	}
+
+	protected TreeMultimap<K, V> getLocalMap() {
+		return tmap;
+	}
+
+	protected void clearLocal() {
+		tmap.clear();
+	}
+
 	protected Set<K> keySetLocal() {
 		return tmap.keySet();
 	}
@@ -80,17 +100,6 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return tmap.size();
 	}
 
-	protected void transferLocalToSubtree(int i, K key) {
-		child[i].putAll(key, tmap.removeAll(key));
-	}
-
-	protected void transferSubtreeToLocal(PrefixTree<K, V> ch) {
-		tmap.putAll(((PrefixTreeMultimap)ch).tmap);
-	}
-
-	protected SetMultimap<K, V> selectNode(int i) {
-		return (child[i] == null)? tmap: child[i];
-	}
 
 	/************************************************************************
 	 * public interface Multimap
@@ -98,14 +107,6 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 
 	public Map<K, Collection<V>> asMap() {
 		throw new UnsupportedOperationException("Not implemented.");
-	}
-
-	public void clear() {
-		for (int i=0; i<child.length; ++i) {
-			child[i] = null;
-		}
-		subtrees = 0;
-		tmap.clear();
 	}
 
 	public boolean containsEntry(Object key, Object value) {
@@ -138,10 +139,6 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public boolean equals(Object o) {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
 	public Set<V> get(K key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return null; }
@@ -149,18 +146,6 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		int i = k.get(preflen);
 		SetMultimap<K, V> map = selectNode(i);
 		return map.get(k);
-	}
-
-	public int hashCode() {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
-	public boolean isEmpty() {
-		if (!tmap.isEmpty()) { return false; }
-		for (PrefixTreeMultimap<K, V> t: child) {
-			if (!t.isEmpty()) { return false; }
-		}
-		return true;
 	}
 
 	public Multiset<K> keys() {
@@ -195,23 +180,22 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		boolean v = map.putAll(key, values);
 
 		if (v) { reshuffleAfterPut(i, map.size()-prevsz); }
-
 		return v;
 	}
 
 	public boolean putAll(Multimap<? extends K,? extends V> multimap) {
-		return putAllOhAndBTWThisMethodExistsBecauseJavaSucks(multimap); } private <J extends K, U extends V> boolean putAllOhAndBTWThisMethodExistsBecauseJavaSucks(Multimap<J,U> multimap) {
+		//return putAllOhAndBTWThisMethodExistsBecauseJavaSucks(multimap); } private <J extends K, U extends V> boolean putAllOhAndBTWThisMethodExistsBecauseJavaSucks(Multimap<J,U> multimap) {
 		// LA LA LA JAVA SUCKS LA LA LA
 		// apparently public <J extends K, U extends V> boolean putAll(Multimap<J,U> multimap)
 		// does not implement public boolean putAll(Multimap<? extends K,? extends V> multimap)
 		// even though http://java.sun.com/j2se/1.5/pdf/generics-tutorial.pdf says
 		// they do the same thing. :| facepalm.jpg
 		boolean changed = false;
-		for (J k : multimap.keySet()) {
-			// adding each collection all at once is more efficient than adding
-			// each key/value pair individually, because then we can use
-			// reshuffleAfterPut(int i, int s);
-			Collection<U> vs = multimap.get(k);
+		Multimap<K, V> mmap = (Multimap<K, V>)multimap;
+		for (K k : mmap.keySet()) {
+			// adding each collection all at once is more efficient than adding each
+			// entry separately, since then we can use reshuffleAfterPut(int i, int s);
+			Collection<V> vs = mmap.get(k);
 			changed |= putAll(k, vs);
 		}
 		return changed;
@@ -238,12 +222,22 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		Set<V> vs = map.removeAll(key);
 
 		if (vs.size() > 0) { reshuffleAfterRemove(i, vs.size()); }
-
 		return vs;
 	}
 
 	public Set<V> replaceValues(K key, Iterable<? extends V> values) {
-		throw new UnsupportedOperationException("Not implemented.");
+		K k; if (!(key instanceof PrefixKey) ||
+			!(k = (K) key).match(prefix, preflen)) { return new java.util.TreeSet(tmap.valueComparator()); }
+
+		int i = k.get(preflen);
+		SetMultimap<K, V> map = selectNode(i);
+		int prevsz = map.size();
+		Set<V> vs = map.replaceValues(key, values);
+		int newsz = map.size();
+
+		if (prevsz > newsz) { reshuffleAfterRemove(i, prevsz-newsz); }
+		else if (prevsz < newsz) { reshuffleAfterPut(i, newsz-prevsz); }
+		return vs;
 	}
 
 	public Collection<V> values() {

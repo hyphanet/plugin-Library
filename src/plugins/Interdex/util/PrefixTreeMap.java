@@ -64,6 +64,26 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return new PrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, sizeMax, this);
 	}
 
+	protected void transferLocalToSubtree(int i, K key) {
+		child[i].put(key, tmap.remove(key));
+	}
+
+	protected void transferSubtreeToLocal(PrefixTree<K, V> ch) {
+		tmap.putAll(((PrefixTreeMap<K, V>)ch).tmap);
+	}
+
+	protected Map<K, V> selectNode(int i) {
+		return (child[i] == null)? tmap: child[i];
+	}
+
+	protected TreeMap<K, V> getLocalMap() {
+		return tmap;
+	}
+
+	protected void clearLocal() {
+		tmap.clear();
+	}
+
 	protected Set<K> keySetLocal() {
 		return tmap.keySet();
 	}
@@ -72,29 +92,10 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return tmap.size();
 	}
 
-	protected void transferLocalToSubtree(int i, K key) {
-		child[i].put(key, tmap.remove(key));
-	}
-
-	protected void transferSubtreeToLocal(PrefixTree<K, V> ch) {
-		tmap.putAll(((PrefixTreeMap)ch).tmap);
-	}
-
-	protected Map<K, V> selectNode(int i) {
-		return (child[i] == null)? tmap: child[i];
-	}
 
 	/************************************************************************
 	 * public interface Map
 	 ************************************************************************/
-
-	public void clear() {
-		for (int i=0; i<child.length; ++i) {
-			child[i] = null;
-		}
-		subtrees = 0;
-		tmap.clear();
-	}
 
 	public boolean containsKey(Object key) {
 		K k; if (!(key instanceof PrefixKey) ||
@@ -117,10 +118,6 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public boolean equals(Object o) {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
 	public V get(Object key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return null; }
@@ -128,18 +125,6 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		int i = k.get(preflen);
 		Map<K, V> map = selectNode(i);
 		return map.get(k);
-	}
-
-	public int hashCode() {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
-	public boolean isEmpty() {
-		if (!tmap.isEmpty()) { return false; }
-		for (PrefixTreeMap<K, V> t: child) {
-			if (!t.isEmpty()) { return false; }
-		}
-		return true;
 	}
 
 	public Set<K> keySet() {
@@ -161,7 +146,10 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	}
 
 	public void putAll(Map<? extends K,? extends V> t) {
-		throw new UnsupportedOperationException("Not implemented.");
+		for (Map.Entry<K, V> e: ((Map<K, V>)t).entrySet()) {
+			// TODO implement entrySet for PrefixTreeMap
+			put(e.getKey(), e.getValue());
+		}
 	}
 
 	public V remove(Object key) {

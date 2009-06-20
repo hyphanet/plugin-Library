@@ -12,16 +12,16 @@ import java.util.UUID;
 /**
 ** @author infinity0
 */
-public class IncompleteTreeMapTest extends TestCase {
+public class SkeletonTreeMapTest extends TestCase {
 
-	IncompleteTreeMap<String, Integer> tm;
+	SkeletonTreeMap<String, Integer> tm;
 
 	protected void setUp() {
 		String[] keys = new String[1024];
 		for (int i=0; i<keys.length; ++i) {
 			keys[i] = UUID.randomUUID().toString();
 		}
-		tm = new IncompleteTreeMap<String, Integer>(keys);
+		tm = new SkeletonTreeMap<String, Integer>(keys);
 	}
 
 	protected void tearDown() {
@@ -34,7 +34,7 @@ public class IncompleteTreeMapTest extends TestCase {
 	}
 
 	public void testBasic() {
-		tm = new IncompleteTreeMap<String, Integer>(new String[]{"l0l", "l1l", "l2l"});
+		tm = new SkeletonTreeMap<String, Integer>(new String[]{"l0l", "l1l", "l2l"});
 
 		assertTrue(tm.firstKey().equals("l0l"));
 		assertTrue(tm.lastKey().equals("l2l"));

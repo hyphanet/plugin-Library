@@ -4,6 +4,7 @@
 package plugins.Interdex.util;
 
 import java.util.Set;
+import java.util.Iterator;
 
 /**
 ** Trie-like map or map-like structure (eg. multimap) with each node mapping
@@ -17,34 +18,34 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	/**
 	** The prefix that all keys in this tree must match.
 	*/
-	final K prefix;
+	final public K prefix;
 
 	/**
 	** The length of the prefix for this tree.
 	*/
-	final int preflen;
+	final public int preflen;
 
 	/**
 	** Pointer to the parent tree.
 	*/
-	final PrefixTree<K, V> parent;
+	final protected PrefixTree<K, V> parent;
 
 	/**
 	** Array holding the child trees. There is one cell in the array for each
 	** symbol in the alphabet of the key. For all i: child[i] != null, or
 	** child[i].lastIndex() == i.
 	*/
-	final PrefixTree<K, V>[] child;
+	final protected PrefixTree<K, V>[] child;
 
 	/**
 	** The size of the child array.
 	*/
-	final int subtreesMax;
+	final public int subtreesMax;
 
 	/**
 	** Maximum size of (localmap + child) before we start to create subtrees.
 	*/
-	final int sizeMax;
+	final public int sizeMax;
 
 	/**
 	** Number of subtrees. At all times, this should equal the number of
@@ -56,7 +57,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** Number of elements contained in the tree. At all times, it should equal
 	** the sum of the size of the subtrees, plus the size of the localmap.
 	*/
-	protected int size = 0;
+	/*(TODO put back) protected*/ public int size = 0;
 
 	/**
 	** Counts the number of mappings in each prefix group, meaning the set of
@@ -102,9 +103,9 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 
 		child = chd;
 		parent = par;
+		sizePrefix = new int[child.length];
 
 		subtreesMax = p.symbols();
-		sizePrefix = new int[child.length];
 		sizeMax = maxsz;
 	}
 
@@ -194,7 +195,8 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 				break;
 			}
 		}
-		assert(i == mkeys.length);
+		//assert(i == mkeys.length);
+		assert(i <= mkeys.length); // Multimaps should be <=, Maps should be ==
 		assert(child[msym] == null);
 
 		child[msym] = makeSubTree(msym);
@@ -359,16 +361,6 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	abstract protected PrefixTree<K, V> makeSubTree(int msym);
 
 	/**
-	** Returns the set of keys of the local map.
-	*/
-	abstract protected Set<K> keySetLocal();
-
-	/**
-	** Returns the size of the local map.
-	*/
-	abstract protected int sizeLocal();
-
-	/**
 	** Transfer the value for a key to the appropriate subtree. For efficiency,
 	** this method assumes that child[i] already exists and that its prefix
 	** matches key; it is up to the calling code to ensure that this holds.
@@ -388,6 +380,89 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** to the local map otherwise.
 	*/
 	abstract protected Object selectNode(int i);
+
+	/**
+	** Returns the local map.
+	*/
+	abstract protected Object getLocalMap();
+
+	/**
+	** Clears the local map.
+	*/
+	abstract protected void clearLocal();
+
+	/**
+	** Returns the set of keys of the local map.
+	*/
+	abstract protected Set<K> keySetLocal();
+
+	/**
+	** Returns the size of the local map.
+	*/
+	abstract protected int sizeLocal();
+
+	/**
+	** TODO Returns the set of keys of the whole node.
+	*/
+	abstract protected Set<K> keySet();
+
+
+	/************************************************************************
+	 * public interface Map, Multimap
+	 ************************************************************************/
+
+	public void clear() {
+		size = 0;
+		clearLocal();
+		smallestChild_ = null;
+		for (int i=0; i<subtreesMax; ++i) {
+			child[i] = null;
+			sizePrefix[i] = 0;
+		}
+		subtrees = 0;
+	}
+
+	public boolean isEmpty() {
+		return (size == 0);
+	}
+
+	/************************************************************************
+	 * public class Object
+	 ************************************************************************/
+
+	public boolean equals(Object o) {
+		if (o == this) { return true; }
+		if (!(o instanceof PrefixTree)) { return false; }
+		PrefixTree tr = (PrefixTree)o;
+
+		if (size() != tr.size()) { return false; }
+
+		// TODO research... java API says about Map.equals():
+		// "Returns true if the given object is also a map and the two maps
+		// represent the same mappings."
+		// (Nothing further is said for SortedMap.equals().)
+		// However, for a PrefixTree, this can occur even if the first three
+		// clauses of the below or-expression are true.
+		if (!prefix.equals(tr.prefix)
+		 || preflen != tr.preflen
+		 || sizeMax != tr.sizeMax
+		 || !getLocalMap().equals(tr.getLocalMap())
+		   ) { return false; }
+
+		for (int i=0; i<subtreesMax; ++i) {
+			if (child[i] == null && tr.child[i] == null || !child[i].equals(tr.child[i])) { return false; }
+		}
+
+		return true;
+	}
+
+	public int hashCode() {
+		int sum = getLocalMap().hashCode();
+		for (PrefixTree<K, V> ch: child) {
+			sum += ch.hashCode();
+		}
+		return sum;
+	}
 
 
 	/**
@@ -483,6 +558,54 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 				if (x != y) { return x-y; }
 			}
 			return a-b;
+		}
+
+	}
+
+	/**
+	** Provides an iterator over the PrefixTree.
+	*/
+	abstract public class PrefixTreeKeyIterator implements Iterator<K> {
+
+		final Iterator<K> iterLocal;
+		Iterator<K> iterChild;
+
+		protected int index = 0;
+		protected K nextLocal = null;
+
+		protected PrefixTreeKeyIterator() {
+			iterLocal = keySetLocal().iterator();
+			while (index < subtreesMax && child[index++] == null);
+			if (index < subtreesMax) { iterChild = child[index].keySet().iterator(); }
+			if (iterLocal.hasNext()) { nextLocal = iterLocal.next(); }
+		}
+
+		public boolean hasNext() {
+			return nextLocal != null || iterChild != null;
+		}
+
+		public K next() {
+			while (index < subtreesMax || nextLocal != null) {
+				if (nextLocal != null && nextLocal.get(preflen) < index) {
+					K k = nextLocal;
+					nextLocal = (iterLocal.hasNext())? iterLocal.next(): null;
+					return k;
+
+				} else if (iterChild.hasNext()) {
+					return iterChild.next();
+
+				} else {
+					do { ++index; } while (index < subtreesMax && child[index] == null);
+					iterChild = (index < subtreesMax)? child[index].keySet().iterator(): null;
+					continue;
+
+				}
+			}
+			throw new java.util.NoSuchElementException();
+		}
+
+		public void remove() {
+			throw new UnsupportedOperationException("Not implemented.");
 		}
 
 	}

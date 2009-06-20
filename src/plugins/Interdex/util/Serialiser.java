@@ -4,51 +4,117 @@
 package plugins.Interdex.util;
 
 /**
-** A class that handles serialisation tasks. TODO
+** A class that handles serialisation tasks.
+**
+** TODO think about having Dummy<T> in places instead of object. Then we can
+** have class DummyX<? extends X> implements Dummy<T> etc
 **
 ** @author infinity0
 */
-public interface Serialiser {
+public interface Serialiser<T> {
 
 	/**
-	** Poll the queue for a finished task.
+	** Creates a new inflate task for an object.
 	*/
-	public SerialiseTask poll();
+	public InflateTask<T> newInflateTask(Object o);
 
-	public InflateTask newInflateTask(Object o);
-	public DeflateTask newDeflateTask(Object o);
+	/**
+	** Creates a new deflate task for an object.
+	*/
+	public DeflateTask<T> newDeflateTask(T o);
 
-	// TODO perhaps make this implement Runnable
+	/**
+	** Inflate a skeleton data structure from a dummy data structure. Note that
+	** only a skeleton is inflated, so isBare() should return true for the
+	** object returned by this method.
+	**
+	** Implementations of this should provide equivalent behaviour as creating
+	** a new InflateTask, calling put(dummy), start(), join(), then returning
+	** an object with all data retrieved from the task.
+	**
+	** @param dummy The dummy data structure that represents the map.
+	** @return The skeleton data structure that represents the map.
+	*/
+	public T inflate(Object dummy);
+
+	/**
+	** Deflate a skeleton data structure into a dummy data structure. Note that
+	** only a skeleton is deflated, so isBare() should return true for the
+	** object passed into this method.
+	**
+	** Implementations of this should provide equivalent behaviour as creating
+	** a new DeflateTask, adding all data to it, calling start(), join(), then
+	** returning get().
+	**
+	** @param skel The skeleton data structure that represents the map.
+	** @return The dummy data structure that represents the map.
+	*/
+	public Object deflate(T skel);
+
+
+	/**
+	** Defines a serialisation task. The methods are named such that
+	** implementations of this interface may choose to extend Thread, if they
+	** wish.
+	*/
 	public interface SerialiseTask {
 
 		/**
-		** Start the task and push it onto the queue.
+		** Start the task.
 		*/
 		public void start();
 
 		/**
-		** See whether the task is finished.
-		**
-		** @return Null if the task is unfinished, or information on the final
-		** status of the task, eg. path to data.
+		** Wait for the task to finish.
 		*/
-		public Object poll();
+		public void join();
 
 		/**
-		** Wait for the task to finish. TODO maybe rename...
+		** Set a task option. This method should only be called before start().
 		**
-		** @return Information on the final status of the task, eg. path to data.
+		** TODO make this less vague..
 		*/
-		public Object join();
+		public void setOption(Object o);
 
 	}
 
-	public interface InflateTask extends SerialiseTask {
+	/**
+	** Defines a inflate task, which allows data to be retrieved from the task
+	** after it has completed.
+	*/
+	public interface InflateTask<T> extends SerialiseTask {
+
+		/**
+		** Give a dummy data structure to the task for inflation. This method
+		** should only be called before start().
+		*/
+		public void put(Object dummy);
+
+		/**
+		** Take the components of the skeleton data structure from the task after
+		** it finishes. This method should only be called after join().
+		*/
 		public Object get(String key);
 	}
 
-	public interface DeflateTask extends SerialiseTask {
+	/**
+	** Defines a deflate task, which allows data to be added to the task before
+	** it starts.
+	*/
+	public interface DeflateTask<T> extends SerialiseTask {
+
+		/**
+		** Give the components of the skeleton data structure to the task for
+		** deflation. This method should only be called before start().
+		*/
 		public void put(String key, Object o);
+
+		/**
+		** Take the dummy data structure from the task after it finishes. This
+		** method should only be called after join().
+		*/
+		public Object get();
+
 	}
 
 }

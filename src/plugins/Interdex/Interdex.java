@@ -45,10 +45,11 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 	}
 
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
-		IncompletePrefixTreeMap<Token, TokenEntry> test = new IncompletePrefixTreeMap<Token, TokenEntry>(new Token());
-		test.setSerialiser(new IndexFileSerialiser());
+		SkeletonPrefixTreeMap<Token, TokenURIEntry> test = new SkeletonPrefixTreeMap<Token, TokenURIEntry>(new Token(), 4096);
+		IndexFileSerialiser f = new IndexFileSerialiser();
+		test.setSerialiser(f.s, f.sl, f.sv);
 
-		for (int i=0; i<1024; ++i) {
+		for (int i=0; i<65536; ++i) {
 			String key = rndStr();
 			try {
 				test.put(new Token(key), new TokenURIEntry(key, new FreenetURI("CHK@yeah")));
@@ -57,7 +58,7 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 			}
 		}
 
-		Object o = test.deflate();
+		Object o = f.s.deflate(test);
 		return request.toString() + "<br />Hi<br />" + o.toString();
 		//return request.toString();
 	}
