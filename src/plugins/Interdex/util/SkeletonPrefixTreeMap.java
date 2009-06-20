@@ -151,6 +151,7 @@ implements SkeletonMap<K, V> {
 	public void setSerialiser(Serialiser<SkeletonPrefixTreeMap<K, V>> s, Serialiser<SkeletonTreeMap<K, V>> ls, Serialiser<V> vs) {
 		serialiser = s;
 		serialiserLocal = ls;
+		serialiserLocalValue = vs;
 		itmap.setSerialiser(vs);
 		for (PrefixTreeMap<K, V> ch: child) {
 			if (ch != null && ch instanceof SkeletonPrefixTreeMap) {
@@ -404,6 +405,47 @@ implements SkeletonMap<K, V> {
 
 	public void deflate(K key) {
 		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	abstract public static class PrefixTreeMapSerialiser<K extends PrefixKey, V> implements Serialiser<SkeletonPrefixTreeMap<K, V>> {
+
+		public SkeletonPrefixTreeMap<K, V> inflate(Object dummy) {
+			throw new UnsupportedOperationException("Not implemented.");
+		}
+
+		public Object deflate(SkeletonPrefixTreeMap<K, V> skel) {
+			// TODO check isBare stuff, etc
+			DeflateTask de = newDeflateTask(skel);
+			de.start(); de.join();
+			return de.get();
+		}
+
+		protected void putAll(DeflateTask de, SkeletonPrefixTreeMap<K, V> skel) {
+			skel.deflate();
+			de.put("prefix", skel.prefix.toString());
+			de.put("preflen", skel.preflen);
+			de.put("sizeMax", skel.sizeMax);
+			de.put("size", skel.size);
+			de.put("subtreesMax", skel.subtreesMax);
+			de.put("subtrees", skel.subtrees);
+			// TODO snakeYAML says "Arrays of primitives are not fully supported."
+			//de.put("sizePrefix", skel.sizePrefix);
+			Integer[] szPre = new Integer[skel.subtreesMax];
+			for (int i=0; i<skel.subtreesMax; ++i) { szPre[i] = skel.sizePrefix[i]; }
+			de.put("sizePrefix", szPre);
+
+			Boolean chd[] = new Boolean[skel.subtreesMax];
+			for (int i=0; i<skel.subtreesMax; ++i) { chd[i] = (skel.child[i] != null); }
+			de.put("_child", chd);
+
+			Set<K> keySet = skel.itmap.keySet();
+			String[] keys = new String[keySet.size()];
+			int i=0;
+			for (K k: keySet) { keys[i++] = k.toString(); }
+
+			de.put("_tmap", keys);
+		}
+
 	}
 
 }

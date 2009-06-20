@@ -77,10 +77,6 @@ implements SkeletonMap<K, V> {
 		}
 	}
 
-	public Map<K, V> dummyValues() {
-		return (Map<K, V>)(loaded.clone());
-	}
-
 	public Object putDummy(K key) {
 		put(key, null);
 		return loaded.put(key, Boolean.FALSE);
@@ -131,7 +127,7 @@ implements SkeletonMap<K, V> {
 	}
 
 	public void deflate() {
-		TreeMap<K, DeflateTask<V>> tasks = new TreeMap<K, DeflateTask<V>>();
+		java.util.HashMap<K, DeflateTask<V>> tasks = new java.util.HashMap<K, DeflateTask<V>>();
 		for (K k: keySet()) {
 			if (loaded.get(k) != null) { continue; }
 			V v = get(k);
@@ -161,6 +157,29 @@ implements SkeletonMap<K, V> {
 	public void deflate(K key) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
+
+	abstract public static class TreeMapSerialiser<K, V> implements Serialiser<SkeletonTreeMap<K, V>> {
+
+		public SkeletonTreeMap<K, V> inflate(Object dummy) {
+			throw new UnsupportedOperationException("Not implemented.");
+		}
+
+		public Object deflate(SkeletonTreeMap<K, V> map) {
+			// TODO check isBare() stuff...
+			DeflateTask de = newDeflateTask(map);
+			de.start(); de.join();
+			return de.get();
+		}
+
+		protected void putAll(DeflateTask de, SkeletonTreeMap<K, V> map) {
+			map.deflate();
+			for (K k: map.loaded.keySet()) {
+				de.put(k.toString(), map.loaded.get(k));
+			}
+		}
+
+	}
+
 
 	/************************************************************************
 	 * public class TreeMap

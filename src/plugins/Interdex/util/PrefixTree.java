@@ -57,7 +57,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** Number of elements contained in the tree. At all times, it should equal
 	** the sum of the size of the subtrees, plus the size of the localmap.
 	*/
-	/*(TODO put back) protected*/ public int size = 0;
+	public int size = 0;
 
 	/**
 	** Counts the number of mappings in each prefix group, meaning the set of

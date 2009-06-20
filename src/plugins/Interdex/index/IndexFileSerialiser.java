@@ -42,7 +42,7 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 		//
 	}
 
-	public class PrefixTreeMapSerialiser<K extends PrefixKey, V> implements Serialiser<SkeletonPrefixTreeMap<K, V>> {
+	public class PrefixTreeMapSerialiser<K extends PrefixKey, V> extends SkeletonPrefixTreeMap.PrefixTreeMapSerialiser<K, V> {
 
 
 		public InflateTask<SkeletonPrefixTreeMap<K, V>> newInflateTask(Object o) {
@@ -53,39 +53,11 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 			return new DeflatePrefixTreeMapTask(tr);
 		}
 
-		public SkeletonPrefixTreeMap<K, V> inflate(Object dummy) {
-			throw new UnsupportedOperationException("Not implemented.");
-		}
-
-		public Object deflate(SkeletonPrefixTreeMap<K, V> skel) {
-			skel.deflate();
-			DeflateTask de = new DeflatePrefixTreeMapTask(skel);
-			de.put("prefix", skel.prefix.toString());
-			de.put("preflen", skel.preflen);
-			de.put("sizeMax", skel.sizeMax);
-			de.put("size", skel.size);
-			de.put("subtreesMax", skel.subtreesMax);
-			//de.put("subtrees", subtrees);
-			// TODO snakeYAML says "Arrays of primitives are not fully supported."
-			//de.put("sizePrefix", sizePrefix);
-
-			//Boolean chd[] = new Boolean[subtreesMax];
-			//for (int i=0; i<subtreesMax; ++i) { chd[i] = (child[i] != null); }
-			//de.put("_child", chd);
-			//de.put("_tmap", itmap.keySet());
-			//de.put("tmap", tmapdummy);
-
-			de.start(); de.join();
-			return de.get();
-		}
-
 		public class DeflatePrefixTreeMapTask extends YamlDeflateTask {
 
-			final SkeletonPrefixTreeMap<K, V> tree;
-
-			public DeflatePrefixTreeMapTask(SkeletonPrefixTreeMap<K, V> tr) {
-				super(tr.prefixString());
-				tree = tr;
+			public DeflatePrefixTreeMapTask(SkeletonPrefixTreeMap<K, V> skel) {
+				super(skel.prefixString());
+				putAll(this, skel);
 			}
 
 		}
@@ -93,9 +65,7 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 	}
 
 
-
-	public class TreeMapSerialiser<K extends PrefixKey, V> implements Serialiser<SkeletonTreeMap<K, V>> {
-
+	public class TreeMapSerialiser<K extends PrefixKey, V> extends SkeletonTreeMap.TreeMapSerialiser<K, V> {
 
 		public InflateTask<SkeletonTreeMap<K, V>> newInflateTask(Object o) {
 			throw new UnsupportedOperationException("Not implemented.");
@@ -105,23 +75,10 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 			return new DeflateTreeMapTask(tr);
 		}
 
-		public SkeletonTreeMap<K, V> inflate(Object dummy) {
-			throw new UnsupportedOperationException("Not implemented.");
-		}
-
-		public Object deflate(SkeletonTreeMap<K, V> map) {
-			DeflateTask de = new DeflateTreeMapTask(map);
-			de.start(); de.join();
-			return de.get();
-		}
-
 		public class DeflateTreeMapTask extends YamlDeflateTask {
 
-			public DeflateTreeMapTask(SkeletonTreeMap<K, V> m) {
-				java.util.Map<K, V> mm = m.dummyValues();
-				for (K k: mm.keySet()) {
-					put(k.toString(), mm.get(k));
-				}
+			public DeflateTreeMapTask(SkeletonTreeMap<K, V> map) {
+				putAll(this, map);
 			}
 
 			public void setOption(Object o) {
@@ -131,7 +88,6 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 		}
 
 	}
-
 
 
 	public class TokenURIEntrySerialiser implements Serialiser<TokenURIEntry> {
@@ -158,10 +114,10 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 		public class DeflateTokenURIEntryTask extends MapDeflateTask {
 
 			public DeflateTokenURIEntryTask(TokenURIEntry t) {
-				super.put("_uri", t.uri.toString());
-				super.put("word", t.word);
-				super.put("position", t.position);
-				super.put("relevance", t.relevance);
+				put("_uri", t.uri.toString());
+				put("word", t.word);
+				put("position", t.position);
+				put("relevance", t.relevance);
 			}
 
 		}

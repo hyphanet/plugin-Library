@@ -184,12 +184,6 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 	}
 
 	public boolean putAll(Multimap<? extends K,? extends V> multimap) {
-		//return putAllOhAndBTWThisMethodExistsBecauseJavaSucks(multimap); } private <J extends K, U extends V> boolean putAllOhAndBTWThisMethodExistsBecauseJavaSucks(Multimap<J,U> multimap) {
-		// LA LA LA JAVA SUCKS LA LA LA
-		// apparently public <J extends K, U extends V> boolean putAll(Multimap<J,U> multimap)
-		// does not implement public boolean putAll(Multimap<? extends K,? extends V> multimap)
-		// even though http://java.sun.com/j2se/1.5/pdf/generics-tutorial.pdf says
-		// they do the same thing. :| facepalm.jpg
 		boolean changed = false;
 		Multimap<K, V> mmap = (Multimap<K, V>)multimap;
 		for (K k : mmap.keySet()) {
