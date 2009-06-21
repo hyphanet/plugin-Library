@@ -3,14 +3,21 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
+import plugins.Interdex.util.Serialiser.SerialiseTask;
+import plugins.Interdex.util.Serialiser.InflateTask;
+import plugins.Interdex.util.Serialiser.DeflateTask;
+
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 /**
 ** Parallel Serialiser using three buffers to load-balance things.
 **
-** TODO expand doc.
+** TODO expand doc, clean up structure of this...
 **
 ** @author infinity0
 */
-abstract public class TripleBufferSerialiser<T> {
+abstract public class TripleBufferSerialiser<T> implements Serialiser<T> {
 
 	// keep 3 buffers
 
@@ -18,102 +25,72 @@ abstract public class TripleBufferSerialiser<T> {
 	** Maximum number of waiting tasks that the BufferHandler will postpone
 	** before handling a buffer.
 	*/
-	final int maxQueue = 4;
+	final int queueSize;
 
-	public class BufferHandler extends Thread {
-
-		public synchronized void run() {
-			while (!buffersEmpty()) {
-				// get the queue size once, instead of holding a lock on queue; improves concurrency
-				int qsz = queueSize();
-
-				if (qsz > maxQueue) {
-					// handle the fullest buffer and then rotate buffers around.
-					// synchronized (queue) { queue.notifyAll(); }
-
-				} else if (buffersChanged()) {
-					// continue, and wait
-
-				} else if (qsz > 0) {
-					// handle the fullest buffer and then rotate buffers around.
-					// synchronized (queue) { queue.notifyAll(); }
-
-				} else {
-					// looks like nobody wants me to do anything anymore
-
-					// if everything can fit in 1 buffers, do so
-
-					// if everything can fit in 2 buffers, do so
-
-					// otherwise, distribute them across 3 buffers.
-					// argh! bin-packing problem.
-					// (trivial if each task takes up only 1 space in the buffer, hard otherwise)
-					// in the best case, the buffer will be 2/3 full
-				}
-
-				wait(1000);
-
-			}
-
-		}
-	}
+	/**
+	** Queue of tasks currently waiting to be added to the buffers.
+	*/
+	protected ArrayBlockingQueue<TripleBufferSerialiseTask> queue;
 
 	/**
 	** Handler for the buffers. Also acts as a big fat lock for all of them.
 	*/
 	BufferHandler handler;
 
-	public boolean buffersChanged() {
-		synchronized (handler) {
-			throw new UnsupportedOperationException("Not implemented.");
-		}
+	protected TripleBufferSerialiser(int i) {
+		queueSize = i;
+		queue = new ArrayBlockingQueue<TripleBufferSerialiseTask>(i);
 	}
 
-	public boolean buffersEmpty() {
-		synchronized (handler) {
-			throw new UnsupportedOperationException("Not implemented.");
-		}
-	}
+	abstract public BufferHandler newBufferHandler();
 
-	public boolean buffersOvercrowded(TripleBufferSerialiseTask t) {
-		synchronized (handler) {
-			throw new UnsupportedOperationException("Not implemented.");
-		}
-	}
+	abstract public class BufferHandler extends Thread {
 
-	/**
-	** Try to put a task into a buffer. If this succeeds, notify the handler,
-	** and return true.
-	*/
-	public boolean buffersPut(TripleBufferSerialiseTask t) {
-		synchronized (handler) {
-			throw new UnsupportedOperationException("Not implemented.");
-			handler.notify();
-		}
-	}
+		TripleBufferSerialiseTask[] heldTasks;
+		int held = 0;
 
-	/**
-	** Counts the number of tasks currently waiting to be added to the buffers.
-	*/
-	protected Integer queue;
+		public synchronized void run() {
 
-	public void joinQueue() {
-		synchronized (queue) {
-			--queue;
-		}
-	}
+			TripleBufferSerialiseTask task;
 
-	public void partQueue(int size) {
-		synchronized (queue) {
-			++queue;
-		}
-	}
+			while ((task = pollQueue()) != null) {
+				if (false /* we can fit task into one of the buffers */) {
+					// put it into the buffer
+				} else {
+					// leave it for later
+					heldTasks[held++] = task;
 
-	public int queueSize() {
-		synchronized (queue) {
-			int i = queue;
-			return i;
+					if (held == queueSize) {
+
+						// flush the most filled-up buffer,
+						// put all the pending tasks into the buffers
+
+					}
+				}
+			}
+
+			// looks like we timed out, and there are no more tasks on the queue, so
+			// handle what we have left, including heldTasks.
+
+			// if everything can fit in 1, 2, or 3 buffers, do so
+
+			// otherwise, distribute them across 4 buffers, as evenly as possible
+			// argh! bin-packing problem.
+			// (trivial if each task takes up only 1 space in the buffer, hard otherwise)
+			// in the best case, the buffer will be over 3/4 full
+
 		}
+
+		public TripleBufferSerialiseTask pollQueue() {
+			try {
+				return queue.poll(1, TimeUnit.SECONDS);
+			} catch (InterruptedException e) {
+				// TODO better way of handling this...
+				Thread.currentThread().interrupt();
+				return null;
+			}
+		}
+
 	}
 
 
@@ -121,34 +98,48 @@ abstract public class TripleBufferSerialiser<T> {
 	 * public interface Serialiser
 	 ************************************************************************/
 
-	public InflateTask<T> newInflateTask(Object o);
+	//public InflateTask<T> newInflateTask(Object o);
 
-	public DeflateTask<T> newDeflateTask(T o);
+	//public DeflateTask<T> newDeflateTask(T o);
 
-	public T inflate(Object dummy);
+	//public T inflate(Object dummy);
 
-	public Object deflate(T skel) throws IllegalArgumentException;
+	//public Object deflate(T skel) throws IllegalArgumentException;
 
-	public interface TripleBufferSerialiseTask {
+	abstract public class TripleBufferSerialiseTask implements SerialiseTask {
 
-		public void start() {
-			throw new UnsupportedOperationException("Not implemented.");
-			// if the buffers are empty, add the task and start a BufferHandler, and return.
+		protected Boolean started = Boolean.FALSE;
+		protected Boolean done = Boolean.FALSE;
 
-			synchronized (queue) {
-				joinQueue();
-				// while buffersPut(this) { queue.wait(); }
-				partQueue();
+		public synchronized void start() {
+			try {
+				queue.put(this);
+			} catch (InterruptedException e) {
+				// TODO maybe have a different exception for this... IOException?
+				throw new DataNotLoadedException("Serialisation task failed: interrupted!", e, this, null, null);
 			}
 
+			// if there is no handler, start one
+			if (handler == null) {
+				handler = newBufferHandler();
+				handler.start();
+			}
+
+			started = Boolean.TRUE;
 		}
 
-		public void join() {
-			// wait until this task is complete
-			throw new UnsupportedOperationException("Not implemented.");
+		public synchronized void join() {
+			if (!started) { return; }
+			while (!done) {
+				try {
+					wait();
+				} catch (InterruptedException e) {
+					throw new DataNotLoadedException("Serialisation task failed: interrupted!", e, this, null, null);
+				}
+			}
 		}
 
-		public void setOption(Object o);
+		// public void setOption(Object o);
 
 	}
 
