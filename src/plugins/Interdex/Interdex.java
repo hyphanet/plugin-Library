@@ -58,6 +58,7 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 			}
 		}
 
+		test.deflate();
 		Object o = f.s.deflate(test);
 		return request.toString() + "<br />Hi<br />" + o.toString();
 		//return request.toString();

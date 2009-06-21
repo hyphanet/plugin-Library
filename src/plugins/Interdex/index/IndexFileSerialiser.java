@@ -160,6 +160,23 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 			return file.getPath();
 		}
 
+		// snakeYAML says "Arrays of primitives are not fully supported."
+		public void put(String key, Object o) {
+			if (o instanceof int[]) {
+				int[] ii = (int[]) o;
+				Integer[] ints = new Integer[ii.length];
+				for (int i=0; i<ii.length; ++i) { ints[i] = ii[i]; }
+				super.put(key, ints);
+			} else if (o instanceof boolean[]) {
+				boolean[] ii = (boolean[]) o;
+				Boolean[] ints = new Boolean[ii.length];
+				for (int i=0; i<ii.length; ++i) { ints[i] = ii[i]; }
+				super.put(key, ints);
+			} else {
+				super.put(key, o);
+			}
+		}
+
 	}
 
 	abstract public class MapDeflateTask implements DeflateTask {
@@ -188,5 +205,6 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 		}
 
 	}
+
 
 }

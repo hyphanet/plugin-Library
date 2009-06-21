@@ -381,6 +381,7 @@ implements SkeletonMap<K, V> {
 			if (child[i] != null && child[i] instanceof SkeletonPrefixTreeMap) {
 				SkeletonPrefixTreeMap<K, V> ch = (SkeletonPrefixTreeMap<K, V>)child[i];
 				if (!ch.isBare()) { ch.deflate(); }
+				// TODO: parallelise this, turn it into DeflateTask
 				Object o = serialiser.deflate(ch);
 				// TODO: make this use the dummy object returned
 				putDummyChild(i);
@@ -439,21 +440,15 @@ implements SkeletonMap<K, V> {
 			de.put("size", skel.size);
 			de.put("subtreesMax", skel.subtreesMax);
 			de.put("subtrees", skel.subtrees);
-			// TODO snakeYAML says "Arrays of primitives are not fully supported."
-			//de.put("sizePrefix", skel.sizePrefix);
-			Integer[] szPre = new Integer[skel.subtreesMax];
-			for (int i=0; i<skel.subtreesMax; ++i) { szPre[i] = skel.sizePrefix[i]; }
-			de.put("sizePrefix", szPre);
+			de.put("sizePrefix", skel.sizePrefix);
 
-			Boolean chd[] = new Boolean[skel.subtreesMax];
+			boolean chd[] = new boolean[skel.subtreesMax];
 			for (int i=0; i<skel.subtreesMax; ++i) { chd[i] = (skel.child[i] != null); }
 			de.put("_child", chd);
 
 			Set<K> keySet = skel.itmap.keySet();
 			String[] keys = new String[keySet.size()];
-			int i=0;
-			for (K k: keySet) { keys[i++] = k.toString(); }
-
+			int i=0; for (K k: keySet) { keys[i++] = k.toString(); }
 			de.put("_tmap", keys);
 		}
 
