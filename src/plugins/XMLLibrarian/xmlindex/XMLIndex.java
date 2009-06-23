@@ -1,12 +1,12 @@
 package plugins.XMLLibrarian.xmlindex;
 
+import java.net.MalformedURLException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.xml.sax.SAXException;
 
-import freenet.pluginmanager.PluginRespirator;
 import freenet.client.FetchException;
 import freenet.support.Logger;
 import freenet.support.api.Bucket;
@@ -29,20 +29,21 @@ import java.io.File;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.SortedMap;
 
 import plugins.XMLLibrarian.Index;
 import plugins.XMLLibrarian.InvalidSearchException;
+import plugins.XMLLibrarian.FindRequest;
 import plugins.XMLLibrarian.Request;
-import plugins.XMLLibrarian.Search;
-import plugins.XMLLibrarian.Status;
-import plugins.XMLLibrarian.URIWrapper;
 import plugins.XMLLibrarian.XMLLibrarian;
 
 
+/**
+ * The xml index format
+ * @author MikeB
+ */
 public class XMLIndex extends Index{
 	static final String DEFAULT_FILE = "index.xml";
 
@@ -55,14 +56,12 @@ public class XMLIndex extends Index{
 	 * </ul>
 	 * Earlier format are no longer supported.
 	 */
-	protected int version;
-
-	protected List<String> subIndiceList;
-	protected SortedMap<String, SubIndex> subIndice;
-	protected int downloadProgress;
-	protected int downloadSize;
+	private int version;
+	private List<String> subIndiceList;
+	private SortedMap<String, SubIndex> subIndice;
 
 	/**
+	 * Create an XMLIndex from a URI
 	 * @param baseURI
 	 *            Base URI of the index (exclude the <tt>index.xml</tt> part)
 	 */
@@ -84,72 +83,46 @@ public class XMLIndex extends Index{
 	}
 
 	/**
-	 * Fetch the main index file
-	 * 
-	 * @throws IOException
-	 * @throws FetchException
-	 * @throws SAXException
-	 */ 
-	private synchronized void fetch() throws IOException, FetchException, SAXException {
-        fetch(null);
-    }
-	private synchronized void fetch(Search search) throws IOException, FetchException, SAXException {
-		if (fetchStatus != FetchStatus.UNFETCHED)
-			return;
-		fetchStatus = FetchStatus.FETCHING;
-		
-        if(search!=null) search.setprogress("Getting base index");
-		Bucket bucket = Util.fetchBucket(indexuri + DEFAULT_FILE, search);
-        if(search!=null) search.setprogress("Fetched base index");
-		try {
-			InputStream is = bucket.getInputStream();
-			parse(is);
-			is.close();
-		} finally {
-			bucket.free();
-		}
-
-		fetchStatus = FetchStatus.FETCHED;
-	}
-	
+	 * process the bucket containing the main index file
+	 * @param bucket
+	 */
 	private void processRequests(Bucket bucket){
 		try {
 			InputStream is = bucket.getInputStream();
 			parse(is);
 			is.close();
 			fetchStatus = FetchStatus.FETCHED;
-			for(Request req : waitingOnMainIndex)
+			for(FindRequest req : waitingOnMainIndex)
 				setdependencies(req);
 			waitingOnMainIndex.clear();
 		}catch(Exception e){
 			fetchStatus = FetchStatus.FAILED;
+			Logger.error(this, indexuri, e);
 		} finally {
 			bucket.free();
 		}
 	}
 	
-	
+	/**
+	 * Listener to receive events when fetching the main index
+	 */
 	ClientEventListener mainIndexListener = new ClientEventListener(){
 		/**
 		 * Hears an event.
-		 * @param container The database context the event was generated in.
-		 * NOTE THAT IT MAY NOT HAVE BEEN GENERATED IN A DATABASE CONTEXT AT ALL:
-		 * In this case, container will be null, and you should use context to schedule a DBJob.
 		 **/
 		public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context){
 			mainIndexDescription = ce.getDescription();
-			downloadProgress = Integer.parseInt(ce.getDescription().split("[/\b]")[3]);
-			downloadSize = Integer.parseInt(ce.getDescription().split("[/\b]")[4]);
+			FindRequest.updateWithDescription(waitingOnMainIndex, mainIndexDescription);
 		}
 
-		/**
-		 * Called when the EventProducer gets removeFrom(ObjectContainer).
-		 * If the listener is the main listener which probably called removeFrom(), it should do nothing.
-		 * If it's a tag-along but request specific listener, it may need to remove itself.
-		 */
-		public void onRemoveEventProducer(ObjectContainer container){}
+		public void onRemoveEventProducer(ObjectContainer container){
+			throw new UnsupportedOperationException();
+		}
 	};
-	
+
+	/**
+	 * Callback for when index fetching completes
+	 */
 	ClientGetCallback mainIndexCallback = new ClientGetCallback(){
 		/** Called on successful fetch */
 		public void onSuccess(FetchResult result, ClientGetter state, ObjectContainer container){
@@ -163,8 +136,13 @@ public class XMLIndex extends Index{
 		
 		public void onMajorProgress(ObjectContainer container){}
 	};
-	
-	private synchronized void startFetch() throws IOException, FetchException, SAXException {
+
+	/**
+	 * Fetch main index & process if local or fetch in background with callback if Freenet URI
+	 * @throws freenet.client.FetchException
+	 * @throws java.net.MalformedURLException
+	 */
+	private synchronized void startFetch() throws FetchException, MalformedURLException {
 		if (fetchStatus != FetchStatus.UNFETCHED)
 			return;
 		fetchStatus = FetchStatus.FETCHING;
@@ -173,7 +151,6 @@ public class XMLIndex extends Index{
 		// try local file first
 		File file = new File(uri);
 		if (file.exists() && file.canRead()) {
-			downloadProgress = -1;
 			processRequests(new FileBucket(file, true, false, false, false, false));
 			return;
 		}
@@ -194,6 +171,12 @@ public class XMLIndex extends Index{
 		}
 	}
 
+	/**
+	 * Parse the xml in the main index to read fields for this object
+	 * @param is InputStream for main index file
+	 * @throws org.xml.sax.SAXException
+	 * @throws java.io.IOException
+	 */
 	private void parse(InputStream is) throws SAXException, IOException {
 		SAXParserFactory factory = SAXParserFactory.newInstance();
 
@@ -227,14 +210,18 @@ public class XMLIndex extends Index{
 		}
 	}
 	
+	@Override
 	public String toString(){
 		String output = "Index : "+indexuri+" "+fetchStatus+" "+mainIndexDescription+" "+waitingOnMainIndex+"\n\t"+subIndice;
 		//for (SubIndex s : subIndice)
 		//	output = output+"\n -"+s;
 		return output;
 	}
-	
-	protected SubIndex getSubIndex(String keyword) {
+
+	/**
+	 * Gets the SubIndex object which should hold the keyword
+	 */
+	private SubIndex getSubIndex(String keyword) {
 		String md5 = XMLLibrarian.MD5(keyword);
 		int idx = Collections.binarySearch(subIndiceList, md5);
 		if (idx < 0)
@@ -242,86 +229,78 @@ public class XMLIndex extends Index{
 		return subIndice.get(subIndiceList.get(idx));
 	}
 
-	public synchronized Request find(String term) throws Exception {
-		Request request = new Request(Request.RequestType.FIND, term);
-		requests.add(request);
-		setdependencies(request);
-		notifyAll();
-		return request;
+	/**
+	 * Find the term in this Index
+	 */
+	@Override
+	public synchronized Request find(String term){
+		try {
+			FindRequest request = new FindRequest(term);
+			requests.add(request);
+			setdependencies(request);
+			notifyAll();
+			return request;
+		} catch (FetchException ex) {
+			Logger.error(this, "Trying to find " + term, ex);
+			return null;
+		} catch (MalformedURLException ex) {
+			Logger.error(this, "Trying to find " + term, ex);
+			return null;
+		}
 	}
-	
-	private synchronized void setdependencies(Request request)throws Exception{
+
+	/**
+	 * Puts request into the dependency List of either the main index or the
+	 * subindex depending on whether the main index is availiable
+	 * @param request
+	 * @throws freenet.client.FetchException
+	 * @throws java.net.MalformedURLException
+	 */
+	private synchronized void setdependencies(FindRequest request) throws FetchException, MalformedURLException{
 		if (fetchStatus!=FetchStatus.FETCHED){
 			waitingOnMainIndex.add(request);
-			request.setStage(Request.RequestStatus.INPROGRESS,1, this);
+			request.setStage(FindRequest.RequestStatus.INPROGRESS,1, 2);
 			startFetch();
 		}else if (!getSubIndex(request.getSubject()).isAlive()){
 			SubIndex subindex = getSubIndex(request.getSubject());
-			request.setStage(Request.RequestStatus.INPROGRESS,2, subindex);
+			request.setStage(FindRequest.RequestStatus.INPROGRESS,2, 2);
 			subindex.addRequest(request);
 			if(subindex.getFetchStatus()==FetchStatus.UNFETCHED)
-				subindex.start();
+				pr.getNode().executor.execute(subindex, "Subindex:"+subindex.getFileName());
 		}
 	}
 	
-
-			
-
-	public List<URIWrapper> search(Search search) throws Exception {
-		fetch(search);
-		List<URIWrapper> result = new LinkedList<URIWrapper>();
-		String subIndex = getSubIndex(search.getQuery()).getFileName();
-		
-		// TODO make sure each subindex only gets fetched & parsed once
-		try {
-			search.setprogress("Getting subindex "+subIndex+" to search for "+search.getQuery());
-			Bucket bucket = Util.fetchBucket(indexuri + subIndex, search);
-			search.setprogress("Fetched subindex "+subIndex+" to search for "+search.getQuery());
-
-			SAXParserFactory factory = SAXParserFactory.newInstance();
-			try {
-				factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-				SAXParser saxParser = factory.newSAXParser();
-				InputStream is = bucket.getInputStream();
-				search.setprogress("Fetched subindex "+subIndex+" to search for "+search.getQuery());
-				saxParser.parse(is, new LibrarianHandler(search.getQuery(), result));
-				is.close();
-			} catch (Throwable err) {
-				err.printStackTrace();
-				throw new Exception("Could not parse XML: " + err.toString());
-			} finally {
-				bucket.free();
-			}
-		} catch (Exception e) {
-			Logger.error(this, indexuri + subIndex + " could not be opened: " + e.toString(), e);
-			throw e;
-		}
-		return result;
+	
+	/**
+	 * @return the uri of this index prefixed with "xml:" to show what type it is
+	 * @Override
+	 */
+	@Override
+	public String getIndexURI(){
+		return "xml:"+super.getIndexURI();
 	}
 	
-	public long getDownloadedBlocks(){
-		return downloadProgress;
-	}
-	
-	private class SubIndex extends Thread implements Status{
+	private class SubIndex extends Thread {
 		String indexuri, filename;
-		ArrayList<Request> waitingOnSubindex=new ArrayList<Request>();
+		private final ArrayList<FindRequest> waitingOnSubindex=new ArrayList<FindRequest>();
 		FetchStatus fetchStatus = FetchStatus.UNFETCHED;
-		long downloadProgress, downloadSize;
 		HighLevelSimpleClient hlsc;
 		Bucket bucket;
 		Exception error;
-		
+
+		/**
+		 * Listens for progress on a subIndex fetch
+		 */
 		ClientEventListener subIndexListener = new ClientEventListener(){
 			/**
-			 * Hears an event.
+			 * Hears an event and updates those Requests waiting on this subindex fetch
 			 **/
 			public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context){
-				//mainIndexDescription = ce.getDescription();
-				downloadProgress = Integer.parseInt(ce.getDescription().split("[/\b]")[3]);
-				downloadSize = Integer.parseInt(ce.getDescription().split("[/\b]")[4]);
+				FindRequest.updateWithDescription(waitingOnSubindex, ce.getDescription());
 			}
-			public void onRemoveEventProducer(ObjectContainer container){}
+			public void onRemoveEventProducer(ObjectContainer container){
+				throw new UnsupportedOperationException();
+			}
 		};
 		
 		SubIndex(String indexuri, String filename){
@@ -341,22 +320,24 @@ public class XMLIndex extends Index{
 		FetchStatus getFetchStatus(){
 			return fetchStatus;
 		}
-		
-		void addRequest(Request request){
+
+		/**
+		 * Add a request to the List of requests looking in this subindex
+		 * @param request
+		 */
+		void addRequest(FindRequest request){
 			synchronized(waitingOnSubindex){
 				waitingOnSubindex.add(request);
 			}
 		}
 		
-		public long getDownloadedBlocks(){
-			return downloadProgress;
-		}
-		
+		@Override
 		public String toString(){
 			return filename+" "+fetchStatus+" "+waitingOnSubindex;
 		}
 		
-		public synchronized void run(){ // TODO  conditions and simultanious parsing and file list
+		@Override
+		public synchronized void run(){ // FIXME simultanious fetching doesnt seem to be happening
 			try{
 				while(waitingOnSubindex.size()>0){
 					if(fetchStatus==FetchStatus.UNFETCHED){
@@ -375,12 +356,12 @@ public class XMLIndex extends Index{
 							factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 							SAXParser saxParser = factory.newSAXParser();
 							InputStream is = bucket.getInputStream();
-							synchronized(waitingOnSubindex){
+							///synchronized(waitingOnSubindex){
 								saxParser.parse(is, new LibrarianHandler(waitingOnSubindex));
-								for(Request r : waitingOnSubindex)
-									r.finished();
+								for(FindRequest r : waitingOnSubindex)
+									r.setFinished();
 								waitingOnSubindex.clear();
-							}
+							///}
 							is.close();
 						} catch (Throwable err) {
 							err.printStackTrace();
@@ -392,6 +373,9 @@ public class XMLIndex extends Index{
 			}catch(Exception e){
 				fetchStatus = FetchStatus.FAILED;
 				this.error = e;
+				Logger.error(this, "Dropping from subindex run loop", e);
+				for (FindRequest r : waitingOnSubindex)
+					r.setError(e);
 			}
 		}
 	}

@@ -1,5 +1,6 @@
 package plugins.XMLLibrarian;
 
+import plugins.XMLLibrarian.interfaces.L10nString;
 import java.security.MessageDigest;
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginHTTP;
@@ -8,11 +9,8 @@ import freenet.pluginmanager.FredPluginThreadless;
 import freenet.pluginmanager.FredPluginVersioned;
 import freenet.pluginmanager.PluginHTTPException;
 import freenet.pluginmanager.PluginRespirator;
-import freenet.support.HTMLEncoder;
-import freenet.support.Logger;
 import freenet.support.api.HTTPRequest;
 import freenet.pluginmanager.FredPluginL10n;
-import freenet.l10n.L10n;
 import freenet.l10n.L10n.LANGUAGE;
 
 import plugins.XMLLibrarian.interfaces.WebUI;
@@ -39,7 +37,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	/**
 	 * Default index site
 	 */
-	public static final String DEFAULT_INDEX_SITE = "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/";
+	public static final String DEFAULT_INDEX_SITE = "bookmark:wanna";
 	/*
 	 * Current configuration gets saved by default in the configfile. To Save the current
 	 * configuration use "Save Configuration"
@@ -72,7 +70,11 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 	// FredPluginHTTP
     
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
-		return WebUI.handleHTTPGet(request);
+		try{
+			return WebUI.handleHTTPGet(request);
+		}catch(Exception e){
+			return WebUI.searchpage(null, null, false, e);
+		}
 	}
     
     
@@ -86,7 +88,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		this.pr = pr;
         Search.setup(this);
 		WebUI.setup(this, plugName);
-		Index.setup(this);
+		Index.setup(pr);
 	}
 
 

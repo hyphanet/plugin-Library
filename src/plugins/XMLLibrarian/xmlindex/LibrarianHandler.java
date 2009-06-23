@@ -11,8 +11,8 @@ import org.xml.sax.helpers.DefaultHandler;
 
 import freenet.support.Logger;
 
+import plugins.XMLLibrarian.FindRequest;
 import plugins.XMLLibrarian.URIWrapper;
-import plugins.XMLLibrarian.Request;
 import plugins.XMLLibrarian.XMLLibrarian;
 
 /**
@@ -37,8 +37,8 @@ public class LibrarianHandler extends DefaultHandler {
 	private HashMap<String, String> titles;
 	private List<URIWrapper> fileuris;
 	///private List<Integer> fileids;
-	private List<Request> requests;
-	private List<Request> wordMatches;
+	private List<FindRequest> requests;
+	private List<FindRequest> wordMatches;
 
 	public LibrarianHandler(String word, List<URIWrapper> fileuris) throws Exception {
 		this.fileuris = fileuris;
@@ -46,12 +46,12 @@ public class LibrarianHandler extends DefaultHandler {
 		md5 = XMLLibrarian.MD5(word);
 	}
 	
-	public LibrarianHandler(List<Request> requests) throws Exception {
+	public LibrarianHandler(List<FindRequest> requests) throws Exception {
 		this.requests = requests;
 ///		this.uris = uris;
 ///		this.titles = titles;
 ///		md5 = XMLLibrarian.MD5(word);
-		for(Request r : requests)
+		for(FindRequest r : requests)
 			r.setResult(new ArrayList<URIWrapper>());
 		word = "";
 		md5="";
@@ -119,8 +119,8 @@ public class LibrarianHandler extends DefaultHandler {
 				if (match.equals(word))
 					found_match = true;
 				if (requests!=null){
-					wordMatches = new ArrayList<Request>();
-					for (Request r : requests){
+					wordMatches = new ArrayList<FindRequest>();
+					for (FindRequest r : requests){
 						//System.out.println("comparing "+r.getSubject()+" with "+match);
 						if (match.equals(r.getSubject())){
 							wordMatches.add(r);
@@ -128,7 +128,7 @@ public class LibrarianHandler extends DefaultHandler {
 					}
 				}
 				//if((attrs.getValue("v")).equals(word)) found_match = true;
-				Logger.minor(this, "word searched = " + word + " matched");
+				//Logger.minor(this, "word searched = " + word + " matched");
 			} catch (Exception e) {
 				Logger.error(this, "word key doesn't match" + e.toString(), e);
 			}
@@ -148,7 +148,7 @@ public class LibrarianHandler extends DefaultHandler {
 					if(fileuris!=null){
 						URIWrapper uri = new URIWrapper();
 						uri.URI = uris.get(attrs.getValue("id"));
-						Logger.minor(this, "word searched = " + word + " file id = " + uri.URI);
+						//Logger.minor(this, "word searched = " + word + " file id = " + uri.URI);
 						//uri.descr = "not available";
 						synchronized(this){
 							if(titles.containsKey(attrs.getValue("id")))
@@ -166,7 +166,7 @@ public class LibrarianHandler extends DefaultHandler {
 					}else{
 						URIWrapper uri = new URIWrapper();
 						uri.URI = uris.get(attrs.getValue("id"));
-						Logger.minor(this, "word searched = " + word + " file id = " + uri.URI);
+						//Logger.minor(this, "word searched = " + word + " file id = " + uri.URI);
 						//uri.descr = "not available";
 						synchronized(this){
 							if(titles.containsKey(attrs.getValue("id")))
@@ -177,7 +177,7 @@ public class LibrarianHandler extends DefaultHandler {
 							}
 							else
 								uri.descr = "not available";
-							for(Request<ArrayList<URIWrapper>> match : wordMatches){
+							for(FindRequest<ArrayList<URIWrapper>> match : wordMatches){
 								match.getResult().add(uri);
 							}
 						}

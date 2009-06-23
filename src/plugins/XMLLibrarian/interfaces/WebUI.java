@@ -1,12 +1,13 @@
 package plugins.XMLLibrarian.interfaces;
 
 import freenet.pluginmanager.PluginHTTPException;
-import freenet.pluginmanager.FredPluginHTTP;
 import freenet.support.HTMLNode;
 import freenet.support.api.HTTPRequest;
 import freenet.support.HTMLEncoder;
 import freenet.l10n.L10n;
 
+import plugins.XMLLibrarian.Index;
+import plugins.XMLLibrarian.Request;
 import plugins.XMLLibrarian.Search;
 import plugins.XMLLibrarian.XMLLibrarian;
 
@@ -25,22 +26,26 @@ public class WebUI{
     
 	public static String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
 		String searchstring = request.getParam("search");
-		String indexuri = request.isParameterSet("index") ? request.getParam("index") : xl.DEFAULT_INDEX_SITE;
+		String indexuri = request.isParameterSet("index") ? request.getParam("index") : XMLLibrarian.DEFAULT_INDEX_SITE;
 		
-		if(request.getPath().endsWith("progress")){ // mini progress display for use with JS
-			if (Search.hasSearch(searchstring, indexuri))
-				return Search.getSearch(searchstring, indexuri).getprogress("format");
-			else
-				return "No asyncronous search for "+HTMLEncoder.encode(searchstring)+" found.";
-			
-		}else if(request.getPath().endsWith("result")){ // just get result for JS
-			if (Search.hasSearch(searchstring, indexuri)){
-				return Search.getSearch(searchstring, indexuri).getresult();
-			}else return "No asyncronous search for "+HTMLEncoder.encode(searchstring)+" found.";
-			
-		}else if(searchstring == null){   // no search main
+//		if(request.getPath().endsWith("progress")){ // mini progress display for use with JS
+//			if (Search.hasSearch(searchstring, indexuri))
+//				return Search.getSearch(searchstring, indexuri).getprogress("format");
+//			else
+//				return "No asyncronous search for "+HTMLEncoder.encode(searchstring)+" found.";
+//
+//		}else if(request.getPath().endsWith("result")){ // just get result for JS
+//			if (Search.hasSearch(searchstring, indexuri)){
+//				return Search.getSearch(searchstring, indexuri).getresult();
+//			}else return "No asyncronous search for "+HTMLEncoder.encode(searchstring)+" found.";
+//
+//		}else
+		if(request.getPath().endsWith("debug")){
+			WebUI.debugpage();
+		}
+		if(searchstring == null){   // no search main
 			// generate HTML and set it to no refresh
-			return WebUI.searchpage();
+			return WebUI.searchpage(indexuri);
 			
 		}else{  // Full main searchpage
 			Search searchobject = null;
@@ -50,15 +55,15 @@ public class WebUI{
 				searchobject = Search.startSearch(searchstring, indexuri);
 				
 				// generate HTML for search object and set it to refresh
-				return searchpage(searchobject, true, null);
+				return searchpage(searchobject, indexuri, true, null);
 			}catch(Exception e){
-				return searchpage(searchobject, true, e);
+				return searchpage(searchobject, indexuri, true, e);
 			}
 		}
 	}
     
 	public static String handleHTTPPost(HTTPRequest request) throws PluginHTTPException{
-        return searchpage();
+        return searchpage(null);
     }
 
 
@@ -66,26 +71,28 @@ public class WebUI{
 	/**
 	 * Build an empty search page
 	 **/
-	public static String searchpage(){
-		return searchpage(null, false, null);
+	public static String searchpage(String indexuri){
+		return searchpage(null, indexuri, false, null);
 	}
 	
 	/**
 	 * Put an error on the page
 	 */
-	public static void addError(HTMLNode node, Exception error){
-		HTMLNode error1 = node.addChild("p", HTMLEncoder.encode(error.toString()));
+	public static void addError(HTMLNode node, Throwable error){
+		HTMLNode error1 = node.addChild("div", "style", "padding:10px;border:5px solid gray;margin:10px", error.toString());
 		for (StackTraceElement ste : error.getStackTrace()){
 			error1.addChild("br");
-			error1.addChild("#", ste.toString());
+			error1.addChild("#", " -- "+ste.toString());
 		}
+		if(error.getCause()!=null)
+			addError(error1, error.getCause());
 	}
 	
     /**
      * Build a search page for search in it's current state
      **/
-    public static String searchpage(Search searchobject, boolean refresh, Exception e){
-		if(searchobject==null || searchobject.isSuccess() || e!=null)
+    public static String searchpage(Search request, String indexuri, boolean refresh, Exception e){
+		if(request==null || "".equals(request.getQuery()) || request.isFinished() || e!=null)
 			refresh = false;
 			
 		
@@ -94,17 +101,21 @@ public class WebUI{
         if (e != null){
             addError(errorDiv, e);
 		}
-		if (searchobject != null && searchobject.getError() != null)
-			addError(errorDiv, searchobject.getError());
+		if (request != null && request.getRequestStatus() == Request.RequestStatus.ERROR)
+			addError(errorDiv, request.getError());
 			
 		String search = "";
-		String indexuri = "";
 		try{
-			search = searchobject !=null ? HTMLEncoder.encode(searchobject.getQuery()) : "";
-			indexuri = searchobject !=null ? HTMLEncoder.encode(searchobject.getIndex().getIndexURI()) : xl.DEFAULT_INDEX_SITE;
+			search = request !=null ? HTMLEncoder.encode(request.getQuery()) : "";
+			if(indexuri == null || indexuri.equals(""))
+				indexuri = request !=null  ? HTMLEncoder.encode(request.getIndexURI()) : XMLLibrarian.DEFAULT_INDEX_SITE;
 		}catch(Exception exe){
 			addError(errorDiv, exe);
 		}
+
+		String title = plugName;
+		if(search != null && !search.equals("") && indexuri != null && !indexuri.equals(""))
+			title = "\"" + search + "\" - "+plugName;
 
 			
 			
@@ -114,7 +125,7 @@ public class WebUI{
 		if(refresh)
             headNode.addChild("meta", new String[] { "http-equiv", "content" }, new String[] { "refresh", "1" });
 		headNode.addChild("meta", new String[] { "http-equiv", "content" }, new String[] { "Content-Type", "text/html; charset=utf-8" });
-		headNode.addChild("title", (searchobject==null?"":(search + " - ")) + plugName);
+		headNode.addChild("title", title);
 		//headNode.addChild("link", new String[] { "rel", "href", "type", "title" }, new String[] { "stylesheet", "/static/themes/" + theme.code + "/theme.css", "text/css", theme.code });
 		
 		HTMLNode bodyNode = htmlNode.addChild("body");
@@ -141,7 +152,7 @@ public class WebUI{
 
 
         // If showing a search
-        if(searchobject != null){
+        if(request != null){
 			HTMLNode progressDiv = bodyNode.addChild("div", "id", "progress");
             // Search description
 			HTMLNode progressTable = progressDiv.addChild("table", "width", "100%");
@@ -149,23 +160,23 @@ public class WebUI{
 					.addChild("td", "colspan", "2");
 						searchingforCell.addChild("#", xl.getString("Searching-for"));
 						searchingforCell.addChild("span", "class", "librarian-searching-for-target")
-							.addChild("b", HTMLEncoder.encode(search));
+							.addChild("b", search);
 						searchingforCell.addChild("#", xl.getString("in-index"));
-						searchingforCell.addChild("i", HTMLEncoder.encode(indexuri));
+						searchingforCell.addChild("i", indexuri);
 			
 
 				// Search status
 				HTMLNode statusRow = progressTable.addChild("tr");
 					statusRow.addChild("td", "width", "140", xl.getString("Search-status"));
-					searchobject.getprogress(statusRow.addChild("td")
-						.addChild("div", "id", "librarian-search-status"));
+					statusRow.addChild("td")
+							.addChild(writeProgress(request));
 			
 			bodyNode.addChild("p");
 
             // If search is complete show results
-            if (searchobject.isdone())
+            if (request.hasResult())
 				try{
-					searchobject.getResult(bodyNode.addChild("div", "id", "results"));
+					bodyNode.addChild(request.getResultNode());
 				}catch(Exception ex){
 					addError(errorDiv, ex);
 				}
@@ -173,5 +184,24 @@ public class WebUI{
 
 		return pageNode.generate();
     }
+
+	private static String debugpage() {
+		HTMLNode debugpage = new HTMLNode("HTML");
+		HTMLNode bodynode = debugpage.addChild("body");
+		for(Index i : Index.getAllIndices()){
+			HTMLNode indexnode = bodynode.addChild("p");
+			indexnode.addChild("#",i.toString());
+		}
+		return debugpage.generate();
+	}
+
+	private static HTMLNode writeProgress(Request request) {
+		HTMLNode node = new HTMLNode("div", "id", "librarian-search-status");
+		node.addChild("p", "Status : "+request.getSubject()+"  "+request.getRequestStatus()+", Stage: "+request.getSubStage()+"/"+request.getSubStageCount()+", Blocks:"+request.getNumBlocksCompleted()+"/"+request.getNumBlocksTotal());
+		if(request.getSubRequests()!=null)
+			for(Object r : request.getSubRequests())
+				node.addChild("p", " Status : "+((Request)r).getSubject()+"  "+((Request)r).getRequestStatus()+", Stage: "+((Request)r).getSubStage()+"/"+((Request)r).getSubStageCount()+", Blocks:"+((Request)r).getNumBlocksCompleted()+"/"+((Request)r).getNumBlocksTotal());
+		return node;
+	}
 }
 

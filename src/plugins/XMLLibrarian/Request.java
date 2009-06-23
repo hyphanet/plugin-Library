@@ -1,63 +1,87 @@
+
 package plugins.XMLLibrarian;
 
-import freenet.client.events.ClientEventListener;
-import freenet.client.events.ClientEvent;
-import com.db4o.ObjectContainer;
+import java.util.Set;
 
-import freenet.client.async.ClientContext;
+/**
+ * Interface for a request being handled asynchronously from the threads which
+ * need to know it's status and results.
+ * <p />
+ * RequestStatus - what is happening currently with this request <br />
+ * SubStage -	progress of nonparallel events which need to occur for this Request,
+ *					eg. loading the base of an index before loading needed parts<br />
+ * Blocks -		smaller elements of a stage, eg. the progress of a fetch
+ *
+ * @param <E> Class of result of Request
+ *
+ * @author MikeB
+ */
+public interface Request<E> {
+	/**
+	 * UNSTARTED : Request initialised but not begun<br />
+	 * INPROGRESS : Request started<br />
+	 * PARTIALRESULT : Some result is availiable but not all<br />
+	 * FINISHED : Complete result availiable<br />
+	 * ERROR : Use getError() to retrieve the exception which stopped this request
+	 */
+	public enum RequestStatus { UNSTARTED, INPROGRESS, PARTIALRESULT, FINISHED, ERROR };
 
+	/**
+	 * Returns a RequestStatus for this Request
+	 * @see RequestStatus
+	 */
+	public RequestStatus getRequestStatus();
+	/**
+	 * @return true if RequestStatus is FINISHED or ERROR
+	 */
+	public boolean isFinished();
 
-public class Request<E> implements Comparable<Request>{
-	public enum RequestType { FIND, PAGE, SEARCH };
-	public enum RequestStatus { UNSTARTED, INPROGRESS, PARTIALRESULT, FINISHED };
-	
-	protected RequestType type;
-	protected String subject;
-	protected int stage=0;
-	protected RequestStatus status;
-	protected Status statusgiver;
-	E result;
-	
-	
-	public Request(RequestType type, String subject){
-		status = RequestStatus.UNSTARTED;
-		this.type = type;
-		this.subject = subject;
-	}
-	
-	public void setStage(RequestStatus status, int stage, Status statusgiver){
-		this.status = status;
-		this.stage = stage;
-		this.statusgiver = statusgiver;
-	}
-	
-	public Status getStatus(){
-		return statusgiver;
-	}
-	
-	public String getSubject(){
-		return subject;
-	}
-	
-	public void setResult(E result){
-		status = RequestStatus.PARTIALRESULT;
-		this.result = result;
-	}
-	
-	public E getResult(){
-		return result;
-	}
-	
-	public void finished(){
-		status=RequestStatus.FINISHED;
-	}
-	
-	
-	public int compareTo(Request right){
-		return 1024 * status.compareTo(right.status) + subject.compareTo(right.subject);
-	}
-	
-	public String toString(){
-		return "Request subject="+subject+" description="+status.toString()+" stage="+stage+" progress="+statusgiver.getDownloadedBlocks();
-	}
+	public Exception getError();
+
+	/**
+	 * SubStage number between 1 and SubStageCount, for when overall operation
+	 * length is not known but number of stages is
+	 */
+	public int getSubStage();
+	public int getSubStageCount();
+
+	/**
+	 * @return blocks completed in SubStage
+	 */
+	public long getNumBlocksCompleted();
+	public long getNumBlocksTotal();
+	/**
+	 * @return true if NumBlocksTotal is known to be final
+	 */
+	public boolean isNumBlocksCompletedFinal();
+
+	/**
+	 * @return subject of this request
+	 */
+	public String getSubject();
+
+	/**
+	 * @return result of this request
+	 */
+	public E getResult();
+	/**
+	 * @return true if RequestStatus is PARTIALRESULT or FINISHED
+	 */
+	public boolean hasResult();
+
+	/**
+	 * To be overridden by subclasses which depend on subrequests
+	 * @return Set of Requests
+	 */
+	public Set<Request> getSubRequests();
+
+	/**
+	 * Progress accessed flag<br />
+	 * Should return true if the status of this request hasnt changed since it was last read, otherwise false.<br />
+	 * If not implemented, return false
+	 * @return true if progress hasn't changed since it was last read
+	 */
+	public boolean progressAccessed();
+
+	public int compareTo(Request right);
 }

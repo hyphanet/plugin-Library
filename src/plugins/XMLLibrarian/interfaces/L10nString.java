@@ -1,11 +1,10 @@
-package plugins.XMLLibrarian;
+package plugins.XMLLibrarian.interfaces;
 
-import freenet.pluginmanager.FredPluginL10n;
 import freenet.l10n.L10n;
 import freenet.l10n.L10n.LANGUAGE;
 
 
-class L10nString{
+public class L10nString{
 
 
 	// FredPluginL10n
