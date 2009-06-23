@@ -16,59 +16,27 @@ import freenet.l10n.L10n.LANGUAGE;
 import plugins.XMLLibrarian.interfaces.WebUI;
 
 
-/**
- * XMLLibrarian is a modified version of the old librarian. It uses the Xml index files for
- * searching. In addition to searching in a single index, XMLLibrarian allows searching in multiple
- * indices at the same time. Folders containing set of indices can be created and any search on a
- * folder searches the string in all the indices in the folder.
- * 
- * The current configuration can be stored in an external file and reused later. The default file
- * for the same is XMLLibrarian.xml.
- * 
- *The index list of a particular folder can be saved in an external file and likewise imported from
- * an existing file. XMLLibrarian assumes that the index to be used is present at
- * DEFAULT_INDEX_SITE/index.xml .
- * 
- * @author swatigoyal
- * 
- */
 
 public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersioned, FredPluginRealVersioned, FredPluginThreadless, FredPluginL10n {
-	/**
-	 * Default index site
-	 */
 	public static final String DEFAULT_INDEX_SITE = "bookmark:wanna";
-	/*
-	 * Current configuration gets saved by default in the configfile. To Save the current
-	 * configuration use "Save Configuration"
-	 */
 	private static int version = 22;
 	private static final String plugName = "XMLLibrarian " + version;
 	private PluginRespirator pr;
 	
 	
 	// FredPluginVersioned
-
 	public String getVersion() {
 		return version + " r" + Version.getSvnRevision();
 	}
 	
 	// FredPluginRealVersioned
-	
 	public long getRealVersion() {
 		return version;
 	}
 	
-	public PluginRespirator getPluginRespirator(){
-		return pr;
-	}
-
-	public void terminate() {
-	}
 	
 	
 	// FredPluginHTTP
-    
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
 		try{
 			return WebUI.handleHTTPGet(request);
@@ -77,13 +45,12 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		}
 	}
     
-    
 	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException{
         return WebUI.handleHTTPPost(request);
     }
 
 
-
+	// FredPlugin
 	public void runPlugin(PluginRespirator pr) {
 		this.pr = pr;
         Search.setup(this);
@@ -91,6 +58,8 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		Index.setup(pr);
 	}
 
+	public void terminate() {
+	}
 
 
 

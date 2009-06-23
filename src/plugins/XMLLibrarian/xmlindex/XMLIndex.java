@@ -1,26 +1,25 @@
 package plugins.XMLLibrarian.xmlindex;
 
-import java.net.MalformedURLException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.xml.sax.SAXException;
+import com.db4o.ObjectContainer;
 
-import freenet.client.FetchException;
 import freenet.support.Logger;
 import freenet.support.api.Bucket;
+import freenet.support.io.FileBucket;
 import freenet.client.async.ClientGetCallback;
 import freenet.client.async.ClientGetter;
-import freenet.client.FetchResult;
-import freenet.client.events.ClientEventListener;
-import freenet.client.HighLevelSimpleClient;
-import freenet.node.RequestStarter;
-import freenet.client.events.ClientEvent;
-import freenet.node.RequestClient;
-import com.db4o.ObjectContainer;
 import freenet.client.async.ClientContext;
-import freenet.support.io.FileBucket;
+import freenet.client.events.ClientEventListener;
+import freenet.client.events.ClientEvent;
+import freenet.client.FetchException;
+import freenet.client.HighLevelSimpleClient;
+import freenet.client.FetchResult;
+import freenet.node.RequestStarter;
+import freenet.node.RequestClient;
 import freenet.keys.FreenetURI;
 
 import java.io.IOException;
@@ -32,6 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.SortedMap;
+import java.net.MalformedURLException;
 
 import plugins.XMLLibrarian.Index;
 import plugins.XMLLibrarian.InvalidSearchException;
@@ -273,7 +273,6 @@ public class XMLIndex extends Index{
 	
 	/**
 	 * @return the uri of this index prefixed with "xml:" to show what type it is
-	 * @Override
 	 */
 	@Override
 	public String getIndexURI(){

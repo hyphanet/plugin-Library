@@ -40,17 +40,14 @@ public class LibrarianHandler extends DefaultHandler {
 	private List<FindRequest> requests;
 	private List<FindRequest> wordMatches;
 
-	public LibrarianHandler(String word, List<URIWrapper> fileuris) throws Exception {
-		this.fileuris = fileuris;
-		this.word = word;
-		md5 = XMLLibrarian.MD5(word);
-	}
-	
+
+	/**
+	 * Construct a LibrarianHandler to look for many terms
+	 * @param requests the requests wanting to be resolved by this LibrarianHandler, results are written back to them
+	 * @throws java.lang.Exception
+	 */
 	public LibrarianHandler(List<FindRequest> requests) throws Exception {
 		this.requests = requests;
-///		this.uris = uris;
-///		this.titles = titles;
-///		md5 = XMLLibrarian.MD5(word);
 		for(FindRequest r : requests)
 			r.setResult(new ArrayList<URIWrapper>());
 		word = "";
@@ -84,24 +81,6 @@ public class LibrarianHandler extends DefaultHandler {
 		if (elt_name.equals("prefix")) {
 			prefix = Integer.parseInt(attrs.getValue("value"));
 		}
-/*
-		if (elt_name.equals("subIndex")) {
-			try {
-				//here we need to match and see if any of the subindices match the required substring of the word.
-				for (int i = 0; i < prefix; i++) {
-					if ((md5.substring(0, prefix - i)).equals(attrs.getValue("key"))) {
-						prefixMatch = md5.substring(0, prefix - i);
-						Logger.normal(this, "match found " + prefixMatch);
-						Logger.minor(this, "word searched = " + word + " prefix matcheed = " + prefixMatch);
-						break;
-					}
-				}
-			}
-			catch (Exception e) {
-				Logger.error(this, "MD5 of the word" + word + "could not be calculated " + e.toString(), e);
-			}
-		}
-*/
 
 		if (elt_name.equals("files"))
 			processingWord = false;
@@ -127,29 +106,17 @@ public class LibrarianHandler extends DefaultHandler {
 						}
 					}
 				}
-				//if((attrs.getValue("v")).equals(word)) found_match = true;
-				//Logger.minor(this, "word searched = " + word + " matched");
 			} catch (Exception e) {
 				Logger.error(this, "word key doesn't match" + e.toString(), e);
 			}
 		}
 
 		if (elt_name.equals("file")) {
-			//				try{
-			//					FileWriter outp = new FileWriter("logfile",true);	
-			//				outp.write("word searched = "+word+" found_match = "+found_match+" processingWord "+processingWord+" \n");
-			//				outp.close();
-			//				}
-			//				catch(Exception e){
-
-			//				}
 			if (processingWord == true && (found_match == true || wordMatches!=null)) {
 				try{
 					if(fileuris!=null){
 						URIWrapper uri = new URIWrapper();
 						uri.URI = uris.get(attrs.getValue("id"));
-						//Logger.minor(this, "word searched = " + word + " file id = " + uri.URI);
-						//uri.descr = "not available";
 						synchronized(this){
 							if(titles.containsKey(attrs.getValue("id")))
 							{
@@ -166,8 +133,6 @@ public class LibrarianHandler extends DefaultHandler {
 					}else{
 						URIWrapper uri = new URIWrapper();
 						uri.URI = uris.get(attrs.getValue("id"));
-						//Logger.minor(this, "word searched = " + word + " file id = " + uri.URI);
-						//uri.descr = "not available";
 						synchronized(this){
 							if(titles.containsKey(attrs.getValue("id")))
 							{
@@ -197,9 +162,6 @@ public class LibrarianHandler extends DefaultHandler {
 						if (l >= 3) {
 							try {
 								title = attrs.getValue("title");
-								//									FileWriter outp = new FileWriter("logfile",true);
-								//									outp.write("found title "+title+" == \n");
-								//									outp.close();
 								titles.put(id, title);
 							} catch (Exception e) {
 								Logger.error(this, "Index Format not compatible " + e.toString(), e);
@@ -208,7 +170,6 @@ public class LibrarianHandler extends DefaultHandler {
 
 						uris.put(id, key);
 					}
-					//String[] words = (String[]) uris.values().toArray(new String[uris.size()]);
 				}
 				catch (Exception e) {
 					Logger.error(this, "File id and key could not be retrieved. May be due to format clash", e);

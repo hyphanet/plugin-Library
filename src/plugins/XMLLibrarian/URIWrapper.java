@@ -1,6 +1,3 @@
-/**
- * 
- */
 package plugins.XMLLibrarian;
 
 public class URIWrapper implements Comparable<URIWrapper> {

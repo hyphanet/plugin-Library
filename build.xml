@@ -109,6 +109,21 @@
 		</jar>
 	</target>
 
+
+	<target name="javadoc">
+		<javadoc  destdir="docs">
+			<classpath>
+				<pathelement location="${freenet-ext.location}"/>
+				<pathelement location="${freenet-cvs-snapshot.location}"/>
+			</classpath>
+			<packageset dir="src" defaultexcludes="yes">
+			  <include name="**"/>
+			</packageset>
+		</javadoc>
+	</target>
+
+
+
 	<!-- ================================================== -->
 	<target name="clean" description="Delete class files and docs dir.">
 		<delete dir="${build}"/>

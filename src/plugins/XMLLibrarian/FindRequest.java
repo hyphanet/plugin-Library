@@ -27,7 +27,6 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	
 	/**
 	 * Create Request of stated type & subject
-	 * @param type
 	 * @param subject
 	 */
 	public FindRequest(String subject){

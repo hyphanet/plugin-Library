@@ -7,8 +7,6 @@ import freenet.l10n.L10n.LANGUAGE;
 public class L10nString{
 
 
-	// FredPluginL10n
-	
 	static LANGUAGE lang;
 	
 	public static String getString(String key){

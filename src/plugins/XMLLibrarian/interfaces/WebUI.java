@@ -12,6 +12,10 @@ import plugins.XMLLibrarian.Search;
 import plugins.XMLLibrarian.XMLLibrarian;
 
 
+/**
+ * Provides the HTML generation for the search page
+ * @author MikeB
+ */
 public class WebUI{
 	static String plugName;
 	static XMLLibrarian xl;
@@ -22,8 +26,12 @@ public class WebUI{
 	}
 
 
-	// FredPluginHTTP
-    
+	/**
+	 * Decide what to do depending on the request
+	 * @param request
+	 * @return String of generated HTML to be sent to browser
+	 * @throws freenet.pluginmanager.PluginHTTPException
+	 */
 	public static String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
 		String searchstring = request.getParam("search");
 		String indexuri = request.isParameterSet("index") ? request.getParam("index") : XMLLibrarian.DEFAULT_INDEX_SITE;
@@ -69,27 +77,20 @@ public class WebUI{
 
 
 	/**
-	 * Build an empty search page
+	 * Build an empty search page with no refresh
+	 * @param indexuri an index to put in the index box
 	 **/
 	public static String searchpage(String indexuri){
 		return searchpage(null, indexuri, false, null);
 	}
 	
-	/**
-	 * Put an error on the page
-	 */
-	public static void addError(HTMLNode node, Throwable error){
-		HTMLNode error1 = node.addChild("div", "style", "padding:10px;border:5px solid gray;margin:10px", error.toString());
-		for (StackTraceElement ste : error.getStackTrace()){
-			error1.addChild("br");
-			error1.addChild("#", " -- "+ste.toString());
-		}
-		if(error.getCause()!=null)
-			addError(error1, error.getCause());
-	}
 	
     /**
      * Build a search page for search in it's current state
+	 * @param request the request this page should be built to show the progress of
+	 * @param indexuri the index to show in the index box
+	 * @param refresh a preference as to whether this page should refresh, refresh is switched off in the event of an error or the request being finished
+	 * @param e any exception which should be reported on the page
      **/
     public static String searchpage(Search request, String indexuri, boolean refresh, Exception e){
 		if(request==null || "".equals(request.getQuery()) || request.isFinished() || e!=null)
@@ -169,7 +170,7 @@ public class WebUI{
 				HTMLNode statusRow = progressTable.addChild("tr");
 					statusRow.addChild("td", "width", "140", xl.getString("Search-status"));
 					statusRow.addChild("td")
-							.addChild(writeProgress(request));
+							.addChild(buildProgressNode(request));
 			
 			bodyNode.addChild("p");
 
@@ -195,13 +196,30 @@ public class WebUI{
 		return debugpage.generate();
 	}
 
-	private static HTMLNode writeProgress(Request request) {
+	/**
+	 * Build a node about the status of a request
+	 * @return
+	 */
+	private static HTMLNode buildProgressNode(Request request) {
 		HTMLNode node = new HTMLNode("div", "id", "librarian-search-status");
 		node.addChild("p", "Status : "+request.getSubject()+"  "+request.getRequestStatus()+", Stage: "+request.getSubStage()+"/"+request.getSubStageCount()+", Blocks:"+request.getNumBlocksCompleted()+"/"+request.getNumBlocksTotal());
 		if(request.getSubRequests()!=null)
 			for(Object r : request.getSubRequests())
 				node.addChild("p", " Status : "+((Request)r).getSubject()+"  "+((Request)r).getRequestStatus()+", Stage: "+((Request)r).getSubStage()+"/"+((Request)r).getSubStageCount()+", Blocks:"+((Request)r).getNumBlocksCompleted()+"/"+((Request)r).getNumBlocksTotal());
 		return node;
+	}
+
+	/**
+	 * Put an error on the page, under node, also draws a big grey box around the error
+	 */
+	public static void addError(HTMLNode node, Throwable error){
+		HTMLNode error1 = node.addChild("div", "style", "padding:10px;border:5px solid gray;margin:10px", error.toString());
+		for (StackTraceElement ste : error.getStackTrace()){
+			error1.addChild("br");
+			error1.addChild("#", " -- "+ste.toString());
+		}
+		if(error.getCause()!=null)
+			addError(error1, error.getCause());
 	}
 }
 

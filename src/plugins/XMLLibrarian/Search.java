@@ -13,7 +13,7 @@ import java.util.TreeSet;
 
 
 /**
- * Performs asynchronous searches
+ * Performs asynchronous searches over many index or with many terms and search logic
  * @author MikeB
  */
 public class Search implements Request<Set<URIWrapper>> {
@@ -145,9 +145,12 @@ public class Search implements Request<Set<URIWrapper>> {
 		Search.allsearches = new HashMap<String, Search>();
 	}
 	
-	
-
-	
+	/**
+	 * Gets a Search from the Map
+	 * @param search
+	 * @param indexuri
+	 * @return Search or null if not found
+	 */
 	public static Search getSearch(String search, String indexuri){
 		search = search.toLowerCase();
         
@@ -157,7 +160,13 @@ public class Search implements Request<Set<URIWrapper>> {
 		else
 			return null;
 	}
-	
+
+	/**
+	 * Looks for a given search in the map of searches
+	 * @param search
+	 * @param indexuri
+	 * @return true if it's found
+	 */
 	public static boolean hasSearch(String search, String indexuri){
 		if(search==null || indexuri==null)
 			return false;
@@ -176,7 +185,10 @@ public class Search implements Request<Set<URIWrapper>> {
 		return indexURI;
 	}
 	
-
+	/**
+	 * Return a HTMLNode for this result
+	 * @deprecated will be moved to WebUI
+	 */
 	public HTMLNode getResultNode(){
 		// Output results
 		int results = 0;
@@ -242,7 +254,7 @@ public class Search implements Request<Set<URIWrapper>> {
 	}
 
 	/**
-	 * @return minimum of stages of all subsearches
+	 * @return sum of SubStages
 	 */
 	@Override
 	public int getSubStage(){
@@ -254,6 +266,9 @@ public class Search implements Request<Set<URIWrapper>> {
 		return stage;
 	}
 
+	/**
+	 * @return true if all are Finished, false otherwise
+	 */
 	@Override
 	public boolean isFinished(){
 		for(Request r : subsearches)
@@ -261,6 +276,9 @@ public class Search implements Request<Set<URIWrapper>> {
 				return false;
 		return true;
 	}
+	/**
+	 * @return true if any have result, false otherwise
+	 */
 	@Override
 	public boolean hasResult(){
 		for(Request r : subsearches)
@@ -268,6 +286,13 @@ public class Search implements Request<Set<URIWrapper>> {
 				return true;
 		return false;
 	}
+	/**
+	 * @return a RequestStatus based on all subsearches in the following order
+	 * ERROR if any have an ERROR<br />
+	 * FINISHED if all are finished<br />
+	 * PARTIALRESULT if any have result or partialresult<br />
+	 * INPROGRESS otherwise
+	 */
 	@Override
 	public RequestStatus getRequestStatus(){
 		if(getError()!=null)
@@ -287,6 +312,9 @@ public class Search implements Request<Set<URIWrapper>> {
 		return null;
 	}
 
+	/**
+	 * @return sum of SubStageCount
+	 */
 	public int getSubStageCount() {
 		if(progressAccessed())
 			return stageCount;
@@ -296,6 +324,9 @@ public class Search implements Request<Set<URIWrapper>> {
 		return stageCount;
 	}
 
+	/**
+	 * @return sum of NumBlocksCompleted
+	 */
 	public long getNumBlocksCompleted() {
 		if(progressAccessed())
 			return blocksCompleted;
@@ -305,6 +336,9 @@ public class Search implements Request<Set<URIWrapper>> {
 		return blocksCompleted;
 	}
 
+	/**
+	 * @return sum of NumBlocksTotal
+	 */
 	public long getNumBlocksTotal() {
 		if(progressAccessed())
 			return blocksTotal;
@@ -314,6 +348,9 @@ public class Search implements Request<Set<URIWrapper>> {
 		return blocksTotal;
 	}
 
+	/**
+	 * @return true if all subsearches numblocks are final
+	 */
 	public boolean isNumBlocksCompletedFinal() {
 		for(Request r : subsearches)
 			if(!r.isNumBlocksCompletedFinal())
@@ -329,6 +366,11 @@ public class Search implements Request<Set<URIWrapper>> {
 		return this.getSubject().compareTo(right.getSubject());
 	}
 
+	/**
+	 * Perform an intersection on results of all subsearches and return <br />
+	 * TODO this should always union indices and search logic needs to be implemented
+	 * @return Set of URIWrappers
+	 */
 	public Set<URIWrapper> getResult() {
 		// TODO implement search logic and cache search results
 		result = new TreeSet<URIWrapper>();
