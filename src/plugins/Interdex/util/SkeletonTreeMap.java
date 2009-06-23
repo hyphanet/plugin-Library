@@ -3,6 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
+import plugins.Interdex.util.Serialiser.*;
+import plugins.Interdex.util.SkeletonMap.SkeletonSerialiser;
+
 import java.util.TreeMap;
 import java.util.Map;
 import java.util.Comparator;
@@ -12,10 +15,6 @@ import java.util.SortedMap;
 import java.util.Collection;
 import java.util.AbstractCollection;
 import java.util.Iterator;
-
-import plugins.Interdex.util.Serialiser.SerialiseTask;
-import plugins.Interdex.util.Serialiser.InflateTask;
-import plugins.Interdex.util.Serialiser.DeflateTask;
 
 /**
 ** A {@link SkeletonMap} of a {@link TreeMap}.
@@ -32,52 +31,52 @@ implements SkeletonMap<K, V> {
 	** loaded into the map, and implies that (get(k) == null). (However, note
 	** that (get(k) == null) could also be the actual loaded value for key k.)
 	*/
-	final TreeMap<K, Object> loaded;
+	final TreeMap<K, Dummy<V>> loaded;
 
 	public SkeletonTreeMap() {
 		super();
-		loaded = new TreeMap<K, Object>();
+		loaded = new TreeMap<K, Dummy<V>>();
 	}
 
 	public SkeletonTreeMap(Comparator<? super K> c) {
 		super(c);
-		loaded = new TreeMap<K, Object>(c);
+		loaded = new TreeMap<K, Dummy<V>>(c);
 	}
 
 	public SkeletonTreeMap(Map<? extends K,? extends V> m) {
 		super(m);
-		loaded = new TreeMap<K, Object>();
+		loaded = new TreeMap<K, Dummy<V>>();
 		for (K key: m.keySet()) {
-			loaded.put(key, Boolean.FALSE);
+			loaded.put(key, Dummy.NULL);
 		}
 	}
 
 	public SkeletonTreeMap(SortedMap<K,? extends V> m) {
 		super(m);
-		loaded = new TreeMap<K, Object>(m.comparator());
+		loaded = new TreeMap<K, Dummy<V>>(m.comparator());
 		for (K key: m.keySet()) {
-			loaded.put(key, Boolean.FALSE);
+			loaded.put(key, Dummy.NULL);
 		}
 	}
 
 	public SkeletonTreeMap(SkeletonTreeMap<K, V> m) {
 		super(m);
-		loaded = (TreeMap<K, Object>)m.loaded.clone();
+		loaded = (TreeMap<K, Dummy<V>>)m.loaded.clone();
 	}
 
 	public SkeletonTreeMap(K[] keys) {
-		loaded = new TreeMap<K, Object>();
+		loaded = new TreeMap<K, Dummy<V>>();
 		for (K k: keys) {
 			putDummy(k);
 		}
 	}
 
-	public Object putDummy(K key) {
+	public Dummy<V> putDummy(K key) {
 		put(key, null);
-		return loaded.put(key, Boolean.FALSE);
+		return loaded.put(key, Dummy.NULL);
 	}
 
-	public Object putDummy(K key, Object o) {
+	public Dummy<V> putDummy(K key, Dummy<V> o) {
 		put(key, null);
 		return loaded.put(key, o);
 	}
@@ -95,7 +94,7 @@ implements SkeletonMap<K, V> {
 
 	public boolean isFull() {
 		// TODO use a counter to optimise this
-		for (Object o: loaded.values()) {
+		for (Dummy<V> o: loaded.values()) {
 			if (o != null) { return false; }
 		}
 		return true;
@@ -103,7 +102,7 @@ implements SkeletonMap<K, V> {
 
 	public boolean isBare() {
 		// TODO use a counter to optimise this
-		for (Object o: loaded.values()) {
+		for (Dummy<V> o: loaded.values()) {
 			if (o == null) { return false; }
 		}
 		return true;
@@ -122,18 +121,17 @@ implements SkeletonMap<K, V> {
 	}
 
 	public void deflate() {
-		java.util.HashMap<K, DeflateTask<V>> tasks = new java.util.HashMap<K, DeflateTask<V>>();
+		java.util.HashMap<K, PushTask<V>> tasks = new java.util.HashMap<K, PushTask<V>>();
 		for (K k: keySet()) {
 			if (loaded.get(k) != null) { continue; }
 			V v = get(k);
-			DeflateTask<V> d = serialiser.newDeflateTask(v);
+			PushTask<V> d = serialiser.makePushTask(v);
 			tasks.put(k, d);
-			d.start();
 		}
+		serialiser.doPush(tasks.values());
+
 		for (K k: tasks.keySet()) {
-			DeflateTask<V> d = tasks.get(k);
-			d.join();
-			putDummy(k, d.get());
+			putDummy(k, tasks.get(k).get());
 		}
 	}
 
@@ -157,30 +155,18 @@ implements SkeletonMap<K, V> {
 	/**
 	** A {@link Serialiser} that has access to all the fields of this class.
 	*/
-	abstract public static class TreeMapSerialiser<K, V> implements Serialiser<SkeletonTreeMap<K, V>> {
-
-		public SkeletonTreeMap<K, V> inflate(Object dummy) {
-			throw new UnsupportedOperationException("Not implemented.");
-		}
-
-		public Object deflate(SkeletonTreeMap<K, V> map) {
-			if (!map.isBare()) {
-				throw new IllegalArgumentException("Object passed to deflate is not bare.");
-			}
-			DeflateTask de = newDeflateTask(map);
-			de.start(); de.join();
-			return de.get();
-		}
+	abstract public static class TreeMapSerialiser<K, V> extends AbstractSerialiser<SkeletonTreeMap<K, V>>
+	implements SkeletonSerialiser<SkeletonTreeMap<K, V>> {
 
 		/**
-		** Add all the data from a skeleton map to the given {@link DeflateTask}.
+		** Add all the data from a skeleton map to the given {@link PushTask}.
 		** It is recommended that this method be called in the constructor of the
-		** {@link DeflateTask} being passed in.
+		** {@link PushTask} being passed in.
 		**
 		** @param de The task to receive the data.
 		** @param skel The skeleton to add to the task.
 		*/
-		protected void putAll(DeflateTask de, SkeletonTreeMap<K, V> map) {
+		protected void putAll(PushTask<SkeletonTreeMap<K, V>> de, SkeletonTreeMap<K, V> map) {
 			for (K k: map.loaded.keySet()) {
 				de.put(k.toString(), map.loaded.get(k));
 			}

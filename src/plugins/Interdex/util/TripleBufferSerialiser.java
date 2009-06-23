@@ -3,9 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
-import plugins.Interdex.util.Serialiser.SerialiseTask;
-import plugins.Interdex.util.Serialiser.InflateTask;
-import plugins.Interdex.util.Serialiser.DeflateTask;
+import plugins.Interdex.util.Serialiser.Task;
+import plugins.Interdex.util.Serialiser.PullTask;
+import plugins.Interdex.util.Serialiser.PushTask;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -30,7 +30,7 @@ abstract public class TripleBufferSerialiser<T> implements Serialiser<T> {
 	/**
 	** Queue of tasks currently waiting to be added to the buffers.
 	*/
-	protected ArrayBlockingQueue<TripleBufferSerialiseTask> queue;
+	protected ArrayBlockingQueue<TripleBufferTask> queue;
 
 	/**
 	** Handler for the buffers. Also acts as a big fat lock for all of them.
@@ -39,19 +39,19 @@ abstract public class TripleBufferSerialiser<T> implements Serialiser<T> {
 
 	protected TripleBufferSerialiser(int i) {
 		queueSize = i;
-		queue = new ArrayBlockingQueue<TripleBufferSerialiseTask>(i);
+		queue = new ArrayBlockingQueue<TripleBufferTask>(i);
 	}
 
 	abstract public BufferHandler newBufferHandler();
 
 	abstract public class BufferHandler extends Thread {
 
-		TripleBufferSerialiseTask[] heldTasks;
+		TripleBufferTask[] heldTasks;
 		int held = 0;
 
 		public synchronized void run() {
 
-			TripleBufferSerialiseTask task;
+			TripleBufferTask task;
 
 			while ((task = pollQueue()) != null) {
 				if (false /* we can fit task into one of the buffers */) {
@@ -81,7 +81,7 @@ abstract public class TripleBufferSerialiser<T> implements Serialiser<T> {
 
 		}
 
-		public TripleBufferSerialiseTask pollQueue() {
+		public TripleBufferTask pollQueue() {
 			try {
 				return queue.poll(1, TimeUnit.SECONDS);
 			} catch (InterruptedException e) {
@@ -98,15 +98,15 @@ abstract public class TripleBufferSerialiser<T> implements Serialiser<T> {
 	 * public interface Serialiser
 	 ************************************************************************/
 
-	//public InflateTask<T> newInflateTask(Object o);
+	//public PullTask<T> makePullTask(Object o);
 
-	//public DeflateTask<T> newDeflateTask(T o);
+	//public PushTask<T> makePushTask(T o);
 
 	//public T inflate(Object dummy);
 
 	//public Object deflate(T skel) throws IllegalArgumentException;
 
-	abstract public class TripleBufferSerialiseTask implements SerialiseTask {
+	abstract public class TripleBufferTask implements Task {
 
 		protected Boolean started = Boolean.FALSE;
 		protected Boolean done = Boolean.FALSE;

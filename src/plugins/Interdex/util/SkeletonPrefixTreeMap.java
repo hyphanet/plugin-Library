@@ -4,15 +4,13 @@
 package plugins.Interdex.util;
 
 import plugins.Interdex.util.PrefixTree.PrefixKey;
+import plugins.Interdex.util.Serialiser.*;
+import plugins.Interdex.util.SkeletonMap.SkeletonSerialiser;
 
 import java.util.TreeMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.Collection;
-
-import plugins.Interdex.util.Serialiser.SerialiseTask;
-import plugins.Interdex.util.Serialiser.InflateTask;
-import plugins.Interdex.util.Serialiser.DeflateTask;
 
 /**
 ** A {@link SkeletonMap} of a {@link PrefixTreeMap}.
@@ -102,7 +100,7 @@ implements SkeletonMap<K, V> {
 	*/
 	final SkeletonTreeMap<K, V> itmap;
 
-	public SkeletonPrefixTreeMap(K p, int len, int maxsz, int sz, int subs, int[] szPre, boolean[] chd, K[] keys, V[] values, SkeletonPrefixTreeMap<K, V> par) {
+	public SkeletonPrefixTreeMap(K p, int len, int maxsz, int sz, int subs, int[] szPre, boolean[] chd, K[] keys, Dummy<V>[] values, SkeletonPrefixTreeMap<K, V> par) {
 		this(p, len, maxsz, par);
 
 		// check size == sum { sizePrefix }
@@ -212,11 +210,21 @@ implements SkeletonMap<K, V> {
 	}
 
 	/**
-	** Put a DummyPrefixTreeMap object into the child array.
+	** Put a DummyPrefixTreeMap into the child array.
 	**
 	** @param i The index to attach the dummy to
 	*/
 	protected void putDummyChild(int i) {
+		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, sizeMax, this);
+	}
+
+	/**
+	** Put a DummyPrefixTreeMap into the child array, with a dummy inside it.
+	** TODO make it actually use the dummy...
+	**
+	** @param i The index to attach the dummy to
+	*/
+	protected void putDummyChild(int i, Dummy<SkeletonPrefixTreeMap<K, V>> dummy) {
 		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, sizeMax, this);
 	}
 
@@ -228,7 +236,7 @@ implements SkeletonMap<K, V> {
 	** @param keys The array of keys of the map
 	** @param values The array of values of the map
 	*/
-	protected void putDummySubmap(K[] keys, V[] values) {
+	protected void putDummySubmap(K[] keys, Dummy<V>[] values) {
 		if (keys.length != values.length) {
 			throw new IllegalArgumentException("keys/values length mismatch");
 		}
@@ -370,23 +378,25 @@ implements SkeletonMap<K, V> {
 
 	public void deflate() {
 		if (!itmap.isBare()) { itmap.deflate(); }
-		DeflateTask<SkeletonTreeMap<K, V>> de = serialiserLocal.newDeflateTask(itmap);
-		de.setOption(prefixString());
-		de.start();
-		de.join();
-		// TODO: maybe store de.get() somewhere. it will be necessary when we
-		// implement an algorithm to merge small TreeMaps into one file
 
-		for (int i=0; i<subtreesMax; ++i) {
-			if (child[i] != null && child[i] instanceof SkeletonPrefixTreeMap) {
-				SkeletonPrefixTreeMap<K, V> ch = (SkeletonPrefixTreeMap<K, V>)child[i];
-				if (!ch.isBare()) { ch.deflate(); }
-				// TODO: parallelise this, turn it into DeflateTask
-				Object o = serialiser.deflate(ch);
-				// TODO: make this use the dummy object returned
-				putDummyChild(i);
-			}
+		java.util.List<PushTask<SkeletonPrefixTreeMap<K, V>>> tasks = new java.util.ArrayList<PushTask<SkeletonPrefixTreeMap<K, V>>>(subtrees);
+		int[] indexes = new int[subtrees];
+		int ii=0;
+
+		for (PrefixTreeMap<K, V> chd: child) {
+			if (chd == null || !(chd instanceof SkeletonPrefixTreeMap)) { continue; }
+			SkeletonPrefixTreeMap<K, V> ch = (SkeletonPrefixTreeMap<K, V>)chd;
+			if (!ch.isBare()) { ch.deflate(); }
+			tasks.add(serialiser.makePushTask(ch));
+			indexes[ii++] = ch.lastIndex();
 		}
+		serialiser.doPush(tasks);
+
+		ii=0;
+		for (PushTask<SkeletonPrefixTreeMap<K, V>> t: tasks) {
+			putDummyChild(indexes[ii++], t.get());
+		}
+
 		assert(isBare());
 	}
 
@@ -410,30 +420,19 @@ implements SkeletonMap<K, V> {
 	/**
 	** A {@link Serialiser} that has access to all the fields of this class.
 	*/
-	abstract public static class PrefixTreeMapSerialiser<K extends PrefixKey, V> implements Serialiser<SkeletonPrefixTreeMap<K, V>> {
-
-		public SkeletonPrefixTreeMap<K, V> inflate(Object dummy) {
-			throw new UnsupportedOperationException("Not implemented.");
-		}
-
-		public Object deflate(SkeletonPrefixTreeMap<K, V> skel) {
-			if (!skel.isBare()) {
-				throw new IllegalArgumentException("Object passed to deflate is not bare.");
-			}
-			DeflateTask de = newDeflateTask(skel);
-			de.start(); de.join();
-			return de.get();
-		}
+	abstract public static class PrefixTreeMapSerialiser<K extends PrefixKey, V> extends AbstractSerialiser<SkeletonPrefixTreeMap<K, V>>
+	implements SkeletonSerialiser<SkeletonPrefixTreeMap<K, V>> {
 
 		/**
-		** Add all the data from a skeleton map to the given {@link DeflateTask}.
+		** Add all the data from a skeleton map to the given {@link PushTask}.
 		** It is recommended that this method be called in the constructor of the
-		** {@link DeflateTask} being passed in.
+		** {@link PushTask} being passed in.
 		**
 		** @param de The task to receive the data.
 		** @param skel The skeleton to add to the task.
 		*/
-		protected void putAll(DeflateTask de, SkeletonPrefixTreeMap<K, V> skel) {
+		protected void putAll(PushTask<SkeletonPrefixTreeMap<K, V>> de, SkeletonPrefixTreeMap<K, V> skel) {
+			// TODO make the keys use String.intern()
 			de.put("prefix", skel.prefix.toString());
 			de.put("preflen", skel.preflen);
 			de.put("sizeMax", skel.sizeMax);
@@ -446,10 +445,7 @@ implements SkeletonMap<K, V> {
 			for (int i=0; i<skel.subtreesMax; ++i) { chd[i] = (skel.child[i] != null); }
 			de.put("_child", chd);
 
-			Set<K> keySet = skel.itmap.keySet();
-			String[] keys = new String[keySet.size()];
-			int i=0; for (K k: keySet) { keys[i++] = k.toString(); }
-			de.put("_tmap", keys);
+			de.put("_tmap", skel.serialiserLocal.makePushTask(skel.itmap));
 		}
 
 	}

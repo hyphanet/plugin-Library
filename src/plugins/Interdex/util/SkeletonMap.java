@@ -3,6 +3,10 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
+import plugins.Interdex.util.Serialiser.Task;
+import plugins.Interdex.util.Serialiser.PullTask;
+import plugins.Interdex.util.Serialiser.PushTask;
+
 /**
 ** Defines an interface for a map or map-like data structure (eg. multimap)
 ** which represents the skeleton of another map or map-like data structure,
@@ -15,13 +19,14 @@ public interface SkeletonMap<K, V> {
 
 	/**
 	** Whether the skeleton is fully loaded and has no data missing. In other
-	** words, for all keys k: get(k) will return the correct value.
+	** words, for all keys k: {@link get(k)} must return the correct value.
 	*/
 	public boolean isFull();
 
 	/**
 	** Whether the skeleton is bare and has no data loaded at all. In other
-	** words, for all keys k: get(k) will throw {@link DataNotLoadedException.}
+	** words, for all keys k: {@link get(k)} must throw {@link
+	** DataNotLoadedException.}
 	*/
 	public boolean isBare();
 
@@ -74,5 +79,39 @@ public interface SkeletonMap<K, V> {
 	** @param key The key for whose value to deflate.
 	*/
 	public void deflate(K key);
+
+
+	/**
+	** An effectively empty marker interface which contains some additional
+	** specifications for {@link Serialiser} of {@link SkeletonMap}.
+	*/
+	public interface SkeletonSerialiser<T extends SkeletonMap> extends plugins.Interdex.util.Serialiser<T> {
+
+		/**
+		** {@inheritDoc}
+		**
+		** Note that only a skeleton is pulled, so {@link isBare()} should return
+		** true for the object returned by {@link Serialiser.PullTask#get()} after
+		** this task completes.
+		*/
+		public void doPull(PullTask<T> task);
+
+		/**
+		** {@inheritDoc}
+		**
+		** Note that only a skeleton is pushed, so {@link isBare()} should return
+		** true for the object passed into this method.
+		**
+		** If it is not true, it is recommended that implementations throw {@link
+		** IllegalArgumentException} rather than automatically calling {@link
+		** SkeletonMap#deflate()} on the object, to maintain symmetry with the
+		** {@link SkeletonMap.SkeletonSerialiser#doPull(Serialiser.PullTask)}
+		** method (which does not automatically call {@link SkeletonMap#inflate()}
+		** on the resulting object), and to provide finer-grained control over the
+		** pushing process.
+		*/
+		public PushTask<T> makePushTask(T data);
+
+	}
 
 }

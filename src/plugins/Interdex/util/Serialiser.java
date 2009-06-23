@@ -3,129 +3,148 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
+import java.util.Collection;
+import java.util.Map;
+
 /**
 ** A class that handles serialisation tasks.
-**
-** TODO think about having Dummy<T> in places instead of object. Then we can
-** have class DummyX implements Dummy<X> etc
 **
 ** @author infinity0
 */
 public interface Serialiser<T> {
 
 	/**
-	** Creates a new inflate task for an object.
+	** Creates a {@link PullTask} from a dummy.
 	*/
-	public InflateTask<T> newInflateTask(Object o);
+	public PullTask<T> makePullTask(Dummy<T> o);
 
 	/**
-	** Creates a new deflate task for an object.
+	** Creates a {@link PushTask} from some data structure.
 	*/
-	public DeflateTask<T> newDeflateTask(T o);
+	public PushTask<T> makePushTask(T data);
 
 	/**
-	** Inflate a skeleton data structure from a dummy data structure. Note that
-	** only a skeleton is inflated, so {@link SkeletonMap#isBare()} should
-	** return true for the object returned by this method.
-	**
-	** Implementations of this should provide equivalent behaviour as creating
-	** a new {@link InflateTask}, calling {@link InflateTask#put(Object)},
-	** {@link SerialiseTask#start()}, {@link SerialiseTask#join()}, then
-	** returning an object with all data retrieved from the task.
-	**
-	** @param dummy The dummy data structure that represents the map.
-	** @return The skeleton data structure that represents the map.
-	** @see SkeletonMap#inflate()
+	** Execute a {@link PullTask}, returning only when the task is done.
 	*/
-	public T inflate(Object dummy);
+	public void doPull(PullTask<T> task);
 
 	/**
-	** Deflate a skeleton data structure into a dummy data structure. Note that
-	** only a skeleton is deflated, so isBare() should return true for the
-	** object passed into this method.
-	**
-	** If {@link SkeletonMap#isBare()} is not true, it is recommended that
-	** implementations throw {@link IllegalArgumentException} rather than
-	** automatically calling {@link SkeletonMap#deflate()} on the object, to
-	** maintain symmetry with the {@link inflate(Object)} method (which does
-	** not automatically call {@link SkeletonMap#inflate()} on the resulting
-	** object), and to provide finer-grained control over the deflate process.
-	**
-	** Implementations of this should provide equivalent behaviour as creating
-	** a new {@link DeflateTask}, adding all data to it, calling {@link
-	** SerialiseTask#start()}, {@link SerialiseTask#join()}, then returning
-	** {@link DeflateTask#get()}.
-	**
-	** @param skel The skeleton data structure that represents the map.
-	** @return The dummy data structure that represents the map.
-	** @see SkeletonMap#deflate()
+	** Execute a {@link PushTask}, returning only when the task is done.
 	*/
-	public Object deflate(T skel) throws IllegalArgumentException;
+	public void doPush(PushTask<T> task);
+
+	/**
+	** Execute everything in a group of {@link PullTask}s, returning only when
+	** they are all done.
+	*/
+	public void doPull(Iterable<PullTask<T>> tasks);
+
+	/**
+	** Execute everything in a group of {@link PushTask}s, returning only when
+	** they are all done.
+	*/
+	public void doPush(Iterable<PushTask<T>> tasks);
 
 
 	/**
-	** Defines a serialisation task. The methods are named such that
-	** implementations of this interface may choose to extend {@link Thread},
-	** if they wish.
+	** Represents an "empty" object that corresponds to a "full" object. For
+	** example, might be a URI pointer to where the rest of the data is held.
+	**
+	** For now, this is only an empty marker interface.
+	**
+	** Dummy values must themselves be directly serialisable by the parent
+	** {@link Serialiser}, as defined in {@link Task}.
 	*/
-	public interface SerialiseTask {
+	public interface Dummy<T> {
 
-		/**
-		** Start the task.
-		*/
-		public void start();
-
-		/**
-		** Wait for the task to finish.
-		*/
-		public void join();
-
-		/**
-		** Set a task option. This method should only be called before
-		** {@link start()}.
-		**
-		** TODO make this less vague..
-		*/
-		public void setOption(Object o);
+		static Dummy NULL = new Dummy() {};
 
 	}
 
 	/**
-	** Defines a inflate task, which allows data to be retrieved from the task
+	** Defines a serialisation task for an object, mapping its fields (in
+	** {@link String} form) to the their values (in a form that can be
+	** serialised by the parent {@link Serialiser}).
+	**
+	** The recommended way to ensure that a value can be serialised by any
+	** Serialiser is for it to be either: a primitive or Object form of a
+	** primitive; an Array, {@link Collection}, or {@link Map}, whether the
+	** elements are also serialisable as defined here; or a Java Bean.
+	**
+	** Implementations must ensure that data insertion/retrieval methods are
+	** never called if {@link begun()}/{@link done()} returns true/false,
+	** respectively. A recommended way to do this is to override such methods
+	** to throw {@link IllegalStateException} under the appropriate conditions.
+	*/
+	public interface Task<T> extends Map<String, Object> {
+
+		/**
+		** Whether the task has been started or not. If this is false, then
+		** {@link done()} must return false.
+		*/
+		public boolean begun();
+
+		/**
+		** Whether the task is finished or not. If this is true, then {@link
+		** begun()} must return true.
+		*/
+		public boolean done();
+
+	}
+
+	/**
+	** Defines a pull task, which allows data to be retrieved from the task
 	** after it has completed.
+	**
+	** Implementations' constructors should create a task ready to be executed
+	** without any further additions necessary to the task.
 	*/
-	public interface InflateTask<T> extends SerialiseTask {
+	public interface PullTask<T> extends Task<T> {
 
 		/**
-		** Give a dummy data structure to the task for inflation. This method
-		** should only be called before {@link start()}.
+		** Retrieve the data after the task is done.
+		**
+		** @throws IllegalStateException If the task is not done.
 		*/
-		public void put(Object dummy);
+		public T get() throws IllegalStateException;
 
 		/**
-		** Take the components of the skeleton data structure from the task after
-		** it finishes. This method should only be called after {@link join()}.
+		** Retrieve the dummy after the task is done. This will usually be the
+		** same dummy that was passed to the constructor, but may be different,
+		** for example if the serialiser followed a URI redirect.
+		**
+		** @throws IllegalStateException If the task is not done.
 		*/
-		public Object get(String key);
+		public void getDummy(Dummy<T> d) throws IllegalStateException;
+
 	}
 
 	/**
-	** Defines a deflate task, which allows data to be added to the task before
+	** Defines a push task, which allows data to be added to the task before
 	** it starts.
+	**
+	** Implementations' constructors should create a task ready to be executed
+	** without any further additions necessary to the task (except possibly
+	** {@link putDummy(Dummy<T>)}).
 	*/
-	public interface DeflateTask<T> extends SerialiseTask {
+	public interface PushTask<T> extends Task<T> {
 
 		/**
-		** Give the components of the skeleton data structure to the task for
-		** deflation. This method should only be called before {@link start()}.
+		** Retrieve the dummy after the task is done. If the task is not done,
+		** throw IllegalStateException.
+		**
+		** @throws IllegalStateException If the task is not done.
 		*/
-		public void put(String key, Object o);
+		public Dummy<T> get() throws IllegalStateException;
 
 		/**
-		** Take the dummy data structure from the task after it finishes. This
-		** method should only be called after {@link join()}.
+		** Give a dummy to the serialiser as a hint. The serialiser may or may
+		** not choose to ignore the dummy passed here; the actual value used
+		** is always returned correctly by {@link get()}.
+		**
+		** @throws IllegalStateException If the task has already begun.
 		*/
-		public Object get();
+		public void putDummy(Dummy<T> d) throws IllegalStateException;
 
 	}
 

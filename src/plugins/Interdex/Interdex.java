@@ -45,7 +45,7 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 	}
 
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
-		SkeletonPrefixTreeMap<Token, TokenURIEntry> test = new SkeletonPrefixTreeMap<Token, TokenURIEntry>(new Token(), 4096);
+		/*SkeletonPrefixTreeMap<Token, TokenURIEntry> test = new SkeletonPrefixTreeMap<Token, TokenURIEntry>(new Token(), 4096);
 		IndexFileSerialiser f = new IndexFileSerialiser();
 		test.setSerialiser(f.s, f.sl, f.sv);
 
@@ -60,8 +60,8 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 
 		test.deflate();
 		Object o = f.s.deflate(test);
-		return request.toString() + "<br />Hi<br />" + o.toString();
-		//return request.toString();
+		return request.toString() + "<br />Hi<br />" + o.toString();*/
+		return request.toString();
 	}
 
 	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException {

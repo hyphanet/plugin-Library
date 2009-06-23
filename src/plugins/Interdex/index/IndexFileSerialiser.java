@@ -7,8 +7,8 @@ import plugins.Interdex.util.PrefixTree.PrefixKey;
 import plugins.Interdex.util.SkeletonPrefixTreeMap;
 import plugins.Interdex.util.SkeletonTreeMap;
 import plugins.Interdex.util.Serialiser;
-import plugins.Interdex.util.Serialiser.InflateTask;
-import plugins.Interdex.util.Serialiser.DeflateTask;
+import plugins.Interdex.util.Serialiser.PullTask;
+import plugins.Interdex.util.Serialiser.PushTask;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -27,7 +27,7 @@ import java.util.HashMap;
 ** @author infinity0
 */
 public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
-
+/*
 	final Yaml yaml = new Yaml();
 
 	public Serialiser<SkeletonPrefixTreeMap<Token, TokenURIEntry>> s;
@@ -45,15 +45,15 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 	public class PrefixTreeMapSerialiser<K extends PrefixKey, V> extends SkeletonPrefixTreeMap.PrefixTreeMapSerialiser<K, V> {
 
 
-		public InflateTask<SkeletonPrefixTreeMap<K, V>> newInflateTask(Object o) {
+		public PullTask<SkeletonPrefixTreeMap<K, V>> makePullTask(Object o) {
 			throw new UnsupportedOperationException("Not implemented.");
 		}
 
-		public DeflateTask<SkeletonPrefixTreeMap<K, V>> newDeflateTask(SkeletonPrefixTreeMap<K, V> tr) {
+		public PushTask<SkeletonPrefixTreeMap<K, V>> makePushTask(SkeletonPrefixTreeMap<K, V> tr) {
 			return new DeflatePrefixTreeMapTask(tr);
 		}
 
-		public class DeflatePrefixTreeMapTask extends YamlDeflateTask {
+		public class DeflatePrefixTreeMapTask extends YamlPushTask {
 
 			public DeflatePrefixTreeMapTask(SkeletonPrefixTreeMap<K, V> skel) {
 				super(skel.prefixString());
@@ -67,15 +67,15 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 
 	public class TreeMapSerialiser<K extends PrefixKey, V> extends SkeletonTreeMap.TreeMapSerialiser<K, V> {
 
-		public InflateTask<SkeletonTreeMap<K, V>> newInflateTask(Object o) {
+		public PullTask<SkeletonTreeMap<K, V>> makePullTask(Object o) {
 			throw new UnsupportedOperationException("Not implemented.");
 		}
 
-		public DeflateTask<SkeletonTreeMap<K, V>> newDeflateTask(SkeletonTreeMap<K, V> tr) {
+		public PushTask<SkeletonTreeMap<K, V>> makePushTask(SkeletonTreeMap<K, V> tr) {
 			return new DeflateTreeMapTask(tr);
 		}
 
-		public class DeflateTreeMapTask extends YamlDeflateTask {
+		public class DeflateTreeMapTask extends YamlPushTask {
 
 			public DeflateTreeMapTask(SkeletonTreeMap<K, V> map) {
 				putAll(this, map);
@@ -93,11 +93,11 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 	public class TokenURIEntrySerialiser implements Serialiser<TokenURIEntry> {
 
 
-		public InflateTask<TokenURIEntry> newInflateTask(Object o) {
+		public PullTask<TokenURIEntry> makePullTask(Object o) {
 			throw new UnsupportedOperationException("Not implemented.");
 		}
 
-		public DeflateTask<TokenURIEntry> newDeflateTask(TokenURIEntry en) {
+		public PushTask<TokenURIEntry> makePushTask(TokenURIEntry en) {
 			return new DeflateTokenURIEntryTask(en);
 		}
 
@@ -106,12 +106,12 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 		}
 
 		public Object deflate(TokenURIEntry t) {
-			DeflateTask de = new DeflateTokenURIEntryTask(t);
+			PushTask de = new DeflateTokenURIEntryTask(t);
 			de.start(); de.join();
 			return de.get();
 		}
 
-		public class DeflateTokenURIEntryTask extends MapDeflateTask {
+		public class DeflateTokenURIEntryTask extends MapPushTask {
 
 			public DeflateTokenURIEntryTask(TokenURIEntry t) {
 				put("_uri", t.uri.toString());
@@ -124,16 +124,16 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 
 	}
 
-	abstract public class YamlDeflateTask extends MapDeflateTask implements DeflateTask {
+	abstract public class YamlPushTask extends MapPushTask implements PushTask {
 
 		protected File file = null;
 
-		public YamlDeflateTask() {
+		public YamlPushTask() {
 			// TODO exceptions
 			file = null;
 		}
 
-		public YamlDeflateTask(String s) {
+		public YamlPushTask(String s) {
 			setOption(s);
 		}
 
@@ -179,7 +179,7 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 
 	}
 
-	abstract public class MapDeflateTask implements DeflateTask {
+	abstract public class MapPushTask implements PushTask {
 
 		final protected HashMap<String, Object> hm = new HashMap<String, Object>();
 		protected boolean done = false;
@@ -206,5 +206,5 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 
 	}
 
-
+*/
 }
