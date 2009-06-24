@@ -18,10 +18,15 @@ import java.util.TreeSet;
  */
 public class Search implements Request<Set<URIWrapper>> {
 	static private XMLLibrarian xl;
+
+	/**
+	 * What should be done with the results of subsearches
+	 */
+	public enum ResultOperation{INTERSECTION, UNION};
+	private ResultOperation resultOperation;
 	
 	// TODO will be replaced with a binary tree to handle search logic although Set is more useful for multiple indices
 	private HashSet<Request> subsearches;
-	private TreeSet<URIWrapper> resultList = null;
 
 	private String subject;
 	private String query;
@@ -65,7 +70,7 @@ public class Search implements Request<Set<URIWrapper>> {
 			ArrayList<Request> requests = new ArrayList(searchterms.length);
 			for (String term : searchterms)
 				requests.add(Index.getIndex(indices[0]).find(term));
-			return new Search(search, indexuri, requests);
+			return new Search(search, indexuri, requests, ResultOperation.INTERSECTION);
 		}else{
 			// create search for multiple terms over multiple indices
 			ArrayList<Request> indexrequests = new ArrayList(indices.length);
@@ -73,9 +78,9 @@ public class Search implements Request<Set<URIWrapper>> {
 				ArrayList<Request> termrequests = new ArrayList(searchterms.length);
 				for (String term : searchterms)
 					termrequests.add(Index.getIndex(index).find(term));
-				indexrequests.add(new Search(search, index, termrequests));
+				indexrequests.add(new Search(search, index, termrequests, ResultOperation.UNION));
 			}
-			return new Search(search, indexuri, indexrequests);
+			return new Search(search, indexuri, indexrequests, ResultOperation.UNION);
 		}
 	}
 
@@ -86,15 +91,17 @@ public class Search implements Request<Set<URIWrapper>> {
 	 * @param query the query this instance is being used for, only for reference
 	 * @param indexURI the index uri this search is made on, only for reference
 	 * @param requests subRequests of this search
+	 * @param resultOperation Which set operation to do on the results of the subrequests
 	 * @throws InvalidSearchException if the search is invalid
 	 **/
-	private Search(String query, String indexURI, List<Request> requests) throws InvalidSearchException{
+	private Search(String query, String indexURI, List<Request> requests, ResultOperation resultoperation) throws InvalidSearchException{
 		query = query.toLowerCase();
 		subsearches = new HashSet(requests);
 		
 		this.query = query;
 		this.indexURI = indexURI;
 		this.subject = makeString(query, indexURI);
+		this.resultOperation = resultoperation;
 		
 		allsearches.put(subject, this);
 		Logger.minor(this, "Created Search object for with subRequests :"+subsearches);
@@ -107,7 +114,7 @@ public class Search implements Request<Set<URIWrapper>> {
 	 * @param indexURI the index uri this search is made on, only for reference
 	 * @param request Request to encapsulate
 	 */
-	public Search(String query, String indexURI, Request request){
+	private Search(String query, String indexURI, Request request){
 		query = query.toLowerCase();
 		subsearches = new HashSet();
 		subsearches.add(request);
@@ -378,7 +385,12 @@ public class Search implements Request<Set<URIWrapper>> {
 		for(Request<Set> r : subsearches)
 			if(r.hasResult())
 				if(result.size()>0)
-					result.retainAll(r.getResult());
+					switch(resultOperation){
+						case UNION:
+							result.addAll(r.getResult());
+						case INTERSECTION:
+							result.retainAll(r.getResult());
+					}
 				else
 					result.addAll(r.getResult());
 		return result;
