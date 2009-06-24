@@ -42,6 +42,7 @@
 				<pathelement location="${freenet-cvs-snapshot.location}"/>
 			</classpath>
 			<include name="**/*.java"/>
+			<exclude name="plugins/XMLLibrarian/Interdex/*" />
 			<exclude name="**/*Test.java"/>
 		</javac>
 	</target>
