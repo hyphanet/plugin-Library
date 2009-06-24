@@ -1,8 +1,9 @@
-package plugins.XMLLibrarian;
+package plugins.XMLLibrarian.xmlindex;
 
 import freenet.support.Logger;
 import java.util.List;
 import java.util.Set;
+import plugins.XMLLibrarian.Request;
 
 
 /**

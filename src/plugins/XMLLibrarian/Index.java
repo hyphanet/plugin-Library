@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Executor;
+import plugins.XMLLibrarian.xmlindex.FindRequest;
 import plugins.XMLLibrarian.xmlindex.XMLIndex;
 
 /**
@@ -24,10 +25,12 @@ public abstract class Index {
 	
 	protected String indexuri;
 	protected FetchStatus fetchStatus = FetchStatus.UNFETCHED;
+
+	// FIXME these two should probably be using Request not FetchRequest
 	protected ArrayList<FindRequest> waitingOnMainIndex = new ArrayList<FindRequest>();
+	protected ArrayList<FindRequest> requests = new ArrayList<FindRequest>();
 	
 	protected String mainIndexDescription;
-	protected ArrayList<FindRequest> requests = new ArrayList<FindRequest>();
 
 	protected HashMap<String, String> indexMeta;
 	private static HashMap<String, Index> bookmarks = new HashMap<String, Index>();

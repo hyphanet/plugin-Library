@@ -11,9 +11,7 @@ import org.xml.sax.helpers.DefaultHandler;
 
 import freenet.support.Logger;
 
-import plugins.XMLLibrarian.FindRequest;
 import plugins.XMLLibrarian.URIWrapper;
-import plugins.XMLLibrarian.XMLLibrarian;
 
 /**
  * Required for using SAX parser on XML indices

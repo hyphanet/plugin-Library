@@ -35,7 +35,6 @@ import java.net.MalformedURLException;
 
 import plugins.XMLLibrarian.Index;
 import plugins.XMLLibrarian.InvalidSearchException;
-import plugins.XMLLibrarian.FindRequest;
 import plugins.XMLLibrarian.Request;
 import plugins.XMLLibrarian.XMLLibrarian;
 
