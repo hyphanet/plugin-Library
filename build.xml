@@ -48,7 +48,7 @@
 	
 	<target name="run" depends="dist">
 		<java
-			classname="plugins.XMLLibrarian.interface.TestInterface">
+			classname="plugins.XMLLibrarian.interfaces.TestInterface">
 			<classpath>
 				<pathelement location="../fred/lib/freenet-cvs-snapshot.jar"/>
 				<pathelement location="../fred/lib/freenet-ext.jar"/>
