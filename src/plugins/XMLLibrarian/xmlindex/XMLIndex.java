@@ -259,14 +259,16 @@ public class XMLIndex extends Index{
 	private synchronized void setdependencies(FindRequest request) throws FetchException, MalformedURLException{
 		if (fetchStatus!=FetchStatus.FETCHED){
 			waitingOnMainIndex.add(request);
-			request.setStage(FindRequest.RequestStatus.INPROGRESS,1, 2);
+			request.setStage(FindRequest.RequestStatus.INPROGRESS,1, 3);
 			startFetch();
-		}else if (!getSubIndex(request.getSubject()).isAlive()){
+		}else{
 			SubIndex subindex = getSubIndex(request.getSubject());
-			request.setStage(FindRequest.RequestStatus.INPROGRESS,2, 2);
 			subindex.addRequest(request);
-			if(subindex.getFetchStatus()==FetchStatus.UNFETCHED)
-				pr.getNode().executor.execute(subindex, "Subindex:"+subindex.getFileName());
+			Logger.minor(this, "STarting "+getSubIndex(request.getSubject())+" to look for "+request.getSubject());
+			if(executor!=null)
+				executor.execute(subindex, "Subindex:"+subindex.getFileName());
+			else
+				(new Thread(subindex, "Subindex:"+subindex.getFileName())).start();
 		}
 	}
 	
@@ -279,7 +281,7 @@ public class XMLIndex extends Index{
 		return "xml:"+super.getIndexURI();
 	}
 	
-	private class SubIndex extends Thread {
+	private class SubIndex implements Runnable {
 		String indexuri, filename;
 		private final ArrayList<FindRequest> waitingOnSubindex=new ArrayList<FindRequest>();
 		FetchStatus fetchStatus = FetchStatus.UNFETCHED;
@@ -325,6 +327,10 @@ public class XMLIndex extends Index{
 		 * @param request
 		 */
 		void addRequest(FindRequest request){
+			if(fetchStatus==FetchStatus.FETCHED)
+				request.setStage(Request.RequestStatus.INPROGRESS, 3, 3);
+			else
+				request.setStage(Request.RequestStatus.INPROGRESS, 2, 3);
 			synchronized(waitingOnSubindex){
 				waitingOnSubindex.add(request);
 			}
@@ -334,9 +340,9 @@ public class XMLIndex extends Index{
 		public String toString(){
 			return filename+" "+fetchStatus+" "+waitingOnSubindex;
 		}
-		
-		@Override
-		public synchronized void run(){ // FIXME simultanious fetching doesnt seem to be happening
+
+
+		public synchronized void run(){
 			try{
 				while(waitingOnSubindex.size()>0){
 					if(fetchStatus==FetchStatus.UNFETCHED){
@@ -350,6 +356,8 @@ public class XMLIndex extends Index{
 							throw e;
 						}
 					}else if(fetchStatus==FetchStatus.FETCHED){
+						for(FindRequest r : waitingOnSubindex)
+							r.setStage(Request.RequestStatus.INPROGRESS, 3, 3);
 						SAXParserFactory factory = SAXParserFactory.newInstance();
 						try {
 							factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);

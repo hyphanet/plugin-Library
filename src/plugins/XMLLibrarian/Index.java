@@ -4,6 +4,7 @@ package plugins.XMLLibrarian;
 import java.util.ArrayList;
 import java.util.HashMap;
 import freenet.pluginmanager.PluginRespirator;
+import freenet.support.Executor;
 import plugins.XMLLibrarian.xmlindex.XMLIndex;
 
 /**
@@ -14,6 +15,7 @@ import plugins.XMLLibrarian.xmlindex.XMLIndex;
 public abstract class Index {
 	public enum FetchStatus{UNFETCHED, FETCHING, FETCHED, FAILED}
 	static protected PluginRespirator pr;
+	protected static Executor executor;
 	/**
 	 * Map of all indexes currently open Key is indexid
 	 */
@@ -106,6 +108,7 @@ public abstract class Index {
 	 */
 	public static final void setup(PluginRespirator pr){
 		Index.pr = pr;
+		executor = pr.getNode().executor;
 		try{
 			bookmarks.put("wanna", Index.getIndex("xml:USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/"));
 		}catch(InvalidSearchException e){
