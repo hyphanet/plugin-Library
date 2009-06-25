@@ -4,7 +4,7 @@
 package plugins.Interdex.util;
 
 import plugins.Interdex.util.PrefixTree.PrefixKey;
-import plugins.Interdex.util.Serialiser.*;
+import plugins.Interdex.util.Archiver.*;
 import plugins.Interdex.util.SkeletonMap.SkeletonSerialiser;
 
 import java.util.TreeMap;
@@ -24,7 +24,7 @@ implements SkeletonMap<K, V> {
 	** Represents a PrefixTreeMap which has not been loaded, but which a parent
 	** SkeletonPrefixTreeMap (that has been loaded) refers to.
 	**
-	** TODO make this contain a DummyValue
+	** TODO make this contain a meta value
 	**
 	** @author infinity0
 	*/
@@ -95,12 +95,17 @@ implements SkeletonMap<K, V> {
 	}
 
 	/**
-	** The constructor points this to the same object as tmap, so we don't have
-	** to keep casting tmap when we want to access SkeletonTreeMap methods.
+	** The constructor points this to {@link PrefixTreeMap#tmap}, so we don't
+	** have to keep casting when we want to access the methods of the subclass.
 	*/
-	final SkeletonTreeMap<K, V> itmap;
+	final protected SkeletonTreeMap<K, V> tmap;
 
-	public SkeletonPrefixTreeMap(K p, int len, int maxsz, int sz, int subs, int[] szPre, boolean[] chd, K[] keys, Dummy<V>[] values, SkeletonPrefixTreeMap<K, V> par) {
+	/**
+	** The meta data for this skeleton.
+	*/
+	protected Object meta = null;
+
+	protected SkeletonPrefixTreeMap(K p, int len, int maxsz, int sz, int subs, int[] szPre, boolean[] chd, K[] keys, Object[] values, SkeletonPrefixTreeMap<K, V> par) {
 		this(p, len, maxsz, par);
 
 		// check size == sum { sizePrefix }
@@ -122,7 +127,11 @@ implements SkeletonMap<K, V> {
 
 	public SkeletonPrefixTreeMap(K p, int len, int maxsz, SkeletonPrefixTreeMap<K, V> par) {
 		super(p, len, maxsz, new SkeletonTreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()], par);
-		itmap = (SkeletonTreeMap<K, V>)tmap;
+
+		tmap = (SkeletonTreeMap<K, V>)super.tmap;
+		String str = prefixString();
+		setMeta(str);
+		tmap.setMeta(str);
 	}
 
 	public SkeletonPrefixTreeMap(K p, int maxsz) {
@@ -141,14 +150,13 @@ implements SkeletonMap<K, V> {
 		serialiser = s;
 		serialiserLocal = ls;
 		serialiserLocalValue = vs;
-		itmap.setSerialiser(vs);
+		tmap.setSerialiser(vs);
 		for (PrefixTreeMap<K, V> ch: child) {
 			if (ch != null && ch instanceof SkeletonPrefixTreeMap) {
 				((SkeletonPrefixTreeMap<K, V>)ch).setSerialiser(s, ls, vs);
 			}
 		}
 	}
-
 
 	/**
 	** Puts DummyPrefixTreeMap objects into the child array.
@@ -224,7 +232,7 @@ implements SkeletonMap<K, V> {
 	**
 	** @param i The index to attach the dummy to
 	*/
-	protected void putDummyChild(int i, Dummy<SkeletonPrefixTreeMap<K, V>> dummy) {
+	protected void putDummyChild(int i, Object dummy) {
 		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, sizeMax, this);
 	}
 
@@ -234,9 +242,9 @@ implements SkeletonMap<K, V> {
 	** putDummyChildren.
 	**
 	** @param keys The array of keys of the map
-	** @param values The array of values of the map
+	** @param values The array of meta values of the map
 	*/
-	protected void putDummySubmap(K[] keys, Dummy<V>[] values) {
+	protected void putDummySubmap(K[] keys, Object[] values) {
 		if (keys.length != values.length) {
 			throw new IllegalArgumentException("keys/values length mismatch");
 		}
@@ -267,7 +275,7 @@ implements SkeletonMap<K, V> {
 		}
 
 		for (int i=0; i<keys.length; ++i) {
-			itmap.putDummy(keys[i], values[i]);
+			tmap.putDummy(keys[i], values[i]);
 		}
 	}
 
@@ -333,12 +341,12 @@ implements SkeletonMap<K, V> {
 	 * public interface SkeletonMap
 	 ************************************************************************/
 
-	public boolean isFull() {
+	public boolean isLive() {
 		// TODO use a counter to optimise this
-		if (!itmap.isFull()) { return false; }
+		if (!tmap.isLive()) { return false; }
 		for (PrefixTreeMap t: child) {
 			if (t instanceof DummyPrefixTreeMap) { return false; }
-			if (t instanceof SkeletonPrefixTreeMap && !((SkeletonPrefixTreeMap)t).isFull()) {
+			if (t instanceof SkeletonPrefixTreeMap && !((SkeletonPrefixTreeMap)t).isLive()) {
 				return false;
 			}
 		}
@@ -347,18 +355,26 @@ implements SkeletonMap<K, V> {
 
 	public boolean isBare() {
 		// TODO use a counter to optimise this
-		if (!itmap.isBare()) { return false; }
+		if (!tmap.isBare()) { return false; }
 		for (PrefixTreeMap t: child) {
 			if (t instanceof SkeletonPrefixTreeMap) { return false; }
 		}
 		return true;
 	}
 
+	public Object getMeta() {
+		return meta;
+	}
+
+	public void setMeta(Object m) {
+		meta = m;
+	}
+
 	public Map<K, V> complete() {
-		if (!isFull()) {
+		if (!isLive()) {
 			throw new DataNotLoadedException("PrefixTreeMap not fully loaded for " + prefix.toString(), this, this);
 		} else {
-			TreeMap<K, V> ntmap = (TreeMap<K, V>)itmap.complete();
+			TreeMap<K, V> ntmap = (TreeMap<K, V>)tmap.complete();
 			PrefixTreeMap<K, V>[] nchild = (PrefixTreeMap<K, V>[])new PrefixTreeMap[subtreesMax];
 
 			for (int i=0; i<subtreesMax; ++i) {
@@ -373,11 +389,11 @@ implements SkeletonMap<K, V> {
 
 	public void inflate() {
 		throw new UnsupportedOperationException("Not implemented.");
-		//assert(isFull());
+		//assert(isLive());
 	}
 
 	public void deflate() {
-		if (!itmap.isBare()) { itmap.deflate(); }
+		if (!tmap.isBare()) { tmap.deflate(); }
 
 		java.util.List<PushTask<SkeletonPrefixTreeMap<K, V>>> tasks = new java.util.ArrayList<PushTask<SkeletonPrefixTreeMap<K, V>>>(subtrees);
 		int[] indexes = new int[subtrees];
@@ -387,25 +403,17 @@ implements SkeletonMap<K, V> {
 			if (chd == null || !(chd instanceof SkeletonPrefixTreeMap)) { continue; }
 			SkeletonPrefixTreeMap<K, V> ch = (SkeletonPrefixTreeMap<K, V>)chd;
 			if (!ch.isBare()) { ch.deflate(); }
-			tasks.add(serialiser.makePushTask(ch));
+			tasks.add(new PushTask<SkeletonPrefixTreeMap<K, V>>(ch));
 			indexes[ii++] = ch.lastIndex();
 		}
-		serialiser.doPush(tasks);
+		serialiser.push(tasks);
 
 		ii=0;
 		for (PushTask<SkeletonPrefixTreeMap<K, V>> t: tasks) {
-			putDummyChild(indexes[ii++], t.get());
+			putDummyChild(indexes[ii++], t.meta);
 		}
 
 		assert(isBare());
-	}
-
-	public void inflate(SkeletonMap<K, V> m) {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
-	public void deflate(SkeletonMap<K, V> m) {
-		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	public void inflate(K key) {
@@ -417,35 +425,28 @@ implements SkeletonMap<K, V> {
 	}
 
 
-	/**
-	** A {@link Serialiser} that has access to all the fields of this class.
-	*/
-	abstract public static class PrefixTreeMapSerialiser<K extends PrefixKey, V> extends AbstractSerialiser<SkeletonPrefixTreeMap<K, V>>
-	implements SkeletonSerialiser<SkeletonPrefixTreeMap<K, V>> {
+	abstract public static class PrefixTreeMapTranslator<K extends PrefixKey, V>
+	implements Translator<SkeletonPrefixTreeMap<K, V>, Map<String, Object>> {
 
 		/**
-		** Add all the data from a skeleton map to the given {@link PushTask}.
-		** It is recommended that this method be called in the constructor of the
-		** {@link PushTask} being passed in.
-		**
-		** @param de The task to receive the data.
-		** @param skel The skeleton to add to the task.
+		** TODO rewrite this doc.
 		*/
-		protected void putAll(PushTask<SkeletonPrefixTreeMap<K, V>> de, SkeletonPrefixTreeMap<K, V> skel) {
+		public static <K extends PrefixKey, V> void rev(Map<String, Object> intm, Map<String, Object> intml, SkeletonPrefixTreeMap<K, V> skel) {
 			// TODO make the keys use String.intern()
-			de.put("prefix", skel.prefix.toString());
-			de.put("preflen", skel.preflen);
-			de.put("sizeMax", skel.sizeMax);
-			de.put("size", skel.size);
-			de.put("subtreesMax", skel.subtreesMax);
-			de.put("subtrees", skel.subtrees);
-			de.put("sizePrefix", skel.sizePrefix);
+			intm.put("prefix", skel.prefix.toString());
+			intm.put("preflen", skel.preflen);
+			intm.put("sizeMax", skel.sizeMax);
+			intm.put("size", skel.size);
+			intm.put("subtreesMax", skel.subtreesMax);
+			intm.put("subtrees", skel.subtrees);
+			intm.put("sizePrefix", skel.sizePrefix);
 
 			boolean chd[] = new boolean[skel.subtreesMax];
 			for (int i=0; i<skel.subtreesMax; ++i) { chd[i] = (skel.child[i] != null); }
-			de.put("_child", chd);
+			intm.put("_child", chd);
 
-			de.put("_tmap", skel.serialiserLocal.makePushTask(skel.itmap));
+			SkeletonTreeMap.TreeMapTranslator.pushMap(intml, skel.tmap);
+			intm.put("_tmap", intml);
 		}
 
 	}

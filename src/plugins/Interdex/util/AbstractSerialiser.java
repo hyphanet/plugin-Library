@@ -3,14 +3,46 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
+import java.util.Map;
+
 /**
-** A class that provides some convenience methods for {@link Serialiser}, plus
-** several implementations of some higher-level functionality in terms of lower
-** ones.
+** A class that provides a skeletal implementation of {@link Serialiser}. It
+** divides up the process into independent parts for other classes to do, such
+** as {@link Archiver} and {@link Translator}, and implements some higher-level
+** functionality in terms of lower ones.
 **
 ** @author infinity0
 */
-abstract public class AbstractSerialiser<T> implements Serialiser<T> {
+abstract public class AbstractSerialiser<T, I> implements Serialiser<T> {
+
+	protected Translator<T, I> trans;
+	protected Archiver<I> arch;
+
+	/**
+	** {@inheritDoc}
+	**
+	** TODO doc
+	*/
+	public void pull(PullTask<T> task) {
+		PullTask<I> archivable = new PullTask<I>(task.meta);
+		arch.pull(archivable);
+		T pulldata = trans.rev(archivable.data);
+
+		task.meta = archivable.meta; task.data = pulldata;
+	}
+
+	/**
+	** {@inheritDoc}
+	**
+	** TODO doc
+	*/
+	public void push(PushTask<T> task) {
+		I intermediate = trans.app(task.data);
+		PushTask<I> archivable = new PushTask<I>(intermediate, task.meta);
+		arch.push(archivable);
+
+		task.meta = archivable.meta;
+	}
 
 	/**
 	** {@inheritDoc}
@@ -18,9 +50,9 @@ abstract public class AbstractSerialiser<T> implements Serialiser<T> {
 	** This implementation just iterates through the list and does each task
 	** one-by-one.
 	*/
-	public void doPull(Iterable<PullTask<T>> tasks) {
+	public void pull(Iterable<PullTask<T>> tasks) {
 		for (PullTask<T> t: tasks) {
-			doPull(t);
+			pull(t);
 		}
 	}
 
@@ -30,40 +62,34 @@ abstract public class AbstractSerialiser<T> implements Serialiser<T> {
 	** This implementation just iterates through the list and does each task
 	** one-by-one.
 	*/
-	public void doPush(Iterable<PushTask<T>> tasks) {
+	public void push(Iterable<PushTask<T>> tasks) {
 		for (PushTask<T> t: tasks) {
-			doPush(t);
+			push(t);
 		}
 	}
 
 	/**
-	** Convenience method for pulling the data structure corresponding to a
-	** given {@link Dummy}. It creates a new {@link PullTask} for the dummy,
-	** calls {@link doPull(PullTask)}, and then returns the object from {@link
-	** PullTask#get()}.
+	** {@inheritDoc}
 	**
-	** @param dummy The dummy data structure.
-	** @return The full data structure.
+	** This implementation just iterates through the map and does each task
+	** one-by-one.
 	*/
-	public T pull(Dummy<T> dummy) {
-		PullTask<T> ts = makePullTask(dummy);
-		doPull(ts);
-		return ts.get();
+	public <K> void pull(Map<K, PullTask<T>> tasks) {
+		for (PullTask<T> t: tasks.values()) {
+			pull(t);
+		}
 	}
 
 	/**
-	** Convenience method for pushing the data structure corresponding to a
-	** given data structure. It creates a new {@link PushTask} for the data,
-	** calls {@link doPush(PushTask)}, and then returns the {@link Dummy} from
-	** {@link PushTask#get()}.
+	** {@inheritDoc}
 	**
-	** @param data The full data structure.
-	** @return The dummy data structure.
+	** This implementation just iterates through the map and does each task
+	** one-by-one.
 	*/
-	public Dummy<T> push(T data) {
-		PushTask<T> ts = makePushTask(data);
-		doPush(ts);
-		return ts.get();
+	public <K> void push(Map<K, PushTask<T>> tasks) {
+		for (PushTask<T> t: tasks.values()) {
+			push(t);
+		}
 	}
 
 }

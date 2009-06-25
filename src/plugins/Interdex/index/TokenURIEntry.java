@@ -5,13 +5,15 @@ package plugins.Interdex.index;
 
 import freenet.keys.FreenetURI;
 
+import java.net.MalformedURLException;
+
 /**
 ** @author infinity0
 */
 public class TokenURIEntry extends TokenEntry {
 
-	final FreenetURI uri;
 	final String word;
+	final FreenetURI uri;
 
 	int position;
 	int relevance;
@@ -19,6 +21,11 @@ public class TokenURIEntry extends TokenEntry {
 	public TokenURIEntry(String w, FreenetURI u) {
 		word = w;
 		uri = u;
+	}
+
+	public TokenURIEntry(String w, String u) throws MalformedURLException {
+		word = w;
+		uri = new FreenetURI(u);
 	}
 
 }

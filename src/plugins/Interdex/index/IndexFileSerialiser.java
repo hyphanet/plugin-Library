@@ -6,14 +6,14 @@ package plugins.Interdex.index;
 import plugins.Interdex.util.PrefixTree.PrefixKey;
 import plugins.Interdex.util.SkeletonPrefixTreeMap;
 import plugins.Interdex.util.SkeletonTreeMap;
+import plugins.Interdex.util.AbstractSerialiser;
 import plugins.Interdex.util.Serialiser;
-import plugins.Interdex.util.Serialiser.PullTask;
-import plugins.Interdex.util.Serialiser.PushTask;
-
-import org.yaml.snakeyaml.Yaml;
+import plugins.Interdex.util.Translator;
+import plugins.Interdex.util.Archiver;
+import plugins.Interdex.util.Archiver.*;
 
 import java.io.*;
-import java.util.HashMap;
+import java.util.Map;
 
 /**
 ** This class handles serialisation of an Index into a filetree.
@@ -28,8 +28,6 @@ import java.util.HashMap;
 */
 public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 /*
-	final Yaml yaml = new Yaml();
-
 	public Serialiser<SkeletonPrefixTreeMap<Token, TokenURIEntry>> s;
 	public Serialiser<SkeletonTreeMap<Token, TokenURIEntry>> sl;
 	public Serialiser<TokenURIEntry> sv;
@@ -42,22 +40,24 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 		//
 	}
 
-	public class PrefixTreeMapSerialiser<K extends PrefixKey, V> extends SkeletonPrefixTreeMap.PrefixTreeMapSerialiser<K, V> {
+	public class PrefixTreeMapSerialiser<K extends PrefixKey, V> extends YamlSerialiser<SkeletonPrefixTreeMap<K, V>> {
 
+		public PrefixTreeMapSerialiser() {
+		}
 
-		public PullTask<SkeletonPrefixTreeMap<K, V>> makePullTask(Object o) {
+		public PullTask<SkeletonPrefixTreeMap<K, V>> makePullTask(Dummy<SkeletonPrefixTreeMap<K, V>> o) {
 			throw new UnsupportedOperationException("Not implemented.");
 		}
 
 		public PushTask<SkeletonPrefixTreeMap<K, V>> makePushTask(SkeletonPrefixTreeMap<K, V> tr) {
-			return new DeflatePrefixTreeMapTask(tr);
+			return new PushPrefixTreeMapTask(tr);
 		}
 
-		public class DeflatePrefixTreeMapTask extends YamlPushTask {
+		public class PushPrefixTreeMapTask extends YamlPushTask {
 
-			public DeflatePrefixTreeMapTask(SkeletonPrefixTreeMap<K, V> skel) {
-				super(skel.prefixString());
-				putAll(this, skel);
+			public PushPrefixTreeMapTask(SkeletonPrefixTreeMap<K, V> skel) {
+				SkeletonPrefixTreeMap.pushMap(this, skel);
+				super.putDummy(new FileDummy(skel.prefixString()));
 			}
 
 		}
@@ -65,146 +65,90 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 	}
 
 
-	public class TreeMapSerialiser<K extends PrefixKey, V> extends SkeletonTreeMap.TreeMapSerialiser<K, V> {
+	public class TreeMapSerialiser<K extends PrefixKey, V> extends AbstractSerialiser<SkeletonTreeMap<K, V>> {
 
-		public PullTask<SkeletonTreeMap<K, V>> makePullTask(Object o) {
+		public PullTask<SkeletonTreeMap<K, V>> makePullTask(Dummy<SkeletonTreeMap<K, V>> o) {
 			throw new UnsupportedOperationException("Not implemented.");
 		}
 
 		public PushTask<SkeletonTreeMap<K, V>> makePushTask(SkeletonTreeMap<K, V> tr) {
-			return new DeflateTreeMapTask(tr);
+			return new PushTreeMapTask(tr);
 		}
 
-		public class DeflateTreeMapTask extends YamlPushTask {
+		public class PushTreeMapTask extends YamlPushTask {
 
-			public DeflateTreeMapTask(SkeletonTreeMap<K, V> map) {
-				putAll(this, map);
-			}
-
-			public void setOption(Object o) {
-				super.setOption(o + "_map");
+			public PushTreeMapTask(SkeletonTreeMap<K, V> map) {
+				SkeletonTreeMap.pushMap(this, map);
 			}
 
 		}
 
 	}
-
-
-	public class TokenURIEntrySerialiser implements Serialiser<TokenURIEntry> {
-
-
-		public PullTask<TokenURIEntry> makePullTask(Object o) {
-			throw new UnsupportedOperationException("Not implemented.");
-		}
-
-		public PushTask<TokenURIEntry> makePushTask(TokenURIEntry en) {
-			return new DeflateTokenURIEntryTask(en);
-		}
-
-		public TokenURIEntry inflate(Object dummy) {
-			throw new UnsupportedOperationException("Not implemented.");
-		}
-
-		public Object deflate(TokenURIEntry t) {
-			PushTask de = new DeflateTokenURIEntryTask(t);
-			de.start(); de.join();
-			return de.get();
-		}
-
-		public class DeflateTokenURIEntryTask extends MapPushTask {
-
-			public DeflateTokenURIEntryTask(TokenURIEntry t) {
-				put("_uri", t.uri.toString());
-				put("word", t.word);
-				put("position", t.position);
-				put("relevance", t.relevance);
-			}
-
-		}
-
-	}
-
-	abstract public class YamlPushTask extends MapPushTask implements PushTask {
-
-		protected File file = null;
-
-		public YamlPushTask() {
-			// TODO exceptions
-			file = null;
-		}
-
-		public YamlPushTask(String s) {
-			setOption(s);
-		}
-
-		public void setOption(Object o) {
-			file = new File(o.toString() + ".yml");
-		}
-
-		public void start() {
-			try {
-				FileOutputStream os = new FileOutputStream(file);
-				yaml.dump(hm, new OutputStreamWriter(os));
-				os.close();
-				done = true;
-			} catch (java.io.IOException e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-		public void join() {
-			return;
-		}
-
-		public Object get() {
-			return file.getPath();
-		}
-
-		// snakeYAML says "Arrays of primitives are not fully supported."
-		public void put(String key, Object o) {
-			if (o instanceof int[]) {
-				int[] ii = (int[]) o;
-				Integer[] ints = new Integer[ii.length];
-				for (int i=0; i<ii.length; ++i) { ints[i] = ii[i]; }
-				super.put(key, ints);
-			} else if (o instanceof boolean[]) {
-				boolean[] ii = (boolean[]) o;
-				Boolean[] ints = new Boolean[ii.length];
-				for (int i=0; i<ii.length; ++i) { ints[i] = ii[i]; }
-				super.put(key, ints);
-			} else {
-				super.put(key, o);
-			}
-		}
-
-	}
-
-	abstract public class MapPushTask implements PushTask {
-
-		final protected HashMap<String, Object> hm = new HashMap<String, Object>();
-		protected boolean done = false;
-
-		public void setOption(Object o) {
-			// TODO
-		}
-
-		public void start() {
-			done = true;
-		}
-
-		public void join() {
-			return;
-		}
-
-		public void put(String key, Object o) {
-			hm.put(key, o);
-		}
-
-		public Object get() {
-			return hm;
-		}
-
-	}
-
 */
+
+	/**
+	** This serialiser creates a Map that is a serialised version of
+	** TokenURIEntry.
+	*/
+	public static class TokenURIEntrySerialiser extends AbstractSerialiser<TokenURIEntry, Map<String, Object>> {
+
+		protected static String[] keys = new String[]{"word", "_uri", "position", "relevance"};
+
+		public TokenURIEntrySerialiser() {
+			arch = new DummyArchiver<Map<String, Object>>();
+			trans = new TokenURIEntryTranslator();
+		}
+
+
+		public static class TokenURIEntryTranslator implements Translator<TokenURIEntry, Map<String, Object>> {
+
+			public TokenURIEntry rev(Map<String, Object> t) {
+				try {
+					TokenURIEntry en = new TokenURIEntry((String)(t.get(keys[0])), (String)(t.get(keys[1])));
+					en.position = (Integer)(t.get(keys[2]));
+					en.relevance = (Integer)(t.get(keys[3]));
+					return en;
+
+				} catch (java.net.MalformedURLException e) {
+					return null;
+					// TODO have a CorruptData exception or something...
+				} catch (ClassCastException e) {
+					return null;
+					// TODO have a CorruptData exception or something...
+				}
+
+			}
+
+			public Map<String, Object> app(TokenURIEntry t) {
+				Map<String, Object> map = new java.util.HashMap<String, Object>();
+				map.put(keys[0], t.word);
+				map.put(keys[1], t.uri.toString());
+				map.put(keys[2], t.position);
+				map.put(keys[3], t.relevance);
+
+				return map;
+			}
+
+		}
+
+	}
+
+	/**
+	** This Archiver just copies the dummy to the data and vice-versa. Seems
+	** pointless, but can be useful in conjunction with a {@link Translator}
+	** inside an {@link AbstractSerialiser}.
+	*/
+	public static class DummyArchiver<T> implements Archiver<T> {
+
+		public void pull(PullTask<T> t) {
+			t.data = (T)(t.meta);
+		}
+
+		public void push(PushTask<T> t) {
+			t.meta = t.data;
+		}
+
+	}
+
+
 }

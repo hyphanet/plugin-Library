@@ -14,35 +14,35 @@ package plugins.Interdex.util;
 */
 public class DataNotLoadedException extends RuntimeException {
 
-	final Object thrower;
+	final Object parent;
 	final Object key;
-	final Object dummyvalue;
+	final Object meta;
 
-	public DataNotLoadedException(String s, Throwable t, Object c, Object k, Object v) {
+	public DataNotLoadedException(String s, Throwable t, Object p, Object k, Object v) {
 		super(s, t);
-		thrower = c;
+		parent = p;
 		key = k;
-		dummyvalue = v;
+		meta = v;
 	}
 
-	public DataNotLoadedException(Throwable t, Object c, Object k, Object v) {
-		this(null, t, c, k, v);
+	public DataNotLoadedException(Throwable t, Object p, Object k, Object v) {
+		this(null, t, p, k, v);
 	}
 
-	public DataNotLoadedException(String s, Object c, Object k, Object v) {
-		this(s, null, c, k, v);
+	public DataNotLoadedException(String s, Object p, Object k, Object v) {
+		this(s, null, p, k, v);
 	}
 
-	public DataNotLoadedException(String s, Object c, Object k) {
-		this(s, null, c, k, null);
+	public DataNotLoadedException(String s, Object p, Object k) {
+		this(s, null, p, k, null);
 	}
 
-	public DataNotLoadedException(String s, Object c) {
-		this(s, null, c, null, null);
+	public DataNotLoadedException(String s, Object p) {
+		this(s, null, p, null, null);
 	}
 
-	public Object getThrower() { return thrower; }
+	public Object getParent() { return parent; }
 	public Object getKey() { return key; }
-	public Object getDummyValue() { return dummyvalue; }
+	public Object getValue() { return meta; }
 
 }

@@ -17,11 +17,10 @@ public class SkeletonTreeMapTest extends TestCase {
 	SkeletonTreeMap<String, Integer> tm;
 
 	protected void setUp() {
-		String[] keys = new String[1024];
-		for (int i=0; i<keys.length; ++i) {
-			keys[i] = UUID.randomUUID().toString();
+		tm = new SkeletonTreeMap<String, Integer>();
+		for (int i=0; i<1024; ++i) {
+			tm.putDummy(UUID.randomUUID().toString(), Boolean.FALSE);
 		}
-		tm = new SkeletonTreeMap<String, Integer>(keys);
 	}
 
 	protected void tearDown() {
@@ -34,7 +33,10 @@ public class SkeletonTreeMapTest extends TestCase {
 	}
 
 	public void testBasic() {
-		tm = new SkeletonTreeMap<String, Integer>(new String[]{"l0l", "l1l", "l2l"});
+		tm = new SkeletonTreeMap<String, Integer>();
+		tm.putDummy("l0l", Boolean.FALSE);
+		tm.putDummy("l1l", Boolean.FALSE);
+		tm.putDummy("l2l", Boolean.FALSE);
 
 		assertTrue(tm.firstKey().equals("l0l"));
 		assertTrue(tm.lastKey().equals("l2l"));
@@ -44,7 +46,7 @@ public class SkeletonTreeMapTest extends TestCase {
 			assertTrue(tm.get("123") == null);
 			tm.get("l0l");
 		} catch (DataNotLoadedException e) {
-			assertTrue(e.getThrower() == tm);
+			assertTrue(e.getParent() == tm);
 			assertTrue(e.getKey().equals("l0l"));
 		}
 
@@ -58,7 +60,7 @@ public class SkeletonTreeMapTest extends TestCase {
 		try {
 			tm.get("l1l");
 		} catch (DataNotLoadedException e) {
-			assertTrue(e.getThrower() == tm);
+			assertTrue(e.getParent() == tm);
 			assertTrue(e.getKey().equals("l1l"));
 		}
 
@@ -97,7 +99,7 @@ public class SkeletonTreeMapTest extends TestCase {
 				++i;
 			}
 		} catch (DataNotLoadedException e) {
-			assertTrue(e.getDummyValue() != null);
+			assertTrue(e.getValue() != null);
 			assertTrue(i == 0);
 		}
 

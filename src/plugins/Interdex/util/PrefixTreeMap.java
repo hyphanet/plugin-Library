@@ -28,10 +28,19 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	** {@link TreeMap} holding the entries which don't need to be stored in
 	** their own tree yet.
 	*/
-	final TreeMap<K, V> tmap;
+	final protected TreeMap<K, V> tmap;
 
-	final PrefixTreeMap<K, V> parent;
-	final PrefixTreeMap<K, V>[] child;
+	/**
+	** The constructor points this to {@link PrefixTree#parent}, so we don't
+	** have to keep casting when we want to access the methods of the subclass.
+	*/
+	final protected PrefixTreeMap<K, V> parent;
+
+	/**
+	** The constructor points this to {@link PrefixTree#child}, so we don't
+	** have to keep casting when we want to access the methods of the subclass.
+	*/
+	final protected PrefixTreeMap<K, V>[] child;
 
 	protected PrefixTreeMap(K p, int len, int maxsz, TreeMap<K, V> tm, PrefixTreeMap<K, V>[] chd, PrefixTreeMap<K, V> par) {
 		super(p, len, maxsz, chd, par);

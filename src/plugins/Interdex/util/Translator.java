@@ -1,0 +1,25 @@
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
+package plugins.Interdex.util;
+
+/**
+** A class that translates an object into one of another type. Used mostly in
+** conjunction with an {@link Archiver} that can take objects of the latter
+** type but not the former type.
+**
+** @author infinity0
+*/
+public interface Translator<T, I> {
+
+	/**
+	** Reverse the translation.
+	*/
+	T rev(I intermediate);
+
+	/**
+	** Apply the translation.
+	*/
+	I app(T translatee);
+
+}

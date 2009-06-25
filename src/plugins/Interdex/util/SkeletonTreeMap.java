@@ -3,7 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
-import plugins.Interdex.util.Serialiser.*;
+import plugins.Interdex.util.Archiver.*;
 import plugins.Interdex.util.SkeletonMap.SkeletonSerialiser;
 
 import java.util.TreeMap;
@@ -31,52 +31,45 @@ implements SkeletonMap<K, V> {
 	** loaded into the map, and implies that (get(k) == null). (However, note
 	** that (get(k) == null) could also be the actual loaded value for key k.)
 	*/
-	final TreeMap<K, Dummy<V>> loaded;
+	final TreeMap<K, Object> loaded;
+
+	/**
+	** The meta data for this skeleton.
+	*/
+	protected Object meta = null;
 
 	public SkeletonTreeMap() {
 		super();
-		loaded = new TreeMap<K, Dummy<V>>();
+		loaded = new TreeMap<K, Object>();
 	}
 
 	public SkeletonTreeMap(Comparator<? super K> c) {
 		super(c);
-		loaded = new TreeMap<K, Dummy<V>>(c);
+		loaded = new TreeMap<K, Object>(c);
 	}
 
 	public SkeletonTreeMap(Map<? extends K,? extends V> m) {
 		super(m);
-		loaded = new TreeMap<K, Dummy<V>>();
+		loaded = new TreeMap<K, Object>();
 		for (K key: m.keySet()) {
-			loaded.put(key, Dummy.NULL);
+			loaded.put(key, null);
 		}
 	}
 
 	public SkeletonTreeMap(SortedMap<K,? extends V> m) {
 		super(m);
-		loaded = new TreeMap<K, Dummy<V>>(m.comparator());
+		loaded = new TreeMap<K, Object>(m.comparator());
 		for (K key: m.keySet()) {
-			loaded.put(key, Dummy.NULL);
+			loaded.put(key, null);
 		}
 	}
 
 	public SkeletonTreeMap(SkeletonTreeMap<K, V> m) {
 		super(m);
-		loaded = (TreeMap<K, Dummy<V>>)m.loaded.clone();
+		loaded = (TreeMap<K, Object>)m.loaded.clone();
 	}
 
-	public SkeletonTreeMap(K[] keys) {
-		loaded = new TreeMap<K, Dummy<V>>();
-		for (K k: keys) {
-			putDummy(k);
-		}
-	}
-
-	public Dummy<V> putDummy(K key) {
-		put(key, null);
-		return loaded.put(key, Dummy.NULL);
-	}
-
-	public Dummy<V> putDummy(K key, Dummy<V> o) {
+	public Object putDummy(K key, Object o) {
 		put(key, null);
 		return loaded.put(key, o);
 	}
@@ -92,9 +85,9 @@ implements SkeletonMap<K, V> {
 	 * public interface SkeletonMap
 	 ************************************************************************/
 
-	public boolean isFull() {
+	public boolean isLive() {
 		// TODO use a counter to optimise this
-		for (Dummy<V> o: loaded.values()) {
+		for (Object o: loaded.values()) {
 			if (o != null) { return false; }
 		}
 		return true;
@@ -102,14 +95,22 @@ implements SkeletonMap<K, V> {
 
 	public boolean isBare() {
 		// TODO use a counter to optimise this
-		for (Dummy<V> o: loaded.values()) {
+		for (Object o: loaded.values()) {
 			if (o == null) { return false; }
 		}
 		return true;
 	}
 
+	public Object getMeta() {
+		return meta;
+	}
+
+	public void setMeta(Object m) {
+		meta = m;
+	}
+
 	public Map<K, V> complete() {
-		if (!isFull()) {
+		if (!isLive()) {
 			throw new DataNotLoadedException("TreeMap not fully loaded.", this);
 		} else {
 			return new TreeMap(this);
@@ -125,22 +126,14 @@ implements SkeletonMap<K, V> {
 		for (K k: keySet()) {
 			if (loaded.get(k) != null) { continue; }
 			V v = get(k);
-			PushTask<V> d = serialiser.makePushTask(v);
+			PushTask<V> d = new PushTask<V>(v, meta);
 			tasks.put(k, d);
 		}
-		serialiser.doPush(tasks.values());
+		serialiser.push(tasks);
 
 		for (K k: tasks.keySet()) {
-			putDummy(k, tasks.get(k).get());
+			putDummy(k, tasks.get(k).meta);
 		}
-	}
-
-	public void inflate(SkeletonMap<K, V> m) {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
-	public void deflate(SkeletonMap<K, V> m) {
-		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	public void inflate(K key) {
@@ -151,24 +144,15 @@ implements SkeletonMap<K, V> {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-
-	/**
-	** A {@link Serialiser} that has access to all the fields of this class.
-	*/
-	abstract public static class TreeMapSerialiser<K, V> extends AbstractSerialiser<SkeletonTreeMap<K, V>>
-	implements SkeletonSerialiser<SkeletonTreeMap<K, V>> {
+	abstract public static class TreeMapTranslator<K, V>
+	implements Translator<SkeletonTreeMap<K, V>, Map<String, Object>> {
 
 		/**
-		** Add all the data from a skeleton map to the given {@link PushTask}.
-		** It is recommended that this method be called in the constructor of the
-		** {@link PushTask} being passed in.
-		**
-		** @param de The task to receive the data.
-		** @param skel The skeleton to add to the task.
+		** TODO rewrite this doc
 		*/
-		protected void putAll(PushTask<SkeletonTreeMap<K, V>> de, SkeletonTreeMap<K, V> map) {
+		public static <K, V> void pushMap(Map<String, Object> intm, SkeletonTreeMap<K, V> map) {
 			for (K k: map.loaded.keySet()) {
-				de.put(k.toString(), map.loaded.get(k));
+				intm.put(k.toString(), map.loaded.get(k));
 			}
 		}
 
@@ -193,7 +177,7 @@ implements SkeletonMap<K, V> {
 	public boolean containsKey(Object key) { return loaded.containsKey(key); }
 
 	public boolean containsValue(Object value) {
-		if (!isFull()) {
+		if (!isLive()) {
 			throw new DataNotLoadedException("TreeMap not fully loaded.", this);
 		} else {
 			return super.containsValue(value);
@@ -353,7 +337,7 @@ implements SkeletonMap<K, V> {
 	/**
 	** Iterator that goes through both the loaded map and the object map at the
 	** same time, throwing {@link DataNotLoadedException} when it encounters
-	** dummy elements. After this occurs, all subsequent attempts to fetch the
+	** meta elements. After this occurs, all subsequent attempts to fetch the
 	** next value will fail with {@link IllegalStateException} with the cause
 	** set to the {@link DataNotLoadedException} that was thrown.
 	**

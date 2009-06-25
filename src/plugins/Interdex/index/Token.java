@@ -13,11 +13,15 @@ import plugins.Interdex.util.PrefixTree.AbstractPrefixKey;
 ** MD5 hash of a string, implementing the PrefixKey interface. Used to map
 ** keywords to entries in the index.
 **
+** TODO make this do intern(), like String does.
+**
 ** @author infinity0
 */
 public class Token extends AbstractPrefixKey implements PrefixKey {
 
 	final byte[] hash;
+
+	transient String str = null;
 
 	public Token(byte[] h) {
 		if (h.length != 16) {
@@ -33,7 +37,12 @@ public class Token extends AbstractPrefixKey implements PrefixKey {
 		hash = MD5(w);
 	}
 
-	public String toString() { return hexString(hash); }
+	public String toString() {
+		if (str == null) {
+			str = hexString(hash);
+		}
+		return str;
+	}
 
 	public String toByteString() { return new String(hash); }
 

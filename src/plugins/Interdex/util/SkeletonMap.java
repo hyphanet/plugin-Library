@@ -3,9 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
-import plugins.Interdex.util.Serialiser.Task;
-import plugins.Interdex.util.Serialiser.PullTask;
-import plugins.Interdex.util.Serialiser.PushTask;
+import plugins.Interdex.util.Archiver.*;
 
 /**
 ** Defines an interface for a map or map-like data structure (eg. multimap)
@@ -21,7 +19,7 @@ public interface SkeletonMap<K, V> {
 	** Whether the skeleton is fully loaded and has no data missing. In other
 	** words, for all keys k: {@link get(k)} must return the correct value.
 	*/
-	public boolean isFull();
+	public boolean isLive();
 
 	/**
 	** Whether the skeleton is bare and has no data loaded at all. In other
@@ -31,14 +29,24 @@ public interface SkeletonMap<K, V> {
 	public boolean isBare();
 
 	/**
-	** If isFull is true, return a map of the same type as the data structure
+	** Get the meta data associated with this skeleton.
+	*/
+	public Object getMeta();
+
+	/**
+	** Set the meta data associated with this skeleton.
+	*/
+	public void setMeta(Object m);
+
+	/**
+	** If isLive is true, return a map of the same type as the data structure
 	** being emulated. Otherwise, throw {@link DataNotLoadedException.}
 	*/
 	public Object complete() throws DataNotLoadedException;
 
 	/**
 	** Inflate the entire skeleton so that after the method call, {@link
-	** isFull()} returns true.
+	** isLive()} returns true.
 	*/
 	public void inflate();
 
@@ -48,19 +56,19 @@ public interface SkeletonMap<K, V> {
 	*/
 	public void deflate();
 
-	/**
+	/*/*
 	** Inflate the part of the skeleton which corresponds to the given submap.
 	**
 	** @param map The submap to inflate.
 	*/
-	public void inflate(SkeletonMap<K, V> map);
+	//public void inflate(SkeletonMap<K, V> map);
 
-	/**
+	/*/*
 	** Deflate the part of the skeleton which corresponds to the given submap.
 	**
 	** @param map The submap to deflate.
 	*/
-	public void deflate(SkeletonMap<K, V> map);
+	//public void deflate(SkeletonMap<K, V> map);
 
 	/**
 	** Inflate the value for a key so that after the method call, get(key) will
@@ -85,7 +93,7 @@ public interface SkeletonMap<K, V> {
 	** An effectively empty marker interface which contains some additional
 	** specifications for {@link Serialiser} of {@link SkeletonMap}.
 	*/
-	public interface SkeletonSerialiser<T extends SkeletonMap> extends plugins.Interdex.util.Serialiser<T> {
+	public interface SkeletonSerialiser<T extends SkeletonMap> extends Serialiser<T> {
 
 		/**
 		** {@inheritDoc}
@@ -94,7 +102,7 @@ public interface SkeletonMap<K, V> {
 		** true for the object returned by {@link Serialiser.PullTask#get()} after
 		** this task completes.
 		*/
-		public void doPull(PullTask<T> task);
+		public void pull(PullTask<T> task);
 
 		/**
 		** {@inheritDoc}
@@ -110,7 +118,7 @@ public interface SkeletonMap<K, V> {
 		** on the resulting object), and to provide finer-grained control over the
 		** pushing process.
 		*/
-		public PushTask<T> makePushTask(T data);
+		public void push(PushTask<T> task);
 
 	}
 

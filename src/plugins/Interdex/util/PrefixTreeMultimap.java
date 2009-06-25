@@ -31,10 +31,19 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 	** {@link TreeMultimap} holding the entries which don't need to be stored
 	** in their own tree yet.
 	*/
-	final TreeMultimap<K, V> tmap;
+	final protected TreeMultimap<K, V> tmap;
 
-	final PrefixTreeMultimap<K, V> parent;
-	final PrefixTreeMultimap<K, V>[] child;
+	/**
+	** The constructor points this to {@link PrefixTree#parent}, so we don't
+	** have to keep casting when we want to access the methods of the subclass.
+	*/
+	final protected PrefixTreeMultimap<K, V> parent;
+
+	/**
+	** The constructor points this to {@link PrefixTree#child}, so we don't
+	** have to keep casting when we want to access the methods of the subclass.
+	*/
+	final protected PrefixTreeMultimap<K, V>[] child;
 
 	protected PrefixTreeMultimap(K p, int len, int maxsz, TreeMultimap<K, V> tm, PrefixTreeMultimap<K, V>[] chd, PrefixTreeMultimap<K, V> par) {
 		super(p, len, maxsz, chd, par);

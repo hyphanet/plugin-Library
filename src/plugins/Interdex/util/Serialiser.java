@@ -3,149 +3,50 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
-import java.util.Collection;
+import plugins.Interdex.util.Archiver.*;
+
 import java.util.Map;
 
 /**
-** A class that handles serialisation tasks.
+** A class that handles serialisation tasks more complex than {@link Archiver}.
+**
+** By default, nested data structures such as {@link PrefixTreeMap} use the
+** meta objects of their children directly during a serialisation operation.
+** Therefore, it is recommended that the meta objects returned by this class
+** (and related classes) be directly serialisable by an {@link Archiver}. This
+** will make the task of writing a {@link Translator} much easier, possibly
+** even unnecessary.
+**
+** The recommended way to ensure this is for it to be either: a primitive or
+** Object form of a primitive; an Array, {@link Collection}, or {@link Map},
+** where the elements are also serialisable as defined here; or a Java Bean.
 **
 ** @author infinity0
 */
-public interface Serialiser<T> {
-
-	/**
-	** Creates a {@link PullTask} from a dummy.
-	*/
-	public PullTask<T> makePullTask(Dummy<T> o);
-
-	/**
-	** Creates a {@link PushTask} from some data structure.
-	*/
-	public PushTask<T> makePushTask(T data);
-
-	/**
-	** Execute a {@link PullTask}, returning only when the task is done.
-	*/
-	public void doPull(PullTask<T> task);
-
-	/**
-	** Execute a {@link PushTask}, returning only when the task is done.
-	*/
-	public void doPush(PushTask<T> task);
+public interface Serialiser<T> extends Archiver<T> {
 
 	/**
 	** Execute everything in a group of {@link PullTask}s, returning only when
 	** they are all done.
 	*/
-	public void doPull(Iterable<PullTask<T>> tasks);
+	public void pull(Iterable<PullTask<T>> tasks);
 
 	/**
 	** Execute everything in a group of {@link PushTask}s, returning only when
 	** they are all done.
 	*/
-	public void doPush(Iterable<PushTask<T>> tasks);
-
-
-	/**
-	** Represents an "empty" object that corresponds to a "full" object. For
-	** example, might be a URI pointer to where the rest of the data is held.
-	**
-	** For now, this is only an empty marker interface.
-	**
-	** Dummy values must themselves be directly serialisable by the parent
-	** {@link Serialiser}, as defined in {@link Task}.
-	*/
-	public interface Dummy<T> {
-
-		static Dummy NULL = new Dummy() {};
-
-	}
+	public void push(Iterable<PushTask<T>> tasks);
 
 	/**
-	** Defines a serialisation task for an object, mapping its fields (in
-	** {@link String} form) to the their values (in a form that can be
-	** serialised by the parent {@link Serialiser}).
-	**
-	** The recommended way to ensure that a value can be serialised by any
-	** Serialiser is for it to be either: a primitive or Object form of a
-	** primitive; an Array, {@link Collection}, or {@link Map}, whether the
-	** elements are also serialisable as defined here; or a Java Bean.
-	**
-	** Implementations must ensure that data insertion/retrieval methods are
-	** never called if {@link begun()}/{@link done()} returns true/false,
-	** respectively. A recommended way to do this is to override such methods
-	** to throw {@link IllegalStateException} under the appropriate conditions.
+	** Execute everything in a map of {@link PullTask}s, returning only when
+	** they are all done.
 	*/
-	public interface Task<T> extends Map<String, Object> {
-
-		/**
-		** Whether the task has been started or not. If this is false, then
-		** {@link done()} must return false.
-		*/
-		public boolean begun();
-
-		/**
-		** Whether the task is finished or not. If this is true, then {@link
-		** begun()} must return true.
-		*/
-		public boolean done();
-
-	}
+	public <K> void pull(Map<K, PullTask<T>> tasks);
 
 	/**
-	** Defines a pull task, which allows data to be retrieved from the task
-	** after it has completed.
-	**
-	** Implementations' constructors should create a task ready to be executed
-	** without any further additions necessary to the task.
+	** Execute everything in a map of {@link PushTask}s, returning only when
+	** they are all done.
 	*/
-	public interface PullTask<T> extends Task<T> {
-
-		/**
-		** Retrieve the data after the task is done.
-		**
-		** @throws IllegalStateException If the task is not done.
-		*/
-		public T get() throws IllegalStateException;
-
-		/**
-		** Retrieve the dummy after the task is done. This will usually be the
-		** same dummy that was passed to the constructor, but may be different,
-		** for example if the serialiser followed a URI redirect.
-		**
-		** @throws IllegalStateException If the task is not done.
-		*/
-		public void getDummy(Dummy<T> d) throws IllegalStateException;
-
-	}
-
-	/**
-	** Defines a push task, which allows data to be added to the task before
-	** it starts.
-	**
-	** Implementations' constructors should create a task ready to be executed
-	** without any further additions necessary to the task (except possibly
-	** {@link putDummy(Dummy<T>)}).
-	*/
-	public interface PushTask<T> extends Task<T> {
-
-		/**
-		** Retrieve the dummy after the task is done. If the task is not done,
-		** throw IllegalStateException.
-		**
-		** @throws IllegalStateException If the task is not done.
-		*/
-		public Dummy<T> get() throws IllegalStateException;
-
-		/**
-		** Give a dummy to the serialiser as a hint. The serialiser may or may
-		** not choose to ignore the dummy passed here; the actual value used
-		** is always returned correctly by {@link get()}.
-		**
-		** @throws IllegalStateException If the task has already begun.
-		*/
-		public void putDummy(Dummy<T> d) throws IllegalStateException;
-
-	}
+	public <K> void push(Map<K, PushTask<T>> tasks);
 
 }

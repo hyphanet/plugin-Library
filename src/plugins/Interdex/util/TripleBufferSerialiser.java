@@ -3,9 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
-import plugins.Interdex.util.Serialiser.Task;
-import plugins.Interdex.util.Serialiser.PullTask;
-import plugins.Interdex.util.Serialiser.PushTask;
+import plugins.Interdex.util.Archiver.*;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -17,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 **
 ** @author infinity0
 */
-abstract public class TripleBufferSerialiser<T> implements Serialiser<T> {
+abstract public class TripleBufferSerialiser<T> /*implements Serialiser<T>*/ {
 
 	// keep 3 buffers
 
@@ -102,11 +100,11 @@ abstract public class TripleBufferSerialiser<T> implements Serialiser<T> {
 
 	//public PushTask<T> makePushTask(T o);
 
-	//public T inflate(Object dummy);
+	//public T inflate(Object meta);
 
 	//public Object deflate(T skel) throws IllegalArgumentException;
 
-	abstract public class TripleBufferTask implements Task {
+	abstract public class TripleBufferTask extends Task {
 
 		protected Boolean started = Boolean.FALSE;
 		protected Boolean done = Boolean.FALSE;

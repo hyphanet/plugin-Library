@@ -18,7 +18,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	/**
 	** The prefix that all keys in this tree must match.
 	*/
-	final public K prefix;
+	final protected K prefix;
 
 	/**
 	** The length of the prefix for this tree.
@@ -129,6 +129,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** Returns the prefix in string form.
 	*/
 	public String prefixString() {
+		// TODO maybe have prefixString save into a cache? or too bothersome...
 		String ps = prefix.toString();
 		return ps.substring(0, ps.length() * preflen / prefix.size());
 	}
