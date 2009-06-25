@@ -78,7 +78,7 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 	 ************************************************************************/
 
 	protected PrefixTreeMultimap<K, V> makeSubTree(int msym) {
-		return new PrefixTreeMultimap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, sizeMax, this);
+		return new PrefixTreeMultimap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal, this);
 	}
 
 	protected void transferLocalToSubtree(int i, K key) {
@@ -105,7 +105,7 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return tmap.keySet();
 	}
 
-	protected int sizeLocal() {
+	public int sizeLocal() {
 		return tmap.size();
 	}
 

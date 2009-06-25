@@ -70,7 +70,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	 ************************************************************************/
 
 	protected PrefixTreeMap<K, V> makeSubTree(int msym) {
-		return new PrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, sizeMax, this);
+		return new PrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal, this);
 	}
 
 	protected void transferLocalToSubtree(int i, K key) {
@@ -97,7 +97,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return tmap.keySet();
 	}
 
-	protected int sizeLocal() {
+	public int sizeLocal() {
 		return tmap.size();
 	}
 

@@ -3,7 +3,10 @@
 
 == TODO ==
 
-put @Override and {@inheritDoc} on everything
+put @Override on everything
+
+decide how pull/push deflate/inflate should work for SkeletonMap structures
+
 
 
 == Overview ==

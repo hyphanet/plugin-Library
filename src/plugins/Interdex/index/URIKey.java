@@ -9,8 +9,9 @@ import plugins.Interdex.util.PrefixTree.PrefixKey;
 import plugins.Interdex.util.PrefixTree.AbstractPrefixKey;
 
 /**
+** TODO
+**
 ** @author infinity0
-** @see PrefixTreeMap.PrefixKey
 */
 public class URIKey extends AbstractPrefixKey implements PrefixKey {
 

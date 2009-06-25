@@ -4,12 +4,17 @@
 package plugins.Interdex.util;
 
 import plugins.Interdex.util.Archiver.*;
+import plugins.Interdex.util.DataNotLoadedException;
+
+import com.google.common.collect.Multimap;
+
+import java.util.Map;
 
 /**
-** Defines an interface for a map or map-like data structure (eg. multimap)
-** which represents the skeleton of another map or map-like data structure,
-** with some of the data missing. Operations on the missing data throw
-** {@link DataNotLoadedException}.
+** Defines an interface for a {@link Map} or map-like data structure (eg.
+** {@link Multimap}) which represents the skeleton of another map or map-like
+** data structure, with some of the data missing. Operations on the missing
+** data throw {@link DataNotLoadedException}.
 **
 ** @author infinity0
 */
@@ -17,14 +22,15 @@ public interface SkeletonMap<K, V> {
 
 	/**
 	** Whether the skeleton is fully loaded and has no data missing. In other
-	** words, for all keys k: {@link get(k)} must return the correct value.
+	** words, for all keys k: {@link Map#get(Object) get(k)} must return the
+	** correct value.
 	*/
 	public boolean isLive();
 
 	/**
 	** Whether the skeleton is bare and has no data loaded at all. In other
-	** words, for all keys k: {@link get(k)} must throw {@link
-	** DataNotLoadedException.}
+	** words, for all keys k: {@link Map#get(Object) get(k)} must throw {@link
+	** DataNotLoadedException}.
 	*/
 	public boolean isBare();
 
@@ -39,20 +45,21 @@ public interface SkeletonMap<K, V> {
 	public void setMeta(Object m);
 
 	/**
-	** If isLive is true, return a map of the same type as the data structure
-	** being emulated. Otherwise, throw {@link DataNotLoadedException.}
+	** If {@link #isLive()} is true, return an instance of the data structure
+	** being emulated that is an effective clone of this structue. Otherwise,
+	** throw {@link DataNotLoadedException}.
 	*/
 	public Object complete() throws DataNotLoadedException;
 
 	/**
 	** Inflate the entire skeleton so that after the method call, {@link
-	** isLive()} returns true.
+	** #isLive()} returns true.
 	*/
 	public void inflate();
 
 	/**
 	** Deflate the entire skeleton so that after the method call, {@link
-	** isBare()} returns true.
+	** #isBare()} returns true.
 	*/
 	public void deflate();
 
@@ -71,18 +78,18 @@ public interface SkeletonMap<K, V> {
 	//public void deflate(SkeletonMap<K, V> map);
 
 	/**
-	** Inflate the value for a key so that after the method call, get(key) will
-	** not throw a {@link DataNotLoadedException}. This method may or may not
-	** also inflate other parts of the skeleton.
+	** Inflate the value for a key so that after the method call, {@link
+	** Map#get(Object) get(key)} will not throw {@link DataNotLoadedException}.
+	** This method may or may not also inflate other parts of the skeleton.
 	**
 	** @param key The key for whose value to inflate.
 	*/
 	public void inflate(K key);
 
 	/**
-	** Deflate the value for a key, so that after the method call, get(key)
-	** will throw a {@link DataNotLoadedException}. This method may or may not
-	** also deflate other parts of the skeleton.
+	** Deflate the value for a key, so that after the method call, {@link
+	** Map#get(Object) get(k)} will throw a {@link DataNotLoadedException}.
+	** This method may or may not also deflate other parts of the skeleton.
 	**
 	** @param key The key for whose value to deflate.
 	*/
@@ -98,25 +105,23 @@ public interface SkeletonMap<K, V> {
 		/**
 		** {@inheritDoc}
 		**
-		** Note that only a skeleton is pulled, so {@link isBare()} should return
-		** true for the object returned by {@link Serialiser.PullTask#get()} after
-		** this task completes.
+		** Note that only a skeleton is pulled, so {@link #isBare()} should return
+		** true for the {@link PullTask#data} after this task completes.
 		*/
 		public void pull(PullTask<T> task);
 
 		/**
 		** {@inheritDoc}
 		**
-		** Note that only a skeleton is pushed, so {@link isBare()} should return
-		** true for the object passed into this method.
+		** Note that only a skeleton is pushed, so {@link #isBare()} should return
+		** true for the {@link PushTask#data} passed into this method.
 		**
 		** If it is not true, it is recommended that implementations throw {@link
 		** IllegalArgumentException} rather than automatically calling {@link
 		** SkeletonMap#deflate()} on the object, to maintain symmetry with the
-		** {@link SkeletonMap.SkeletonSerialiser#doPull(Serialiser.PullTask)}
-		** method (which does not automatically call {@link SkeletonMap#inflate()}
-		** on the resulting object), and to provide finer-grained control over the
-		** pushing process.
+		** {@link #pull(Archiver.PullTask)} method (which does not automatically
+		** call {@link SkeletonMap#inflate()}), and to provide finer-grained
+		** control over the pushing process.
 		*/
 		public void push(PushTask<T> task);
 

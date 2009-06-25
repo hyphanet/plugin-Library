@@ -64,7 +64,7 @@ implements SkeletonMap<K, V> {
 			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 
-		protected int sizeLocal() {
+		public int sizeLocal() {
 			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 
@@ -143,17 +143,15 @@ implements SkeletonMap<K, V> {
 	}
 
 	protected Serialiser<SkeletonPrefixTreeMap<K, V>> serialiser;
-	protected Serialiser<SkeletonTreeMap<K, V>> serialiserLocal;
 	protected Serialiser<V> serialiserLocalValue;
 
-	public void setSerialiser(Serialiser<SkeletonPrefixTreeMap<K, V>> s, Serialiser<SkeletonTreeMap<K, V>> ls, Serialiser<V> vs) {
+	public void setSerialiser(Serialiser<SkeletonPrefixTreeMap<K, V>> s, Serialiser<V> vs) {
 		serialiser = s;
-		serialiserLocal = ls;
 		serialiserLocalValue = vs;
 		tmap.setSerialiser(vs);
 		for (PrefixTreeMap<K, V> ch: child) {
 			if (ch != null && ch instanceof SkeletonPrefixTreeMap) {
-				((SkeletonPrefixTreeMap<K, V>)ch).setSerialiser(s, ls, vs);
+				((SkeletonPrefixTreeMap<K, V>)ch).setSerialiser(s, vs);
 			}
 		}
 	}
@@ -179,7 +177,7 @@ implements SkeletonMap<K, V> {
 		// check that there exists sz such that for all i:
 		// (chd[i] == false) => sizePrefix[i] <= sz
 		// (chd[i] != false) => sizePrefix[i] >= sz
-		int sz = sizeMax;
+		int sz = capacityLocal;
 		// find the size of the smallest child. if the smallest child is larger
 		// than maxSize, then maxSize will be returned instead, but this makes no
 		// difference to the tests below (think about it...)
@@ -207,8 +205,8 @@ implements SkeletonMap<K, V> {
 			}
 		}
 
-		// check that sum{ sizePrefix[j] : !chd[j] } + subtrees + sz > sizeMax
-		if (s + subtrees + sz <= sizeMax) {
+		// check that sum{ sizePrefix[j] : !chd[j] } + subtrees + sz > capacityLocal
+		if (s + subtrees + sz <= capacityLocal) {
 			throw new IllegalArgumentException("Invariant broken: count{ non-child prefix groups } + subtrees + sz > maxSize");
 		}
 
@@ -223,7 +221,7 @@ implements SkeletonMap<K, V> {
 	** @param i The index to attach the dummy to
 	*/
 	protected void putDummyChild(int i) {
-		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, sizeMax, this);
+		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, capacityLocal, this);
 	}
 
 	/**
@@ -233,7 +231,7 @@ implements SkeletonMap<K, V> {
 	** @param i The index to attach the dummy to
 	*/
 	protected void putDummyChild(int i, Object dummy) {
-		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, sizeMax, this);
+		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, capacityLocal, this);
 	}
 
 	/**
@@ -284,7 +282,7 @@ implements SkeletonMap<K, V> {
 	** must match and there must already be a DummyPrefixTreeMap in its place
 	** in the child array.
 	**
-	** @param subtree The tree to assimilate
+	** @param t The tree to assimilate
 	*/
 	public void assimilate(SkeletonPrefixTreeMap<K, V> t) {
 		if (t.preflen <= preflen) {
@@ -322,8 +320,8 @@ implements SkeletonMap<K, V> {
 
 	// We override this method so that the correct serialiser is set
 	protected PrefixTreeMap<K, V> makeSubTree(int msym) {
-		SkeletonPrefixTreeMap<K, V> ch = new SkeletonPrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, sizeMax, this);
-		ch.setSerialiser(serialiser, serialiserLocal, serialiserLocalValue);
+		SkeletonPrefixTreeMap<K, V> ch = new SkeletonPrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal, this);
+		ch.setSerialiser(serialiser, serialiserLocalValue);
 		return ch;
 	}
 
@@ -342,7 +340,7 @@ implements SkeletonMap<K, V> {
 	 ************************************************************************/
 
 	public boolean isLive() {
-		// TODO use a counter to optimise this
+		// OPTIMISE use a counter
 		if (!tmap.isLive()) { return false; }
 		for (PrefixTreeMap t: child) {
 			if (t instanceof DummyPrefixTreeMap) { return false; }
@@ -354,7 +352,7 @@ implements SkeletonMap<K, V> {
 	}
 
 	public boolean isBare() {
-		// TODO use a counter to optimise this
+		// OPTIMISE use a counter
 		if (!tmap.isBare()) { return false; }
 		for (PrefixTreeMap t: child) {
 			if (t instanceof SkeletonPrefixTreeMap) { return false; }
@@ -383,7 +381,7 @@ implements SkeletonMap<K, V> {
 				}
 			}
 
-			return new PrefixTreeMap(prefix, preflen, sizeMax, ntmap, nchild, null);
+			return new PrefixTreeMap(prefix, preflen, capacityLocal, ntmap, nchild, null);
 		}
 	}
 
@@ -425,17 +423,25 @@ implements SkeletonMap<K, V> {
 	}
 
 
+	/**
+	** Translator with access to the members of PrefixTreeMap.
+	**
+	** DOCUMENT
+	*/
 	abstract public static class PrefixTreeMapTranslator<K extends PrefixKey, V>
 	implements Translator<SkeletonPrefixTreeMap<K, V>, Map<String, Object>> {
 
 		/**
-		** TODO rewrite this doc.
+		** doing it this way allows different Map objects to be used; this may
+		** come in handy at some point...
+		**
+		** DOCUMENT
 		*/
-		public static <K extends PrefixKey, V> void rev(Map<String, Object> intm, Map<String, Object> intml, SkeletonPrefixTreeMap<K, V> skel) {
-			// TODO make the keys use String.intern()
+		public static <K extends PrefixKey, V> void app(SkeletonPrefixTreeMap<K, V> skel, Map<String, Object> intml, Map<String, Object> intm) {
+			// OPTMISE make the keys use String.intern()
 			intm.put("prefix", skel.prefix.toString());
 			intm.put("preflen", skel.preflen);
-			intm.put("sizeMax", skel.sizeMax);
+			intm.put("capacityLocal", skel.capacityLocal);
 			intm.put("size", skel.size);
 			intm.put("subtreesMax", skel.subtreesMax);
 			intm.put("subtrees", skel.subtrees);
@@ -445,7 +451,7 @@ implements SkeletonMap<K, V> {
 			for (int i=0; i<skel.subtreesMax; ++i) { chd[i] = (skel.child[i] != null); }
 			intm.put("_child", chd);
 
-			SkeletonTreeMap.TreeMapTranslator.pushMap(intml, skel.tmap);
+			SkeletonTreeMap.TreeMapTranslator.app(skel.tmap, intml);
 			intm.put("_tmap", intml);
 		}
 

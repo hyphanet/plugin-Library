@@ -21,7 +21,7 @@ abstract public class AbstractSerialiser<T, I> implements Serialiser<T> {
 	/**
 	** {@inheritDoc}
 	**
-	** TODO doc
+	** DOCUMENT
 	*/
 	public void pull(PullTask<T> task) {
 		PullTask<I> archivable = new PullTask<I>(task.meta);
@@ -34,7 +34,7 @@ abstract public class AbstractSerialiser<T, I> implements Serialiser<T> {
 	/**
 	** {@inheritDoc}
 	**
-	** TODO doc
+	** DOCUMENT
 	*/
 	public void push(PushTask<T> task) {
 		I intermediate = trans.app(task.data);

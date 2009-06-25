@@ -89,7 +89,7 @@ public class Index {
 	/**
 	** Get a URIEntry from the index.
 	**
-	** @param key The URIKey to retrieve the entry for
+	** @param k The URIKey to retrieve the entry for
 	** @return The value for the key
 	*/
 	public synchronized URIEntry getURI(URIKey k) {

@@ -25,7 +25,7 @@ public interface Archiver<T> {
 	/**
 	** Defines a serialisation task for an object.
 	**
-	** TODO document.
+	** DOCUMENT
 	*/
 	abstract public static class Task<T> {
 

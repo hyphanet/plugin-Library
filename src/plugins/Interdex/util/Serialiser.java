@@ -5,6 +5,7 @@ package plugins.Interdex.util;
 
 import plugins.Interdex.util.Archiver.*;
 
+import java.util.Collection;
 import java.util.Map;
 
 /**

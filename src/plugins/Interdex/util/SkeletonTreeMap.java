@@ -86,7 +86,7 @@ implements SkeletonMap<K, V> {
 	 ************************************************************************/
 
 	public boolean isLive() {
-		// TODO use a counter to optimise this
+		// OPTIMISE use a counter
 		for (Object o: loaded.values()) {
 			if (o != null) { return false; }
 		}
@@ -94,7 +94,7 @@ implements SkeletonMap<K, V> {
 	}
 
 	public boolean isBare() {
-		// TODO use a counter to optimise this
+		// OPTIMISE use a counter
 		for (Object o: loaded.values()) {
 			if (o == null) { return false; }
 		}
@@ -122,7 +122,8 @@ implements SkeletonMap<K, V> {
 	}
 
 	public void deflate() {
-		java.util.HashMap<K, PushTask<V>> tasks = new java.util.HashMap<K, PushTask<V>>();
+		// OPTMISE HashMap constructor
+		java.util.HashMap<K, PushTask<V>> tasks = new java.util.HashMap<K, PushTask<V>>(size()*2);
 		for (K k: keySet()) {
 			if (loaded.get(k) != null) { continue; }
 			V v = get(k);
@@ -144,13 +145,22 @@ implements SkeletonMap<K, V> {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
+
+	/**
+	** Translator with access to the members of TreeMap.
+	**
+	** DOCUMENT
+	*/
 	abstract public static class TreeMapTranslator<K, V>
 	implements Translator<SkeletonTreeMap<K, V>, Map<String, Object>> {
 
 		/**
-		** TODO rewrite this doc
+		** doing it this way allows different Map objects to be used; this may
+		** come in handy at some point...
+		**
+		** DOCUMENT
 		*/
-		public static <K, V> void pushMap(Map<String, Object> intm, SkeletonTreeMap<K, V> map) {
+		public static <K, V> void app(SkeletonTreeMap<K, V> map, Map<String, Object> intm) {
 			for (K k: map.loaded.keySet()) {
 				intm.put(k.toString(), map.loaded.get(k));
 			}

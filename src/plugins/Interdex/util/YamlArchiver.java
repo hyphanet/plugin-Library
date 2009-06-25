@@ -14,9 +14,9 @@ import java.io.OutputStreamWriter;
 
 /**
 ** Converts between a map of {@link String} to {@link Object}, and a YAML
-** document. The Object must be serialisable as defined in {@link Archiver}.
+** document. The object must be serialisable as defined in {@link Archiver}.
 **
-** This class expects the meta object to be of type {@link String}, which is
+** This class expects {@link Task#meta} to be of type {@link String}, which is
 ** used as part of the filename.
 **
 ** @author infinity0
@@ -27,11 +27,11 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 	protected final String prefix;
 	protected final String suffix;
 
-	protected YamlArchiver() {
+	public YamlArchiver() {
 		suffix = prefix = "".intern();
 	}
 
-	protected YamlArchiver(String pre, String suf) {
+	public YamlArchiver(String pre, String suf) {
 		prefix = (pre == null)? "".intern(): pre;
 		suffix = (pre == null)? "".intern(): suf;
 	}

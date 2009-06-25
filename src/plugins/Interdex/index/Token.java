@@ -13,7 +13,7 @@ import plugins.Interdex.util.PrefixTree.AbstractPrefixKey;
 ** MD5 hash of a string, implementing the PrefixKey interface. Used to map
 ** keywords to entries in the index.
 **
-** TODO make this do intern(), like String does.
+** OPTIMISE make this do intern(), like String does.
 **
 ** @author infinity0
 */

@@ -11,7 +11,8 @@ import java.util.concurrent.TimeUnit;
 /**
 ** Parallel Serialiser using three buffers to load-balance things.
 **
-** TODO expand doc, clean up structure of this...
+** TODO clean up structure of this...
+** DOCUMENT
 **
 ** @author infinity0
 */

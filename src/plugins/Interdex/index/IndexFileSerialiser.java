@@ -11,8 +11,9 @@ import plugins.Interdex.util.Serialiser;
 import plugins.Interdex.util.Translator;
 import plugins.Interdex.util.Archiver;
 import plugins.Interdex.util.Archiver.*;
+import plugins.Interdex.util.YamlArchiver;
 
-import java.io.*;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -27,37 +28,41 @@ import java.util.Map;
 ** @author infinity0
 */
 public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
-/*
-	public Serialiser<SkeletonPrefixTreeMap<Token, TokenURIEntry>> s;
-	public Serialiser<SkeletonTreeMap<Token, TokenURIEntry>> sl;
-	public Serialiser<TokenURIEntry> sv;
 
+	public Serialiser<SkeletonPrefixTreeMap<Token, TokenURIEntry>> s;
+	public Serialiser<TokenURIEntry> sv;
 
 	public IndexFileSerialiser() {
 		s = new PrefixTreeMapSerialiser<Token, TokenURIEntry>();
-		sl = new TreeMapSerialiser<Token, TokenURIEntry>();
 		sv = new TokenURIEntrySerialiser();
 		//
 	}
 
-	public class PrefixTreeMapSerialiser<K extends PrefixKey, V> extends YamlSerialiser<SkeletonPrefixTreeMap<K, V>> {
+	public static class PrefixTreeMapSerialiser<K extends PrefixKey, V> extends AbstractSerialiser<SkeletonPrefixTreeMap<K, V>, Map<String, Object>> {
 
 		public PrefixTreeMapSerialiser() {
+			arch = new YamlArchiver<Map<String, Object>>("tk_", "");
+			trans = new PrefixTreeMapTranslator<K, V>();
 		}
 
-		public PullTask<SkeletonPrefixTreeMap<K, V>> makePullTask(Dummy<SkeletonPrefixTreeMap<K, V>> o) {
-			throw new UnsupportedOperationException("Not implemented.");
+		public void push(PushTask<SkeletonPrefixTreeMap<K, V>> task) {
+			if (task.meta == null) {
+				task.meta = task.data.getMeta();
+			}
+			super.push(task);
 		}
 
-		public PushTask<SkeletonPrefixTreeMap<K, V>> makePushTask(SkeletonPrefixTreeMap<K, V> tr) {
-			return new PushPrefixTreeMapTask(tr);
-		}
+		public static class PrefixTreeMapTranslator<K extends PrefixKey, V> extends SkeletonPrefixTreeMap.PrefixTreeMapTranslator<K, V> {
 
-		public class PushPrefixTreeMapTask extends YamlPushTask {
+			public SkeletonPrefixTreeMap<K, V> rev(Map<String, Object> map) {
+				throw new UnsupportedOperationException("Not implemented.");
+			}
 
-			public PushPrefixTreeMapTask(SkeletonPrefixTreeMap<K, V> skel) {
-				SkeletonPrefixTreeMap.pushMap(this, skel);
-				super.putDummy(new FileDummy(skel.prefixString()));
+			public Map<String, Object> app(SkeletonPrefixTreeMap<K, V> tree) {
+				Map<String, Object> map = new HashMap<String, Object>(16);
+				Map<String, Object> lmap = new HashMap<String, Object>(tree.sizeLocal()*2);
+				app(tree, lmap, map);
+				return map;
 			}
 
 		}
@@ -65,40 +70,81 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 	}
 
 
-	public class TreeMapSerialiser<K extends PrefixKey, V> extends AbstractSerialiser<SkeletonTreeMap<K, V>> {
-
-		public PullTask<SkeletonTreeMap<K, V>> makePullTask(Dummy<SkeletonTreeMap<K, V>> o) {
-			throw new UnsupportedOperationException("Not implemented.");
-		}
-
-		public PushTask<SkeletonTreeMap<K, V>> makePushTask(SkeletonTreeMap<K, V> tr) {
-			return new PushTreeMapTask(tr);
-		}
-
-		public class PushTreeMapTask extends YamlPushTask {
-
-			public PushTreeMapTask(SkeletonTreeMap<K, V> map) {
-				SkeletonTreeMap.pushMap(this, map);
-			}
-
-		}
-
-	}
-*/
 
 	/**
 	** This serialiser creates a Map that is a serialised version of
 	** TokenURIEntry.
+	**
+	** DOCUMENT
 	*/
 	public static class TokenURIEntrySerialiser extends AbstractSerialiser<TokenURIEntry, Map<String, Object>> {
 
 		protected static String[] keys = new String[]{"word", "_uri", "position", "relevance"};
 
 		public TokenURIEntrySerialiser() {
-			arch = new DummyArchiver<Map<String, Object>>();
+			arch = new YamlArchiver<Map<String, Object>>("tk_", "_map");
 			trans = new TokenURIEntryTranslator();
 		}
 
+		public void pull(PullTask<TokenURIEntry> tasks) {
+			throw new UnsupportedOperationException("Not supported.");
+		}
+
+		public void push(PushTask<TokenURIEntry> tasks) {
+			throw new UnsupportedOperationException("Not supported.");
+		}
+
+		public void pull(Iterable<PullTask<TokenURIEntry>> tasks) {
+			throw new UnsupportedOperationException("Not supported.");
+		}
+
+		public void push(Iterable<PushTask<TokenURIEntry>> tasks) {
+			throw new UnsupportedOperationException("Not supported.");
+		}
+
+		public <K> void pull(Map<K, PullTask<TokenURIEntry>> tasks) {
+			throw new UnsupportedOperationException("Not implemented.");
+		}
+
+		public <K> void push(Map<K, PushTask<TokenURIEntry>> tasks) {
+
+			// map of metadata to combined-tasks
+			Map<String, Map<String, Object>> mmap = new HashMap<String, Map<String, Object>>(4);
+
+			// this map is necessary to get the task object for a given intermediate
+			Map<Object, PushTask<TokenURIEntry>> omap = new HashMap<Object, PushTask<TokenURIEntry>>(tasks.size()*2);
+
+			for (Map.Entry<K, PushTask<TokenURIEntry>> en: tasks.entrySet()) {
+				PushTask<TokenURIEntry> task = en.getValue();
+				String file = (String)task.meta;
+
+				// find the combined-tasks map for the metadata for this task
+				if (!mmap.containsKey(file)) {
+					// OPTIMISE HashMap constructor
+					int sizeEst = tasks.size()*2/(mmap.size()+1);
+					mmap.put(file, new java.util.HashMap<String, Object>(sizeEst));
+				}
+				Map<String, Object> map = mmap.get(file);
+
+				Object o = trans.app(task.data);
+				omap.put(o, task);
+				// put the task into the combined-tasks map
+				map.put(en.getKey().toString(), o);
+			}
+
+			for (Map.Entry<String, Map<String, Object>> en: mmap.entrySet()) {
+				// execute the combined task
+				PushTask<Map<String, Object>> task = new PushTask<Map<String, Object>>(en.getValue(), en.getKey());
+				arch.push(task);
+
+				// transfer meta to the individual tasks
+				for (Object v: task.data.values()) {
+					omap.get(v).meta = task.meta;
+				}
+
+			}
+
+		}
 
 		public static class TokenURIEntryTranslator implements Translator<TokenURIEntry, Map<String, Object>> {
 

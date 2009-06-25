@@ -46,7 +46,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** Maximum size of ({@link #sizeLocal()} + {@link #child}) before we start
 	** to create subtrees.
 	*/
-	final public int sizeMax;
+	final public int capacityLocal;
 
 	/**
 	** Number of subtrees. At all times, this should equal the number of
@@ -108,7 +108,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 		sizePrefix = new int[child.length];
 
 		subtreesMax = p.symbols();
-		sizeMax = maxsz;
+		capacityLocal = maxsz;
 	}
 
 	/**
@@ -122,14 +122,14 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** Return the space left in the local map.
 	*/
 	public int sizeLeft() {
-		return sizeMax - (sizeLocal() + subtrees);
+		return capacityLocal - (sizeLocal() + subtrees);
 	}
 
 	/**
 	** Returns the prefix in string form.
 	*/
 	public String prefixString() {
-		// TODO maybe have prefixString save into a cache? or too bothersome...
+		// OPTIMISE maybe have prefixString save into a cache? or too bothersome...
 		String ps = prefix.toString();
 		return ps.substring(0, ps.length() * preflen / prefix.size());
 	}
@@ -164,8 +164,8 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** non-empty; it is up to the calling code to make sure this is true.
 	**
 	** TODO URGENT consider, in the case of Multimap, when the size of local
-	** map goes above sizeMax and cannot be converted into a subtree (eg. when
-	** there are sizeMax+1 values for the same key).
+	** map goes above capacityLocal and cannot be converted into a subtree (eg.
+	** when there are capacityLocal+1 values for the same key).
 	**
 	** @return The index of the new subtree.
 	*/
@@ -408,7 +408,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	/**
 	** Returns the size of the local map.
 	*/
-	abstract protected int sizeLocal();
+	abstract public int sizeLocal();
 
 	/**
 	** TODO Returns the set of keys of the whole node.
@@ -454,7 +454,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 		// clauses of the below or-expression are true.
 		if (!prefix.equals(tr.prefix)
 		 || preflen != tr.preflen
-		 || sizeMax != tr.sizeMax
+		 || capacityLocal != tr.capacityLocal
 		 || !getLocalMap().equals(tr.getLocalMap())
 		   ) { return false; }
 
