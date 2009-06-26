@@ -64,8 +64,8 @@ public class Search implements Request<URIWrapper> {
 
 		Logger.minor(Search.class, "Starting new search for "+search+" in "+indexuri);
 
-		String[] indices = indexuri.split(" ");
-		String[] searchterms = search.split(" ");
+		String[] indices = indexuri.split("[ ;]");
+		String[] searchterms = search.split("[^\\p{L}\\{N}]+");
 		if(indices.length<1 || searchterms.length<1)
 			throw new InvalidSearchException("Attempt to start search with no index or terms");
 		else if(indices.length==1 && searchterms.length==1)

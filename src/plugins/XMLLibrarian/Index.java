@@ -44,7 +44,7 @@ public abstract class Index {
 	 * @return Set of Index objects
 	 */
 	public static final ArrayList<Index> getIndices(String indexuris) throws InvalidSearchException{
-		String[] uris = indexuris.split(" ");
+		String[] uris = indexuris.split("[ ;]");
 		ArrayList<Index> indices = new ArrayList<Index>(uris.length);
 		
 		for ( String uri : uris){
