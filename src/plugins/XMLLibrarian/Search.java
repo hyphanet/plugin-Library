@@ -10,6 +10,7 @@ import java.util.TreeSet;
 import freenet.support.HTMLEncoder;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;
+import java.util.Locale;
 import java.util.Map;
 
 
@@ -53,7 +54,7 @@ public class Search implements Request<URIWrapper> {
 	 * @throws InvalidSearchException if any part of the search is invalid
 	 */
 	public static Search startSearch(String search, String indexuri) throws InvalidSearchException{
-		search = search.toLowerCase().trim();
+		search = search.toLowerCase(Locale.US).trim();
 		if(search.length()==0)
 			throw new InvalidSearchException("Blank search");
 
@@ -100,7 +101,7 @@ public class Search implements Request<URIWrapper> {
 	 * @throws InvalidSearchException if the search is invalid
 	 **/
 	private Search(String query, String indexURI, List<Request> requests, ResultOperation resultoperation) throws InvalidSearchException{
-		query = query.toLowerCase();
+		query = query.toLowerCase(Locale.US).trim();
 		subsearches = new HashSet(requests);
 		
 		this.query = query;
@@ -120,7 +121,7 @@ public class Search implements Request<URIWrapper> {
 	 * @param request Request to encapsulate
 	 */
 	private Search(String query, String indexURI, Request request){
-		query = query.toLowerCase();
+		query = query.toLowerCase(Locale.US).trim();
 		subsearches = new HashSet();
 		subsearches.add(request);
 
@@ -164,7 +165,7 @@ public class Search implements Request<URIWrapper> {
 	 * @return Search or null if not found
 	 */
 	public static Search getSearch(String search, String indexuri){
-		search = search.toLowerCase();
+		search = search.toLowerCase(Locale.US).trim();
         
 		// See if the same search exists
 		if (hasSearch(search, indexuri))
@@ -257,7 +258,6 @@ public class Search implements Request<URIWrapper> {
 	/**
 	 * @return Set of Requests this search depends on
 	 */
-	@Override
 	public Set<Request> getSubRequests(){
 		return subsearches;
 	}
@@ -265,7 +265,6 @@ public class Search implements Request<URIWrapper> {
 	/**
 	 * @return true if progress has been read since it was last updated
 	 */
-	@Override
 	public boolean progressAccessed(){
 		for(Request r : subsearches)
 			if(!r.progressAccessed())
@@ -277,7 +276,6 @@ public class Search implements Request<URIWrapper> {
 	/**
 	 * @return true if all are Finished, false otherwise
 	 */
-	@Override
 	public boolean isFinished(){
 		for(Request r : subsearches)
 			if(!r.isFinished())
@@ -287,7 +285,6 @@ public class Search implements Request<URIWrapper> {
 	/**
 	 * @return true if any have result, false otherwise
 	 */
-	@Override
 	public boolean hasResult(){
 		for(Request r : subsearches)
 			if(r.hasResult())
@@ -301,7 +298,6 @@ public class Search implements Request<URIWrapper> {
 	 * PARTIALRESULT if any have result or partialresult<br />
 	 * INPROGRESS otherwise
 	 */
-	@Override
 	public RequestStatus getRequestStatus(){
 		if(getError()!=null)
 			return RequestStatus.ERROR;
@@ -323,7 +319,6 @@ public class Search implements Request<URIWrapper> {
 	/**
 	 * @return sum of SubStages
 	 */
-	@Override
 	public int getSubStage(){
 //		if(progressAccessed())
 //			return stage;
