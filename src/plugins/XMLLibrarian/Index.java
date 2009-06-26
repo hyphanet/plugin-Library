@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Executor;
-import plugins.XMLLibrarian.xmlindex.FindRequest;
 import plugins.XMLLibrarian.xmlindex.XMLIndex;
 
 /**
@@ -16,24 +15,18 @@ import plugins.XMLLibrarian.xmlindex.XMLIndex;
 public abstract class Index {
 	public enum FetchStatus{UNFETCHED, FETCHING, FETCHED, FAILED}
 	static protected PluginRespirator pr;
-	protected static Executor executor;
+	static protected Executor executor;
 	/**
 	 * Map of all indexes currently open Key is indexid
 	 */
-	protected static HashMap<String, Index> allindices = new HashMap<String, Index>();
+	static protected HashMap<String, Index> allindices = new HashMap<String, Index>();
+	static private HashMap<String, Index> bookmarks = new HashMap<String, Index>();
 
-	
+
 	protected String indexuri;
 	protected FetchStatus fetchStatus = FetchStatus.UNFETCHED;
 
-	// FIXME these two should probably be using Request not FetchRequest
-	protected ArrayList<FindRequest> waitingOnMainIndex = new ArrayList<FindRequest>();
-	protected ArrayList<FindRequest> requests = new ArrayList<FindRequest>();
-	
-	protected String mainIndexDescription;
-
 	protected HashMap<String, String> indexMeta;
-	private static HashMap<String, Index> bookmarks = new HashMap<String, Index>();
 	
 
 	/**
@@ -121,7 +114,7 @@ public abstract class Index {
 	
 	@Override
 	public String toString(){
-		return "Index : "+indexuri+" "+fetchStatus+" "+mainIndexDescription+" "+waitingOnMainIndex;
+		return "Index : "+indexuri+" "+fetchStatus;
 	}
 }
 

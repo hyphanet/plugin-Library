@@ -43,7 +43,7 @@ import plugins.XMLLibrarian.XMLLibrarian;
  * The xml index format
  * @author MikeB
  */
-public class XMLIndex extends Index{
+public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 	static final String DEFAULT_FILE = "index.xml";
 
 	private HighLevelSimpleClient hlsc;
@@ -58,6 +58,8 @@ public class XMLIndex extends Index{
 	private int version;
 	private List<String> subIndiceList;
 	private SortedMap<String, SubIndex> subIndice;
+	private ArrayList<FindRequest> waitingOnMainIndex = new ArrayList<FindRequest>();
+
 
 	/**
 	 * Create an XMLIndex from a URI
@@ -110,7 +112,7 @@ public class XMLIndex extends Index{
 		 * Hears an event.
 		 **/
 		public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context){
-			mainIndexDescription = ce.getDescription();
+			String mainIndexDescription = ce.getDescription();
 			FindRequest.updateWithDescription(waitingOnMainIndex, mainIndexDescription);
 		}
 
@@ -122,19 +124,25 @@ public class XMLIndex extends Index{
 	/**
 	 * Callback for when index fetching completes
 	 */
-	ClientGetCallback mainIndexCallback = new ClientGetCallback(){
-		/** Called on successful fetch */
-		public void onSuccess(FetchResult result, ClientGetter state, ObjectContainer container){
-			processRequests(result.asBucket());
-		}
+	/** Called on successful fetch */
+	public void onSuccess(FetchResult result, ClientGetter state, ObjectContainer container){
+		processRequests(result.asBucket());
+	}
 
-		/** Called on failed/canceled fetch */
-		public void onFailure(FetchException e, ClientGetter state, ObjectContainer container){
-			fetchStatus = FetchStatus.FAILED;
-		}
-		
-		public void onMajorProgress(ObjectContainer container){}
-	};
+	/** Called on failed/canceled fetch */
+	public void onFailure(FetchException e, ClientGetter state, ObjectContainer container){
+		fetchStatus = FetchStatus.FAILED;
+	}
+
+	public void onMajorProgress(ObjectContainer container){}
+
+	public boolean persistent() {
+		return false;
+	}
+
+	public void removeFrom(ObjectContainer container) {
+		throw new UnsupportedOperationException();
+	}
 
 	/**
 	 * Fetch main index & process if local or fetch in background with callback if Freenet URI
@@ -158,7 +166,7 @@ public class XMLIndex extends Index{
 		FreenetURI u = new FreenetURI(uri);
 		while (true) {
 			try {
-				hlsc.fetch(u, -1, (RequestClient)hlsc, mainIndexCallback, hlsc.getFetchContext());
+				hlsc.fetch(u, -1, this, this, hlsc.getFetchContext().clone());
 				break;
 			} catch (FetchException e) {
 				if (e.newURI != null) {
@@ -211,7 +219,7 @@ public class XMLIndex extends Index{
 	
 	@Override
 	public String toString(){
-		String output = "Index : "+indexuri+" "+fetchStatus+" "+mainIndexDescription+" "+waitingOnMainIndex+"\n\t"+subIndice;
+		String output = "Index : "+indexuri+" "+fetchStatus+" "+waitingOnMainIndex+"\n\t"+subIndice;
 		//for (SubIndex s : subIndice)
 		//	output = output+"\n -"+s;
 		return output;
@@ -235,7 +243,6 @@ public class XMLIndex extends Index{
 	public synchronized Request find(String term){
 		try {
 			FindRequest request = new FindRequest(term);
-			requests.add(request);
 			setdependencies(request);
 			notifyAll();
 			return request;
@@ -347,6 +354,7 @@ public class XMLIndex extends Index{
 					if(fetchStatus==FetchStatus.UNFETCHED){
 						try {
 							fetchStatus = FetchStatus.FETCHING;
+							// TODO tidy the fetch stuff
 							bucket = Util.fetchBucket(indexuri + filename, hlsc);
 							fetchStatus = FetchStatus.FETCHED;
 							
