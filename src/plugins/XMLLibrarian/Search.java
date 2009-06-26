@@ -21,11 +21,11 @@ public class Search implements Request<Set<URIWrapper>> {
 
 	/**
 	 * What should be done with the results of subsearches
+	 * TODO look into a complement set operation and phrase search, would need a different method for storing subsearches though
 	 */
 	public enum ResultOperation{INTERSECTION, UNION};
 	private ResultOperation resultOperation;
 	
-	// TODO will be replaced with a binary tree to handle search logic although Set is more useful for multiple indices
 	private HashSet<Request> subsearches;
 
 	private String subject;
@@ -38,6 +38,7 @@ public class Search implements Request<Set<URIWrapper>> {
 	private long blocksCompleted;
 	private long blocksTotal;
 	protected Exception err;
+	// TODO Set operations wont maintain the results with the most information, these wil need to be retained
 	Set<URIWrapper> result;
 
 	private static HashMap<String, Search> allsearches = new HashMap<String, Search>();
@@ -51,7 +52,9 @@ public class Search implements Request<Set<URIWrapper>> {
 	 * @throws InvalidSearchException if any part of the search is invalid
 	 */
 	public static Search startSearch(String search, String indexuri) throws InvalidSearchException{
-		search = search.toLowerCase();
+		search = search.toLowerCase().trim();
+		if(search.length()==0)
+			throw new InvalidSearchException("Blank search");
 
 		// See if the same search exists
 		if (hasSearch(search, indexuri))
@@ -69,7 +72,7 @@ public class Search implements Request<Set<URIWrapper>> {
 			// Create search for multiple terms over 1 index
 			ArrayList<Request> requests = new ArrayList(searchterms.length);
 			for (String term : searchterms)
-				requests.add(Index.getIndex(indices[0]).find(term));
+				requests.add(startSearch(term,indices[0]));
 			return new Search(search, indexuri, requests, ResultOperation.INTERSECTION);
 		}else{
 			// create search for multiple terms over multiple indices
@@ -77,12 +80,13 @@ public class Search implements Request<Set<URIWrapper>> {
 			for (String index : indices){
 				ArrayList<Request> termrequests = new ArrayList(searchterms.length);
 				for (String term : searchterms)
-					termrequests.add(Index.getIndex(index).find(term));
+					termrequests.add(startSearch(term, index));
 				indexrequests.add(new Search(search, index, termrequests, ResultOperation.UNION));
 			}
 			return new Search(search, indexuri, indexrequests, ResultOperation.UNION);
 		}
 	}
+
 
 
 	/**
@@ -375,13 +379,11 @@ public class Search implements Request<Set<URIWrapper>> {
 
 	/**
 	 * Perform an intersection on results of all subsearches and return <br />
-	 * TODO this should always union indices and search logic needs to be implemented
 	 * @return Set of URIWrappers
 	 */
 	public Set<URIWrapper> getResult() {
-		// TODO implement search logic and cache search results
+		// TODO cache search results
 		result = new TreeSet<URIWrapper>();
-		// Intersect all Sets
 		for(Request<Set> r : subsearches)
 			if(r.hasResult())
 				if(result.size()>0)
