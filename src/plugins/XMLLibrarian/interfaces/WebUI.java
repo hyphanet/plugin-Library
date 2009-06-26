@@ -142,7 +142,7 @@ public class WebUI{
 
         // Start of body
 		HTMLNode searchDiv = bodyNode.addChild("div", "id", "searchbar");
-		HTMLNode searchForm = searchDiv.addChild("form", new String[]{"method", "action"}, new String[]{"GET", "search"});
+		HTMLNode searchForm = searchDiv.addChild("form", new String[]{"method", "action"}, new String[]{"GET", "plugins.XMLLibrarian.XMLLibrarian"});
 			HTMLNode searchTable = searchForm.addChild("table", "width", "100%");
 				HTMLNode searchTop = searchTable.addChild("tr");
 					HTMLNode titleCell = searchTop.addChild("td", new String[]{"rowspan","width"},new String[]{"2","120"});

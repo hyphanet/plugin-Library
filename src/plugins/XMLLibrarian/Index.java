@@ -68,8 +68,12 @@ public abstract class Index {
 	 * @return Index object
 	 */
 	public static final Index getIndex(String indexuri) throws InvalidSearchException{
-		if (indexuri.startsWith("bookmark:"))
-			return bookmarks.get(indexuri.substring(9));
+		if (indexuri.startsWith("bookmark:")){
+			if (bookmarks.containsKey(indexuri.substring(9)))
+				return bookmarks.get(indexuri.substring(9));
+			else
+				throw new InvalidSearchException("Index bookmark '"+indexuri.substring(9)+" does not exist");
+		}
 
 		if (!indexuri.endsWith("/"))
 			indexuri += "/";
