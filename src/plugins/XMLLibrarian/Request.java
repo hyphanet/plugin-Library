@@ -12,7 +12,7 @@ import java.util.Set;
  *					eg. loading the base of an index before loading needed parts<br />
  * Blocks -		smaller elements of a stage, eg. the progress of a fetch
  *
- * @param <E> Class of result of Request
+ * @param <E> Class of elements of result of Request
  *
  * @author MikeB
  */
@@ -63,11 +63,17 @@ public interface Request<E> {
 	/**
 	 * @return result of this request
 	 */
-	public E getResult();
+	public Set<E> getResult();
 	/**
 	 * @return true if RequestStatus is PARTIALRESULT or FINISHED
 	 */
 	public boolean hasResult();
+
+
+	/**
+	 * @return true if result has changed since it was last got
+	 */
+	public boolean resultChanged();
 
 	/**
 	 * To be overridden by subclasses which depend on subrequests

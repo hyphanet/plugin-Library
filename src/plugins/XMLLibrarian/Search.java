@@ -5,18 +5,19 @@ import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeSet;
 import freenet.support.HTMLEncoder;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.Map;
 
 
 /**
  * Performs asynchronous searches over many index or with many terms and search logic
  * @author MikeB
  */
-public class Search implements Request<Set<URIWrapper>> {
+public class Search implements Request<URIWrapper> {
 	static private XMLLibrarian xl;
 
 	/**
@@ -188,6 +189,14 @@ public class Search implements Request<Set<URIWrapper>> {
 		return allsearches.containsKey(makeString(search, indexuri));
 	}
 
+	public static Map<String, Search> getAllSearches(){
+		return allsearches;
+	}
+
+	public static void purgeSearches(){
+		allsearches = new HashMap<String, Search>();
+	}
+
     public String getQuery(){
 		return query;
 	}
@@ -350,6 +359,7 @@ public class Search implements Request<Set<URIWrapper>> {
 
 	/**
 	 * @return sum of NumBlocksTotal
+	 * TODO record all these progress things to speed up
 	 */
 	public long getNumBlocksTotal() {
 //		if(progressAccessed())
@@ -383,9 +393,10 @@ public class Search implements Request<Set<URIWrapper>> {
 	 * @return Set of URIWrappers
 	 */
 	public Set<URIWrapper> getResult() {
-		// TODO cache search results
+		if (!resultChanged() && result!=null)
+			return result;
 		result = new TreeSet<URIWrapper>();
-		for(Request<Set> r : subsearches)
+		for(Request<URIWrapper> r : subsearches)
 			if(r.hasResult())
 				if(result.size()>0)
 					switch(resultOperation){
@@ -397,5 +408,12 @@ public class Search implements Request<Set<URIWrapper>> {
 				else
 					result.addAll(r.getResult());
 		return result;
+	}
+
+	public boolean resultChanged() {
+		for (Request r : subsearches)
+			if (r.resultChanged())
+				return true;
+		return false;
 	}
 }

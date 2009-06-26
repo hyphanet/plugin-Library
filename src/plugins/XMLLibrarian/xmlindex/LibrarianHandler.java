@@ -11,6 +11,7 @@ import org.xml.sax.helpers.DefaultHandler;
 
 import freenet.support.Logger;
 
+import java.util.HashSet;
 import plugins.XMLLibrarian.URIWrapper;
 
 /**
@@ -47,7 +48,7 @@ public class LibrarianHandler extends DefaultHandler {
 	public LibrarianHandler(List<FindRequest> requests) throws Exception {
 		this.requests = requests;
 		for(FindRequest r : requests)
-			r.setResult(new ArrayList<URIWrapper>());
+			r.setResult(new HashSet<URIWrapper>());
 		word = "";
 		md5="";
 	}
@@ -140,8 +141,8 @@ public class LibrarianHandler extends DefaultHandler {
 							}
 							else
 								uri.descr = "not available";
-							for(FindRequest<ArrayList<URIWrapper>> match : wordMatches){
-								match.getResult().add(uri);
+							for(FindRequest<URIWrapper> match : wordMatches){
+								match.addResult(uri);
 							}
 						}
 					}

@@ -49,9 +49,16 @@ public class WebUI{
 //
 //		}else
 		if(request.getPath().endsWith("debug")){
-			WebUI.debugpage();
+			return WebUI.debugpage();
 		}
-		if(searchstring == null){   // no search main
+		if(request.getPath().endsWith("purgeSearches")){
+			Search.purgeSearches();
+			return WebUI.searchpage(indexuri);
+		}
+		if(request.getPath().endsWith("listSearches"))
+			return WebUI.listSearches();
+
+		if(searchstring == null || searchstring.equals("")){   // no search main
 			// generate HTML and set it to no refresh
 			return WebUI.searchpage(indexuri);
 			
@@ -135,11 +142,12 @@ public class WebUI{
 
         // Start of body
 		HTMLNode searchDiv = bodyNode.addChild("div", "id", "searchbar");
-		HTMLNode searchForm = searchDiv.addChild("form", "method", "GET");
+		HTMLNode searchForm = searchDiv.addChild("form", new String[]{"method", "action"}, new String[]{"GET", "search"});
 			HTMLNode searchTable = searchForm.addChild("table", "width", "100%");
 				HTMLNode searchTop = searchTable.addChild("tr");
-					searchTop.addChild("td", new String[]{"rowspan","width"},new String[]{"2","120"})
-						.addChild("H1", plugName);
+					HTMLNode titleCell = searchTop.addChild("td", new String[]{"rowspan","width"},new String[]{"2","120"});
+						titleCell.addChild("H1", plugName);
+						titleCell.addChild(searchList());
 					HTMLNode searchcell = searchTop.addChild("td", "width", "400");
 						searchcell.addChild("input", new String[]{"name", "size", "type", "value"}, new String[]{"search", "40", "text", search});
 						searchcell.addChild("input", new String[]{"name", "type", "value", "tabindex"}, new String[]{"find", "submit", "Find!", "1"});
@@ -147,7 +155,8 @@ public class WebUI{
 				searchTable.addChild("tr")
 					.addChild("td", xl.getString("Index"))
 						.addChild("input", new String[]{"name", "type", "value", "size"}, new String[]{"index", "text", indexuri, "40"});
-		
+
+		bodyNode.addChild("br");
 		
 		bodyNode.addChild(errorDiv);
 
@@ -220,6 +229,23 @@ public class WebUI{
 		}
 		if(error.getCause()!=null)
 			addError(error1, error.getCause());
+	}
+
+	public static HTMLNode searchList(){
+		HTMLNode node = new HTMLNode("div");
+		node.addChild("#",Search.getAllSearches().size()+" searches open ");
+		node.addChild("a", "href", "plugins.XMLLibrarian.XMLLibrarian/purgeSearches", "[purge]");
+		return node;
+	}
+
+	public static String listSearches(){
+		HTMLNode searchlistpage = new HTMLNode("HTML");
+		HTMLNode bodynode = searchlistpage.addChild("body");
+		for(String s : Search.getAllSearches().keySet()){
+			HTMLNode searchnode = bodynode.addChild("p");
+			searchnode.addChild("#",s);
+		}
+		return searchlistpage.generate();
 	}
 }
 

@@ -23,7 +23,8 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	private int expectedsize;
 	protected Exception err;
 	private String eventDescription;
-	E result;
+	Set<E> result;
+	private boolean resultChanged=true;
 	
 	
 	/**
@@ -94,7 +95,8 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	/**
 	 * @return result of this request
 	 */
-	public E getResult(){
+	public Set<E> getResult(){
+		resultChanged = false;
 		return result;
 	}
 	/**
@@ -135,9 +137,19 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	 * Stores a result and marks requestStatus as PARTIALRESULT, call setFinished to mark FINISHED
 	 * @param result
 	 */
-	public void setResult(E result){
+	public void setResult(Set<E> result){
 		status = RequestStatus.PARTIALRESULT;
 		this.result = result;
+	}
+
+	public void addResult(E entry){
+		status = RequestStatus.PARTIALRESULT;
+		resultChanged = true;
+		result.add(entry);
+	}
+
+	public boolean resultChanged(){
+		return resultChanged;
 	}
 	
 	/**
