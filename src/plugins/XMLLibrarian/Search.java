@@ -264,18 +264,6 @@ public class Search implements Request<Set<URIWrapper>> {
 		return true;
 	}
 
-	/**
-	 * @return sum of SubStages
-	 */
-	@Override
-	public int getSubStage(){
-		if(progressAccessed())
-			return stage;
-		stage=0;
-		for(Request r : subsearches)
-			stage+=r.getSubStageCount();
-		return stage;
-	}
 
 	/**
 	 * @return true if all are Finished, false otherwise
@@ -324,11 +312,24 @@ public class Search implements Request<Set<URIWrapper>> {
 	}
 
 	/**
+	 * @return sum of SubStages
+	 */
+	@Override
+	public int getSubStage(){
+//		if(progressAccessed())
+//			return stage;
+		stage=0;
+		for(Request r : subsearches)
+			stage+=r.getSubStage();
+		return stage;
+	}
+
+	/**
 	 * @return sum of SubStageCount
 	 */
 	public int getSubStageCount() {
-		if(progressAccessed())
-			return stageCount;
+//		if(progressAccessed())
+//			return stageCount;
 		stageCount=0;
 		for(Request r : subsearches)
 			stageCount+=r.getSubStageCount();
@@ -339,8 +340,8 @@ public class Search implements Request<Set<URIWrapper>> {
 	 * @return sum of NumBlocksCompleted
 	 */
 	public long getNumBlocksCompleted() {
-		if(progressAccessed())
-			return blocksCompleted;
+//		if(progressAccessed())
+//			return blocksCompleted;
 		blocksCompleted=0;
 		for(Request r : subsearches)
 			blocksCompleted+=r.getNumBlocksCompleted();
@@ -351,8 +352,8 @@ public class Search implements Request<Set<URIWrapper>> {
 	 * @return sum of NumBlocksTotal
 	 */
 	public long getNumBlocksTotal() {
-		if(progressAccessed())
-			return blocksTotal;
+//		if(progressAccessed())
+//			return blocksTotal;
 		blocksTotal=0;
 		for(Request r : subsearches)
 			blocksTotal+=r.getNumBlocksTotal();
