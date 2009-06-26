@@ -107,6 +107,7 @@ public abstract class Index {
 		executor = pr.getNode().executor;
 		try{
 			bookmarks.put("wanna", Index.getIndex("xml:USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/"));
+			bookmarks.put("wanna19", Index.getIndex("xml:SSK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search-19/"));
 		}catch(InvalidSearchException e){
 			// Couldnt add wanna for some reason
 		}

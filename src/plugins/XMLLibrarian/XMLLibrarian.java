@@ -18,7 +18,7 @@ import plugins.XMLLibrarian.interfaces.WebUI;
 
 
 public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersioned, FredPluginRealVersioned, FredPluginThreadless, FredPluginL10n {
-	public static final String DEFAULT_INDEX_SITE = "bookmark:wanna";
+	public static final String DEFAULT_INDEX_SITE = "bookmark:wanna19";
 	private static int version = 22;
 	private static final String plugName = "XMLLibrarian " + version;
 	private PluginRespirator pr;
