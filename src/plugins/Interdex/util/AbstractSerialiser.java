@@ -12,10 +12,19 @@ import java.util.Map;
 ** functionality in terms of lower ones.
 **
 ** @author infinity0
+** @see Translator
+** @see Archiver
 */
 abstract public class AbstractSerialiser<T, I> implements Serialiser<T> {
 
+	/**
+	** The {@link Translator} to pass target data through.
+	*/
 	protected Translator<T, I> trans;
+
+	/**
+	** The {@link Archiver} to pass intermediate data through.
+	*/
 	protected Archiver<I> arch;
 
 	/**

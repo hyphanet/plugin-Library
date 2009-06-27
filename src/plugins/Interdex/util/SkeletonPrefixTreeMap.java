@@ -5,7 +5,6 @@ package plugins.Interdex.util;
 
 import plugins.Interdex.util.PrefixTree.PrefixKey;
 import plugins.Interdex.util.Archiver.*;
-import plugins.Interdex.util.SkeletonMap.SkeletonSerialiser;
 
 import java.util.TreeMap;
 import java.util.Map;

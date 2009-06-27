@@ -17,6 +17,8 @@ import java.util.Map;
 ** data throw {@link DataNotLoadedException}.
 **
 ** @author infinity0
+** @see Serialiser
+** @see Archiver
 */
 public interface SkeletonMap<K, V> {
 
@@ -94,37 +96,5 @@ public interface SkeletonMap<K, V> {
 	** @param key The key for whose value to deflate.
 	*/
 	public void deflate(K key);
-
-
-	/**
-	** An effectively empty marker interface which contains some additional
-	** specifications for {@link Serialiser} of {@link SkeletonMap}.
-	*/
-	public interface SkeletonSerialiser<T extends SkeletonMap> extends Serialiser<T> {
-
-		/**
-		** {@inheritDoc}
-		**
-		** Note that only a skeleton is pulled, so {@link #isBare()} should return
-		** true for the {@link PullTask#data} after this task completes.
-		*/
-		public void pull(PullTask<T> task);
-
-		/**
-		** {@inheritDoc}
-		**
-		** Note that only a skeleton is pushed, so {@link #isBare()} should return
-		** true for the {@link PushTask#data} passed into this method.
-		**
-		** If it is not true, it is recommended that implementations throw {@link
-		** IllegalArgumentException} rather than automatically calling {@link
-		** SkeletonMap#deflate()} on the object, to maintain symmetry with the
-		** {@link #pull(Archiver.PullTask)} method (which does not automatically
-		** call {@link SkeletonMap#inflate()}), and to provide finer-grained
-		** control over the pushing process.
-		*/
-		public void push(PushTask<T> task);
-
-	}
 
 }

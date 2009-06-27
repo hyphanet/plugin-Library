@@ -106,6 +106,7 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 			throw new UnsupportedOperationException("Not implemented.");
 		}
 
+		// TODO maybe split this off into a separate PartitionSerialiser
 		public <K> void push(Map<K, PushTask<TokenURIEntry>> tasks) {
 
 			// map of metadata to combined-tasks
@@ -119,12 +120,13 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 				String file = (String)task.meta;
 
 				// find the combined-tasks map for the metadata for this task
-				if (!mmap.containsKey(file)) {
+				Map<String, Object> map;
+				map = mmap.get(file);
+				if (map == null) {
 					// OPTIMISE HashMap constructor
-					int sizeEst = tasks.size()*2/(mmap.size()+1);
-					mmap.put(file, new java.util.HashMap<String, Object>(sizeEst));
+					map = new HashMap<String, Object>(tasks.size()*2/(mmap.size()+1));
+					mmap.put(file, map);
 				}
-				Map<String, Object> map = mmap.get(file);
 
 				Object o = trans.app(task.data);
 				omap.put(o, task);

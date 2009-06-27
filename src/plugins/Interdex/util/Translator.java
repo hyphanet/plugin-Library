@@ -14,6 +14,9 @@ public interface Translator<T, I> {
 
 	/**
 	** Reverse the translation.
+	**
+	** URGENT DOCUMENT minimal thing, as in Archiver, figure out what to do
+	** with it. throw IllegalArgumentException?
 	*/
 	T rev(I intermediate);
 
