@@ -33,7 +33,7 @@ import java.util.Map;
 public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 
 	public IterableSerialiser<SkeletonPrefixTreeMap<Token, TokenURIEntry>> s;
-	public MapSerialiser<TokenURIEntry> sv;
+	public MapSerialiser<Token, TokenURIEntry> sv;
 
 	public IndexFileSerialiser() {
 		s = new PrefixTreeMapSerialiser<Token, TokenURIEntry>();
@@ -50,6 +50,9 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 		}
 
 		public void push(PushTask<SkeletonPrefixTreeMap<K, V>> task) {
+			if (!task.data.isBare()) {
+				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
+			}
 			if (task.meta == null) {
 				task.meta = task.data.getMeta();
 			}
@@ -93,7 +96,7 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 	*/
 	public static class TokenURIEntrySerialiser
 	extends CompositeSerialiser<TokenURIEntry, Map<String, Object>, Archiver<Map<String, Object>>>
-	implements MapSerialiser<TokenURIEntry> {
+	implements MapSerialiser<Token, TokenURIEntry> {
 
 		protected static String[] keys = new String[]{"word", "_uri", "position", "relevance"};
 
@@ -101,14 +104,14 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 			super(new YamlArchiver<Map<String, Object>>("tk_", "_map"), new TokenURIEntryTranslator());
 		}
 
-		public <K> void pull(Map<K, PullTask<TokenURIEntry>> tasks, Object meta) {
+		public void pull(Map<Token, PullTask<TokenURIEntry>> tasks, Object meta) {
 			throw new UnsupportedOperationException("Not implemented.");
 		}
 
-		public <K> void push(Map<K, PushTask<TokenURIEntry>> tasks, Object meta) {
+		public void push(Map<Token, PushTask<TokenURIEntry>> tasks, Object meta) {
 			// generate a single task for the archiver
 			Map<String, Object> taskmap = new HashMap<String, Object>(tasks.size()*2);
-			for (Map.Entry<K, PushTask<TokenURIEntry>> en: tasks.entrySet()) {
+			for (Map.Entry<Token, PushTask<TokenURIEntry>> en: tasks.entrySet()) {
 				taskmap.put(en.getKey().toString(), trans.app(en.getValue().data));
 			}
 			PushTask<Map<String, Object>> maptask = new PushTask<Map<String, Object>>(taskmap, meta);

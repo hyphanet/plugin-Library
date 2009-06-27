@@ -3,6 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.serl;
 
+import plugins.Interdex.util.SkeletonMap;
+
 /**
 ** A class that translates an object into one of another type. Used mostly in
 ** conjunction with an {@link Serialiser} that can take objects of the latter
@@ -15,13 +17,19 @@ public interface Translator<T, I> {
 	/**
 	** Reverse the translation.
 	**
-	** URGENT DOCUMENT minimal thing, as in Archiver, figure out what
-	** to do with it. throw IllegalArgumentException?
+	** Implementations of this method which act on a recursive data structure
+	** that is designed to be partially loaded (such as {@link SkeletonMap}),
+	** should follow the same guidelines as in {@link Archiver#pull(PullTask)}.
 	*/
 	T rev(I intermediate);
 
 	/**
 	** Apply the translation.
+	**
+	** Implementations of this method which act on a recursive data structure
+	** that is designed to be partially loaded (such as {@link SkeletonMap}),
+	** should follow the same guidelines as in {@link Archiver#pull(PushTask)},
+	** particularly with regards to throwing {@link IllegalArgumentException}.
 	*/
 	I app(T translatee);
 

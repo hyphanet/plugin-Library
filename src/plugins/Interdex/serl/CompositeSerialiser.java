@@ -30,7 +30,6 @@ abstract public class CompositeSerialiser<T, I, S extends Serialiser<I>> impleme
 	*/
 	final protected S subsrl;
 
-
 	public CompositeSerialiser(S s, Translator<T, I> t) {
 		subsrl = s;
 		trans = t;

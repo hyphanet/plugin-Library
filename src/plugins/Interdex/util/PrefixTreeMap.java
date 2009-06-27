@@ -20,7 +20,8 @@ import java.util.Collection;
 **
 ** @author infinity0
 */
-public class PrefixTreeMap<K extends PrefixKey, V> extends PrefixTree<K, V>
+public class PrefixTreeMap<K extends PrefixKey, V>
+extends PrefixTree<K, V>
 implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 /*, Cloneable, Serializable*/ {
 
@@ -69,44 +70,43 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	 * public class PrefixTree
 	 ************************************************************************/
 
-	protected PrefixTreeMap<K, V> makeSubTree(int msym) {
+	@Override protected PrefixTreeMap<K, V> makeSubTree(int msym) {
 		return new PrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal, this);
 	}
 
-	protected void transferLocalToSubtree(int i, K key) {
+	@Override protected void transferLocalToSubtree(int i, K key) {
 		child[i].put(key, tmap.remove(key));
 	}
 
-	protected void transferSubtreeToLocal(PrefixTree<K, V> ch) {
+	@Override protected void transferSubtreeToLocal(PrefixTree<K, V> ch) {
 		tmap.putAll(((PrefixTreeMap<K, V>)ch).tmap);
 	}
 
-	protected Map<K, V> selectNode(int i) {
+	@Override protected Map<K, V> selectNode(int i) {
 		return (child[i] == null)? tmap: child[i];
 	}
 
-	protected TreeMap<K, V> getLocalMap() {
+	@Override protected TreeMap<K, V> getLocalMap() {
 		return tmap;
 	}
 
-	protected void clearLocal() {
+	@Override protected void clearLocal() {
 		tmap.clear();
 	}
 
-	protected Set<K> keySetLocal() {
+	@Override protected Set<K> keySetLocal() {
 		return tmap.keySet();
 	}
 
-	public int sizeLocal() {
+	@Override public int sizeLocal() {
 		return tmap.size();
 	}
-
 
 	/************************************************************************
 	 * public interface Map
 	 ************************************************************************/
 
-	public boolean containsKey(Object key) {
+	@Override public boolean containsKey(Object key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return false; }
 
@@ -115,7 +115,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return map.containsKey(k);
 	}
 
-	public boolean containsValue(Object value) {
+	@Override public boolean containsValue(Object value) {
 		if (tmap.containsValue(value)) { return true; }
 		for (PrefixTreeMap<K, V> t: child) {
 			if (t.containsValue(value)) { return true; }
@@ -123,11 +123,11 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return false;
 	}
 
-	public Set<Map.Entry<K,V>> entrySet() {
+	@Override public Set<Map.Entry<K,V>> entrySet() {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public V get(Object key) {
+	@Override public V get(Object key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return null; }
 
@@ -136,11 +136,11 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return map.get(k);
 	}
 
-	public Set<K> keySet() {
+	@Override public Set<K> keySet() {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public V put(K key, V value) {
+	@Override public V put(K key, V value) {
 		if (!key.match(prefix, preflen)) {
 			throw new IllegalArgumentException("Key does not match prefix for this tree.");
 		}
@@ -154,14 +154,14 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return v;
 	}
 
-	public void putAll(Map<? extends K,? extends V> t) {
+	@Override public void putAll(Map<? extends K,? extends V> t) {
 		for (Map.Entry<K, V> e: ((Map<K, V>)t).entrySet()) {
 			// TODO implement entrySet for PrefixTreeMap
 			put(e.getKey(), e.getValue());
 		}
 	}
 
-	public V remove(Object key) {
+	@Override public V remove(Object key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return null; }
 
@@ -174,7 +174,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return v;
 	}
 
-	public Collection<V> values() {
+	@Override public Collection<V> values() {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 

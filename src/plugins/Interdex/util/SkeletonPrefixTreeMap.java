@@ -20,10 +20,12 @@ import java.util.Collection;
 **
 ** @author infinity0
 */
-public class SkeletonPrefixTreeMap<K extends PrefixKey, V> extends PrefixTreeMap<K, V>
+public class SkeletonPrefixTreeMap<K extends PrefixKey, V>
+extends PrefixTreeMap<K, V>
 implements SkeletonMap<K, V> {
 
-	/**
+	/************************************************************************
+	**
 	** Represents a PrefixTreeMap which has not been loaded, but which a parent
 	** SkeletonPrefixTreeMap (that has been loaded) refers to.
 	**
@@ -146,9 +148,9 @@ implements SkeletonMap<K, V> {
 	}
 
 	protected IterableSerialiser<SkeletonPrefixTreeMap<K, V>> serialiser;
-	protected MapSerialiser<V> serialiserLocal;
+	protected MapSerialiser<K, V> serialiserLocal;
 
-	public void setSerialiser(IterableSerialiser<SkeletonPrefixTreeMap<K, V>> s, MapSerialiser<V> vs) {
+	public void setSerialiser(IterableSerialiser<SkeletonPrefixTreeMap<K, V>> s, MapSerialiser<K, V> vs) {
 		serialiser = s;
 		serialiserLocal = vs;
 		tmap.setSerialiser(vs);
@@ -322,13 +324,13 @@ implements SkeletonMap<K, V> {
 	 ************************************************************************/
 
 	// We override this method so that the correct serialiser is set
-	protected PrefixTreeMap<K, V> makeSubTree(int msym) {
+	@Override protected PrefixTreeMap<K, V> makeSubTree(int msym) {
 		SkeletonPrefixTreeMap<K, V> ch = new SkeletonPrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal, this);
 		ch.setSerialiser(serialiser, serialiserLocal);
 		return ch;
 	}
 
-	protected Map<K, V> selectNode(int i) {
+	@Override protected Map<K, V> selectNode(int i) {
 		if (child[i] == null) {
 			return tmap;
 		} else if (child[i] instanceof DummyPrefixTreeMap) {
@@ -342,7 +344,7 @@ implements SkeletonMap<K, V> {
 	 * public interface SkeletonMap
 	 ************************************************************************/
 
-	public boolean isLive() {
+	@Override public boolean isLive() {
 		// OPTIMISE use a counter
 		if (!tmap.isLive()) { return false; }
 		for (PrefixTreeMap t: child) {
@@ -354,7 +356,7 @@ implements SkeletonMap<K, V> {
 		return true;
 	}
 
-	public boolean isBare() {
+	@Override public boolean isBare() {
 		// OPTIMISE use a counter
 		if (!tmap.isBare()) { return false; }
 		for (PrefixTreeMap t: child) {
@@ -363,15 +365,15 @@ implements SkeletonMap<K, V> {
 		return true;
 	}
 
-	public Object getMeta() {
+	@Override public Object getMeta() {
 		return meta;
 	}
 
-	public void setMeta(Object m) {
+	@Override public void setMeta(Object m) {
 		meta = m;
 	}
 
-	public Map<K, V> complete() {
+	@Override public Map<K, V> complete() {
 		if (!isLive()) {
 			throw new DataNotLoadedException("PrefixTreeMap not fully loaded for " + prefix.toString(), this, this);
 		} else {
@@ -388,12 +390,12 @@ implements SkeletonMap<K, V> {
 		}
 	}
 
-	public void inflate() {
+	@Override public void inflate() {
 		throw new UnsupportedOperationException("Not implemented.");
 		//assert(isLive());
 	}
 
-	public void deflate() {
+	@Override public void deflate() {
 		if (!tmap.isBare()) { tmap.deflate(); }
 
 		java.util.List<PushTask<SkeletonPrefixTreeMap<K, V>>> tasks = new java.util.ArrayList<PushTask<SkeletonPrefixTreeMap<K, V>>>(subtrees);
@@ -417,30 +419,38 @@ implements SkeletonMap<K, V> {
 		assert(isBare());
 	}
 
-	public void inflate(K key) {
+	@Override public void inflate(K key) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public void deflate(K key) {
+	@Override public void deflate(K key) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-
-	/**
-	** Translator with access to the members of PrefixTreeMap.
+	/************************************************************************
+	** {@link Translator} with access to the members of {@link PrefixTreeMap}.
 	**
-	** DOCUMENT
+	** This implementation provides static methods to translate between this
+	** class and a map from ({@link String} forms of the field names) to
+	** (object forms of the field values that are serialisable as defined in
+	** {@link Serialiser}).
 	*/
 	abstract public static class PrefixTreeMapTranslator<K extends PrefixKey, V>
 	implements Translator<SkeletonPrefixTreeMap<K, V>, Map<String, Object>> {
 
+		// TODO code backwards translation
+
 		/**
-		** doing it this way allows different Map objects to be used; this may
-		** come in handy at some point...
+		** Forward translation.
 		**
-		** DOCUMENT
+		** @param skel The data structue to translate
+		** @param intml A map to populate with the translation of the local map
+		** @param intm A map to populate with the translated mappings
 		*/
 		public static <K extends PrefixKey, V> void app(SkeletonPrefixTreeMap<K, V> skel, Map<String, Object> intml, Map<String, Object> intm) {
+			if (!skel.isBare()) {
+				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
+			}
 			// OPTMISE make the keys use String.intern()
 			intm.put("prefix", skel.prefix.toString());
 			intm.put("preflen", skel.preflen);

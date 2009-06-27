@@ -77,48 +77,47 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 	 * public class PrefixTree
 	 ************************************************************************/
 
-	protected PrefixTreeMultimap<K, V> makeSubTree(int msym) {
+	@Override protected PrefixTreeMultimap<K, V> makeSubTree(int msym) {
 		return new PrefixTreeMultimap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal, this);
 	}
 
-	protected void transferLocalToSubtree(int i, K key) {
+	@Override protected void transferLocalToSubtree(int i, K key) {
 		child[i].putAll(key, tmap.removeAll(key));
 	}
 
-	protected void transferSubtreeToLocal(PrefixTree<K, V> ch) {
+	@Override protected void transferSubtreeToLocal(PrefixTree<K, V> ch) {
 		tmap.putAll(((PrefixTreeMultimap<K, V>)ch).tmap);
 	}
 
-	protected SetMultimap<K, V> selectNode(int i) {
+	@Override protected SetMultimap<K, V> selectNode(int i) {
 		return (child[i] == null)? tmap: child[i];
 	}
 
-	protected TreeMultimap<K, V> getLocalMap() {
+	@Override protected TreeMultimap<K, V> getLocalMap() {
 		return tmap;
 	}
 
-	protected void clearLocal() {
+	@Override protected void clearLocal() {
 		tmap.clear();
 	}
 
-	protected Set<K> keySetLocal() {
+	@Override protected Set<K> keySetLocal() {
 		return tmap.keySet();
 	}
 
-	public int sizeLocal() {
+	@Override public int sizeLocal() {
 		return tmap.size();
 	}
-
 
 	/************************************************************************
 	 * public interface Multimap
 	 ************************************************************************/
 
-	public Map<K, Collection<V>> asMap() {
+	@Override public Map<K, Collection<V>> asMap() {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public boolean containsEntry(Object key, Object value) {
+	@Override public boolean containsEntry(Object key, Object value) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return false; }
 
@@ -127,7 +126,7 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return map.containsEntry(k, value);
 	}
 
-	public boolean containsKey(Object key) {
+	@Override public boolean containsKey(Object key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return false; }
 
@@ -136,7 +135,7 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return map.containsKey(k);
 	}
 
-	public boolean containsValue(Object value) {
+	@Override public boolean containsValue(Object value) {
 		if (tmap.containsValue(value)) { return true; }
 		for (PrefixTreeMultimap<K, V> t: child) {
 			if (t.containsValue(value)) { return true; }
@@ -144,11 +143,11 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return false;
 	}
 
-	public Set<Map.Entry<K,V>> entries() {
+	@Override public Set<Map.Entry<K,V>> entries() {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public Set<V> get(K key) {
+	@Override public Set<V> get(K key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return null; }
 
@@ -157,15 +156,15 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return map.get(k);
 	}
 
-	public Multiset<K> keys() {
+	@Override public Multiset<K> keys() {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public Set<K> keySet() {
+	@Override public Set<K> keySet() {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public boolean put(K key, V value) {
+	@Override public boolean put(K key, V value) {
 		if (!key.match(prefix, preflen)) {
 			throw new IllegalArgumentException("Key does not match prefix for this tree.");
 		}
@@ -178,7 +177,7 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return v;
 	}
 
-	public boolean putAll(K key, Iterable<? extends V> values) {
+	@Override public boolean putAll(K key, Iterable<? extends V> values) {
 		if (!key.match(prefix, preflen)) {
 			throw new IllegalArgumentException("Key does not match prefix for this tree.");
 		}
@@ -192,7 +191,7 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return v;
 	}
 
-	public boolean putAll(Multimap<? extends K,? extends V> multimap) {
+	@Override public boolean putAll(Multimap<? extends K,? extends V> multimap) {
 		boolean changed = false;
 		Multimap<K, V> mmap = (Multimap<K, V>)multimap;
 		for (K k : mmap.keySet()) {
@@ -204,7 +203,7 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return changed;
 	}
 
-	public boolean remove(Object key, Object value) {
+	@Override public boolean remove(Object key, Object value) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return false; }
 
@@ -216,7 +215,7 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return v;
 	}
 
-	public Set<V> removeAll(Object key) {
+	@Override public Set<V> removeAll(Object key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return new java.util.TreeSet(tmap.valueComparator()); }
 
@@ -228,7 +227,7 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return vs;
 	}
 
-	public Set<V> replaceValues(K key, Iterable<? extends V> values) {
+	@Override public Set<V> replaceValues(K key, Iterable<? extends V> values) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return new java.util.TreeSet(tmap.valueComparator()); }
 
@@ -243,7 +242,7 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return vs;
 	}
 
-	public Collection<V> values() {
+	@Override public Collection<V> values() {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 

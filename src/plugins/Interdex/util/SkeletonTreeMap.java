@@ -22,7 +22,8 @@ import java.util.Iterator;
 **
 ** @author infinity0
 */
-public class SkeletonTreeMap<K, V> extends TreeMap<K, V>
+public class SkeletonTreeMap<K, V>
+extends TreeMap<K, V>
 implements SkeletonMap<K, V> {
 
 	/**
@@ -75,9 +76,9 @@ implements SkeletonMap<K, V> {
 		return loaded.put(key, o);
 	}
 
-	protected MapSerialiser<V> serialiser;
+	protected MapSerialiser<K, V> serialiser;
 
-	public void setSerialiser(MapSerialiser<V> s) {
+	public void setSerialiser(MapSerialiser<K, V> s) {
 		serialiser = s;
 	}
 
@@ -86,7 +87,7 @@ implements SkeletonMap<K, V> {
 	 * public interface SkeletonMap
 	 ************************************************************************/
 
-	public boolean isLive() {
+	@Override public boolean isLive() {
 		// OPTIMISE use a counter
 		for (Object o: loaded.values()) {
 			if (o != null) { return false; }
@@ -94,7 +95,7 @@ implements SkeletonMap<K, V> {
 		return true;
 	}
 
-	public boolean isBare() {
+	@Override public boolean isBare() {
 		// OPTIMISE use a counter
 		for (Object o: loaded.values()) {
 			if (o == null) { return false; }
@@ -102,15 +103,15 @@ implements SkeletonMap<K, V> {
 		return true;
 	}
 
-	public Object getMeta() {
+	@Override public Object getMeta() {
 		return meta;
 	}
 
-	public void setMeta(Object m) {
+	@Override public void setMeta(Object m) {
 		meta = m;
 	}
 
-	public Map<K, V> complete() {
+	@Override public Map<K, V> complete() {
 		if (!isLive()) {
 			throw new DataNotLoadedException("TreeMap not fully loaded.", this);
 		} else {
@@ -118,11 +119,11 @@ implements SkeletonMap<K, V> {
 		}
 	}
 
-	public void inflate() {
+	@Override public void inflate() {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public void deflate() {
+	@Override public void deflate() {
 		// OPTMISE HashMap constructor
 		java.util.HashMap<K, PushTask<V>> tasks = new java.util.HashMap<K, PushTask<V>>(size()*2);
 		for (K k: keySet()) {
@@ -138,30 +139,36 @@ implements SkeletonMap<K, V> {
 		}
 	}
 
-	public void inflate(K key) {
+	@Override public void inflate(K key) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public void deflate(K key) {
+	@Override public void deflate(K key) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-
-	/**
-	** Translator with access to the members of TreeMap.
+	/************************************************************************
+	** {@link Translator} with access to the members of {@link TreeMap}.
 	**
-	** DOCUMENT
+	** This implementation provides static methods to translate between this
+	** class and a map from ({@link String} forms of the key) to ({@link
+	** Task#meta metadata} of the values).
 	*/
 	abstract public static class TreeMapTranslator<K, V>
 	implements Translator<SkeletonTreeMap<K, V>, Map<String, Object>> {
 
+		// TODO code backwards translation
+
 		/**
-		** doing it this way allows different Map objects to be used; this may
-		** come in handy at some point...
+		** Forward translation.
 		**
-		** DOCUMENT
+		** @param map The data structue to translate
+		** @param intm A map to populate with the translated mappings
 		*/
 		public static <K, V> void app(SkeletonTreeMap<K, V> map, Map<String, Object> intm) {
+			if (!map.isBare()) {
+				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
+			}
 			for (K k: map.loaded.keySet()) {
 				intm.put(k.toString(), map.loaded.get(k));
 			}
@@ -169,25 +176,24 @@ implements SkeletonMap<K, V> {
 
 	}
 
-
 	/************************************************************************
 	 * public class TreeMap
 	 ************************************************************************/
 
-	public void clear() {
+	@Override public void clear() {
 		super.clear();
 		loaded.clear();
 	}
 
-	public Object clone() {
+	@Override public Object clone() {
 		return new SkeletonTreeMap(this);
 	}
 
-	public Comparator<? super K> comparator() { return super.comparator(); }
+	@Override public Comparator<? super K> comparator() { return super.comparator(); }
 
-	public boolean containsKey(Object key) { return loaded.containsKey(key); }
+	@Override public boolean containsKey(Object key) { return loaded.containsKey(key); }
 
-	public boolean containsValue(Object value) {
+	@Override public boolean containsValue(Object value) {
 		if (!isLive()) {
 			throw new DataNotLoadedException("TreeMap not fully loaded.", this);
 		} else {
@@ -196,7 +202,7 @@ implements SkeletonMap<K, V> {
 	}
 
 	private Set<Map.Entry<K,V>> entries;
-	public Set<Map.Entry<K,V>> entrySet() {
+	@Override public Set<Map.Entry<K,V>> entrySet() {
 		if (entries == null) {
 			entries = new AbstractSet<Map.Entry<K, V>>() {
 
@@ -230,9 +236,9 @@ implements SkeletonMap<K, V> {
 		return entries;
 	}
 
-	public K firstKey() { return loaded.firstKey(); }
+	@Override public K firstKey() { return loaded.firstKey(); }
 
-	public V get(Object key) {
+	@Override public V get(Object key) {
 		Object o = loaded.get(key);
 		if (o != null) {
 			throw new DataNotLoadedException("Data not loaded for key " + key + ": " + o, this, key, o);
@@ -240,12 +246,12 @@ implements SkeletonMap<K, V> {
 		return super.get(key);
 	}
 
-	public SortedMap<K,V> headMap(K toKey) {
+	@Override public SortedMap<K,V> headMap(K toKey) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	private Set<K> keys;
-	public Set<K> keySet() {
+	@Override public Set<K> keySet() {
 		if (keys == null) {
 			keys = new AbstractSet<K>() {
 
@@ -272,9 +278,11 @@ implements SkeletonMap<K, V> {
 		return keys;
 	}
 
-	public K lastKey() { return loaded.lastKey(); }
+	@Override public K lastKey() { return loaded.lastKey(); }
 
 	/**
+	** {@inheritDoc}
+	**
 	** NOTE: if the value for the key hasn't been loaded yet, then this method
 	** will return **null** instead of returning the actual previous value
 	** (that hasn't been loaded yet).
@@ -283,7 +291,7 @@ implements SkeletonMap<K, V> {
 	** method throw {@link DataNotLoadedException} in such circumstances, at
 	** the user's discretion.
 	*/
-	public V put(K key, V value) {
+	@Override public V put(K key, V value) {
 		loaded.put(key, null);
 		return super.put(key, value);
 	}
@@ -291,6 +299,8 @@ implements SkeletonMap<K, V> {
 	//public void putAll(Map<? extends K,? extends V> map);
 
 	/**
+	** {@inheritDoc}
+	**
 	** NOTE: if the value for the key hasn't been loaded yet, then this method
 	** will return **null** instead of returning the actual previous value
 	** (that hasn't been loaded yet).
@@ -299,23 +309,23 @@ implements SkeletonMap<K, V> {
 	** method throw {@link DataNotLoadedException} in such circumstances, at
 	** the user's discretion.
 	*/
-	public V remove(Object key) {
+	@Override public V remove(Object key) {
 		loaded.remove(key);
 		return super.remove(key);
 	}
 
-	public int size() { return loaded.size(); }
+	@Override public int size() { return loaded.size(); }
 
-	public SortedMap<K,V> subMap(K fromKey, K toKey) {
+	@Override public SortedMap<K,V> subMap(K fromKey, K toKey) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	public SortedMap<K,V> tailMap(K fromKey) {
+	@Override public SortedMap<K,V> tailMap(K fromKey) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	private Collection<V> values;
-	public Collection<V> values() {
+	@Override public Collection<V> values() {
 		if (values == null) {
 			values = new AbstractCollection<V>() {
 
@@ -336,16 +346,18 @@ implements SkeletonMap<K, V> {
 	 * public class AbstractMap
 	 ************************************************************************/
 
-	public boolean equals(Object o) {
+	@Override public boolean equals(Object o) {
 		if (!(o instanceof SkeletonTreeMap)) { return false; }
 		return super.equals(o) && loaded.equals(((SkeletonTreeMap)o).loaded);
 	}
-	public int hashCode() { return super.hashCode() ^ loaded.hashCode(); }
-	public boolean isEmpty() { return loaded.isEmpty(); }
+
+	@Override public int hashCode() { return super.hashCode() ^ loaded.hashCode(); }
+
+	@Override public boolean isEmpty() { return loaded.isEmpty(); }
+
 	// public String toString() { return super.toString(); }
 
-
-	/**
+	/************************************************************************
 	** Iterator that goes through both the loaded map and the object map at the
 	** same time, throwing {@link DataNotLoadedException} when it encounters
 	** meta elements. After this occurs, all subsequent attempts to fetch the

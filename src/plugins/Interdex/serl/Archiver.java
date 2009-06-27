@@ -28,6 +28,8 @@ public interface Archiver<T> extends Serialiser<T> {
 	**
 	** Implementations should not automatically populate the data structure
 	** after it is formed.
+	**
+	** @param task The task to execute
 	*/
 	public void pull(PullTask<T> task);
 
@@ -44,6 +46,8 @@ public interface Archiver<T> extends Serialiser<T> {
 	** If the data is not minimal, implementations should throw {@link
 	** IllegalArgumentException} rather than automatically depopulating
 	** the data structure.
+	**
+	** @param task The task to execute
 	*/
 	public void push(PushTask<T> task);
 

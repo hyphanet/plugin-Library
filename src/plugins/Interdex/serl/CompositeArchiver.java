@@ -21,6 +21,10 @@ abstract public class CompositeArchiver<T, I> extends CompositeSerialiser<T, I, 
 		super(s, null);
 	}
 
+	/************************************************************************
+	 * public interface Archiver
+	 ************************************************************************/
+
 	/**
 	** {@inheritDoc}
 	**
@@ -28,7 +32,7 @@ abstract public class CompositeArchiver<T, I> extends CompositeSerialiser<T, I, 
 	** data, and then uses {@link CompositeSerialiser#trans} to translate it to
 	** the desired type.
 	*/
-	public void pull(PullTask<T> task) {
+	@Override public void pull(PullTask<T> task) {
 		PullTask<I> serialisable = new PullTask<I>(task.meta);
 		subsrl.pull(serialisable);
 		T pulldata = trans.rev(serialisable.data);
@@ -43,7 +47,7 @@ abstract public class CompositeArchiver<T, I> extends CompositeSerialiser<T, I, 
 	** the data to the desired type, and then uses {@link
 	** CompositeSerialiser#subsrl} to push it.
 	*/
-	public void push(PushTask<T> task) {
+	@Override public void push(PushTask<T> task) {
 		I intermediate = trans.app(task.data);
 		PushTask<I> serialisable = new PushTask<I>(intermediate, task.meta);
 		subsrl.push(serialisable);

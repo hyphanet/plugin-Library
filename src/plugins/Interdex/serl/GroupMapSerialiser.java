@@ -14,8 +14,14 @@ import java.util.HashMap;
 **
 ** @author infinity0
 */
-abstract public class GroupMapSerialiser<T> implements MapSerialiser<T> {
+abstract public class GroupMapSerialiser<K, T> implements MapSerialiser<K, T> {
 
+	/**
+	** Partition a map of tasks by their metadata
+	**
+	** @param tasks The tasks to partition
+	** @return A map from (metadata) to (submaps of tasks with that metadata)
+	*/
 	protected <K, P extends Task> Map<Object, Map<K, P>> partition(Map<K, P> tasks) {
 		// map of metadata to combined-tasks
 		Map<Object, Map<K, P>> mmap = new HashMap<Object, Map<K, P>>(4);
@@ -39,14 +45,26 @@ abstract public class GroupMapSerialiser<T> implements MapSerialiser<T> {
 		return mmap;
 	}
 
-	public <K> void pull(Map<K, PullTask<T>> tasks) {
+	/**
+	** Execute everything in a map of {@link PullTask}s, returning only when
+	** they are all done.
+	**
+	** @param tasks The map of tasks to execute
+	*/
+	public void pull(Map<K, PullTask<T>> tasks) {
 		Map<Object, Map<K, PullTask<T>>> mmap = partition(tasks);
 		for (Map.Entry<Object, Map<K, PullTask<T>>> en: mmap.entrySet()) {
 			pull(en.getValue(), en.getKey());
 		}
 	}
 
-	public <K> void push(Map<K, PushTask<T>> tasks) {
+	/**
+	** Execute everything in a map of {@link PullTask}s, returning only when
+	** they are all done.
+	**
+	** @param tasks The map of tasks to execute
+	*/
+	public void push(Map<K, PushTask<T>> tasks) {
 		Map<Object, Map<K, PushTask<T>>> mmap = partition(tasks);
 		for (Map.Entry<Object, Map<K, PushTask<T>>> en: mmap.entrySet()) {
 			push(en.getValue(), en.getKey());

@@ -27,7 +27,7 @@ import java.util.Map;
 */
 public interface Serialiser<T> {
 
-	/**
+	/************************************************************************
 	** Defines a serialisation task for an object. Contains two fields - data
 	** and metadata.
 	*/
@@ -46,7 +46,7 @@ public interface Serialiser<T> {
 
 	}
 
-	/**
+	/************************************************************************
 	** Defines a pull task: given some metadata, the task is to retrieve the
 	** data for this metadata, possibly updating the metadata in the process.
 	*/
@@ -58,7 +58,7 @@ public interface Serialiser<T> {
 
 	}
 
-	/**
+	/************************************************************************
 	** Defines a push task: given some data and optional metadata, the task is
 	** to submit this data and update the metadata for it in the process.
 	*/

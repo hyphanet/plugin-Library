@@ -7,15 +7,24 @@ package plugins.Interdex.util;
 ** Thrown when data hasn't been loaded yet, eg. when a data structure hasn't
 ** been fully populated from the network.
 **
-** DOCUMENT
-**
 ** @author infinity0
 ** @see SkeletonMap
 */
 public class DataNotLoadedException extends RuntimeException {
 
+	/**
+	** The parent container of the not-yet-loaded data.
+	*/
 	final Object parent;
+
+	/**
+	** The key, if any, that the not-yet-loaded data was associated with.
+	*/
 	final Object key;
+
+	/**
+	** The metadata for the not-yet-loaded data.
+	*/
 	final Object meta;
 
 	public DataNotLoadedException(String s, Throwable t, Object p, Object k, Object v) {

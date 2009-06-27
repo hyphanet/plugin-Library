@@ -26,43 +26,17 @@ import java.util.TreeSet;
 **
 ** @author infinity0
 */
-public class SplitMapSerialiser<T extends Collection> implements MapSerialiser<T> {
+public class SplitMapSerialiser<K, T extends Collection>
+extends CompositeSerialiser<T, Map<K, T>, IterableSerialiser<Map<K, T>>>
+implements MapSerialiser<K, T> {
 
 	final protected int capacity;
 	final protected int caphalf;
 
 	/**
-	** A collection class which is instantiated for a new group.
+	** A collection class which is used to instantiate new groups.
 	*/
 	final protected Class<T> collClass;
-
-	public SplitMapSerialiser(int c, Class<T> cc) {
-		if (c <= 0) {
-			throw new IllegalArgumentException("Capacity must be greater than zero");
-		}
-		try {
-			cc.newInstance();
-		} catch (Throwable e) {
-			throw new IllegalArgumentException("Cannot instantiate class", e);
-		}
-		capacity = c;
-		caphalf = c/2;
-		collClass = cc;
-	}
-
-	protected Bin newBin(int index) {
-		return new Bin(capacity, index);
-	}
-
-	protected T newCollection() {
-		try {
-			return collClass.newInstance();
-		} catch (InstantiationException e) {
-			return null; // constructor should prevent this from happening
-		} catch (IllegalAccessException e) {
-			return null; // constructor should prevent this from happening
-		}
-	}
 
 	/**
 	** Descending comparator for total bin load.
@@ -82,8 +56,49 @@ public class SplitMapSerialiser<T extends Collection> implements MapSerialiser<T
 		}
 	};
 
-	public <K> List<Bin<T, K>> binPack(Map<K, PushTask<T>> tasks) {
-		// bin packing algorithm for M-sized bins:
+	public SplitMapSerialiser(int c, Class<T> cc, IterableSerialiser<Map<K, T>> s) {
+		super(s);
+		if (c <= 0) {
+			throw new IllegalArgumentException("Capacity must be greater than zero.");
+		}
+		try {
+			cc.newInstance();
+		} catch (InstantiationException e) {
+			throw new IllegalArgumentException("Cannot instantiate class. Make sure it has a nullary constructor.", e);
+		} catch (IllegalAccessException e) {
+			throw new IllegalArgumentException("Cannot instantiate class. Make sure you have access to it.", e);
+		}
+		capacity = c;
+		caphalf = c/2;
+		collClass = cc;
+	}
+
+	protected Bin newBin(int index) {
+		return new Bin(capacity, index);
+	}
+
+	protected T newCollection() {
+		try {
+			return collClass.newInstance();
+		} catch (InstantiationException e) {
+			return null; // constructor should prevent this from ever happening, but the compiler bitches.
+		} catch (IllegalAccessException e) {
+			return null; // constructor should prevent this from ever happening, but the compiler bitches.
+		}
+	}
+
+	/**
+	** Given a map of sizeable tasks, return the bins the task data has been
+	** packed into. Each collection in each bin is associated with the key of
+	** the original task from which the collection was taken. Tasks larger than
+	** the size of one bin are split over several bins. The resulting group of
+	** bins will include at most one bin which is half full or less.
+	**
+	** @param tasks The tasks to pack
+	** @return The bins containing the task data
+	*/
+	public List<Bin<T, K>> binPack(Map<K, PushTask<T>> tasks) {
+		// bin packing algorithm for M-sized bins
 
 		SortedSet<Bin<T, K>> bins = new TreeSet<Bin<T, K>>(binComparator);
 
@@ -219,19 +234,16 @@ public class SplitMapSerialiser<T extends Collection> implements MapSerialiser<T
 
 	}
 
-
 	/************************************************************************
 	 * public interface MapSerialiser
 	 ************************************************************************/
 
-	@Override public <K> void pull(Map<K, PullTask<T>> tasks, Object meta) {
+	@Override public void pull(Map<K, PullTask<T>> tasks, Object meta) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	@Override public <K> void push(Map<K, PushTask<T>> tasks, Object meta) {
-
+	@Override public void push(Map<K, PushTask<T>> tasks, Object meta) {
 		// tasks has form {K:(T,M)}
-
 		List<Bin<T, K>> bins = binPack(tasks);
 
 		// prepare each task's meta data to hold a list of bins
@@ -244,10 +256,10 @@ public class SplitMapSerialiser<T extends Collection> implements MapSerialiser<T
 		// push the index of each collection to its task
 		// at the same time, make a new list of tasks to pass to the next stage
 		Integer i=0;
-		List<PushTask<HashMap<K, T>>> bintasks = new ArrayList<PushTask<HashMap<K, T>>>(bins.size());
+		List<PushTask<Map<K, T>>> bintasks = new ArrayList<PushTask<Map<K, T>>>(bins.size());
 		for (Bin<T, K> bin: bins) {
 			assert(bin.getIndex() == i);
-			HashMap<K, T> taskmap = new HashMap<K, T>(bin.size()*2);
+			Map<K, T> taskmap = new HashMap<K, T>(bin.size()*2);
 
 			for (Map.Entry<T, K> en: bin.entrySet()) {
 				((List)tasks.get(en.getValue()).meta).add(i);
@@ -259,22 +271,18 @@ public class SplitMapSerialiser<T extends Collection> implements MapSerialiser<T
 		}
 
 		// bintasks has form [({K:T},[M,I])]
-
-		// TODO do something with this..
-
+		subsrl.push(bintasks);
 	}
 
-
-	/**
-	** DOCUMENT
+	/************************************************************************
+	** A class that represents a bin with a certain capacity.
 	**
-	** Note: implementation is incomplete, since we do not override the
+	** Note: this implementation is incomplete, since we do not override the
 	** remove() methods of the collections and iterators returned by {@link
-	** Map#entrySet} to also modify the weight, but these are never used here
-	** so it's OK.
-	**
+	** Map#entrySet()} etc. to also modify the weight, but these are never used
+	** here so it's OK.
 	*/
-	public static class Bin<T extends Collection, K> extends TreeMap<T, K> {
+	protected static class Bin<T extends Collection, K> extends TreeMap<T, K> {
 
 		final protected int capacity;
 		final protected int index;
@@ -310,7 +318,13 @@ public class SplitMapSerialiser<T extends Collection> implements MapSerialiser<T
 
 	}
 
-	public static class DummyBin<T extends Collection, K> extends Bin<T, K> {
+	/************************************************************************
+	** A class that pretends to be a bin with a certain capacity and load.
+	** This is used when we want a such a bin for some purpose (eg. as an
+	** argument to a comparator) but we do not want to have to populate a
+	** real bin to get the desired load.
+	*/
+	protected static class DummyBin<T extends Collection, K> extends Bin<T, K> {
 
 		public DummyBin(int c, int l) {
 			super(c, 0);
@@ -324,7 +338,6 @@ public class SplitMapSerialiser<T extends Collection> implements MapSerialiser<T
 		@Override public K remove(Object c) {
 			throw new UnsupportedOperationException("Dummy bins cannot be modified");
 		}
-
 
 	}
 
