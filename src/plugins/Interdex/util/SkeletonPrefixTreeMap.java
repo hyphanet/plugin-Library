@@ -6,6 +6,7 @@ package plugins.Interdex.util;
 import plugins.Interdex.util.PrefixTree.PrefixKey;
 
 import plugins.Interdex.serl.Serialiser.*;
+import plugins.Interdex.serl.Serialiser;
 import plugins.Interdex.serl.Translator;
 import plugins.Interdex.serl.IterableSerialiser;
 import plugins.Interdex.serl.MapSerialiser;
@@ -47,7 +48,7 @@ implements SkeletonMap<K, V> {
 			super(p, 0, p.symbols(), null);
 		}
 
-		Object dummy;
+		Object meta;
 
 		/************************************************************************
 		 * public class PrefixTree

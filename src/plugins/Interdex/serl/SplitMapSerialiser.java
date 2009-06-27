@@ -30,7 +30,14 @@ public class SplitMapSerialiser<K, T extends Collection>
 extends CompositeSerialiser<T, Map<K, T>, IterableSerialiser<Map<K, T>>>
 implements MapSerialiser<K, T> {
 
+	/**
+	** The maximum load a bin can hold.
+	*/
 	final protected int capacity;
+
+	/**
+	** Half of the capacity.
+	*/
 	final protected int caphalf;
 
 	/**
@@ -43,16 +50,28 @@ implements MapSerialiser<K, T> {
 	*/
 	final protected static Comparator<Bin> binComparator = new Comparator<Bin>() {
 		public int compare(Bin bin1, Bin bin2) {
-			return bin1.filled() - bin2.filled();
+			if (bin1 == bin2) { return 0; }
+			int d = bin2.filled() - bin1.filled();
+			// this is a bit of a hack but is needed since Tree* treats two objects
+			// as "equal" if their "compare" returns 0
+			return (d != 0)? d: bin1.getIndex() - bin2.getIndex();
 		}
 	};
 
 	/**
-	** Ascending comparator for bin elements.
+	** Descending comparator for bin elements.
 	*/
 	final protected static Comparator<Collection> binElementComparator = new Comparator<Collection>() {
 		public int compare(Collection c1, Collection c2) {
-			return c2.size() - c1.size();
+			if (c1 == c2) { return 0; }
+			int d = c2.size() - c1.size();
+			// this is a bit of a hack but is needed since Tree* treats two objects
+			// as "equal" if their "compare" returns 0
+			if (d != 0) { return d; }
+			int h = c2.hashCode() - c1.hashCode();
+			// on the off chance that the hashCodes are equal but the objects are not,
+			// test the string representations of them...
+			return (h != 0)? h: (c2.equals(c1))? 0: c2.toString().compareTo(c1.toString());
 		}
 	};
 
@@ -69,7 +88,7 @@ implements MapSerialiser<K, T> {
 			throw new IllegalArgumentException("Cannot instantiate class. Make sure you have access to it.", e);
 		}
 		capacity = c;
-		caphalf = c/2;
+		caphalf = c>>1;
 		collClass = cc;
 	}
 
@@ -97,15 +116,21 @@ implements MapSerialiser<K, T> {
 	** @param tasks The tasks to pack
 	** @return The bins containing the task data
 	*/
-	public List<Bin<T, K>> binPack(Map<K, PushTask<T>> tasks) {
+	public Bin<T, K>[] binPack(Map<K, PushTask<T>> tasks) {
+		///System.out.println("-----");
 		// bin packing algorithm for M-sized bins
-
 		SortedSet<Bin<T, K>> bins = new TreeSet<Bin<T, K>>(binComparator);
 
-		int binindex = 0;
+		// placeholder "bin" to put tasks that are caphlf big or less
+		TreeMap<T, K> halftasks = new TreeMap<T, K>(binElementComparator);
+
 		// we have an index for each bin so that we can preserve the ordering of a
 		// collection that is split into multiple bins.
+		int binindex = 0;
 
+		// allocate new bins for all tasks greater than caphalf
+		// the index of bins allocated will preserve the overall ordering of
+		// the collection, if an order exists
 		for (Map.Entry<K, PushTask<T>> en: tasks.entrySet()) {
 			// for each task X:
 			PushTask<T> task = en.getValue();
@@ -135,7 +160,7 @@ implements MapSerialiser<K, T> {
 				}
 				// iterate on the groups with size max
 				--max;
-				for (; i<size; ++i) {
+				for (; i<num; ++i) {
 					Bin<T, K> bin = newBin(binindex++);
 					T coll = newCollection();
 					for (int j=0; j<max; ++j) {
@@ -146,41 +171,59 @@ implements MapSerialiser<K, T> {
 				}
 
 			} else {
-				// get all bins that can fit task.data, by passing TreeSet.tailSet()
-				// a dummy bin that makes TreeSet generate the correct subset.
-				// TreeSet's implementation of tailSet() should do this efficiently
-
-				SortedSet<Bin<T, K>> subbins = bins.tailSet(new DummyBin(capacity, capacity - size));
-
-				if (subbins.isEmpty()) {
-					// if no bin can fit it, then start a new bin
-					Bin<T, K> bin = newBin(binindex++);
-					bin.put(task.data, en.getKey());
-					// TODO perhaps we should clone the data, to be consistent with the above
-					bins.add(bin);
-				} else {
-					// find the fullest bin that can fit X
-					Bin<T, K> lowest = subbins.first();
-					bins.remove(lowest);
-					// TreeSet assumes its elements are immutable.
-					lowest.put(task.data, en.getKey());
-					bins.add(lowest);
-
-				}
+				// keep track of the other tasks
+				halftasks.put(task.data, en.getKey());
 			}
 		}
+
+		// go through the halftasks in descending order and try to fit them
+		// into the bins allocated in the previous stage
+		for (Map.Entry<T, K> en: halftasks.entrySet()) {
+			T coll = en.getKey();
+			int size = coll.size();
+
+			// get all bins that can fit task.data, by passing TreeSet.tailSet()
+			// a dummy bin that makes TreeSet generate the correct subset.
+			// TreeSet's implementation of tailSet() should do this efficiently
+			SortedSet<Bin<T, K>> subbins = bins.tailSet(new DummyBin(capacity, capacity - size));
+
+			if (subbins.isEmpty()) {
+				// if no bin can fit it, then start a new bin
+				Bin<T, K> bin = newBin(binindex++);
+				bin.put(coll, en.getValue());
+				// TODO perhaps we should clone the data, to be consistent with the above
+				bins.add(bin);
+
+			} else {
+				// find the fullest bin that can fit X
+				Bin<T, K> lowest = subbins.first();
+				// TreeSet assumes its elements are immutable.
+				bins.remove(lowest);
+				lowest.put(coll, en.getValue());
+				bins.add(lowest);
+			}
+		}
+
+		///for (Bin<T, K> bin: bins) {
+		///	System.out.println(bin.filled());
+		///}
 
 		// at this point, there should be a maximum of one bin which is half-full
 		// or less (if there were two then one of them would have been put into the
 		// other one by the loop, contradiction).
 
+		// keep track of bins we have finalised
+		//List<Bin<T, K>> binsFinal = new ArrayList<Bin<T, K>>(bins.size());
+		Bin<T, K>[] binsFinal = (Bin<T, K>[])new Bin[bins.size()];
+
+		// special case
+		if (bins.size() == 0) { return binsFinal; }
+
 		// let S point to the most empty bin
-		Bin<T, K> smallest = bins.first();
+		Bin<T, K> smallest = bins.last();
 		bins.remove(smallest);
 
-		// keep track of bins we have finalised
-		List<Bin<T, K>> binsFinal = new ArrayList<Bin<T, K>>(bins.size());
-
+		// TODO maybe only do the below loop if smallest.filled() <= caphalf
 		int i = 0;
 		int maxsteps = tasks.size() * bins.size();
 		// stop when the queue is empty, or when the loop has run for more than
@@ -190,11 +233,11 @@ implements MapSerialiser<K, T> {
 		// an optimal solution.)
 		while (!bins.isEmpty() && i++ < maxsteps) {
 			// pop the fullest bin, call this F
-			Bin<T, K> fullest = bins.last();
+			Bin<T, K> fullest = bins.first();
 			bins.remove(fullest);
 
 			// get the smallest element
-			T sm = fullest.firstKey();
+			T sm = fullest.lastKey();
 
 			if (sm.size() < fullest.filled() - smallest.filled()) {
 				// if its size is smaller than the difference between the size of F and S
@@ -221,17 +264,16 @@ implements MapSerialiser<K, T> {
 				// part in any further activities even if it were to be put back into the
 				// queue (think about it) so leave it off the queue, and mark it as final.
 
-				binsFinal.set(fullest.getIndex(), fullest);
+				binsFinal[fullest.getIndex()] = fullest;
 			}
 		}
 
-		binsFinal.set(smallest.getIndex(), smallest);
+		binsFinal[smallest.getIndex()] = smallest;
 		for (Bin<T, K> bin: bins) {
-			binsFinal.set(bin.getIndex(), bin);
+			binsFinal[bin.getIndex()] = bin;
 		}
 
 		return binsFinal;
-
 	}
 
 	/************************************************************************
@@ -244,7 +286,7 @@ implements MapSerialiser<K, T> {
 
 	@Override public void push(Map<K, PushTask<T>> tasks, Object meta) {
 		// tasks has form {K:(T,M)}
-		List<Bin<T, K>> bins = binPack(tasks);
+		Bin<T, K>[] bins = binPack(tasks);
 
 		// prepare each task's meta data to hold a list of bins
 		for (PushTask<T> task: tasks.values()) {
@@ -256,7 +298,7 @@ implements MapSerialiser<K, T> {
 		// push the index of each collection to its task
 		// at the same time, make a new list of tasks to pass to the next stage
 		Integer i=0;
-		List<PushTask<Map<K, T>>> bintasks = new ArrayList<PushTask<Map<K, T>>>(bins.size());
+		List<PushTask<Map<K, T>>> bintasks = new ArrayList<PushTask<Map<K, T>>>(bins.length);
 		for (Bin<T, K> bin: bins) {
 			assert(bin.getIndex() == i);
 			Map<K, T> taskmap = new HashMap<K, T>(bin.size()*2);
@@ -321,8 +363,8 @@ implements MapSerialiser<K, T> {
 	/************************************************************************
 	** A class that pretends to be a bin with a certain capacity and load.
 	** This is used when we want a such a bin for some purpose (eg. as an
-	** argument to a comparator) but we do not want to have to populate a
-	** real bin to get the desired load.
+	** argument to a comparator) but we don't want to have to populate a real
+	** bin to get the desired load (which might be massive).
 	*/
 	protected static class DummyBin<T extends Collection, K> extends Bin<T, K> {
 

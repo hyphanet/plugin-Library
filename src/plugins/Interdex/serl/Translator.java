@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.serl;
 
+import plugins.Interdex.serl.Serialiser;
 import plugins.Interdex.util.SkeletonMap;
 
 /**
@@ -19,7 +20,7 @@ public interface Translator<T, I> {
 	**
 	** Implementations of this method which act on a recursive data structure
 	** that is designed to be partially loaded (such as {@link SkeletonMap}),
-	** should follow the same guidelines as in {@link Archiver#pull(PullTask)}.
+	** should follow the same guidelines as in {@link Archiver#pull(Serialiser.PullTask)}.
 	*/
 	T rev(I intermediate);
 
@@ -28,7 +29,7 @@ public interface Translator<T, I> {
 	**
 	** Implementations of this method which act on a recursive data structure
 	** that is designed to be partially loaded (such as {@link SkeletonMap}),
-	** should follow the same guidelines as in {@link Archiver#pull(PushTask)},
+	** should follow the same guidelines as in {@link Archiver#push(Serialiser.PushTask)},
 	** particularly with regards to throwing {@link IllegalArgumentException}.
 	*/
 	I app(T translatee);
