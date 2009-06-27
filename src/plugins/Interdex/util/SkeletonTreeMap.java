@@ -3,7 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
-import plugins.Interdex.util.Archiver.*;
+import plugins.Interdex.serl.Serialiser.*;
+import plugins.Interdex.serl.Translator;
+import plugins.Interdex.serl.MapSerialiser;
 
 import java.util.TreeMap;
 import java.util.Map;
@@ -73,9 +75,9 @@ implements SkeletonMap<K, V> {
 		return loaded.put(key, o);
 	}
 
-	protected Serialiser<V> serialiser;
+	protected MapSerialiser<V> serialiser;
 
-	public void setSerialiser(Serialiser<V> s) {
+	public void setSerialiser(MapSerialiser<V> s) {
 		serialiser = s;
 	}
 
@@ -126,10 +128,10 @@ implements SkeletonMap<K, V> {
 		for (K k: keySet()) {
 			if (loaded.get(k) != null) { continue; }
 			V v = get(k);
-			PushTask<V> d = new PushTask<V>(v, meta);
+			PushTask<V> d = new PushTask<V>(v);
 			tasks.put(k, d);
 		}
-		serialiser.push(tasks);
+		serialiser.push(tasks, meta);
 
 		for (K k: tasks.keySet()) {
 			putDummy(k, tasks.get(k).meta);

@@ -1,9 +1,9 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Interdex.util;
+package plugins.Interdex.serl;
 
-import plugins.Interdex.util.Archiver.*;
+import plugins.Interdex.serl.Serialiser.*;
 
 import java.util.Collection;
 import java.util.List;
@@ -18,15 +18,15 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
-** PartitionSerialiser that further divides each partition into a collection of
-** bins with some fixed capacity with at most one bin half full or less.
+** MapSerialiser that divides each map into a collection of bins with some
+** fixed capacity with at most one bin half full or less.
 **
 ** TODO clean up structure of this...
 ** DOCUMENT
 **
 ** @author infinity0
 */
-public class BalancedPartitionSerialiser<T extends Collection, I> extends PartitionSerialiser<T, I> {
+public class SplitMapSerialiser<T extends Collection> implements MapSerialiser<T> {
 
 	final protected int capacity;
 	final protected int caphalf;
@@ -36,7 +36,7 @@ public class BalancedPartitionSerialiser<T extends Collection, I> extends Partit
 	*/
 	final protected Class<T> collClass;
 
-	public BalancedPartitionSerialiser(int c, Class<T> cc) {
+	public SplitMapSerialiser(int c, Class<T> cc) {
 		if (c <= 0) {
 			throw new IllegalArgumentException("Capacity must be greater than zero");
 		}
@@ -221,14 +221,14 @@ public class BalancedPartitionSerialiser<T extends Collection, I> extends Partit
 
 
 	/************************************************************************
-	 * abstract public class PartitionSerialiser
+	 * public interface MapSerialiser
 	 ************************************************************************/
 
-	@Override public <K> void pullPartition(Map<K, PullTask<T>> tasks, Object meta) {
+	@Override public <K> void pull(Map<K, PullTask<T>> tasks, Object meta) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	@Override public <K> void pushPartition(Map<K, PushTask<T>> tasks, Object meta) {
+	@Override public <K> void push(Map<K, PushTask<T>> tasks, Object meta) {
 
 		// tasks has form {K:(T,M)}
 

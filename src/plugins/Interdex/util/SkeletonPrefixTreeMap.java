@@ -4,7 +4,11 @@
 package plugins.Interdex.util;
 
 import plugins.Interdex.util.PrefixTree.PrefixKey;
-import plugins.Interdex.util.Archiver.*;
+
+import plugins.Interdex.serl.Serialiser.*;
+import plugins.Interdex.serl.Translator;
+import plugins.Interdex.serl.IterableSerialiser;
+import plugins.Interdex.serl.MapSerialiser;
 
 import java.util.TreeMap;
 import java.util.Map;
@@ -141,12 +145,12 @@ implements SkeletonMap<K, V> {
 		this(p, 0, p.symbols(), null);
 	}
 
-	protected Serialiser<SkeletonPrefixTreeMap<K, V>> serialiser;
-	protected Serialiser<V> serialiserLocalValue;
+	protected IterableSerialiser<SkeletonPrefixTreeMap<K, V>> serialiser;
+	protected MapSerialiser<V> serialiserLocal;
 
-	public void setSerialiser(Serialiser<SkeletonPrefixTreeMap<K, V>> s, Serialiser<V> vs) {
+	public void setSerialiser(IterableSerialiser<SkeletonPrefixTreeMap<K, V>> s, MapSerialiser<V> vs) {
 		serialiser = s;
-		serialiserLocalValue = vs;
+		serialiserLocal = vs;
 		tmap.setSerialiser(vs);
 		for (PrefixTreeMap<K, V> ch: child) {
 			if (ch != null && ch instanceof SkeletonPrefixTreeMap) {
@@ -320,7 +324,7 @@ implements SkeletonMap<K, V> {
 	// We override this method so that the correct serialiser is set
 	protected PrefixTreeMap<K, V> makeSubTree(int msym) {
 		SkeletonPrefixTreeMap<K, V> ch = new SkeletonPrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal, this);
-		ch.setSerialiser(serialiser, serialiserLocalValue);
+		ch.setSerialiser(serialiser, serialiserLocal);
 		return ch;
 	}
 

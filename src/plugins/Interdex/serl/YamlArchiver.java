@@ -1,9 +1,9 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Interdex.util;
+package plugins.Interdex.serl;
 
-import plugins.Interdex.util.Archiver.*;
+import plugins.Interdex.serl.Serialiser.*;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -14,7 +14,7 @@ import java.io.OutputStreamWriter;
 
 /**
 ** Converts between a map of {@link String} to {@link Object}, and a YAML
-** document. The object must be serialisable as defined in {@link Archiver}.
+** document. The object must be serialisable as defined in {@link Serialiser}.
 **
 ** This class expects {@link Task#meta} to be of type {@link String}, which is
 ** used as part of the filename.

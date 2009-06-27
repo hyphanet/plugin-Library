@@ -17,6 +17,7 @@ import freenet.support.Logger;
 import freenet.support.api.HTTPRequest;
 
 import plugins.Interdex.util.*;
+import plugins.Interdex.serl.*;
 import plugins.Interdex.index.*;
 
 /**
@@ -59,7 +60,7 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 		}
 
 		test.deflate();
-		Archiver.PushTask task = new Archiver.PushTask(test);
+		Serialiser.PushTask task = new Serialiser.PushTask(test);
 		f.s.push(task);
 		return request.toString() + "<br />Hi<br />" + task.meta.toString();
 		//return request.toString();

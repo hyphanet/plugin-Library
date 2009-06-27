@@ -3,8 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.util;
 
-import plugins.Interdex.util.Archiver.*;
-import plugins.Interdex.util.DataNotLoadedException;
+import plugins.Interdex.serl.Serialiser.*;
+import plugins.Interdex.serl.Serialiser;
 
 import com.google.common.collect.Multimap;
 
@@ -18,7 +18,6 @@ import java.util.Map;
 **
 ** @author infinity0
 ** @see Serialiser
-** @see Archiver
 */
 public interface SkeletonMap<K, V> {
 
