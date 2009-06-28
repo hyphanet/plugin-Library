@@ -398,7 +398,6 @@ implements SkeletonMap<K, V> {
 
 	@Override public void deflate() {
 		if (!tmap.isBare()) { tmap.deflate(); }
-
 		java.util.List<PushTask<SkeletonPrefixTreeMap<K, V>>> tasks = new java.util.ArrayList<PushTask<SkeletonPrefixTreeMap<K, V>>>(subtrees);
 		int[] indexes = new int[subtrees];
 		int ii=0;
@@ -410,6 +409,7 @@ implements SkeletonMap<K, V> {
 			tasks.add(new PushTask<SkeletonPrefixTreeMap<K, V>>(ch));
 			indexes[ii++] = ch.lastIndex();
 		}
+		// URGENT make this throw IllegalStateException or something, if serialiser is null
 		serialiser.push(tasks);
 
 		ii=0;

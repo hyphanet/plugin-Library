@@ -43,7 +43,7 @@ implements MapSerialiser<K, T> {
 	/**
 	** A collection class which is used to instantiate new groups.
 	*/
-	final protected Class<T> collClass;
+	final protected Class<? extends T> collClass;
 
 	/**
 	** Descending comparator for total bin load.
@@ -75,7 +75,7 @@ implements MapSerialiser<K, T> {
 		}
 	};
 
-	public SplitMapSerialiser(int c, Class<T> cc, IterableSerialiser<Map<K, T>> s) {
+	public SplitMapSerialiser(int c, Class<? extends T> cc, IterableSerialiser<Map<K, T>> s) {
 		super(s);
 		if (c <= 0) {
 			throw new IllegalArgumentException("Capacity must be greater than zero.");
@@ -112,6 +112,8 @@ implements MapSerialiser<K, T> {
 	** the original task from which the collection was taken. Tasks larger than
 	** the size of one bin are split over several bins. The resulting group of
 	** bins will include at most one bin which is half full or less.
+	**
+	** TODO URGENT make this take into account NULL values
 	**
 	** @param tasks The tasks to pack
 	** @return The bins containing the task data

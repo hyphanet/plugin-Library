@@ -15,8 +15,7 @@ public class TokenURIEntry extends TokenEntry {
 	final String word;
 	final FreenetURI uri;
 
-	int position;
-	int relevance;
+	protected int position;
 
 	public TokenURIEntry(String w, FreenetURI u) {
 		word = w;

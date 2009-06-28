@@ -84,7 +84,7 @@ public class Token extends AbstractPrefixKey implements PrefixKey {
 	 ************************************************************************/
 
 	public Object clone() {
-		return (Object)new Token(hash);
+		return new Token(hash);
 	}
 
 	public int symbols() {

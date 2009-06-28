@@ -132,6 +132,7 @@ implements SkeletonMap<K, V> {
 			PushTask<V> d = new PushTask<V>(v);
 			tasks.put(k, d);
 		}
+		// URGENT make this throw IllegalStateException or something, if serialiser is null
 		serialiser.push(tasks, meta);
 
 		for (K k: tasks.keySet()) {

@@ -33,7 +33,7 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 
 	public YamlArchiver(String pre, String suf) {
 		prefix = (pre == null)? "".intern(): pre;
-		suffix = (pre == null)? "".intern(): suf;
+		suffix = (suf == null)? "".intern(): suf;
 	}
 
 	/************************************************************************
@@ -48,9 +48,29 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 		T task = t.data;
 		convertPrimitiveArrays(task);
 
-		String s = (String)(t.meta);
+		String s = "", x = "";
+		if (t.meta instanceof String) {
+			s = (String)(t.meta);
+		} else if (t.meta instanceof Object[]) {
+			Object[] arr = (Object[])t.meta;
+			if (arr.length > 0 && arr[0] instanceof String) {
+				s = (String)arr[0];
+				if (arr.length > 1) {
+					StringBuilder str = new StringBuilder(arr[1].toString());
+					for (int i=2; i<arr.length; ++i) {
+						str.append('.').append(arr[i].toString());
+					}
+					x = str.toString();
+				}
+			} else {
+				throw new IllegalArgumentException("YamlArchiver does not support such metadata: " + t.meta);
+			}
+		} else {
+			throw new IllegalArgumentException("YamlArchiver does not support such metadata: " + t.meta);
+		}
+
 		try {
-			File file = new File(prefix + s + suffix + ".yml");
+			File file = new File(prefix + s + suffix + x + ".yml");
 			FileOutputStream os = new FileOutputStream(file);
 			yaml.dump(task, new OutputStreamWriter(os));
 			os.close();
