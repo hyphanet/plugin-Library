@@ -59,10 +59,10 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 
 		Random rand = new Random();
 
-		for (int i=0; i<16; ++i) {
-			String key = rndStr();
+		for (int i=0; i<4096; ++i) {
+			String key = rndStr().substring(0,8);
 			SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
-			int n = rand.nextInt(1008) + 16;
+			int n = rand.nextInt(240) + 16;
 
 			try {
 				for (int j=0; j<n; ++j) {

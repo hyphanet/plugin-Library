@@ -113,8 +113,6 @@ implements MapSerialiser<K, T> {
 	** the size of one bin are split over several bins. The resulting group of
 	** bins will include at most one bin which is half full or less.
 	**
-	** TODO URGENT make this take into account NULL values
-	**
 	** @param tasks The tasks to pack
 	** @return The bins containing the task data
 	*/
@@ -136,6 +134,7 @@ implements MapSerialiser<K, T> {
 		for (Map.Entry<K, PushTask<T>> en: tasks.entrySet()) {
 			// for each task X:
 			PushTask<T> task = en.getValue();
+			if (task.data == null) { task.data = newCollection(); }
 			int size = task.data.size();
 
 			if (size > caphalf) {
@@ -256,8 +255,6 @@ implements MapSerialiser<K, T> {
 
 					} else {
 						// if F is bigger than S, push F back onto the queue
-						// OPTIMISE, if there are more elements that can be moved, then keep moving them
-						// without re-adding F
 						bins.add(fullest);
 					}
 
@@ -278,14 +275,24 @@ implements MapSerialiser<K, T> {
 		return binsFinal;
 	}
 
-	/************************************************************************
-	 * public interface MapSerialiser
-	 ************************************************************************/
+	/*========================================================================
+	  public interface MapSerialiser
+	 ========================================================================*/
 
 	@Override public void pull(Map<K, PullTask<T>> tasks, Object meta) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation will overwrite the task metadata with a {@link List}
+	** whose first element is the size of the task data as an {@link Integer},
+	** and whose other elements are the indexes of the bin(s) into which the
+	** task was put (also as {@link Integer}s).
+	**
+	** TODO maybe have a map with keys "size" and "bins" instead?
+	*/
 	@Override public void push(Map<K, PushTask<T>> tasks, Object meta) {
 		// tasks has form {K:(T,M)}
 		Bin<T, K>[] bins = binPack(tasks);
@@ -293,7 +300,8 @@ implements MapSerialiser<K, T> {
 		// prepare each task's meta data to hold a list of bins
 		for (PushTask<T> task: tasks.values()) {
 			List metalist = new ArrayList();
-			metalist.add(task.meta);
+			// TODO maybe have this save { size: sz, bins: [*] } instead?
+			metalist.add(new Integer(task.data.size()));
 			task.meta = metalist;
 		}
 

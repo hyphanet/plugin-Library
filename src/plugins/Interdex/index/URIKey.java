@@ -9,13 +9,13 @@ import plugins.Interdex.util.PrefixTree.PrefixKey;
 import plugins.Interdex.util.PrefixTree.AbstractPrefixKey;
 
 /**
-** TODO
+** URGENT make this implement PrefixKey so we can put this in PrefixTreeMap
 **
 ** @author infinity0
 */
 public class URIKey extends AbstractPrefixKey implements PrefixKey {
 
-	// TODO
+	// URGENT
 	final FreenetURI uri;
 
 	public URIKey() {
@@ -28,9 +28,9 @@ public class URIKey extends AbstractPrefixKey implements PrefixKey {
 	public String toString() { return uri.toString(); }
 
 
-	/************************************************************************
-	 * public interface PrefixTreeMap.PrefixKey
-	 ************************************************************************/
+	/*========================================================================
+	  public interface PrefixTreeMap.PrefixKey
+	 ========================================================================*/
 
 	public Object clone() { throw new UnsupportedOperationException("Not implemented."); }
 

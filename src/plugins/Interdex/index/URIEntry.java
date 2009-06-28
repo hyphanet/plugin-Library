@@ -4,6 +4,7 @@
 package plugins.Interdex.index;
 
 import java.util.Date;
+import java.util.Set;
 
 import freenet.keys.FreenetURI;
 
@@ -18,6 +19,8 @@ public class URIEntry {
 	String title;
 	int size;
 	String mime_type;
+
+	Set<FreenetURI> related;
 
 	public URIEntry(FreenetURI u) {
 		uri = u;

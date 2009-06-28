@@ -16,8 +16,8 @@ import java.io.OutputStreamWriter;
 ** Converts between a map of {@link String} to {@link Object}, and a YAML
 ** document. The object must be serialisable as defined in {@link Serialiser}.
 **
-** This class expects {@link Task#meta} to be of type {@link String}, which is
-** used as part of the filename.
+** This class expects {@link Task#meta} to be of type {@link String}, or an
+** array whose first element is of type {@link String}.
 **
 ** @author infinity0
 */
@@ -36,9 +36,9 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 		suffix = (suf == null)? "".intern(): suf;
 	}
 
-	/************************************************************************
-	 * public interface Archiver
-	 ************************************************************************/
+	/*========================================================================
+	  public interface Archiver
+	 ========================================================================*/
 
 	@Override public void pull(PullTask<T> t) {
 		throw new UnsupportedOperationException("Not implemented.");

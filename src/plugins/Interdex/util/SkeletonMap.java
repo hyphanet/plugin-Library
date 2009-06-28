@@ -49,6 +49,8 @@ public interface SkeletonMap<K, V> {
 	** If {@link #isLive()} is true, return an instance of the data structure
 	** being emulated that is an effective clone of this structue. Otherwise,
 	** throw {@link DataNotLoadedException}.
+	**
+	** TODO maybe this method is totally unnecessary...
 	*/
 	public Object complete() throws DataNotLoadedException;
 

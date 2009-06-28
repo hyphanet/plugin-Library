@@ -20,6 +20,15 @@ import java.util.Collection;
 **
 ** TODO: make this implement SortedSetMultiMap
 **
+** TODO: starting to think this class is useless because:
+** - the premise of PrefixTreeMap is to balance out keys, regardless of how
+**   many values each key maps to
+** - the tree-balancing algorithm assumes that the tree will not run out of
+**   space to put keys, but this doesn't hold for multimaps (eg. if there are
+**   >capLocal values for a key, we won't be able to create a subtrees to hold
+**   it, since we don't split values for the same key over different nodes)
+** - the above dilemma is sufficiently well-handled by SplitMapSerialiser
+**
 ** @author infinity0
 */
 public class PrefixTreeMultimap<K extends PrefixKey, V extends Comparable>
@@ -45,10 +54,10 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 	*/
 	final protected PrefixTreeMultimap<K, V>[] child;
 
-	protected PrefixTreeMultimap(K p, int len, int maxsz, TreeMultimap<K, V> tm, PrefixTreeMultimap<K, V>[] chd, PrefixTreeMultimap<K, V> par) {
-		super(p, len, maxsz, chd, par);
-		if (tm.size() + subtrees > maxsz) {
-			throw new IllegalArgumentException("The TreeMultimap being attached is too big (> " + (maxsz-subtrees) + ")");
+	protected PrefixTreeMultimap(K p, int len, int caplocal, TreeMultimap<K, V> tm, PrefixTreeMultimap<K, V>[] chd, PrefixTreeMultimap<K, V> par) {
+		super(p, len, caplocal, chd, par);
+		if (tm.size() + subtrees > caplocal) {
+			throw new IllegalArgumentException("The TreeMultimap being attached is too big (> " + (caplocal-subtrees) + ")");
 		}
 
 		if (tm == null) {
@@ -61,21 +70,21 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		child = (PrefixTreeMultimap<K, V>[])super.child;
 	}
 
-	public PrefixTreeMultimap(K p, int len, int maxsz, PrefixTreeMultimap<K, V> par) {
-		this(p, len, maxsz, null, (PrefixTreeMultimap<K, V>[])new PrefixTreeMultimap[p.symbols()], par);
+	public PrefixTreeMultimap(K p, int len, int caplocal, PrefixTreeMultimap<K, V> par) {
+		this(p, len, caplocal, null, (PrefixTreeMultimap<K, V>[])new PrefixTreeMultimap[p.symbols()], par);
 	}
 
-	public PrefixTreeMultimap(K p, int maxsz) {
-		this(p, 0, maxsz, null);
+	public PrefixTreeMultimap(K p, int caplocal) {
+		this(p, 0, caplocal, null);
 	}
 
 	public PrefixTreeMultimap(K p) {
 		this(p, 0, p.symbols(), null);
 	}
 
-	/************************************************************************
-	 * public class PrefixTree
-	 ************************************************************************/
+	/*========================================================================
+	  public class PrefixTree
+	 ========================================================================*/
 
 	@Override protected PrefixTreeMultimap<K, V> makeSubTree(int msym) {
 		return new PrefixTreeMultimap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal, this);
@@ -109,9 +118,9 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return tmap.size();
 	}
 
-	/************************************************************************
-	 * public interface Multimap
-	 ************************************************************************/
+	/*========================================================================
+	  public interface Multimap
+	 ========================================================================*/
 
 	@Override public Map<K, Collection<V>> asMap() {
 		throw new UnsupportedOperationException("Not implemented.");

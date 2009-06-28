@@ -79,9 +79,9 @@ public class Token extends AbstractPrefixKey implements PrefixKey {
 		}
 	}
 
-	/************************************************************************
-	 * public interface PrefixTreeMap.PrefixKey
-	 ************************************************************************/
+	/*========================================================================
+	  public interface PrefixTreeMap.PrefixKey
+	 ========================================================================*/
 
 	public Object clone() {
 		return new Token(hash);
@@ -107,9 +107,9 @@ public class Token extends AbstractPrefixKey implements PrefixKey {
 		hash[i] = 0;
 	}
 
-	/************************************************************************
-	 * public class Object
-	 ************************************************************************/
+	/*========================================================================
+	  public class Object
+	 ========================================================================*/
 
 	public boolean equals(Object o) {
 		if (o instanceof Token) {

@@ -7,12 +7,13 @@ import plugins.Interdex.serl.Serialiser.*;
 import plugins.Interdex.serl.Translator;
 import plugins.Interdex.serl.MapSerialiser;
 
-import java.util.TreeMap;
-import java.util.Map;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.AbstractSet;
+import java.util.Map;
 import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.HashMap;
 import java.util.Collection;
 import java.util.AbstractCollection;
 import java.util.Iterator;
@@ -83,12 +84,12 @@ implements SkeletonMap<K, V> {
 	}
 
 
-	/************************************************************************
-	 * public interface SkeletonMap
-	 ************************************************************************/
+	/*========================================================================
+	  public interface SkeletonMap
+	 ========================================================================*/
 
 	@Override public boolean isLive() {
-		// OPTIMISE use a counter
+		// PRIORITY OPTIMISE use a counter
 		for (Object o: loaded.values()) {
 			if (o != null) { return false; }
 		}
@@ -96,7 +97,7 @@ implements SkeletonMap<K, V> {
 	}
 
 	@Override public boolean isBare() {
-		// OPTIMISE use a counter
+		// PRIORITY OPTIMISE use a counter
 		for (Object o: loaded.values()) {
 			if (o == null) { return false; }
 		}
@@ -120,23 +121,41 @@ implements SkeletonMap<K, V> {
 	}
 
 	@Override public void inflate() {
-		throw new UnsupportedOperationException("Not implemented.");
+		// URGENT think about how pull(tasks, meta) should actually work...
+		if (serialiser == null) {
+			throw new IllegalStateException("No serialiser set for this structure.");
+		}
+
+		Map<K, PullTask<V>> tasks = new HashMap<K, PullTask<V>>(size()*2);
+		for (K k: keySet()) {
+			if (loaded.get(k) == null) { continue; }
+			Object o = loaded.get(k);
+			PullTask<V> d = new PullTask<V>(o);
+			tasks.put(k, d);
+		}
+		serialiser.pull(tasks, meta);
+
+		for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
+			put(en.getKey(), en.getValue().data);
+		}
 	}
 
 	@Override public void deflate() {
-		// OPTMISE HashMap constructor
-		java.util.HashMap<K, PushTask<V>> tasks = new java.util.HashMap<K, PushTask<V>>(size()*2);
+		if (serialiser == null) {
+			throw new IllegalStateException("No serialiser set for this structure.");
+		}
+
+		Map<K, PushTask<V>> tasks = new HashMap<K, PushTask<V>>(size()*2);
 		for (K k: keySet()) {
 			if (loaded.get(k) != null) { continue; }
 			V v = get(k);
 			PushTask<V> d = new PushTask<V>(v);
 			tasks.put(k, d);
 		}
-		// URGENT make this throw IllegalStateException or something, if serialiser is null
 		serialiser.push(tasks, meta);
 
-		for (K k: tasks.keySet()) {
-			putDummy(k, tasks.get(k).meta);
+		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
+			putDummy(en.getKey(), en.getValue().meta);
 		}
 	}
 
@@ -158,28 +177,52 @@ implements SkeletonMap<K, V> {
 	abstract public static class TreeMapTranslator<K, V>
 	implements Translator<SkeletonTreeMap<K, V>, Map<String, Object>> {
 
-		// TODO code backwards translation
-
 		/**
-		** Forward translation.
+		** Forward translation. If the translator is given is {@code null},
+		** it will use {@link Object#toString()}.
 		**
 		** @param map The data structue to translate
 		** @param intm A map to populate with the translated mappings
+		** @param ktr An optional translator between key and {@link String}.
 		*/
-		public static <K, V> void app(SkeletonTreeMap<K, V> map, Map<String, Object> intm) {
+		public static <K, V> Map<String, Object> app(SkeletonTreeMap<K, V> map, Map<String, Object> intm, Translator<K, String> ktr) {
 			if (!map.isBare()) {
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
-			for (K k: map.loaded.keySet()) {
-				intm.put(k.toString(), map.loaded.get(k));
+			if (ktr != null) {
+				for (Map.Entry<K, Object> en: map.loaded.entrySet()) {
+					intm.put(ktr.app(en.getKey()), en.getValue());
+				}
+			} else {
+				for (Map.Entry<K, Object> en: map.loaded.entrySet()) {
+					intm.put(en.getKey().toString(), en.getValue());
+				}
 			}
+			return intm;
+		}
+
+		/**
+		** Backward translation. The translator is mandatory here.
+		**
+		** @param intm The map of translated mappings to extract
+		** @param map The data structue to populate with metadata
+		** @param ktr A translator between key and {@link String}
+		*/
+		public static <K, V> SkeletonTreeMap<K, V> rev(Map<String, Object> intm, SkeletonTreeMap<K, V> map, Translator<K, String> ktr) {
+			if (ktr == null) {
+				throw new IllegalArgumentException("SkeletonTreeMap: Translator cannot be null for reverse translation.");
+			}
+			for (Map.Entry<String, Object> en: intm.entrySet()) {
+				map.putDummy(ktr.rev(en.getKey()), en.getValue());
+			}
+			return map;
 		}
 
 	}
 
-	/************************************************************************
-	 * public class TreeMap
-	 ************************************************************************/
+	/*========================================================================
+	  public class TreeMap
+	 ========================================================================*/
 
 	@Override public void clear() {
 		super.clear();
@@ -343,9 +386,9 @@ implements SkeletonMap<K, V> {
 		return values;
 	}
 
-	/************************************************************************
-	 * public class AbstractMap
-	 ************************************************************************/
+	/*========================================================================
+	  public class AbstractMap
+	 ========================================================================*/
 
 	@Override public boolean equals(Object o) {
 		if (!(o instanceof SkeletonTreeMap)) { return false; }

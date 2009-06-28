@@ -8,17 +8,13 @@ import plugins.Interdex.serl.Serialiser.*;
 import java.util.Map;
 
 /**
-** An interface that handles a map of {@link Serialiser.Task}s. Implementations
-** should assume a single metadata all of the tasks in the whole map. The input
-** metadata for each task can be ignored (they should all be the same);
-** however, output metadata may be different.
+** An interface that handles a map of {@link Serialiser.Task}s. As well as the
+** metadata associated with each individual task, each map also has an
+** associated metadata for the entire structure.
 **
-** For a class that can handle maps which do not have a single map-wide
-** metadata, see {@link GroupMapSerialiser}. In the special case where each
-** task in the map has its own unique metadata, use {@link IterableSerialiser}
-** on the values of that map instead. (In such a case, the keys can be placed
-** in the metadata if the serialiser needs to access them; this would probably
-** be the most natural arrangement anyway.)
+** Data structures which have a map that can be grouped into submaps that each
+** have an associated metadata for the entire submap, can just use the methods
+** provided here, for each submap-metadata pair.
 **
 ** @author infinity0
 ** @see GroupMapSerialiser

@@ -30,18 +30,18 @@ implements SkeletonMap<K, V> {
 	** Represents a PrefixTreeMap which has not been loaded, but which a parent
 	** SkeletonPrefixTreeMap (that has been loaded) refers to.
 	**
-	** TODO make this contain a meta value
+	** TODO maybe make this implement SkeletonMap
 	**
 	** @author infinity0
 	*/
 	public static class DummyPrefixTreeMap<K extends PrefixKey, V> extends PrefixTreeMap<K, V> {
 
-		public DummyPrefixTreeMap(K p, int len, int maxsz, SkeletonPrefixTreeMap<K, V> par) {
-			super(p, len, maxsz, par);
+		public DummyPrefixTreeMap(K p, int len, int caplocal, SkeletonPrefixTreeMap<K, V> par) {
+			super(p, len, caplocal, par);
 		}
 
-		public DummyPrefixTreeMap(K p, int maxsz) {
-			super(p, 0, maxsz, null);
+		public DummyPrefixTreeMap(K p, int caplocal) {
+			super(p, 0, caplocal, null);
 		}
 
 		public DummyPrefixTreeMap(K p) {
@@ -50,9 +50,17 @@ implements SkeletonMap<K, V> {
 
 		Object meta;
 
-		/************************************************************************
-		 * public class PrefixTree
-		 ************************************************************************/
+		public Object getMeta() {
+			return meta;
+		}
+
+		public void setMeta(Object m) {
+			meta = m;
+		}
+
+		/*========================================================================
+		  public class PrefixTree
+		 ========================================================================*/
 
 		protected DummyPrefixTreeMap<K, V> selectNode(int i) {
 			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
@@ -74,9 +82,9 @@ implements SkeletonMap<K, V> {
 			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
 		}
 
-		/************************************************************************
-		 * public interface Map
-		 ************************************************************************/
+		/*========================================================================
+		  public interface Map
+		 ========================================================================*/
 
 		public boolean containsValue(Object o) {
 			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
@@ -111,28 +119,8 @@ implements SkeletonMap<K, V> {
 	*/
 	protected Object meta = null;
 
-	protected SkeletonPrefixTreeMap(K p, int len, int maxsz, int sz, int subs, int[] szPre, boolean[] chd, K[] keys, Object[] values, SkeletonPrefixTreeMap<K, V> par) {
-		this(p, len, maxsz, par);
-
-		// check size == sum { sizePrefix }
-		int s = 0;
-		for (int pre: szPre) { s += pre; }
-		if (sz != s) {
-			throw new IllegalArgumentException("Invariant broken: size == sum{ sizePrefix }");
-		}
-
-		size = sz;
-		subtrees = subs;
-		for (int i=0; i<szPre.length; ++i) {
-			sizePrefix[i] = szPre[i];
-		}
-
-		putDummyChildren(chd);
-		putDummySubmap(keys, values);
-	}
-
-	public SkeletonPrefixTreeMap(K p, int len, int maxsz, SkeletonPrefixTreeMap<K, V> par) {
-		super(p, len, maxsz, new SkeletonTreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()], par);
+	protected SkeletonPrefixTreeMap(K p, int len, int caplocal, SkeletonPrefixTreeMap<K, V> par) {
+		super(p, len, caplocal, new SkeletonTreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()], par);
 
 		tmap = (SkeletonTreeMap<K, V>)super.tmap;
 		String str = prefixString();
@@ -140,8 +128,8 @@ implements SkeletonMap<K, V> {
 		tmap.setMeta(str);
 	}
 
-	public SkeletonPrefixTreeMap(K p, int maxsz) {
-		this(p, 0, maxsz, null);
+	public SkeletonPrefixTreeMap(K p, int caplocal) {
+		this(p, 0, caplocal, null);
 	}
 
 	public SkeletonPrefixTreeMap(K p) {
@@ -163,166 +151,52 @@ implements SkeletonMap<K, V> {
 	}
 
 	/**
-	** Puts DummyPrefixTreeMap objects into the child array.
-	**
-	** @param chd An array of booleans indicating whether to attach a dummy
-	** @throws ArrayIndexOutOfBoundsException when the input array is smaller
-	**         than the child array
-	*/
-	protected void putDummyChildren(boolean[] chd) {
-
-		// check count{ i : chd[i] == true } == subtrees
-		int s = 0;
-		for (boolean b: chd) {
-			if (b) { ++s; }
-		}
-		if (subtrees != s) {
-			throw new IllegalArgumentException("Invariant broken: subtrees == count{ non-null children }");
-		}
-
-		// check that there exists sz such that for all i:
-		// (chd[i] == false) => sizePrefix[i] <= sz
-		// (chd[i] != false) => sizePrefix[i] >= sz
-		int sz = capacityLocal;
-		// find the size of the smallest child. if the smallest child is larger
-		// than maxSize, then maxSize will be returned instead, but this makes no
-		// difference to the tests below (think about it...)
-		for (int i=0; i<child.length; ++i) {
-			if (chd[i]) {
-				if (sizePrefix[i] < sz) {
-					sz = sizePrefix[i];
-				}
-			}
-		}
-		// see if there are any non-child prefix groups larger than the smallest
-		// child. whilst we're at it, calculate sum{ sizePrefix[j]: !chd[j] }
-		// for the next test.
-		s = 0;
-		for (int i=0; i<child.length; ++i) {
-			if (!chd[i]) {
-				s += sizePrefix[i];
-				if (sizePrefix[i] > sz) {
-					throw new IllegalArgumentException(
-					"Invariant broken: there exists sz such that for all i: " +
-					"(child[i] == null) => sizePrefix[i] <= sz and " +
-					"(child[i] != null) => sizePrefix[i] >= sz"
-					);
-				}
-			}
-		}
-
-		// check that sum{ sizePrefix[j] : !chd[j] } + subtrees + sz > capacityLocal
-		if (s + subtrees + sz <= capacityLocal) {
-			throw new IllegalArgumentException("Invariant broken: count{ non-child prefix groups } + subtrees + sz > maxSize");
-		}
-
-		for (int i=0; i<child.length; ++i) {
-			if (chd[i]) { putDummyChild(i); }
-		}
-	}
-
-	/**
-	** Put a DummyPrefixTreeMap into the child array.
-	**
-	** @param i The index to attach the dummy to
-	*/
-	protected void putDummyChild(int i) {
-		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, capacityLocal, this);
-	}
-
-	/**
 	** Put a DummyPrefixTreeMap into the child array, with a dummy inside it.
 	** TODO make it actually use the dummy...
 	**
-	** @param i The index to attach the dummy to
+	** @param i The index to attach the dummy to.. UNUSED
 	*/
 	protected void putDummyChild(int i, Object dummy) {
 		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, capacityLocal, this);
 	}
 
 	/**
-	** Put dummy mappings onto the submap. This method carries out certain
-	** tests which assume that the child array has already been populated by
-	** putDummyChildren.
-	**
-	** @param keys The array of keys of the map
-	** @param values The array of meta values of the map
-	*/
-	protected void putDummySubmap(K[] keys, Object[] values) {
-		if (keys.length != values.length) {
-			throw new IllegalArgumentException("keys/values length mismatch");
-		}
-
-		// check that keys agrees with child[i]
-		int[] szPre = new int[sizePrefix.length];
-		for (int i=0; i<keys.length; ++i) {
-			int p = keys[i].get(preflen);
-			if (child[p] != null) {
-				throw new IllegalArgumentException("A subtree already exists for this key: " + keys[i]);
-			}
-			++szPre[p];
-		}
-
-		// check keys.length == sum{ sizePrefix[j] : child[j] == null } and that
-		// keys agrees with sizePrefix
-		int sz = 0;
-		for (int i=0; i<sizePrefix.length; ++i) {
-			if (child[i] == null) {
-				sz += szPre[i];
-				if (sizePrefix[i] != szPre[i]) {
-					throw new IllegalArgumentException("The keys given contradicts the sizePrefix array");
-				}
-			}
-		}
-		if (sz != keys.length) {
-			throw new IllegalArgumentException("The keys given contradicts the sizePrefix array");
-		}
-
-		for (int i=0; i<keys.length; ++i) {
-			tmap.putDummy(keys[i], values[i]);
-		}
-	}
-
-	/**
-	** Assimilate an existing SkeletonPrefixTreeMap into this one. The prefix
-	** must match and there must already be a DummyPrefixTreeMap in its place
-	** in the child array.
+	** Attach an existing SkeletonPrefixTreeMap into this one. The prefix must
+	** match and there must already be a DummyPrefixTreeMap in its place in the
+	** child array.
 	**
 	** @param t The tree to assimilate
 	*/
-	public void assimilate(SkeletonPrefixTreeMap<K, V> t) {
-		if (t.preflen <= preflen) {
-			throw new IllegalArgumentException("Only subtrees can be spliced onto an SkeletonPrefixTreeMap.");
+	protected void putChild(SkeletonPrefixTreeMap<K, V> t) {
+		if (t.preflen != preflen+1) {
+			throw new IllegalArgumentException("Only direct subtrees can be spliced.");
 		}
 		if (!t.prefix.match(prefix, preflen)) {
 			throw new IllegalArgumentException("Key does not match prefix for this tree.");
 		}
+		if (t.parent != this) {
+			throw new IllegalArgumentException("Subtree does not view this tree as its parent.");
+		}
 
-		int i = t.prefix.get(preflen);
-
+		int i = t.lastIndex();
 		if (child[i] == null) {
 			throw new IllegalArgumentException("This tree does not have a subtree with prefix " + t.prefix);
 		}
 		// check t.size == sizePrefix[i]
-		if (t.size != sizePrefix[i]) {
-			throw new IllegalArgumentException("The size of this tree contradicts the parent's sizePrefix");
+		if (t.size() != sizePrefix[i]) {
+			throw new IllegalArgumentException("The size of the subtree contradicts its entry in sizePrefix");
 		}
 
 		if (child[i] instanceof DummyPrefixTreeMap) {
 			child[i] = t;
-		} else if (child[i] instanceof SkeletonPrefixTreeMap) {
-			if (t.preflen > child[i].preflen) {
-				((SkeletonPrefixTreeMap)child[i]).assimilate(t);
-			} else {
-				// t.preflen == child.preflen since t.preflen > this.preflen
-				throw new IllegalArgumentException("This tree has already assimilated a subtree with prefix " + t.prefix);
-			}
+		} else {
+			throw new IllegalArgumentException("This tree does not need attach a subtree with prefix " + t.prefix);
 		}
 	}
 
-	/************************************************************************
-	 * public class PrefixTree
-	 ************************************************************************/
+	/*========================================================================
+	  public class PrefixTree
+	 ========================================================================*/
 
 	// We override this method so that the correct serialiser is set
 	@Override protected PrefixTreeMap<K, V> makeSubTree(int msym) {
@@ -341,9 +215,9 @@ implements SkeletonMap<K, V> {
 		}
 	}
 
-	/************************************************************************
-	 * public interface SkeletonMap
-	 ************************************************************************/
+	/*========================================================================
+	  public interface SkeletonMap
+	 ========================================================================*/
 
 	@Override public boolean isLive() {
 		// OPTIMISE use a counter
@@ -392,30 +266,58 @@ implements SkeletonMap<K, V> {
 	}
 
 	@Override public void inflate() {
-		throw new UnsupportedOperationException("Not implemented.");
-		//assert(isLive());
+		if (serialiser == null) {
+			throw new IllegalStateException("No serialiser set for this structure.");
+		}
+
+		if (!tmap.isLive()) { tmap.inflate(); }
+
+		java.util.List<PullTask<SkeletonPrefixTreeMap<K, V>>> tasks = new java.util.ArrayList<PullTask<SkeletonPrefixTreeMap<K, V>>>(subtrees);
+		for (PrefixTreeMap<K, V> chd: child) {
+			if (chd == null || !(chd instanceof DummyPrefixTreeMap)) { continue; }
+			PullTask<SkeletonPrefixTreeMap<K, V>> task = new PullTask<SkeletonPrefixTreeMap<K, V>>(((DummyPrefixTreeMap<K, V>)chd).getMeta());
+			task.data = this; // this is a bit of a hack, but oh well...
+			// the only way to supply the parent pointer is via the constructor
+			// and hence we must pass the parent pointer to the translator
+			// the only way to do this is here. there is no other way to supply
+			// the parent pointer - we could make PrefixTreeMap.parent
+			// non-final and change this field, but we can't access
+			// PrefixTree.parent to change that even if we make it non-final,
+			// since it is a grand-superclass. it's too late to recode the
+			// entire thing, sorry... :p
+			tasks.add(task);
+		}
+		serialiser.pull(tasks);
+
+		for (PullTask<SkeletonPrefixTreeMap<K, V>> t: tasks) {
+			putChild(t.data);
+			// TODO maybe find some way to make this concurrent, but not so important
+			if (!t.data.isLive()) { t.data.inflate(); }
+		}
+
+		assert(isLive());
 	}
 
 	@Override public void deflate() {
-		if (!tmap.isBare()) { tmap.deflate(); }
-		java.util.List<PushTask<SkeletonPrefixTreeMap<K, V>>> tasks = new java.util.ArrayList<PushTask<SkeletonPrefixTreeMap<K, V>>>(subtrees);
-		int[] indexes = new int[subtrees];
-		int ii=0;
+		if (serialiser == null) {
+			throw new IllegalStateException("No serialiser set for this structure.");
+		}
 
+		java.util.List<PushTask<SkeletonPrefixTreeMap<K, V>>> tasks = new java.util.ArrayList<PushTask<SkeletonPrefixTreeMap<K, V>>>(subtrees);
 		for (PrefixTreeMap<K, V> chd: child) {
 			if (chd == null || !(chd instanceof SkeletonPrefixTreeMap)) { continue; }
 			SkeletonPrefixTreeMap<K, V> ch = (SkeletonPrefixTreeMap<K, V>)chd;
+			// TODO maybe find some way to make this concurrent, but not so important
 			if (!ch.isBare()) { ch.deflate(); }
 			tasks.add(new PushTask<SkeletonPrefixTreeMap<K, V>>(ch));
-			indexes[ii++] = ch.lastIndex();
 		}
-		// URGENT make this throw IllegalStateException or something, if serialiser is null
 		serialiser.push(tasks);
 
-		ii=0;
 		for (PushTask<SkeletonPrefixTreeMap<K, V>> t: tasks) {
-			putDummyChild(indexes[ii++], t.meta);
+			putDummyChild(t.data.lastIndex(), t.meta);
 		}
+
+		if (!tmap.isBare()) { tmap.deflate(); }
 
 		assert(isBare());
 	}
@@ -439,35 +341,197 @@ implements SkeletonMap<K, V> {
 	abstract public static class PrefixTreeMapTranslator<K extends PrefixKey, V>
 	implements Translator<SkeletonPrefixTreeMap<K, V>, Map<String, Object>> {
 
-		// TODO code backwards translation
+		private interface Fields {
+			final static String PREFIX = "prefix", PREFLEN = "preflen",
+			CAPACITYLOCAL = "capacityLocal", SUBTREES = "subtrees",
+			SIZE = "size", SIZEPREFIX = "sizePrefix", CHILD = "_child",
+			TMAP = "_tmap";
+		}
 
 		/**
-		** Forward translation.
+		** Forward translation. If the translator is given is {@code null},
+		** it will use {@link Object#toString()}.
 		**
 		** @param skel The data structue to translate
 		** @param intml A map to populate with the translation of the local map
 		** @param intm A map to populate with the translated mappings
+		** @param ktr An optional translator between key and {@link String}
 		*/
-		public static <K extends PrefixKey, V> void app(SkeletonPrefixTreeMap<K, V> skel, Map<String, Object> intml, Map<String, Object> intm) {
+		public static <K extends PrefixKey, V> Map<String, Object> app(SkeletonPrefixTreeMap<K, V> skel, Map<String, Object> intm, Map<String, Object> intml, Translator<K, String> ktr) {
 			if (!skel.isBare()) {
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
-			// OPTMISE make the keys use String.intern()
-			intm.put("prefix", skel.prefix.toString());
-			intm.put("preflen", skel.preflen);
-			intm.put("capacityLocal", skel.capacityLocal);
-			intm.put("size", skel.size);
-			intm.put("subtreesMax", skel.subtreesMax);
-			intm.put("subtrees", skel.subtrees);
-			intm.put("sizePrefix", skel.sizePrefix);
+			intm.put(Fields.PREFIX, (ktr == null)? skel.prefix.toString(): ktr.app(skel.prefix));
+			intm.put(Fields.PREFLEN, skel.preflen);
+			intm.put(Fields.CAPACITYLOCAL, skel.capacityLocal);
+			intm.put(Fields.SUBTREES, skel.subtrees);
+			intm.put(Fields.SIZE, skel.size);
+			intm.put(Fields.SIZEPREFIX, skel.sizePrefix);
 
 			boolean chd[] = new boolean[skel.subtreesMax];
 			for (int i=0; i<skel.subtreesMax; ++i) { chd[i] = (skel.child[i] != null); }
-			intm.put("_child", chd);
+			intm.put(Fields.CHILD, chd);
 
-			SkeletonTreeMap.TreeMapTranslator.app(skel.tmap, intml);
-			intm.put("_tmap", intml);
+			SkeletonTreeMap.TreeMapTranslator.app(skel.tmap, intml, ktr);
+			intm.put(Fields.TMAP, intml);
+			return intm;
 		}
+
+		/**
+		** Backwards translation. The translator is mandatory here. The parent
+		** can be retrieved from {@link PullTask#data} before the task begins.
+		**
+		** @param intm A map of translated mappings to extract
+		** @param par The tree to mark as the parent of the new tree
+		** @param ktr A translator between key and {@link String}
+		*/
+		public static <K extends PrefixKey, V> SkeletonPrefixTreeMap<K, V> rev(Map<String, Object> intm, SkeletonPrefixTreeMap<K, V> par, Translator<K, String> ktr) {
+			if (ktr == null) {
+				throw new IllegalArgumentException("SkeletonPrefixTreeMap: Translator cannot be null for reverse translation.");
+			}
+			try {
+				K p = ktr.rev((String)intm.get(Fields.PREFIX));
+				int pl = (Integer)intm.get(Fields.PREFLEN);
+				int cl = (Integer)intm.get(Fields.CAPACITYLOCAL);
+				int sb = (Integer)intm.get(Fields.SUBTREES);
+				int sz = (Integer)intm.get(Fields.SIZE);
+				int[] sp = (int[])intm.get(Fields.SIZEPREFIX);
+				boolean[] chd = (boolean[])intm.get(Fields.CHILD);
+				Map<String, Object> tm = (Map<String, Object>)intm.get(Fields.TMAP);
+
+				SkeletonPrefixTreeMap<K, V> skel = new SkeletonPrefixTreeMap<K, V>(p, pl, cl, par);
+				SkeletonTreeMap.TreeMapTranslator.rev(tm, skel.tmap, ktr);
+
+				checkValid(p, pl, cl, sb, sz, sp, chd, skel.tmap.keySet());
+
+				skel.subtrees = sb;
+				skel.size = sz;
+				skel.sizePrefix = sp;
+				for (int i=0; i<chd.length; ++i) {
+					if (chd[i]) { skel.putDummyChild(i, null); }
+				}
+
+				return skel;
+
+			} catch (ClassCastException e) {
+				throw e; // throw data corrupt?
+			} catch (NullPointerException e) {
+				throw e; // throw data corrupt?
+			} catch (IllegalArgumentException e) {
+				throw e; // throw data corrupt?
+			}
+
+		}
+
+		/**
+		** Checks the integrity of the given data. Tests:
+		**
+		** - prefix.symbols() == chd.length == sizePrefix.length
+		** - size == sum{ sizePrefix }
+		** - count{ i: chd[i] } == subtrees
+		** - if there are subtrees, then:
+		**   - let sz be the size of the smallest child; then for all i:
+		**     - (chd[i] == false) => sizePrefix[i] <= sz
+		**     - (chd[i] != false) => sizePrefix[i] >= sz
+		**   - sz > spaceLeft
+		** - for all k in keySetLocal: !chd[prefix group of k]
+		** - count of keys for each group in keySetLocal agrees with sizePrefix
+		** - keySetLocal.size() == sum{ sizePrefix[j] : !chd[j] }
+		**
+		** We skip testing this data against the parent as this is already done
+		** in {@link #putChild(SkeletonPrefixTreeMap)} (and here we would have
+		** to code for the null case).
+		*/
+		public static <K extends PrefixKey> void checkValid(K prefix, int preflen, int capacityLocal, int subtrees, int size, int[] sizePrefix, boolean[] chd, Set<K> keySetLocal) {
+			int s;
+
+			// check chd has correct size
+			if (chd.length != prefix.symbols()) {
+				throw new IllegalArgumentException("Child array has incompatible size for the given prefix.");
+			}
+
+			// check sizePrefix has correct size
+			if (sizePrefix.length != prefix.symbols()) {
+				throw new IllegalArgumentException("Size prefix array has incompatible size for the given prefix.");
+			}
+
+			// check size == sum{ sizePrefix }
+			s = 0;
+			for (int pre: sizePrefix) { s += pre; }
+			if (size != s) {
+				throw new IllegalArgumentException("Invariant broken: size == sum{ sizePrefix }");
+			}
+
+			// check count{ i: chd[i] } == subtrees
+			s = 0;
+			for (boolean b: chd) { if (b) { ++s; } }
+			if (subtrees != s) {
+				throw new IllegalArgumentException("Invariant broken: subtrees == count{ non-null children }");
+			}
+
+			if (subtrees > 0) {
+				// check that there exists sz such that for all i:
+				// (chd[i] == false) => sizePrefix[i] <= sz
+				// (chd[i] != false) => sizePrefix[i] >= sz
+				int sz = size;
+				// find the size of the smallest child
+				for (int i=0; i<chd.length; ++i) {
+					if (chd[i]) {
+						if (sizePrefix[i] < sz) {
+							sz = sizePrefix[i];
+						}
+					}
+				}
+				// see if there are any non-child prefix groups larger than the smallest
+				// child. whilst we're at it, calculate sum{ sizePrefix[j]: !chd[j] }
+				// for the next test.
+				s = 0;
+				for (int i=0; i<chd.length; ++i) {
+					if (!chd[i]) {
+						s += sizePrefix[i];
+						if (sizePrefix[i] > sz) {
+							throw new IllegalArgumentException(
+							"Invariant broken: there exists sz such that for all i: " +
+							"(child[i] == null) => sizePrefix[i] <= sz and " +
+							"(child[i] != null) => sizePrefix[i] >= sz"
+							);
+						}
+					}
+				}
+				// check that sz > spaceLeft == capacityLocal - sum{ sizePrefix[j] : !chd[j] } - subtrees
+				if (sz <= capacityLocal - s - subtrees) {
+					throw new IllegalArgumentException("Invariant broken: size(smallest child) > spaceLeft == capacityLocal - size{ non-child prefix groups } - subtrees");
+				}
+			}
+
+			// check that for all k in keySetLocal: !chd[prefix group of k]
+			// whilst we're at it, construct the array for the next test
+			int[] szPre = new int[sizePrefix.length];
+			for (K k: keySetLocal) {
+				int p = k.get(preflen);
+				if (chd[p]) {
+					throw new IllegalArgumentException("A subtree already exists for this key: " + k.toString());
+				}
+				++szPre[p];
+			}
+
+			// check that keySetLocal agrees with sizePrefix and that
+			// keySetLocal.size() == sum{ sizePrefix[j] : !chd[j] }
+			s = 0;
+			for (int i=0; i<sizePrefix.length; ++i) {
+				if (!chd[i]) {
+					s += szPre[i];
+					if (sizePrefix[i] != szPre[i]) {
+						throw new IllegalArgumentException("The keys given contradicts the sizePrefix array");
+					}
+				}
+			}
+			if (s != keySetLocal.size()) {
+				throw new IllegalArgumentException("The keys given contradicts the sizePrefix array");
+			}
+
+		}
+
 
 	}
 

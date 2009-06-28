@@ -23,7 +23,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	/**
 	** The length of the prefix for this tree.
 	*/
-	final public int preflen;
+	final protected int preflen;
 
 	/**
 	** Pointer to the parent tree.
@@ -40,7 +40,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	/**
 	** The size of the {@link #child} array.
 	*/
-	final public int subtreesMax;
+	final public transient int subtreesMax;
 
 	/**
 	** Maximum size of ({@link #sizeLocal()} + {@link #child}) before we start
@@ -58,7 +58,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** Number of elements contained in the tree. At all times, it should equal
 	** the sum of the size of the subtrees, plus the {@link #sizeLocal()}.
 	*/
-	public int size = 0;
+	protected int size = 0;
 
 	/**
 	** Counts the number of mappings in each prefix group, meaning the set of
@@ -68,7 +68,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** == {@link #child}[i].size()) and {@link #sizeLocal()} == sum{ {@link
 	** #sizePrefix}[j] : {@link #child}[j] == null }
 	*/
-	final protected int sizePrefix[];
+	protected int sizePrefix[];
 
 	/**
 	** Cache for {@link #smallestChild()}. At all times, this should either be
@@ -76,7 +76,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** either there are no subtrees (check {@link #subtrees} == 0) or the cache
 	** has been invalidated.
 	*/
-	transient protected PrefixTree<K, V> smallestChild_ = null;
+	protected transient PrefixTree<K, V> smallestChild_ = null;
 
 	protected PrefixTree(K p, int len, int maxsz, PrefixTree<K, V>[] chd, PrefixTree<K, V> par) {
 		if (chd.length != p.symbols()) {
@@ -416,9 +416,9 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	abstract protected Set<K> keySet();
 
 
-	/************************************************************************
-	 * public interface Map, Multimap
-	 ************************************************************************/
+	/*========================================================================
+	  public interface Map, Multimap
+	 ========================================================================*/
 
 	public void clear() {
 		size = 0;
@@ -435,9 +435,9 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 		return (size == 0);
 	}
 
-	/************************************************************************
-	 * public class Object
-	 ************************************************************************/
+	/*========================================================================
+	  public class Object
+	 ========================================================================*/
 
 	public boolean equals(Object o) {
 		if (o == this) { return true; }

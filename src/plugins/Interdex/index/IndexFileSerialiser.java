@@ -85,7 +85,7 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 			public Map<String, Object> app(SkeletonPrefixTreeMap<K, V> tree) {
 				Map<String, Object> map = new HashMap<String, Object>(16);
 				Map<String, Object> lmap = new HashMap<String, Object>(tree.sizeLocal()*2);
-				app(tree, lmap, map);
+				app(tree, map, lmap, null);
 				return map;
 			}
 
@@ -107,7 +107,7 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 			// - TreeSet<TokenEntry>.class (syntax error)
 			// - (new TreeSet<TokenEntry>()).getClass()
 			// - (Class<TreeSet<TokenEntry>>)(TreeSet.class)
-			super(256, (Class<TreeSet<TokenEntry>>)((new TreeSet<TokenEntry>()).getClass()), new TokenEntryGroupSerialiser());
+			super(512, (Class<TreeSet<TokenEntry>>)((new TreeSet<TokenEntry>()).getClass()), new TokenEntryGroupSerialiser());
 		}
 
 	}
@@ -119,7 +119,7 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 		protected TokenEntryTranslator entrans = new TokenEntryTranslator();
 
 		public TokenEntryGroupSerialiser() {
-			super(new YamlArchiver<Map<String, Object>>("tk", ".map"));
+			super(new YamlArchiver<Map<String, Object>>("tk", ".tab"));
 		}
 
 		public void pull(PullTask<Map<Token, SortedSet<TokenEntry>>> task) {

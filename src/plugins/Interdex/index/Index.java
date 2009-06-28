@@ -3,7 +3,12 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.index;
 
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Date;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -21,44 +26,94 @@ public class Index {
 	final public static int UTAB_MAX = 65536;
 
 	/**
+	** Magic number to guide serialisation.
+	*/
+	final public static long MAGIC = 0xf82a9084681e5ba6L;
+
+	/**
+	** Name for this index.
+	*/
+	protected String name;
+
+	/**
+	** Last time this index was modified.
+	*/
+	protected Date modified;
+
+	/**
+	** Extra configuration options for the index.
+	*/
+	protected Map<String, Object> extra;
+
+	/**
+	** Whether this index is writeable.
+	*/
+	final public transient boolean writeable;
+
+	/**
 	** Filter table. Used to make checks quicker.
 	*/
-	PrefixTreeMap<Token, TokenFilter> filtab = new
-	PrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX);
+	protected PrefixTreeMap<Token, TokenFilter> filtab;
 
 	/**
 	** Token table. Provides information related to a Token-URI pairing.
 	*/
-	PrefixTreeMap<Token, HashSet<TokenEntry>> tktab = new
-	PrefixTreeMap<Token, HashSet<TokenEntry>>(new Token(), TKTAB_MAX);
+	protected PrefixTreeMap<Token, SortedSet<TokenEntry>> tktab;
 
 	/**
 	** URI table. Provides information related to a URI.
 	*/
-	PrefixTreeMap<URIKey, URIEntry> utab = new
-	PrefixTreeMap<URIKey, URIEntry>(new URIKey(), UTAB_MAX);
+	protected PrefixTreeMap<URIKey, URIEntry> utab;
 
-	final private ReadWriteLock lock = new ReentrantReadWriteLock();
+	final private transient ReadWriteLock lock = new ReentrantReadWriteLock();
 
-	final String format;
-	final String filterType;
+	public Index(String n) {
+		name = (n == null)? "".intern(): n;
+		writeable = true;
+		modified = new Date();
+		extra = new HashMap<String, Object>();
 
-	public Index(String fmt, String fil) {
-		format = fmt;
-		filterType = fil;
+		utab = new PrefixTreeMap<URIKey, URIEntry>(new URIKey(), UTAB_MAX);
+		tktab = new PrefixTreeMap<Token, SortedSet<TokenEntry>>(new Token(), TKTAB_MAX);
+		filtab = new PrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX);
+	}
+
+	public Index() {
+		this(null);
+	}
+
+	/**
+	** This constructor is used by the {@link IndexTranslator translator} to
+	** create a skeleton index.
+	*/
+	protected Index(String n, Date m, Map<String, Object> x,
+		PrefixTreeMap<Token, TokenFilter> f,
+		PrefixTreeMap<Token, SortedSet<TokenEntry>> t,
+		PrefixTreeMap<URIKey, URIEntry> u
+		) {
+		name = (n == null)? "".intern(): n;
+		writeable = false;
+		modified = m;
+		extra = x;
+
+		filtab = f;
+		tktab = t;
+		utab = u;
 	}
 
 	/**
 	** Search the index for a given keyword.
+	**
+	** PRIORITY make this support getting a subset of the entries.
 	*/
-	public synchronized HashSet<TokenEntry> searchIndex(String keyword) {
+	public synchronized SortedSet<TokenEntry> searchIndex(String keyword) {
 		return getAllEntries(new Token(keyword));
 	}
 
 	/**
-	** Returns the HashSet associated with a given Token.
+	** Returns the SortedSet associated with a given Token.
 	*/
-	public synchronized HashSet<TokenEntry> getAllEntries(Token t) {
+	public synchronized SortedSet<TokenEntry> getAllEntries(Token t) {
 		return tktab.get(t);
 	}
 

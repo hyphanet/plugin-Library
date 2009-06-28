@@ -6,12 +6,11 @@ package plugins.Interdex.index;
 /**
 ** @author infinity0
 */
-public abstract class TokenEntry implements Comparable<TokenEntry> { // TODO: or interface?
+public abstract class TokenEntry implements Comparable<TokenEntry> {
 
-	// TODO
-	// don't actually know what to put here, lol... constructors?
 	public int relevance;
 
+	// TODO make reverse order?
 	public int compareTo(TokenEntry o) {
 		if (this == o) { return 0; }
 		int d = relevance - o.relevance;

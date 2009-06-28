@@ -43,10 +43,10 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	*/
 	final protected PrefixTreeMap<K, V>[] child;
 
-	protected PrefixTreeMap(K p, int len, int maxsz, TreeMap<K, V> tm, PrefixTreeMap<K, V>[] chd, PrefixTreeMap<K, V> par) {
-		super(p, len, maxsz, chd, par);
-		if (tm.size() + subtrees > maxsz) {
-			throw new IllegalArgumentException("The TreeMap being attached is too big (> " + (maxsz-subtrees) + ")");
+	protected PrefixTreeMap(K p, int len, int caplocal, TreeMap<K, V> tm, PrefixTreeMap<K, V>[] chd, PrefixTreeMap<K, V> par) {
+		super(p, len, caplocal, chd, par);
+		if (tm.size() + subtrees > caplocal) {
+			throw new IllegalArgumentException("The TreeMap being attached is too big (> " + (caplocal-subtrees) + ")");
 		}
 
 		tmap = tm;
@@ -54,21 +54,21 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		child = (PrefixTreeMap<K, V>[])super.child;
 	}
 
-	public PrefixTreeMap(K p, int len, int maxsz, PrefixTreeMap<K, V> par) {
-		this(p, len, maxsz, new TreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()], par);
+	protected PrefixTreeMap(K p, int len, int caplocal, PrefixTreeMap<K, V> par) {
+		this(p, len, caplocal, new TreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()], par);
 	}
 
-	public PrefixTreeMap(K p, int maxsz) {
-		this(p, 0, maxsz, null);
+	public PrefixTreeMap(K p, int caplocal) {
+		this(p, 0, caplocal, null);
 	}
 
 	public PrefixTreeMap(K p) {
 		this(p, 0, p.symbols(), null);
 	}
 
-	/************************************************************************
-	 * public class PrefixTree
-	 ************************************************************************/
+	/*========================================================================
+	  public class PrefixTree
+	 ========================================================================*/
 
 	@Override protected PrefixTreeMap<K, V> makeSubTree(int msym) {
 		return new PrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal, this);
@@ -102,9 +102,9 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return tmap.size();
 	}
 
-	/************************************************************************
-	 * public interface Map
-	 ************************************************************************/
+	/*========================================================================
+	  public interface Map
+	 ========================================================================*/
 
 	@Override public boolean containsKey(Object key) {
 		K k; if (!(key instanceof PrefixKey) ||
