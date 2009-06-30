@@ -41,7 +41,7 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 		try{
 			return WebUI.handleHTTPGet(request);
 		}catch(Exception e){
-			return WebUI.searchpage(null, null, false, e);
+			return WebUI.searchpage(null, null, false, request.isParameterSet("js"), e);
 		}
 	}
     

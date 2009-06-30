@@ -1,14 +1,11 @@
 package plugins.XMLLibrarian;
 
 import java.util.List;
-import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
-import freenet.support.HTMLEncoder;
-import freenet.support.HTMLNode;
 import freenet.support.Logger;
 import java.util.Locale;
 import java.util.Map;
@@ -205,46 +202,6 @@ public class Search implements Request<URIWrapper> {
 	public String getIndexURI(){
 		return indexURI;
 	}
-	
-	/**
-	 * Return a HTMLNode for this result
-	 * @deprecated will be moved to WebUI
-	 */
-	public HTMLNode getResultNode(){
-		// Output results
-		int results = 0;
-
-		HTMLNode node = new HTMLNode("div", "id", "results");
-		HTMLNode resultTable = node.addChild("table", new String[]{"width", "class"}, new String[]{"95%", "librarian-results"});
-		Iterator<URIWrapper> it = getResult().iterator();
-		while (it.hasNext()) {
-			HTMLNode entry = resultTable.addChild("tr").addChild("td").addChild("p").addChild("table", new String[]{"class", "width", "border"}, new String[]{"librarian-result", "95%", "1"});
-			URIWrapper o = it.next();
-			String showurl = o.URI;
-			String showtitle = o.descr;
-			if (showtitle.trim().length() == 0)
-				showtitle = "not available";
-			if (showtitle.equals("not available"))
-				showtitle = showurl;
-			String description = HTMLEncoder.encode(o.descr);
-			if (!description.equals("not available")) {
-				description = description.replaceAll("(\n|&lt;(b|B)(r|R)&gt;)", "<br>");
-				description = description.replaceAll("  ", "&nbsp; ");
-				description = description.replaceAll("&lt;/?[a-zA-Z].*/?&gt;", "");
-			}
-			showurl = HTMLEncoder.encode(showurl);
-			if (showurl.length() > 60)
-				showurl = showurl.substring(0, 15) + "&hellip;" + showurl.replaceFirst("[^/]*/", "/");
-			String realurl = (o.URI.startsWith("/") ? "" : "/") + o.URI;
-			realurl = HTMLEncoder.encode(realurl);
-			entry.addChild("tr").addChild("td", new String[]{"align", "bgcolor", "class"}, new String[]{"center", "#D0D0D0", "librarian-result-url"})
-				.addChild("a", new String[]{"href", "title"}, new String[]{realurl, o.URI}, showtitle);
-			entry.addChild("tr").addChild("td", new String[]{"align", "class"}, new String[]{"left", "librarian-result-summary"});
-			results++;
-		}
-		node.addChild("p").addChild("span", "class", "librarian-summary-found", xl.getString("Found")+results+xl.getString("results"));
-		return node;
-    }
 
 	public static String makeString(String search, String indexuri){
 		return search + "%" + indexuri;
