@@ -1,31 +1,6 @@
-
 = Interdex ==
 
-== TODO ==
-
-put @Override on everything
-
-decide how pull/push deflate/inflate should work for SkeletonMap structures
-
-code a serialiser that load-balances in terms of the size of data it uses
-convenience methods for AbstractSerialiser, pull(meta) instead of pull(Task), etc
-returns a Task object.
-
-
-== Overview ==
-
-
-== Packages ==
-
-
-=== Crawl ===
-
-=== Index ===
-
-=== Query ===
-
-=== UI ===
-
+TODO update this from the wiki
 
                             Interdex
                                ^
@@ -33,31 +8,35 @@ returns a Task object.
                                v
            Crawler -------> Library -------> QueryGUI
 
+== Library ==
 
-Library:
  - to put/get the data to/fr freenet
  - exposes this functionality to other packages/plugins through FCP (or whatever)
    - allowing you to do stuff like
    - GET [LibraryEntry] [QueryString]
    - PUT [LibraryEntry] \n\n [Data]s
    - etc etc
- ! TODO: index format: internal data structure, freenet data structure
- ! TODO: FCP interface commands
+ - TODO: index format: internal data structure, freenet data structure
+ - TODO: FCP interface commands
 
-Crawler
+== Crawler ==
+
  - crawls freenet based on user configuration settings
    ! TODO decide what these settings should be
  - PUT the data into a Catalog for the ID
  - SAVE the Catalog to freenet
 
-Interdex
+== Interdex ==
+
  - gets a list of IDs from WoT
  - LOAD and GET data from these IDs
  - combine them into a single Catalog
  - PUT the data into a dummy Catalog
 
-QueryGUI
+== Query ==
+
  - GET data from a Catalog
- - QueryGUI could be just part of Library?
+ - keep track of progress, etc
+
 
 

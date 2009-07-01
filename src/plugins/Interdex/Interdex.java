@@ -67,7 +67,7 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 			try {
 				for (int j=0; j<n; ++j) {
 					TokenEntry e = new TokenURIEntry(key, "CHK@" + rndStr().replace('-', 'Z'));
-					e.relevance = rand.nextInt(100);
+					e.setRelevance((float)Math.random());
 					entries.add(e);
 				}
 			} catch (java.net.MalformedURLException e) {

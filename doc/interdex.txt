@@ -1,0 +1,59 @@
+= Interdex =
+
+algorithm for recursive search on token T:
+(algorithm assums that relevance in interval [0, 1])
+def query(T):
+
+	for all index I in WoT.goodIndexes():
+		Q = new SortedSet<tokentokenentry>(descending effective_relevance);
+		E = new tokentokenentry(token=T, relevance=1);
+
+		recursive_query(I, E, Q);
+
+
+def recursive_query(I, tokentokenentry E, Q);
+
+	for all entries E' in I[E.token]:
+		effective_relevance[E'] = E'.relevance * effective_relevance[E]
+
+	recursive_query(I, E.token, Q);
+
+	for all tokentokenentry E' in I[E.token]:
+		push E' onto Q only if it doesn't exist already
+
+	for all tokenindexentry E' in I[E.token]:
+		load the index I' pointed to by E'
+		recursive_query(I', E, Q);
+		for all E" in Q: effective_relevance[E"] > effective_relevance[E']
+			recursive_query(I', E', Q)
+
+	for all other entries E' in I[E.token]:
+		add E' to our query results, with information detailing
+		- the tokens and index redirects that lead up to this
+
+
+TODO: put cycle-checks on this, possibly by having a marker variable for each (I, T) pair
+TODO: put limits on the recursion based on depth, effective relevance, and trust score of index
+
+
+example:
+
+we search for "ff7"
+we find index A:
+index A: {
+"ff7": { (token="rpg" rel=0.7) (token="game" rel=0.4) }
+}
+
+we put rpg and game on the queue, and search for "rpg" as its effective_relevance is higher
+we find index B:
+index B: {
+"rpg": { (index="Bob's index of RPGs" rel=0.9) (token="game" rel=0.8) }
+}
+
+we now search "Bob's index of RPGs" for "rpg" and "ff7"
+
+set effective_relevance["game"] = 0.8 x 0.7 == 0.56 > 0.4 (its old value)
+
+so now search for "game"
+
+and so on and so on

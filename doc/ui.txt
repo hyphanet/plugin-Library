@@ -9,11 +9,8 @@ Interface for users to interact with the distrbuted index
   * displays index in rank order
   * +|- for a result adjusts ranking in own ID's index
   * +|- for an ID adjusts trust in WoT
-  * link to  "view"
+  * link to "view"
 
 * View index
   * +|- for an ID adjusts trust in WoT
-
-== Classes ==
-
 

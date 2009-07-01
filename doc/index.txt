@@ -4,10 +4,6 @@
 
 Internal representation of an index
 
-== To Do ==
-
-Put appropriate access modifiers on everything.
-
 == Format of data ==
 
  |-- contains
@@ -16,14 +12,14 @@ Put appropriate access modifiers on everything.
 IndexTree
  |-- [metadata]                                          SSK@X/index-n/meta
  |-- PrefixTreeMap<URIKey,URIEntry> utab                 SSK@X/index-n/u/
- |-- PrefixTreeMap<Token,HashSet<TokenEntry>> tktab      SSK@X/index-n/tk/
+ |-- PrefixTreeMap<Token,TreeSet<TokenEntry>> tktab      SSK@X/index-n/tk/
  |-- PrefixTreeMap<Token,TokenFilter> filtab             SSK@X/index-n/fil/
 
 PrefixTreeMap<K,V>
  |-- PrefixTreeMap<K,V>
- |    |-- HashMap<K,V>
+ |    |-- TreeMap<K,V>
  |         |-- K : V
- |-- HashMap<K,V>
+ |-- TreeMap<K,V>
 
 TokenEntry (abstract)
  : TokenRedirectionEntry
@@ -39,7 +35,6 @@ URIEntry
  |- title, date_checked, size, mime-type
 
 IndexTreeSerialiser
-
 
 PREVENT  IndexNode cycles!
 PREVENT  IndexTree cycles!

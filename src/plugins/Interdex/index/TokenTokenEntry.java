@@ -6,9 +6,9 @@ package plugins.Interdex.index;
 /**
 ** @author infinity0
 */
-public class TokenRedirectionEntry extends TokenEntry {
+public class TokenTokenEntry extends TokenEntry {
 
 	// TODO
-	Index index;
+	Token token;
 
 }

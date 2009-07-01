@@ -1,0 +1,7 @@
+= Query =
+
+== Purpose ==
+
+Code to perform queries on the network of indexes
+
+mikeb is doing this part...

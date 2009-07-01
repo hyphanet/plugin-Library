@@ -1,0 +1,20 @@
+put @Override on everything
+
+decide how pull/push deflate/inflate should work for SkeletonMap structures
+
+
+index: "suggested tokens" - suggest what other people should tag this index as;
+       they are free to ignore this suggestion
+
+
+token -> uri, type of content, relevance, quality
+         [extra map of metadata depending on type?]
+
+entries are ordered by relevance^3 * quality; in other words, relevance is (for
+sorting results) 3 times as important as quality.
+
+
+token -> site: the usual
+
+token -> index: recursively search the index for entries.. watch out for cycles..
+token -> token:
