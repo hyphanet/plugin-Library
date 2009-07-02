@@ -6,7 +6,6 @@
 	<property name="freenet-ext.location" location="../fred-staging/lib/freenet-ext.jar"/>
 	<property name="svn.revision" value="@custom@"/>
 	<property name="source-version" value="1.5"/>
-	<property name="lib" location="lib/"/>
 	<property name="build" location="build/"/>
 	<property name="build-test" location="build-test/"/>
 	<property name="dist" location="dist/"/>
@@ -40,7 +39,7 @@
 			<classpath>
 				<pathelement location="${freenet-ext.location}"/>
 				<pathelement location="${freenet-cvs-snapshot.location}"/>
-				<fileset dir="${lib}">
+				<fileset dir="lib/">
 					<include name="**/*.jar"/>
 				</fileset>
 			</classpath>
@@ -56,7 +55,7 @@
 				<pathelement path="${build}"/>
 				<pathelement location="${freenet-ext.location}"/>
 				<pathelement location="${freenet-cvs-snapshot.location}"/>
-				<fileset dir="${lib}">
+				<fileset dir="lib/">
 					<include name="**/*.jar"/>
 				</fileset>
 				<pathelement location="${junit.location}"/>
@@ -73,7 +72,7 @@
 				<pathelement path="${build-test}"/>
 				<pathelement location="${freenet-ext.location}"/>
 				<pathelement location="${freenet-cvs-snapshot.location}"/>
-				<fileset dir="${lib}">
+				<fileset dir="lib/">
 					<include name="**/*.jar"/>
 				</fileset>
 				<pathelement location="${junit.location}"/>
@@ -102,7 +101,7 @@
 				<include name="*.txt"/>
 			</fileset>
 			<fileset dir="${build}/"/>
-			<zipgroupfileset dir="${lib}" includes="*.jar"/>
+			<zipgroupfileset dir="lib/" includes="*.jar"/>
 		</jar>
 	</target>
 
@@ -112,4 +111,24 @@
 		<delete dir="${build-test}"/>
 		<delete dir="${dist}"/>
 	</target>
+
+	<!-- ================================================== -->
+	<target name="javadoc" description="Generate javadocs for this package.">
+		<delete dir="javadoc/"/>
+		<javadoc destdir="javadoc/" author="true" version="true" use="true" private="true">
+			<fileset dir="src/" defaultexcludes="yes">
+				<include name="**/*.java"/>
+			</fileset>
+			<classpath>
+				<pathelement location="${freenet-ext.location}"/>
+				<pathelement location="${freenet-cvs-snapshot.location}"/>
+				<fileset dir="lib/">
+					<include name="**/*.jar"/>
+				</fileset>
+			</classpath>
+			<link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
+			<link href="http://google-collections.googlecode.com/svn/trunk/javadoc"/>
+		</javadoc>
+	</target>
+
 </project>
