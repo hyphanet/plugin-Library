@@ -139,7 +139,7 @@ public class WebUI{
 			bodyNode.addChild("p");
 
             // If search is complete show results
-            if (request.hasResult())
+            if (request.getRequestStatus()==Request.RequestStatus.FINISHED)
 				try{
 					bodyNode.addChild(resultNode(request));
 				}catch(Exception ex){
@@ -326,10 +326,11 @@ public class WebUI{
 					"		var resp = parser.parseFromString(xmlhttp.responseText, 'application/xml').documentElement;\n" +
 					"		document.getElementById('librarian-search-status').innerHTML=" +
 								"resp.getElementsByTagName('progress')[0].textContent;\n" +
-					"		document.getElementById('results').innerHTML=" +
-								"resp.getElementsByTagName('result')[0].textContent;\n" +
-					"		if(!(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('requeststatus').value=='FINISHED'))" +
-					"			var t = setTimeout('getProgress()', 1000);" +
+					"		if(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('requeststatus').value=='FINISHED')\n" +
+					"			document.getElementById('results').innerHTML=" +
+									"resp.getElementsByTagName('result')[0].textContent;\n" +
+					"		else\n" +
+					"			var t = setTimeout('getProgress()', 1000);\n" +
 					"	}\n" +
 					"}\n" +
 					"getProgress();\n";
@@ -345,7 +346,7 @@ public class WebUI{
 			progress = "No search for this, something went wrong";
 		HTMLNode resp = new HTMLNode("pagecontent");
 			resp.addChild("progress", "requeststatus",  (search==null)?"":search.getRequestStatus().toString(), progress);
-			if(Search.hasSearch(searchquery, indexuri))
+			if(search != null && search.getRequestStatus()==Request.RequestStatus.FINISHED)
 				resp.addChild("result", WebUI.resultNode(Search.getSearch(searchquery, indexuri)).generate());
 		return "<?xml version='1.0' encoding='ISO-8859-1'?>\n"+resp.generate();
 	}
