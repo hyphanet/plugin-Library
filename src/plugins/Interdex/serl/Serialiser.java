@@ -9,8 +9,8 @@ import java.util.Collection;
 import java.util.Map;
 
 /**
-** A marker interface for serialisation classes. Defines some subclasses that
-** acts as a unified interface between these classes.
+** An empty marker interface for serialisation classes. It defines some nested
+** subclasses that acts as a unified interface between these classes.
 **
 ** By default, nested data structures such as {@link PrefixTreeMap} use the
 ** meta objects of their children directly during a serialisation operation.

@@ -7,10 +7,4 @@ index: "suggested tokens" - suggest what other people should tag this index as;
        they are free to ignore this suggestion
 
 
-token -> uri, type of content, relevance, quality
-         [extra map of metadata depending on type?]
 
-token -> site: the usual
-
-token -> index: recursively search the index for entries.. watch out for cycles..
-token -> token:

@@ -8,7 +8,8 @@ import freenet.keys.FreenetURI;
 import java.util.Map;
 
 /**
-** DOCUMENT
+** A {@link TokenEntry} that associates a subject term with a final target
+** {@link FreenetURI} that satisfies the term.
 **
 ** @author infinity0
 */

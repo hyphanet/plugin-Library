@@ -96,7 +96,7 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 		}
 	}
 
-	// snakeYAML says "Arrays of primitives are not fully supported."
+	// URGENT snakeYAML says "Arrays of primitives are not fully supported."
 	public void convertPrimitiveArrays(Map<String, Object> map) {
 
 		for (Map.Entry<String, Object> en: map.entrySet()) {

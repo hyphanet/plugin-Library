@@ -6,7 +6,7 @@ package plugins.Interdex.index;
 import freenet.keys.FreenetURI;
 
 /**
-** DOCUMENT
+** A {@link TokenEntry} that associates a subject term with another index.
 **
 ** @author infinity0
 */

@@ -3,15 +3,17 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.serl;
 
+import junit.framework.TestCase;
+
+import org.yaml.snakeyaml.Yaml;
+
 import java.io.*;
 import java.util.*;
-import junit.framework.TestCase;
-import org.yaml.snakeyaml.Yaml;
 
 /**
 ** @author infinity0
 */
-public class MapYamlTest extends TestCase {
+public class YamlMapTest extends TestCase {
 
 	public void testYamlMap() throws IOException {
 		Map<String, Bean> data = new TreeMap<String, Bean>();
@@ -32,7 +34,7 @@ public class MapYamlTest extends TestCase {
 		assertTrue(o instanceof Map);
 		Map m = (Map)o;
 		assertTrue(m.get("gold1") instanceof Bean);
-		// URGENT atm this test fails due to a bug in snakeYAML
+		// URGENT atm this test fails due to a bug in snakeYAML. see issue #3 in google code
 		//assertTrue(m.get("gold2") instanceof Bean);
 	}
 

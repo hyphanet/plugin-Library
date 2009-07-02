@@ -21,7 +21,7 @@ import java.net.MalformedURLException;
 /**
 ** @author infinity0
 */
-public class TranslatorsTest extends TestCase {
+public class TokenEntryTest extends TestCase {
 
 	public void testBasic() {
 		YamlArchiver<Map<String, Object>> ym = new YamlArchiver<Map<String, Object>>("test", null);
@@ -59,8 +59,8 @@ public class TranslatorsTest extends TestCase {
 		assertTrue(m.get("test") instanceof List);
 		List ll = (List)m.get("test");
 		assertTrue(ll.get(0) instanceof TokenTermEntry);
-		assertTrue(ll.get(1) instanceof TokenTermEntry);
-		// URGENT these tests both fail due to bugs in snakeYAML
+		assertTrue(ll.get(1) == ll.get(0));
+		// URGENT these tests both fail due to bugs in snakeYAML. see issue #3 in google code
 		//assertTrue(ll.get(2) instanceof TokenIndexEntry);
 		//assertTrue(ll.get(3) instanceof TokenTermEntry);
 	}

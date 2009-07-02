@@ -8,8 +8,8 @@ import plugins.Interdex.util.BytePrefixKey;
 import freenet.keys.FreenetURI;
 
 /**
-** BytePrefixKey backed by the 32-byte routing key (or for SSKs, pubkey hash)
-** of a {@link FreenetURI}.
+** A {@link BytePrefixKey} backed by the 32-byte routing key (or for SSKs,
+** pubkey hash) of a {@link FreenetURI}.
 **
 ** @author infinity0
 */

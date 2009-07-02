@@ -4,7 +4,8 @@
 package plugins.Interdex.index;
 
 /**
-** DOCUMENT
+** Represents data indexed by a {@link Token} and associated with a given
+** subject {@link String} term.
 **
 ** TODO maybe have a "writeable" field to enforce immutability when inserted
 ** into a collection.

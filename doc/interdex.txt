@@ -1,5 +1,12 @@
 = Interdex =
 
+== Purpose ==
+
+Accumulate data from lots of indexes into one single virtual index to display
+to the end user.
+
+
+
 TODO
 
 algorithm for recursive search on token T:

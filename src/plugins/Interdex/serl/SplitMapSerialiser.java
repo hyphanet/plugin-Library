@@ -18,11 +18,8 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
-** MapSerialiser that divides each map into a collection of bins with some
-** fixed capacity with at most one bin half full or less.
-**
-** TODO clean up structure of this...
-** DOCUMENT
+** {@link MapSerialiser} that divides each map into a collection of bins with
+** some fixed capacity with at most one bin half full or less.
 **
 ** @author infinity0
 */

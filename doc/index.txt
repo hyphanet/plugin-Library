@@ -5,6 +5,10 @@
 
 TODO how to represent URIs as keys into the URI table
 
+TODO make the metadata for an index support "virtual" indexes like Interdex
+(ie. something that tells the library plugin,
+"this is not a virtual index, get the data from plugin X instead")
+
 
 == Purpose ==
 
@@ -26,10 +30,10 @@ put entry
  :   subclass of
 
 IndexTree
- |-- [metadata]                                          SSK@X/index-n/meta
- |-- PrefixTreeMap<URIKey,URIEntry> utab                 SSK@X/index-n/u/
- |-- PrefixTreeMap<Token,TreeSet<TokenEntry>> tktab      SSK@X/index-n/tk/
- |-- PrefixTreeMap<Token,TokenFilter> filtab             SSK@X/index-n/fil/
+ |-- [metadata]                                          SSK@X/index-n/index.yml
+ |-- PrefixTreeMap<URIKey,URIEntry> utab                 SSK@X/index-n/u*
+ |-- PrefixTreeMap<Token,TreeSet<TokenEntry>> tktab      SSK@X/index-n/tk*
+ |-- PrefixTreeMap<Token,TokenFilter> filtab             SSK@X/index-n/fil*
 
 PrefixTreeMap<K,V>
  |-- PrefixTreeMap<K,V>
@@ -37,22 +41,12 @@ PrefixTreeMap<K,V>
  |         |-- K : V
  |-- TreeMap<K,V>
 
-TokenEntry (abstract)
- : TokenRedirectionEntry
- : TokenURIEntry
+TokenEntry (abstract) - has relevance, quality rating
+ : TokenTermEntry - redirects to another search term
+ : TokenIndexEntry - redirects to another index
+ : TokenURIEntry - final target for term
 
-TokenURIEntry
- |- FreenetURI uri
- |- String s
- |- relevance, position
-
-URIEntry
- |- FreenetURI uri
- |- title, date_checked, size, mime-type
-
-IndexTreeSerialiser
 
 PREVENT  IndexNode cycles!
 PREVENT  IndexTree cycles!
 
-IndexTree

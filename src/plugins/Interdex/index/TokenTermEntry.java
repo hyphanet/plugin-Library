@@ -4,7 +4,7 @@
 package plugins.Interdex.index;
 
 /**
-** DOCUMENT
+** A {@link TokenEntry} that associates a subject term with a related term.
 **
 ** @author infinity0
 */

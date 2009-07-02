@@ -128,6 +128,7 @@
 			</classpath>
 			<link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
 			<link href="http://google-collections.googlecode.com/svn/trunk/javadoc"/>
+			<link href="http://snakeyamlrepo.appspot.com/releases/1.2/site/apidocs"/>
 		</javadoc>
 	</target>
 

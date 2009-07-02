@@ -12,8 +12,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
-** MD5 hash of a string, implementing the PrefixKey interface. Used to map
-** keywords to entries in the index.
+** A {@link BytePrefixKey} backed by the MD5 hash of a {@link String} term.
 **
 ** @author infinity0
 */
