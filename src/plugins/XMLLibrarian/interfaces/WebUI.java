@@ -6,8 +6,16 @@ import freenet.support.api.HTTPRequest;
 import freenet.support.HTMLEncoder;
 import freenet.l10n.L10n;
 
+import freenet.support.Logger;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import plugins.XMLLibrarian.Index;
+import plugins.XMLLibrarian.InvalidSearchException;
 import plugins.XMLLibrarian.Request;
 import plugins.XMLLibrarian.Search;
 import plugins.XMLLibrarian.URIWrapper;
@@ -141,7 +149,7 @@ public class WebUI{
             // If search is complete show results
             if (request.getRequestStatus()==Request.RequestStatus.FINISHED)
 				try{
-					bodyNode.addChild(resultNode(request));
+					bodyNode.addChild(resultNodeGrouped(request));
 				}catch(Exception ex){
 					addError(errorDiv, ex);
 				}
@@ -165,13 +173,11 @@ public class WebUI{
 		HTMLNode resultTable = node.addChild("table", new String[]{"width", "class"}, new String[]{"95%", "librarian-results"});
 		Iterator<URIWrapper> it = request.getResult().iterator();
 		while (it.hasNext()) {
-			HTMLNode entry = resultTable.addChild("tr").addChild("td").addChild("p").addChild("table", new String[]{"class", "width", "border"}, new String[]{"librarian-result", "95%", "1"});
+			HTMLNode entry = resultTable.addChild("tr").addChild("td").addChild("p").addChild("table", new String[]{"class", "width", "border"}, new String[]{"librarian-result", "95%", "0"});
 			URIWrapper o = it.next();
 			String showurl = o.URI;
 			String showtitle = o.descr;
-			if (showtitle.trim().length() == 0)
-				showtitle = "not available";
-			if (showtitle.equals("not available"))
+			if (showtitle.trim().length() == 0 || showtitle.equals("not available"))
 				showtitle = showurl;
 			String description = HTMLEncoder.encode(o.descr);
 			if (!description.equals("not available")) {
@@ -183,12 +189,113 @@ public class WebUI{
 			if (showurl.length() > 60)
 				showurl = showurl.substring(0, 15) + "&hellip;" + showurl.replaceFirst("[^/]*/", "/");
 			String realurl = (o.URI.startsWith("/") ? "" : "/") + o.URI;
+			String realuskurl = realurl.replaceAll("SSK@", "USK@").replaceAll("-(\\d+)/", "/$1/");
 			realurl = HTMLEncoder.encode(realurl);
-			entry.addChild("tr").addChild("td", new String[]{"align", "bgcolor", "class"}, new String[]{"center", "#D0D0D0", "librarian-result-url"})
+			entry.addChild("tr").addChild("td", new String[]{"align", "class"}, new String[]{"left", "librarian-result-title"})
 				.addChild("a", new String[]{"href", "title"}, new String[]{realurl, o.URI}, showtitle);
-			entry.addChild("tr").addChild("td", new String[]{"align", "class"}, new String[]{"left", "librarian-result-summary"});
+			HTMLNode urlnode = entry.addChild("tr").addChild("td", new String[]{"align", "class"}, new String[]{"left", "librarian-result-url"});
+			urlnode.addChild("a", "href", realurl, showurl);
+			urlnode.addChild("#", "     ");
+			if(realurl.contains("SSK@"))
+					urlnode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "librarian-result-uskbutton"}, "[ USK ]");
 			results++;
 		}
+		node.addChild("p").addChild("span", "class", "librarian-summary-found", xl.getString("Found")+results+xl.getString("results"));
+		return node;
+    }
+	
+	/**
+	 * Return a HTMLNode for this result
+	 */
+	public static HTMLNode resultNodeGrouped(Request request) throws Exception{
+		// Output results
+		int results = 0;
+
+		HTMLNode node = new HTMLNode("div", "id", "results");
+		HTMLNode resultTable = node.addChild("table", new String[]{"width", "class"}, new String[]{"95%", "librarian-results"});
+		HashMap groupmap = new HashMap();
+		Iterator<URIWrapper> it = request.getResult().iterator();
+		while(it.hasNext()){
+			URIWrapper o = it.next();
+			if(o.URI.contains("CHK"))
+				groupmap.put(o.URI, o);
+			else{
+				if(!o.URI.contains("SSK")){
+					Logger.normal(WebUI.class, "skipping " +o.URI);
+					continue;
+				}
+				String sitebase = o.URI.replaceAll("SSK@(.+)-\\d+/.*", "$1");
+				Integer sskVersion;
+				try{
+					sskVersion = Integer.valueOf(o.URI.replaceAll("SSK@.+-(\\d+)/.*", "$1"));
+				}catch(Exception e) {
+					sskVersion = Integer.valueOf(-1);
+				}
+				if(!groupmap.containsKey(sitebase))
+					groupmap.put(sitebase, new TreeMap<Integer, Set<URIWrapper>>());
+				SortedMap<Integer, Set<URIWrapper>> sitemap = (TreeMap<Integer, Set<URIWrapper>>)groupmap.get(sitebase);
+				if(!sitemap.containsKey(sskVersion))
+					sitemap.put(sskVersion, new HashSet());
+				sitemap.get(sskVersion).add(o);
+			}
+		}
+		Iterator<String> it2 = groupmap.keySet().iterator();
+		while (it2.hasNext()) {
+			String key = it2.next();
+			Object ob = groupmap.get(key);
+			HTMLNode entry = resultTable.addChild("tr").addChild("td").addChild("p").addChild("table", new String[]{"class", "width", "border"}, new String[]{"librarian-result", "95%", "0"});
+			if(ob.getClass()==URIWrapper.class){
+				URIWrapper o = (URIWrapper)ob;
+				String showurl = o.URI;
+				String showtitle = o.descr;
+				if (showtitle.trim().length() == 0 || showtitle.equals("not available"))
+					showtitle = showurl;
+				String description = HTMLEncoder.encode(o.descr);
+				if (!description.equals("not available")) {
+					description = description.replaceAll("(\n|&lt;(b|B)(r|R)&gt;)", "<br>");
+					description = description.replaceAll("  ", "&nbsp; ");
+					description = description.replaceAll("&lt;/?[a-zA-Z].*/?&gt;", "");
+				}
+				showurl = HTMLEncoder.encode(showurl);
+				if (showurl.length() > 60)
+					showurl = showurl.substring(0, 15) + "&hellip;" + showurl.replaceFirst("[^/]*/", "/");
+				String realurl = (o.URI.startsWith("/") ? "" : "/") + o.URI;
+				String realuskurl = realurl.replaceAll("SSK@", "USK@").replaceAll("-(\\d+)/", "/$1/");
+				realurl = HTMLEncoder.encode(realurl);
+				entry.addChild("tr").addChild("td", new String[]{"align", "class"}, new String[]{"left", "librarian-result-title"})
+					.addChild("a", new String[]{"href", "title"}, new String[]{realurl, o.URI}, showtitle);
+				HTMLNode urlnode = entry.addChild("tr").addChild("td", new String[]{"align", "class"}, new String[]{"left", "librarian-result-url"});
+				urlnode.addChild("a", "href", realurl, showurl);
+				urlnode.addChild("#", "     ");
+				if(realurl.contains("SSK@"))
+						urlnode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "librarian-result-uskbutton"}, "[ USK ]");
+				results++;
+			}else{
+				Map<Integer, Set<URIWrapper>> sitemap = (Map<Integer, Set<URIWrapper>>)ob;
+				entry.addChild("tr").addChild("td", key);
+				HTMLNode siteNode = entry.addChild("table");
+				Iterator<Integer> it3 = sitemap.keySet().iterator();
+				while(it3.hasNext()){
+					Integer version = it3.next();
+					HTMLNode versionNode = siteNode.addChild("tr").addChild("td");
+					versionNode.addChild("h3", version.toString());
+					Iterator<URIWrapper> it4 = sitemap.get(version).iterator();
+					while(it4.hasNext()){
+						URIWrapper u = it4.next();
+						HTMLNode pageNode = versionNode.addChild("p", "class", "librarian-result-title");
+						String showtitle = u.descr;
+						String showurl = u.URI;
+						if (showtitle.trim().length() == 0 || showtitle.equals("not available"))
+							showtitle = showurl;
+						String realurl = (u.URI.startsWith("/") ? "" : "/") + u.URI;
+						String realuskurl = realurl.replaceAll("SSK@", "USK@").replaceAll("-(\\d+)/", "/$1/");
+						pageNode.addChild("a", new String[]{"href", "title"}, new String[]{realurl, u.URI}, showtitle);
+						pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "librarian-result-uskbutton"}, "[ USK ]");
+						results++;
+					}
+					}
+				}
+			}
 		node.addChild("p").addChild("span", "class", "librarian-summary-found", xl.getString("Found")+results+xl.getString("results"));
 		return node;
     }
@@ -338,16 +445,20 @@ public class WebUI{
 
 
 	static String progressxml(String searchquery, String indexuri) {
-		String progress;
-		Search search = Search.getSearch(searchquery, indexuri);
-		if(search!=null)
-			progress = WebUI.buildProgressNode(search).generate();
-		else
-			progress = "No search for this, something went wrong";
 		HTMLNode resp = new HTMLNode("pagecontent");
-			resp.addChild("progress", "requeststatus",  (search==null)?"":search.getRequestStatus().toString(), progress);
-			if(search != null && search.getRequestStatus()==Request.RequestStatus.FINISHED)
-				resp.addChild("result", WebUI.resultNode(Search.getSearch(searchquery, indexuri)).generate());
+		try{
+			String progress;
+			Search search = Search.getSearch(searchquery, indexuri);
+			if(search!=null)
+				progress = WebUI.buildProgressNode(search).generate();
+			else
+				progress = "No search for this, something went wrong";
+				if(search != null && search.getRequestStatus()==Request.RequestStatus.FINISHED)
+					resp.addChild("result", WebUI.resultNodeGrouped(Search.getSearch(searchquery, indexuri)).generate());
+				resp.addChild("progress", "requeststatus",  (search==null)?"":search.getRequestStatus().toString(), progress);
+		}catch(Exception e){
+			addError(resp.addChild("progress", "requeststatus",  "ERROR"), e);
+		}
 		return "<?xml version='1.0' encoding='ISO-8859-1'?>\n"+resp.generate();
 	}
 }
