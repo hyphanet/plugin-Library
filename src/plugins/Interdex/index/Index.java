@@ -31,6 +31,11 @@ public class Index {
 	final public static long MAGIC = 0xf82a9084681e5ba6L;
 
 	/**
+	** Freenet ID for this index
+	*/
+	protected FreenetURI id;
+
+	/**
 	** Name for this index.
 	*/
 	protected String name;
@@ -67,7 +72,8 @@ public class Index {
 
 	final private transient ReadWriteLock lock = new ReentrantReadWriteLock();
 
-	public Index(String n) {
+	public Index(FreenetURI i, String n) {
+		id = i;
 		name = (n == null)? "".intern(): n;
 		writeable = true;
 		modified = new Date();
@@ -78,19 +84,16 @@ public class Index {
 		filtab = new PrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX);
 	}
 
-	public Index() {
-		this(null);
-	}
-
 	/**
 	** This constructor is used by the {@link IndexTranslator translator} to
 	** create a skeleton index.
 	*/
-	protected Index(String n, Date m, Map<String, Object> x,
+	protected Index(FreenetURI i, String n, Date m, Map<String, Object> x,
 		PrefixTreeMap<Token, TokenFilter> f,
 		PrefixTreeMap<Token, SortedSet<TokenEntry>> t,
 		PrefixTreeMap<URIKey, URIEntry> u
 		) {
+		id = i;
 		name = (n == null)? "".intern(): n;
 		writeable = false;
 		modified = m;

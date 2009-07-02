@@ -9,6 +9,8 @@ import java.util.Set;
 import freenet.keys.FreenetURI;
 
 /**
+** DOCUMENT
+**
 ** @author infinity0
 */
 public class URIEntry {

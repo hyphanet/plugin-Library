@@ -3,25 +3,54 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.index;
 
-import java.security.MessageDigest;
-import java.util.Arrays;
-
 import plugins.Interdex.util.PrefixTree.PrefixKey;
 import plugins.Interdex.util.PrefixTree.AbstractPrefixKey;
+
+import java.security.MessageDigest;
+import java.lang.ref.WeakReference;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.WeakHashMap;
 
 /**
 ** MD5 hash of a string, implementing the PrefixKey interface. Used to map
 ** keywords to entries in the index.
 **
-** OPTIMISE make this do intern(), like String does.
-**
 ** @author infinity0
 */
 public class Token extends AbstractPrefixKey implements PrefixKey {
 
+	/**
+	** Internal pool of tokens.
+	*/
+	public static Map<String, WeakReference<Token>> intern = new WeakHashMap<String, WeakReference<Token>>();
+
+	/**
+	** Returns the canonical {@link Token} for a given string.
+	**
+	** For even better performance, make sure the string parameter is from the
+	** {@link String} internal pool.
+	**
+	** @see String#intern()
+	*/
+	public static synchronized Token intern(String s) {
+		Token t;
+		if (!intern.containsKey(s) || (t = intern.get(s).get()) == null) {
+			t = new Token(s);
+			intern.put(s, new WeakReference<Token>(t));
+		}
+		return t;
+	}
+
+	/**
+	** Main data of the token.
+	*/
 	final byte[] hash;
 
-	transient String str = null;
+	/**
+	** Cache for the hexstring representation.
+	*/
+	transient String str_ = null;
 
 	public Token(byte[] h) {
 		if (h.length != 16) {
@@ -38,11 +67,13 @@ public class Token extends AbstractPrefixKey implements PrefixKey {
 	}
 
 	public String toString() {
-		if (str == null) {
-			str = hexString(hash);
+		if (str_ == null) {
+			str_ = hexString(hash);
 		}
-		return str;
+		return str_;
 	}
+
+	// URGENT have a static factory fromHexString()
 
 	public String toByteString() { return new String(hash); }
 

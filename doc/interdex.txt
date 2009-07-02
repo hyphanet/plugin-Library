@@ -1,39 +1,41 @@
 = Interdex =
 
+TODO
+
 algorithm for recursive search on token T:
 (algorithm assums that relevance in interval [0, 1])
 def query(T):
 
 	for all index I in WoT.goodIndexes():
-		Q = new SortedSet<tokentokenentry>(descending effective_relevance);
-		E = new tokentokenentry(token=T, relevance=1);
+		Q = new SortedSet<TokenTermEntry>(descending effective_relevance);
+		E = new TokenTermEntry(token=T, relevance=1);
 
 		recursive_query(I, E, Q);
 
 
-def recursive_query(I, tokentokenentry E, Q);
+def recursive_query(I, TokenTermEntry E, Q);
 
 	for all entries E' in I[E.token]:
 		effective_relevance[E'] = E'.relevance * effective_relevance[E]
 
-	recursive_query(I, E.token, Q);
+		case E' TokenTermEntry:
+			push E' onto Q only if it doesn't exist already
+			(?or replace with higher/lower?)
 
-	for all tokentokenentry E' in I[E.token]:
-		push E' onto Q only if it doesn't exist already
+		case E' TokenIndexEntry:
+			load the index I' pointed to by E'
+			recursive_query(I', E, Q);
+			for all E" in Q: effective_relevance[E"] > effective_relevance[E']
+				recursive_query(I', E', Q)
 
-	for all tokenindexentry E' in I[E.token]:
-		load the index I' pointed to by E'
-		recursive_query(I', E, Q);
-		for all E" in Q: effective_relevance[E"] > effective_relevance[E']
-			recursive_query(I', E', Q)
-
-	for all other entries E' in I[E.token]:
-		add E' to our query results, with information detailing
-		- the tokens and index redirects that lead up to this
+		case *:
+			add E' to our query results, with information detailing
+			- the tokens and index redirects that lead up to this
 
 
 TODO: put cycle-checks on this, possibly by having a marker variable for each (I, T) pair
 TODO: put limits on the recursion based on depth, effective relevance, and trust score of index
+
 
 
 example:

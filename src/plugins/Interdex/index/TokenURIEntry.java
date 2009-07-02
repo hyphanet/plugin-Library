@@ -5,26 +5,56 @@ package plugins.Interdex.index;
 
 import freenet.keys.FreenetURI;
 
-import java.net.MalformedURLException;
+import java.util.Map;
 
 /**
+** DOCUMENT
+**
 ** @author infinity0
 */
 public class TokenURIEntry extends TokenEntry {
 
-	final String word;
-	final FreenetURI uri;
+	/**
+	** URI of the target
+	*/
+	protected FreenetURI uri;
 
-	protected int position;
+	/**
+	** Type of the target. TODO make subclasses with set types & metadata, eg
+	** doc -> occurences, audio, video, etc etc
+	*/
+	protected String type;
 
-	public TokenURIEntry(String w, FreenetURI u) {
-		word = w;
+	/**
+	** Type-dependent metadata.
+	*/
+	protected Map<String, Object> meta;
+
+	public TokenURIEntry() { }
+
+	public FreenetURI getURI() {
+		return uri;
+	}
+
+	public void setURI(FreenetURI u) {
+		// OPTIMISE make the translator use the same URI object as from the URI table
 		uri = u;
 	}
 
-	public TokenURIEntry(String w, String u) throws MalformedURLException {
-		word = w;
-		uri = new FreenetURI(u);
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String t) {
+		type = t.intern();
+	}
+
+	public Map<String, Object> getMeta() {
+		return meta;
+	}
+
+	public void setMeta(Map<String, Object> m) {
+		meta = m;
 	}
 
 }

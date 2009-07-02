@@ -17,7 +17,6 @@ import java.util.Map;
 ** provided here, for each submap-metadata pair.
 **
 ** @author infinity0
-** @see GroupMapSerialiser
 */
 public interface MapSerialiser<K, T> extends Serialiser<T> {
 

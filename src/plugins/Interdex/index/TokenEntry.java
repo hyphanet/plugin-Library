@@ -4,9 +4,19 @@
 package plugins.Interdex.index;
 
 /**
+** DOCUMENT
+**
+** TODO maybe have a "writeable" field to enforce immutability when inserted
+** into a collection.
+**
 ** @author infinity0
 */
 public abstract class TokenEntry implements Comparable<TokenEntry> {
+
+	/**
+	** Actual (not hashed) subject term of this entry.
+	*/
+	protected String subject;
 
 	/**
 	** Relevance rating. Must be in the closed interval [0,1].
@@ -18,7 +28,27 @@ public abstract class TokenEntry implements Comparable<TokenEntry> {
 	*/
 	protected float qual;
 
+	/**
+	** Cache for the score.
+	*/
 	private transient Float score_;
+
+	/**
+	** Empty constructor for the JavaBean convention.
+	*/
+	public TokenEntry() { }
+
+	public TokenEntry(String s) {
+		setSubject(s);
+	}
+
+	public String getSubject() {
+		return subject;
+	}
+
+	public void setSubject(String s) {
+		subject = s.intern();
+	}
 
 	public float getRelevance() {
 		return rel;
@@ -44,6 +74,12 @@ public abstract class TokenEntry implements Comparable<TokenEntry> {
 		qual = q;
 	}
 
+	/**
+	** Calculates an accumulated score to sort the entry by, using the formula
+	** relevance^3 * quality; in other words, relevance is (for sorting
+	** results) 3 times as important as quality. For example, for (rel, qual)
+	** we have (0.85, 0.95) < (1.0, 0.6) < (0.85, 1.00)
+	*/
 	public float score() {
 		if (score_ == null) {
 			score_ = new Float(rel * rel* rel * qual);
@@ -51,8 +87,13 @@ public abstract class TokenEntry implements Comparable<TokenEntry> {
 		return score_;
 	}
 
-	// TODO make reverse order?
-	public int compareTo(TokenEntry o) {
+	/**
+	** Compares two entries by their score. If the scores are the same, returns
+	** a random (but consistent, ie. obeying the contract of {@link Comparable#compareTo(Object)}) value, being 0 if and only(ish) if the entries
+	** are equal.
+	*/
+	@Override public int compareTo(TokenEntry o) {
+		// TODO make reverse order?
 		if (this == o) { return 0; }
 		float d = score() - o.score();
 		// this is a bit of a hack but is needed since Tree* treats two objects

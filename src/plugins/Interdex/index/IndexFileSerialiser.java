@@ -197,13 +197,13 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 
 		public TokenEntry rev(Map<String, Object> t) {
 			try {
-				TokenURIEntry en = new TokenURIEntry((String)(t.get(keys[0])), (String)(t.get(keys[1])));
+				/*TokenURIEntry en = new TokenURIEntry((String)(t.get(keys[0])), (String)(t.get(keys[1])));
 				en.position = (Integer)(t.get(keys[2]));
-				en.rel = (Integer)(t.get(keys[3]));
-				return en;
-
-			} catch (java.net.MalformedURLException e) {
+				en.rel = (Integer)(t.get(keys[3]));*/
 				return null;
+
+			//} catch (java.net.MalformedURLException e) {
+			//	return null;
 				// TODO have a CorruptData exception or something...
 			} catch (ClassCastException e) {
 				return null;
@@ -216,10 +216,10 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 			if (en instanceof TokenURIEntry) {
 				TokenURIEntry t = (TokenURIEntry)en;
 				Map<String, Object> map = new java.util.HashMap<String, Object>();
-				map.put(keys[0], t.word);
+				/*map.put(keys[0], t.word);
 				map.put(keys[1], t.uri.toString());
 				map.put(keys[2], t.position);
-				map.put(keys[3], t.rel);
+				map.put(keys[3], t.rel);*/
 				return map;
 			} else {
 				throw new UnsupportedOperationException("Not implemented.");
