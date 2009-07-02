@@ -480,17 +480,19 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	**
 	** @author infinity0
 	*/
-	public interface PrefixKey extends Cloneable, Comparable {
+	public interface PrefixKey<K extends PrefixKey<K>> extends Cloneable, Comparable<K> {
 
-		public Object clone();
+		public PrefixKey<K> clone();
 
 		/**
-		** Returns the number of possible symbols at each cell of the key.
+		** Returns the number of possible symbols at each cell of the key. This
+		** should return the same value for any instance.
 		*/
 		public int symbols();
 
 		/**
-		** Returns the size of the key.
+		** Returns the size of the key. This should return the same value for
+		** any instance.
 		*/
 		public int size();
 
@@ -512,7 +514,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 		/**
 		** Returns a new key with a new value set for one of the cells.
 		*/
-		public PrefixKey spawn(int i, int v);
+		public K spawn(int i, int v);
 
 		/**
 		** Clears all cells from a given index.
@@ -525,7 +527,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 		** @param p The key to match against
 		** @param len Length of prefix to match
 		*/
-		public boolean match(PrefixKey p, int len);
+		public boolean match(K p, int len);
 
 	}
 
@@ -535,12 +537,12 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	**
 	** @author infinity0
 	*/
-	abstract public static class AbstractPrefixKey implements PrefixKey {
+	abstract public static class AbstractPrefixKey<K extends AbstractPrefixKey<K>> implements PrefixKey<K> {
 
-		abstract public Object clone();
+		abstract public AbstractPrefixKey<K> clone();
 
-		public PrefixKey spawn(int i, int v) {
-			PrefixKey p = (PrefixKey)clone();
+		public K spawn(int i, int v) {
+			K p = (K)clone();
 			p.set(i, v);
 			return p;
 		}
@@ -549,30 +551,26 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 			for (int i=len; i<size(); ++i) { clear(i); }
 		}
 
-		public boolean match(PrefixKey p, int len) {
+		public boolean match(K p, int len) {
 			for (int i=0; i<len; ++i) {
 				if (get(i) != p.get(i)) { return false; }
 			}
 			return true;
 		}
 
-		public int compareTo(Object o) throws ClassCastException {
-			PrefixKey p = (PrefixKey) o;
-			int a = size();
-			int b = p.size();
-			int c = (a < b)? a: b;
-			for (int i=0; i<c; ++i) {
+		public int compareTo(K p) {
+			for (int i=0; i<size(); ++i) {
 				int x = get(i);
 				int y = p.get(i);
 				if (x != y) { return x-y; }
 			}
-			return a-b;
+			return 0;
 		}
 
 	}
 
 	/**
-	** Provides an iterator over the PrefixTree.
+	** TODO Provides an iterator over the PrefixTree. incomplete
 	*/
 	abstract public class PrefixTreeKeyIterator implements Iterator<K> {
 

@@ -3,46 +3,36 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.index;
 
+import plugins.Interdex.util.BytePrefixKey;
+
 import freenet.keys.FreenetURI;
 
-import plugins.Interdex.util.PrefixTree.PrefixKey;
-import plugins.Interdex.util.PrefixTree.AbstractPrefixKey;
-
 /**
-** URGENT make this implement PrefixKey so we can put this in PrefixTreeMap
+** BytePrefixKey backed by the 32-byte routing key (or for SSKs, pubkey hash)
+** of a {@link FreenetURI}.
 **
 ** @author infinity0
 */
-public class URIKey extends AbstractPrefixKey implements PrefixKey {
-
-	// URGENT
-	final FreenetURI uri;
+public class URIKey extends BytePrefixKey<URIKey> {
 
 	public URIKey() {
-		uri = null;
+		super(32);
 	}
+
+	public URIKey(byte[] h) {
+		super(32, h);
+	}
+
 	public URIKey(FreenetURI u) {
-		uri = u;
+		super(32, u.getRoutingKey());
 	}
-
-	public String toString() { return uri.toString(); }
-
 
 	/*========================================================================
-	  public interface PrefixTreeMap.PrefixKey
+	  public interface BytePrefixKey
 	 ========================================================================*/
 
-	public Object clone() { throw new UnsupportedOperationException("Not implemented."); }
-
-	public int symbols() { throw new UnsupportedOperationException("Not implemented."); }
-
-	public int size() { throw new UnsupportedOperationException("Not implemented."); }
-
-	public int get(int i) { throw new UnsupportedOperationException("Not implemented."); }
-
-	public void set(int i, int v) { throw new UnsupportedOperationException("Not implemented."); }
-
-	public void clear(int i) { throw new UnsupportedOperationException("Not implemented."); }
-
+	@Override public URIKey clone() {
+		return new URIKey(hash);
+	}
 
 }

@@ -2,17 +2,8 @@
 
 == TODO ==
 
-translators for TokenEntry and its subclasses
 
-
-{ rel: 0.5, qual: 0.5, word: "", _token: "word" }
-{ rel: 0.5, qual: 0.5, word: "", _index: "USK@whatever" }
-{ rel: 0.5, qual: 0.5, word: "", _type: "doc", _uri: "CHK@whatever", extra: {} }
-
-translator & skeleton for Index
-
-
-TODO how to represent URIs...
+TODO how to represent URIs as keys into the URI table
 
 
 == Purpose ==
