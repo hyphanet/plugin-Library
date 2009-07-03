@@ -243,10 +243,11 @@ public class WebUI{
 		while (it2.hasNext()) {
 			String key = it2.next();
 			Object ob = groupmap.get(key);
-			HTMLNode entry = resultTable.addChild("tr").addChild("td").addChild("p").addChild("table", new String[]{"class", "width", "border"}, new String[]{"librarian-result", "95%", "0"});
 			if(ob.getClass()==URIWrapper.class){
+				resultTable.addChild("tr").addChild("td", "cellpadding", "3");
+				HTMLNode entry = resultTable.addChild("tr").addChild("td").addChild("table", new String[]{"class", "width", "border", "cellspacing", "cellpadding"}, new String[]{"librarian-result", "95%", "0", "0", "0"});
 				URIWrapper o = (URIWrapper)ob;
-				String showurl = o.URI;
+				String showurl = o.URI.replaceAll("(CHK@.{5}).+(/.+)", "$1...$2");
 				String showtitle = o.descr;
 				if (showtitle.trim().length() == 0 || showtitle.equals("not available"))
 					showtitle = showurl;
@@ -256,46 +257,55 @@ public class WebUI{
 					description = description.replaceAll("  ", "&nbsp; ");
 					description = description.replaceAll("&lt;/?[a-zA-Z].*/?&gt;", "");
 				}
-				showurl = HTMLEncoder.encode(showurl);
-				if (showurl.length() > 60)
-					showurl = showurl.substring(0, 15) + "&hellip;" + showurl.replaceFirst("[^/]*/", "/");
 				String realurl = (o.URI.startsWith("/") ? "" : "/") + o.URI;
-				String realuskurl = realurl.replaceAll("SSK@", "USK@").replaceAll("-(\\d+)/", "/$1/");
 				realurl = HTMLEncoder.encode(realurl);
-				entry.addChild("tr").addChild("td", new String[]{"align", "class"}, new String[]{"left", "librarian-result-title"})
-					.addChild("a", new String[]{"href", "title"}, new String[]{realurl, o.URI}, showtitle);
-				HTMLNode urlnode = entry.addChild("tr").addChild("td", new String[]{"align", "class"}, new String[]{"left", "librarian-result-url"});
-				urlnode.addChild("a", "href", realurl, showurl);
-				urlnode.addChild("#", "     ");
-				if(realurl.contains("SSK@"))
-						urlnode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "librarian-result-uskbutton"}, "[ USK ]");
+				HTMLNode entrycell = entry.addChild("tr").addChild("td");
+				entrycell.addChild("a", new String[]{"href", "title", "class"}, new String[]{realurl, o.URI, "result-title"}, showtitle);
+				entrycell.addChild("br");
+				entrycell.addChild("a", new String[]{"href", "class"}, new String[]{realurl, "result-url"}, showurl);
 				results++;
 			}else{
 				Map<Integer, Set<URIWrapper>> sitemap = (Map<Integer, Set<URIWrapper>>)ob;
-				entry.addChild("tr").addChild("td", key);
-				HTMLNode siteNode = entry.addChild("table");
 				Iterator<Integer> it3 = sitemap.keySet().iterator();
+				HTMLNode versiontable = null, grouptitle = null;
+				Integer version = null;
 				while(it3.hasNext()){
-					Integer version = it3.next();
-					HTMLNode versionNode = siteNode.addChild("tr").addChild("td");
-					versionNode.addChild("h3", version.toString());
+					HTMLNode entry = resultTable.addChild("tr").addChild("td");
+					version = it3.next();
+					versiontable = entry.addChild("table", new String[]{"class", "width", "border", "cellspacing", "cellpadding", "style", "id"}, new String[]{"librarian-result", "95%", "0", "0", "0", "visibility:collapse", "results-"+key+"-version-"+version.toString()});
+					grouptitle = versiontable.addChild("tr").addChild("td", new String[]{"padding", "colspan"}, new String[]{"0", "3"});
+						grouptitle.addChild("#", " ");
+						grouptitle.addChild("h4", key.replaceAll("\\b.{5}.*/(.*)", "$1")+(version.intValue()>=0 ? "-"+version.toString():""));
+					HTMLNode versionrow = versiontable.addChild("tr");
+						versionrow.addChild("td", "width", "8px");
+						versionrow.addChild("td", new String[]{"bgcolor", "width"}, new String[]{"black", "2px"});
+						HTMLNode versionNode = versionrow.addChild("td");
 					Iterator<URIWrapper> it4 = sitemap.get(version).iterator();
+					URIWrapper u;
 					while(it4.hasNext()){
-						URIWrapper u = it4.next();
-						HTMLNode pageNode = versionNode.addChild("p", "class", "librarian-result-title");
+						u = it4.next();
+						HTMLNode pageNode = versionNode.addChild("p", new String[]{"class", "style"}, new String[]{"result-title", "padding-left:15px"});
 						String showtitle = u.descr;
-						String showurl = u.URI;
+						String showurl = u.URI.replaceAll("(SSK@.{5}).+(/.+)", "$1...$2");
 						if (showtitle.trim().length() == 0 || showtitle.equals("not available"))
 							showtitle = showurl;
 						String realurl = (u.URI.startsWith("/") ? "" : "/") + u.URI;
 						String realuskurl = realurl.replaceAll("SSK@", "USK@").replaceAll("-(\\d+)/", "/$1/");
-						pageNode.addChild("a", new String[]{"href", "title"}, new String[]{realurl, u.URI}, showtitle);
-						pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "librarian-result-uskbutton"}, "[ USK ]");
+						pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realurl, "result-title", u.URI}, showtitle);
+						pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "result-uskbutton"}, "[ USK ]");
+						pageNode.addChild("br");
+						pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realurl, "result-url"}, showurl);
 						results++;
 					}
-					}
 				}
+				versiontable.addAttribute("style", "visibility:visible");
+				if(sitemap.size() > 1)
+					grouptitle.addChild("a",
+							new String[]{"href", "style"},
+							new String[]{"javascript:showGroup('results-"+key+"-version-', "+sitemap.toString()+", "+version.toString()+");", "font-size: small"},
+							"     Show "+(sitemap.size()-1)+" other editions");
 			}
+		}
 		node.addChild("p").addChild("span", "class", "librarian-summary-found", xl.getString("Found")+results+xl.getString("results"));
 		return node;
     }
@@ -311,6 +321,16 @@ public class WebUI{
             headNode.addChild("meta", new String[] { "http-equiv", "content" }, new String[] { "refresh", "1" });
 		headNode.addChild("meta", new String[] { "http-equiv", "content" }, new String[] { "Content-Type", "text/html; charset=utf-8" });
 		headNode.addChild("title", title);
+		headNode.addChild("style").addChild("%",
+				"body {font-family:sans-serif}\n" +
+				".result-sitename {color:black; font-weight:bold}\n" +
+				"\n" +
+				".result-url {color:green; font-size:small; padding-left:15px}\n" +
+				".result-uskbutton {color: #480000; font-variant: small-caps; font-size: small; padding-left: 20px}\n" +
+				"\n" +
+				"function showGroup(id){\n" +
+				"	"
+				);
 		return headNode;
 	}
 
