@@ -26,6 +26,8 @@ public abstract class TokenEntry implements Comparable<TokenEntry> {
 
 	/**
 	** Quality rating. Must be in the closed interval [0,1].
+	**
+	** URGENT move this to URIEntry as it makes more sense there.
 	*/
 	protected float qual;
 

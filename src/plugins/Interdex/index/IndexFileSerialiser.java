@@ -32,6 +32,8 @@ import java.util.ArrayList;
 ** TODO: could have this class load balance itself by having a queue of threads
 ** in the main class.
 **
+** OPTIMISE: make Token and URIKey use halfbytes instead of bytes, and make this
+** serialiser save 3 levels of PrefixTrees into the same file. Or something.
 **
 ** @author infinity0
 */
