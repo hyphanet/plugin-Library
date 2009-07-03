@@ -21,7 +21,7 @@ public class Token extends BytePrefixKey<Token> {
 	/**
 	** Internal pool of tokens.
 	*/
-	public static Map<String, WeakReference<Token>> intern = new WeakHashMap<String, WeakReference<Token>>();
+	final private static Map<String, WeakReference<Token>> intern = new WeakHashMap<String, WeakReference<Token>>();
 
 	/**
 	** Returns the canonical {@link Token} for a given string.

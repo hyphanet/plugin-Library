@@ -34,8 +34,8 @@ public class YamlMapTest extends TestCase {
 		assertTrue(o instanceof Map);
 		Map m = (Map)o;
 		assertTrue(m.get("gold1") instanceof Bean);
-		// URGENT atm this test fails due to a bug in snakeYAML. see issue #3 in google code
-		//assertTrue(m.get("gold2") instanceof Bean);
+		// NOTE these tests fail in snakeYAML 1.2 and below, fixed in hg
+		assertTrue(m.get("gold2") instanceof Bean);
 	}
 
 	public static class Bean {

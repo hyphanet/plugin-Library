@@ -60,9 +60,9 @@ public class TokenEntryTest extends TestCase {
 		List ll = (List)m.get("test");
 		assertTrue(ll.get(0) instanceof TokenTermEntry);
 		assertTrue(ll.get(1) == ll.get(0));
-		// URGENT these tests both fail due to bugs in snakeYAML. see issue #3 in google code
-		//assertTrue(ll.get(2) instanceof TokenIndexEntry);
-		//assertTrue(ll.get(3) instanceof TokenTermEntry);
+		// NOTE these tests fail in snakeYAML 1.2 and below, fixed in hg
+		assertTrue(ll.get(2) instanceof TokenIndexEntry);
+		assertTrue(ll.get(3) instanceof TokenTermEntry);
 	}
 
 }

@@ -9,6 +9,7 @@
 	<property name="build" location="build/"/>
 	<property name="build-test" location="build-test/"/>
 	<property name="dist" location="dist/"/>
+	<property name="javadoc" location="javadoc/"/>
 	<property name="junit.location" value="/usr/share/java/junit.jar"/>
 	<available file="src/plugins/Interdex/Version.java" property="version.present"/>
 	<available file="${junit.location}" property="junit.present"/>
@@ -91,7 +92,26 @@
 	</target>
 
 	<!-- ================================================== -->
-	<target name="dist" depends="clean,compile,junit"
+	<target name="javadoc" description="Generate javadocs for this package.">
+		<javadoc destdir="${javadoc}" author="true" version="true" use="true" private="true">
+			<fileset dir="src/" defaultexcludes="yes">
+				<include name="**/*.java"/>
+			</fileset>
+			<classpath>
+				<pathelement location="${freenet-ext.location}"/>
+				<pathelement location="${freenet-cvs-snapshot.location}"/>
+				<fileset dir="lib/">
+					<include name="**/*.jar"/>
+				</fileset>
+			</classpath>
+			<link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
+			<link href="http://google-collections.googlecode.com/svn/trunk/javadoc"/>
+			<link href="http://snakeyamlrepo.appspot.com/releases/1.2/site/apidocs"/>
+		</javadoc>
+	</target>
+
+	<!-- ================================================== -->
+	<target name="dist" depends="clean,compile,junit,javadoc"
 		description="generate the distribution" >
 		<jar jarfile="${dist}/Interdex.jar" duplicate="fail">
 			<manifest>
@@ -110,26 +130,7 @@
 		<delete dir="${build}"/>
 		<delete dir="${build-test}"/>
 		<delete dir="${dist}"/>
-	</target>
-
-	<!-- ================================================== -->
-	<target name="javadoc" description="Generate javadocs for this package.">
-		<delete dir="javadoc/"/>
-		<javadoc destdir="javadoc/" author="true" version="true" use="true" private="true">
-			<fileset dir="src/" defaultexcludes="yes">
-				<include name="**/*.java"/>
-			</fileset>
-			<classpath>
-				<pathelement location="${freenet-ext.location}"/>
-				<pathelement location="${freenet-cvs-snapshot.location}"/>
-				<fileset dir="lib/">
-					<include name="**/*.jar"/>
-				</fileset>
-			</classpath>
-			<link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
-			<link href="http://google-collections.googlecode.com/svn/trunk/javadoc"/>
-			<link href="http://snakeyamlrepo.appspot.com/releases/1.2/site/apidocs"/>
-		</javadoc>
+		<delete dir="${javadoc}"/>
 	</target>
 
 </project>
