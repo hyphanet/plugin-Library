@@ -274,12 +274,11 @@ public class WebUI{
 					version = it3.next();
 					versiontable = entry.addChild("table", new String[]{"class", "width", "border", "cellspacing", "cellpadding", "style", "id"}, new String[]{"librarian-result", "95%", "0", "0", "0", "visibility:collapse", "results-"+key+"-version-"+version.toString()});
 					grouptitle = versiontable.addChild("tr").addChild("td", new String[]{"padding", "colspan"}, new String[]{"0", "3"});
-						grouptitle.addChild("#", " ");
-						grouptitle.addChild("h4", key.replaceAll("\\b.{5}.*/(.*)", "$1")+(version.intValue()>=0 ? "-"+version.toString():""));
+					grouptitle.addChild("h4", key.replaceAll("\\b.{5}.*/(.*)", "$1")+(version.intValue()>=0 ? "-"+version.toString():""));
 					HTMLNode versionrow = versiontable.addChild("tr");
-						versionrow.addChild("td", "width", "8px");
-						versionrow.addChild("td", new String[]{"bgcolor", "width"}, new String[]{"black", "2px"});
-						HTMLNode versionNode = versionrow.addChild("td");
+					versionrow.addChild("td", "width", "8px");
+					versionrow.addChild("td", new String[]{"bgcolor", "width"}, new String[]{"black", "2px"});
+					HTMLNode versionNode = versionrow.addChild("td");
 					Iterator<URIWrapper> it4 = sitemap.get(version).iterator();
 					URIWrapper u;
 					while(it4.hasNext()){
@@ -299,11 +298,11 @@ public class WebUI{
 					}
 				}
 				versiontable.addAttribute("style", "visibility:visible");
-				if(sitemap.size() > 1)
-					grouptitle.addChild("a",
-							new String[]{"href", "style"},
-							new String[]{"javascript:showGroup('results-"+key+"-version-', "+sitemap.toString()+", "+version.toString()+");", "font-size: small"},
-							"     Show "+(sitemap.size()-1)+" other editions");
+//				if(sitemap.size() > 1)
+//					grouptitle.addChild("a",
+//							new String[]{"href", "style"},
+//							new String[]{"javascript:showGroup('results-"+key+"-version-', "+sitemap.toString()+", "+version.toString()+");", "font-size: small"},
+//							"     Show "+(sitemap.size()-1)+" other editions");
 			}
 		}
 		node.addChild("p").addChild("span", "class", "librarian-summary-found", xl.getString("Found")+results+xl.getString("results"));
