@@ -181,9 +181,9 @@ public class Search implements Request<URIWrapper> {
 		if(search==null || indexuri==null)
 			return false;
 		if(allsearches.containsKey(makeString(search, indexuri)))
-			Logger.normal(allsearches.get(makeString(search, indexuri)), search);
+			Logger.minor(allsearches.get(makeString(search, indexuri)), search);
 		else
-			Logger.normal(Search.class, makeString(search, indexuri)+" not found");
+			Logger.minor(Search.class, makeString(search, indexuri)+" not found");
 		return allsearches.containsKey(makeString(search, indexuri));
 	}
 
