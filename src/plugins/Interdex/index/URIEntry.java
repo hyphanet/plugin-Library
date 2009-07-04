@@ -30,7 +30,10 @@ public class URIEntry {
 	int size;
 	String type;
 
-	Set<FreenetURI> related;
+	/**
+	** Terms that this URI is associated with.
+	*/
+	HashSet<String> terms;
 
 	public URIEntry(FreenetURI u) {
 		subject = u;

@@ -28,16 +28,17 @@ Internal representation of an index.
 GetTokenEntries [term] [start] [number]
 	get a certain number of entries starting from a given position.
 
-GetTokenEntries [term]
-RemTokenEntries [term]
-PutTokenEntry [data]
-RemTokenEntry [data]
+FetchTokenEntries [term]
+ClearTokenEntries [term]
 
-GetURIEntry [uri]
-RemURIEntry [uri]
-PutURIEntry [data]
-RemURIEntry [data]
+InsertTokenEntry [data]
+RemoveTokenEntry [data]
 
+FetchURIEntry [uri]
+ClearURIEntry [uri]
+
+InsertURIEntry [data]
+RemoveURIEntry [data]
 
 PullIndex [index]
 PushIndex [index]

@@ -18,12 +18,16 @@ import freenet.keys.FreenetURI;
 import plugins.Interdex.util.PrefixTreeMap;
 
 /**
+** DOCUMENT
+**
+** TODO work out locking
+**
 ** @author infinity0
 */
 public class Index {
 
 	final public static int TKTAB_MAX = 4096;
-	final public static int UTAB_MAX = 65536;
+	final public static int UTAB_MAX = 4096;
 
 	/**
 	** Magic number to guide serialisation.
@@ -104,76 +108,121 @@ public class Index {
 		utab = u;
 	}
 
-	/**
+	/*
 	** Search the index for a given keyword.
 	**
 	** PRIORITY make this support getting a subset of the entries.
+	* /
+	public synchronized SortedSet<TokenEntry> searchIndex(String keyword, int numberOfResults);
 	*/
-	public synchronized SortedSet<TokenEntry> searchIndex(String keyword) {
-		return getAllEntries(new Token(keyword));
+
+	/**
+	** Fetch the TokenEntries associated with a given term.
+	**
+	** @param term The term to fetch the entries for
+	** @return The fetched entries
+	*/
+	public synchronized SortedSet<TokenEntry> fetchTokenEntries(String term) {
+		// PRIORITY
+		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	/**
-	** Returns the SortedSet associated with a given Token.
+	** Clear all TokenEntries associated with a given Token.
+	**
+	** @param term The term to clear the entries for
+	** @return The cleared entries
 	*/
-	public synchronized SortedSet<TokenEntry> getAllEntries(Token t) {
-		return tktab.get(t);
+	public synchronized SortedSet<TokenEntry> clearTokenEntries(String term) {
+		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
+		// for all TokenURIEntries in the set, remove the term from the
+		// corresponding URIEntry's "terms" field
+		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	/**
 	** Insert a TokenEntry into the index.
 	**
-	** @param en The entry to insert
-	** @return The previous value for the entry
+	** @param entry The entry to insert
+	** @return The previous entry
 	*/
-	public synchronized TokenEntry insertEntry(TokenEntry en) {
-		// add n to the tktab
-		// add n to the filtab
-		// add n.uri to the utab
+	public synchronized TokenEntry insertTokenEntry(TokenEntry entry) {
+		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
+		// if it's a TokenURIEntry, its URIEntry must already be in the table
+		// in which case insert its subject to the URIEntry's "terms" field
+
+		// insert entry into the tktab
+		// insert entry into the filtab
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	/**
 	** Remove a TokenEntry from the index.
 	**
-	** @param en The entry to remove
-	** @return The entry that was removed
+	** @param entry The entry to remove
+	** @return The removed entry
 	*/
-	public synchronized TokenEntry removeEntry(TokenEntry en) {
-		// TODO
+	public synchronized TokenEntry removeTokenEntry(TokenEntry entry) {
+		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
+		// if it's a TokenURIEntry, its URIEntry must already be in the table
+		// in which case remove its subject from that URIEntry's "terms" field
+
+		// remove entry from the tktab
+		// remove entry from the filtab
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	/**
-	** Get a URIEntry from the index.
+	** Fetch a URIEntry from the index by its FreenetURI.
 	**
-	** @param k The URIKey to retrieve the entry for
-	** @return The value for the key
+	** @param uri The URI to fetch the entry for
+	** @return The fetched entry
 	*/
-	public synchronized URIEntry getURI(URIKey k) {
+	public synchronized URIEntry fetchURIEntry(FreenetURI uri) {
+		// PRIORITY
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	/**
-	** Put a URIEntry into the index.
+	** Clear the URIEntry associated with a given FreenetURI.
 	**
-	** @param key The URIKey to store this entry under
-	** @param value The entry to store
-	** @return The previous value for the key
+	** @param uri The URI to clear the entry for
+	** @return The cleared entry
 	*/
-	public synchronized URIEntry putURI(URIKey key, URIEntry value) {
+	public synchronized URIEntry clearURIEntry(FreenetURI uri) {
+		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
+		// go through the "terms" and remove the TokenEntries associated with
+		// them from the index. this is expensive but it is hoped that this
+		// operation won't be called so often.
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	/**
-	** Purge a URIKey from the index and all token mappings associated with it.
-	*
-	* @param key The URIKey to purge
-	* @return A HashSet of all the purge token mappings
+	** Insert a URIEntry into the index.
+	**
+	** @param entry The entry to insert
+	** @return The previous entry
 	*/
-	public synchronized HashSet<TokenEntry> purgeURI(URIKey key) {
-		// remove k from utab
-		// remove everything linked to k from the tktab/filtab
+	public synchronized URIEntry insertURIEntry(URIEntry entry) {
+		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
+		// make sure "terms" is empty. if the index is consistent (which we
+		// assume it is, in between method calls) then it is impossible for
+		// "terms" to be non-empty due to the restrictions on insertTokenEntry
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	/**
+	** Remove a URIEntry from the index, and all TokenEntries associated with
+	** it.
+	**
+	** @param entry The entry to remove
+	** @return The removed entry
+	*/
+	public synchronized URIEntry removeURIEntry(URIEntry entry) {
+		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
+		// go through the "terms" and remove the TokenEntries associated with
+		// them from the index. this is expensive but it is hoped that this
+		// operation won't be called so often.
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
