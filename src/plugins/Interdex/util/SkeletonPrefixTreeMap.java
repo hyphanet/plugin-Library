@@ -341,13 +341,6 @@ implements SkeletonMap<K, V> {
 	abstract public static class PrefixTreeMapTranslator<K extends PrefixKey, V>
 	implements Translator<SkeletonPrefixTreeMap<K, V>, Map<String, Object>> {
 
-		private interface Fields {
-			final static String PREFIX = "prefix", PREFLEN = "preflen",
-			CAPACITYLOCAL = "capacityLocal", SUBTREES = "subtrees",
-			SIZE = "size", SIZEPREFIX = "sizePrefix", CHILD = "_child",
-			TMAP = "_tmap";
-		}
-
 		/**
 		** Forward translation. If the translator is given is {@code null},
 		** it will use {@link Object#toString()}.
@@ -361,19 +354,19 @@ implements SkeletonMap<K, V> {
 			if (!skel.isBare()) {
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
-			intm.put(Fields.PREFIX, (ktr == null)? skel.prefix.toString(): ktr.app(skel.prefix));
-			intm.put(Fields.PREFLEN, skel.preflen);
-			intm.put(Fields.CAPACITYLOCAL, skel.capacityLocal);
-			intm.put(Fields.SUBTREES, skel.subtrees);
-			intm.put(Fields.SIZE, skel.size);
-			intm.put(Fields.SIZEPREFIX, skel.sizePrefix);
+			intm.put("prefix", (ktr == null)? skel.prefix.toString(): ktr.app(skel.prefix));
+			intm.put("preflen", skel.preflen);
+			intm.put("capacityLocal", skel.capacityLocal);
+			intm.put("subtrees", skel.subtrees);
+			intm.put("size", skel.size);
+			intm.put("sizePrefix", skel.sizePrefix);
 
 			boolean chd[] = new boolean[skel.subtreesMax];
 			for (int i=0; i<skel.subtreesMax; ++i) { chd[i] = (skel.child[i] != null); }
-			intm.put(Fields.CHILD, chd);
+			intm.put("_child", chd);
 
 			SkeletonTreeMap.TreeMapTranslator.app(skel.tmap, intml, ktr);
-			intm.put(Fields.TMAP, intml);
+			intm.put("_tmap", intml);
 			return intm;
 		}
 
@@ -390,14 +383,14 @@ implements SkeletonMap<K, V> {
 				throw new IllegalArgumentException("SkeletonPrefixTreeMap: Translator cannot be null for reverse translation.");
 			}
 			try {
-				K p = ktr.rev((String)intm.get(Fields.PREFIX));
-				int pl = (Integer)intm.get(Fields.PREFLEN);
-				int cl = (Integer)intm.get(Fields.CAPACITYLOCAL);
-				int sb = (Integer)intm.get(Fields.SUBTREES);
-				int sz = (Integer)intm.get(Fields.SIZE);
-				int[] sp = (int[])intm.get(Fields.SIZEPREFIX);
-				boolean[] chd = (boolean[])intm.get(Fields.CHILD);
-				Map<String, Object> tm = (Map<String, Object>)intm.get(Fields.TMAP);
+				K p = ktr.rev((String)intm.get("prefix"));
+				int pl = (Integer)intm.get("preflen");
+				int cl = (Integer)intm.get("capacityLocal");
+				int sb = (Integer)intm.get("subtrees");
+				int sz = (Integer)intm.get("size");
+				int[] sp = (int[])intm.get("sizePrefix");
+				boolean[] chd = (boolean[])intm.get("_child");
+				Map<String, Object> tm = (Map<String, Object>)intm.get("_tmap");
 
 				SkeletonPrefixTreeMap<K, V> skel = new SkeletonPrefixTreeMap<K, V>(p, pl, cl, par);
 				SkeletonTreeMap.TreeMapTranslator.rev(tm, skel.tmap, ktr);

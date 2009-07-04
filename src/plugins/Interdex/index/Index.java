@@ -72,7 +72,7 @@ public class Index {
 	/**
 	** URI table. Provides information related to a URI.
 	*/
-	protected PrefixTreeMap<URIKey, URIEntry> utab;
+	protected PrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>> utab;
 
 	final private transient ReadWriteLock lock = new ReentrantReadWriteLock();
 
@@ -83,7 +83,7 @@ public class Index {
 		modified = new Date();
 		extra = new HashMap<String, Object>();
 
-		utab = new PrefixTreeMap<URIKey, URIEntry>(new URIKey(), UTAB_MAX);
+		utab = new PrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKey(), UTAB_MAX);
 		tktab = new PrefixTreeMap<Token, SortedSet<TokenEntry>>(new Token(), TKTAB_MAX);
 		filtab = new PrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX);
 	}
@@ -95,7 +95,7 @@ public class Index {
 	protected Index(FreenetURI i, String n, Date m, Map<String, Object> x,
 		PrefixTreeMap<Token, TokenFilter> f,
 		PrefixTreeMap<Token, SortedSet<TokenEntry>> t,
-		PrefixTreeMap<URIKey, URIEntry> u
+		PrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>> u
 		) {
 		id = i;
 		name = (n == null)? "".intern(): n;
@@ -117,15 +117,15 @@ public class Index {
 	*/
 
 	/**
-	** Get the TokenEntries associated with a given term.
+	** Fetch the TokenEntries associated with a given term.
 	**
-	** @param term The term to get the entries for
+	** @param term The term to fetch the entries for
 	** @param auto Whether to catch and handle {@link DataNotLoadedException}
-	** @return The entries found
+	** @return The fetched entries
 	** @throws DataNotLoadedException
 	**         if the TokenEntries have not been loaded
 	*/
-	public synchronized SortedSet<TokenEntry> getTokenEntries(String term, boolean auto) {
+	public synchronized SortedSet<TokenEntry> FetchTokenEntries(String term, boolean auto) {
 		// PRIORITY
 		// TODO make this use the bloom filter
 		throw new UnsupportedOperationException("Not implemented.");
@@ -191,11 +191,11 @@ public class Index {
 	}
 
 	/**
-	** Get a URIEntry from the index by its FreenetURI.
+	** Fetch a URIEntry from the index by its FreenetURI.
 	**
-	** @param uri The URI to get the entry for
+	** @param uri The URI to fetch the entry for
 	** @param auto Whether to catch and handle {@link DataNotLoadedException}
-	** @return The entry found
+	** @return The fetched entry
 	** @throws DataNotLoadedException
 	**         if the URIEntry has not been loaded
 	*/

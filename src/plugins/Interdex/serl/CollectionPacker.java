@@ -56,8 +56,8 @@ implements MapSerialiser<K, T> {
 	}
 
 	@Override protected void setMetaAfterPack(Map<String, Object> meta, T element, int binindex) {
-		if (!meta.containsKey(Field_BINS)) { meta.put(Field_BINS, new ArrayList<Integer>()); }
-		((List)meta.get(Field_BINS)).add(binindex);
+		if (!meta.containsKey("bins")) { meta.put("bins", new ArrayList<Integer>()); }
+		((List)meta.get("bins")).add(binindex);
 	}
 
 	@Override protected int sizeOf(T element) {

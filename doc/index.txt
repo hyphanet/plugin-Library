@@ -1,14 +1,13 @@
 = Index =
 
-== TODO ==
+== DOCUMENT ==
 
-TODO how to represent URIs as keys into the URI table:::
-URGENT make a "SplitMapMapSerialiser" and "SplitCollectionMapSerialiser"
+"SplitMapMapSerialiser" and "SplitCollectionMapSerialiser"
 
 splitcollection metadata: [size, [index, index]]
-(atm it is [size, index, index])
 splitmap metadata: [size, [index, index], [key, key]]
 
+== TODO ==
 
 TODO make the metadata for an index support "virtual" indexes like Interdex
 (ie. something that tells the library plugin,
@@ -23,10 +22,6 @@ Internal representation of an index.
 
 == Functionality ==
 
-
-
-GetTokenEntries [term] [start] [number]
-	get a certain number of entries starting from a given position.
 
 FetchTokenEntries [term]
 ClearTokenEntries [term]

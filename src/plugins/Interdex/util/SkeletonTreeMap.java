@@ -439,24 +439,23 @@ implements SkeletonMap<K, V> {
 			}
 
 			Object o = iterloaded.next();
+			T n = iter.next();
 
 			switch(type) {
 			case ENTRY:
 				Map.Entry e = (Map.Entry)o;
 				if (e.getValue() != null) {
-					exceptionThrown = new DataNotLoadedException("Data not loaded for key " + e.getKey() + ": " + e.getValue(), this, e.getKey(), e.getValue());
-					throw exceptionThrown;
+					throw exceptionThrown = new DataNotLoadedException("Data not loaded for key " + e.getKey() + ": " + e.getValue(), this, e.getKey(), e.getValue());
 				}
 				break;
 			case VALUE:
 				if (o != null) {
-					exceptionThrown = new DataNotLoadedException("Data not loaded: " + o, this, null, o);
-					throw exceptionThrown;
+					throw exceptionThrown = new DataNotLoadedException("Data not loaded: " + o, this, null, o);
 				}
 				break;
 			}
 
-			return iter.next();
+			return n;
 		}
 
 		public void remove() {

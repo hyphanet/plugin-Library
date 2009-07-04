@@ -78,10 +78,6 @@ implements MapSerialiser<K, T> {
 		}
 	}
 
-	protected static String Field_SIZE = "size".intern();
-	protected static String Field_BINS = "bins".intern();
-	protected static String Field_KEYS = "keys".intern();
-
 	abstract protected T newPartitionOf(Iterator i, int max);
 
 	abstract protected Iterable iterableOf(T element);
