@@ -340,7 +340,6 @@ public class WebUI{
 				HTMLNode searchTop = searchTable.addChild("tr");
 					HTMLNode titleCell = searchTop.addChild("td", new String[]{"rowspan","width"},new String[]{"2","120"});
 						titleCell.addChild("H1", plugName);
-						titleCell.addChild(searchList());
 					HTMLNode searchcell = searchTop.addChild("td", "width", "400");
 						searchcell.addChild("input", new String[]{"name", "size", "type", "value"}, new String[]{"search", "40", "text", search});
 						searchcell.addChild("input", new String[]{"name", "type", "value", "tabindex"}, new String[]{"find", "submit", "Find!", "1"});
@@ -408,13 +407,6 @@ public class WebUI{
 		}
 		if(error.getCause()!=null)
 			addError(error1, error.getCause());
-	}
-
-	public static HTMLNode searchList(){
-		HTMLNode node = new HTMLNode("div");
-		node.addChild("#",Search.getAllSearches().size()+" searches open ");
-		node.addChild("a", "href", "plugins.XMLLibrarian.XMLLibrarian/purgeSearches", "[purge]");
-		return node;
 	}
 
 	public static String listSearches(){
