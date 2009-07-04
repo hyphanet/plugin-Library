@@ -117,8 +117,8 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 
 	@Override public boolean containsValue(Object value) {
 		if (tmap.containsValue(value)) { return true; }
-		for (PrefixTreeMap<K, V> t: child) {
-			if (t.containsValue(value)) { return true; }
+		for (PrefixTreeMap<K, V> ch: child) {
+			if (ch != null && ch.containsValue(value)) { return true; }
 		}
 		return false;
 	}
@@ -156,7 +156,8 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 
 	@Override public void putAll(Map<? extends K,? extends V> t) {
 		for (Map.Entry<K, V> e: ((Map<K, V>)t).entrySet()) {
-			// TODO implement entrySet for PrefixTreeMap
+			// TODO need to implement entrySet for PrefixTreeMap
+			// if we want to be able to merge two PTMs!
 			put(e.getKey(), e.getValue());
 		}
 	}

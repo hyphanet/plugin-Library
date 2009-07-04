@@ -238,6 +238,7 @@ implements SkeletonMap<K, V> {
 	@Override public boolean containsKey(Object key) { return loaded.containsKey(key); }
 
 	@Override public boolean containsValue(Object value) {
+		// TODO maybe make this iterate through values()
 		if (!isLive()) {
 			throw new DataNotLoadedException("TreeMap not fully loaded.", this);
 		} else {

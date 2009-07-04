@@ -72,11 +72,11 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 
 	/**
 	** Cache for {@link #smallestChild()}. At all times, this should either be
-	** null, or point to the subtree with the smallest size. If null, then
+	** -1, or be the index of the subtree with the smallest size. If -1, then
 	** either there are no subtrees (check {@link #subtrees} == 0) or the cache
 	** has been invalidated.
 	*/
-	protected transient PrefixTree<K, V> smallestChild_ = null;
+	protected transient int smch_ = -1;
 
 	protected PrefixTree(K p, int len, int maxsz, PrefixTree<K, V>[] chd, PrefixTree<K, V> par) {
 		if (chd.length != p.symbols()) {
@@ -112,13 +112,6 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	}
 
 	/**
-	** Return the total number of elements in the data structure.
-	*/
-	public int size() {
-		return size;
-	}
-
-	/**
 	** Return the space left in the local map.
 	*/
 	public int sizeLeft() {
@@ -142,17 +135,17 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	}
 
 	/**
-	** Returns the smallest child.
+	** Returns the index of the smallest child.
 	*/
-	protected PrefixTree<K, V> smallestChild() {
-		if (smallestChild_ == null && subtrees > 0) {
-			for (PrefixTree<K, V> ch: child) {
-				if (ch != null && (smallestChild_ == null || ch.size() < smallestChild_.size())) {
-					smallestChild_ = ch;
+	protected int smallestChild() {
+		if (smch_ < 0 && subtrees > 0) {
+			for (int i=0; i<subtrees; ++i) {
+				if (child[i] != null && (smch_ < 0 || sizePrefix[i] < sizePrefix[smch_])) {
+					smch_ = i;
 				}
 			}
 		}
-		return smallestChild_;
+		return smch_;
 	}
 
 	/**
@@ -210,8 +203,8 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 		}
 
 		// update cache
-		if (subtrees == 1 || smallestChild_ != null && child[msym].size() < smallestChild_.size()) {
-			smallestChild_ = child[msym];
+		if (subtrees == 1 || smch_ > -1 && sizePrefix[msym] < sizePrefix[smch_]) {
+			smch_ = msym;
 		}
 
 		return msym;
@@ -225,15 +218,13 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** @param ch Subtree to free
 	** @return Whether there was enough space, and the operation completed.
 	*/
-	private boolean freeSubTree(PrefixTree<K, V> ch) {
-		if (ch.size() <= sizeLeft()+1) {
-
+	private boolean freeSubTree(int ch) {
+		if (sizePrefix[ch] <= sizeLeft()+1) {
 			// cache invalidated due to child removal
-			if (ch == smallestChild_) { smallestChild_ = null; }
+			if (ch == smch_) { smch_ = -1; }
 
-			transferSubtreeToLocal(ch);
-			assert(ch == child[ch.lastIndex()]);
-			child[ch.lastIndex()] = null;
+			transferSubtreeToLocal(child[ch]);
+			child[ch] = null;
 			--subtrees;
 			return true;
 		}
@@ -244,29 +235,30 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** After a put operation, move some entries into new subtrees, with big
 	** subtrees taking priority, until there is enough space to fit all the
 	** remaining entries. That is, ensure that there exists sz such that:
-	** - {@link #smallestChild()}.size() == sz and sz > {@link #sizeLeft()}
+	** - {@link #sizePrefix}[{@link #smallestChild()}] == sz
+	** - sz > {@link #sizeLeft()}
 	** - and that for all i:
 	**   - ({@link #child}[i] == null) implies {@link #sizePrefix}[i] <= sz
 	**   - ({@link #child}[i] != null) implies {@link #sizePrefix}[i] >= sz
 	**
-	** @param i Subgroup of element
+	** @param i Subgroup of element that was inserted
 	*/
 	protected void reshuffleAfterPut(int i) {
 		++sizePrefix[i]; ++size;
 
 		if (child[i] != null) {
 			// cache possibly invalidated due to put operation on child
-			if (child[i] == smallestChild_) { smallestChild_ = null; }
+			if (i == smch_) { smch_ = -1; }
 
 		} else {
 			if (sizeLeft() < 0) {
 				bindSubTree();
 				// clearly, a maximum of one subtree can be freed here
-				freeSubTree(smallestChild()); // smallestChild() is not null due to bindSubTree
+				freeSubTree(smallestChild()); // smallestChild() exists due to bindSubTree
 
 			} else {
-				PrefixTree<K, V> sm = smallestChild();
-				if (sm != null && sm.size() < sizePrefix[i]) {
+				int sm = smallestChild();
+				if (sm > -1 && sizePrefix[sm] < sizePrefix[i]) {
 					// Let sz be the size of the smallest child, which is (*) greater or
 					// equal to the size of the largest non-child subgroup. Then:
 					// - before the put, the maximum space left in the data structure was sz-1
@@ -286,7 +278,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 
 	/**
 	** Reshuffle after a put operation of many elements, keeping the same
-	** constraints.
+	** constraints. The elements must belong to the same subgroup.
 	**
 	** @param i Subgroup of elements
 	** @param n Number of elements
@@ -302,43 +294,44 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** After a remove operation, merge some subtrees into this node, with small
 	** subtrees taking priority, until there is no more space to fit any more
 	** subtrees. That is, ensure that there exists sz such that:
-	** - {@link #smallestChild()}.size() == sz and sz > {@link #sizeLeft()}
+	** - {@link #sizePrefix}[{@link #smallestChild()}] == sz
+	** - sz > {@link #sizeLeft()}
 	** - and that for all i:
 	**   - ({@link #child}[i] == null) implies {@link #sizePrefix}[i] <= sz
 	**   - ({@link #child}[i] != null) implies {@link #sizePrefix}[i] >= sz
 	**
-	** @param i Subgroup of element
+	** @param i Subgroup of element that was removed
 	*/
 	protected void reshuffleAfterRemove(int i) {
 		--sizePrefix[i]; --size;
 
 		if (child[i] != null) {
-			if (smallestChild_ == null || child[i] == smallestChild_) {
-				freeSubTree(smallestChild()); // smallestChild() is not null since child[i] != null
+			if (smch_ < 0 || i == smch_) {
+				freeSubTree(smallestChild()); // smallestChild() exists since child[i] != null
 
-			} else if (sizePrefix[i] < smallestChild_.size()) {
+			} else if (sizePrefix[i] < sizePrefix[smch_]) {
 				// we potentially have a new (real) smallestChild, but wait and see...
 
-				if (!freeSubTree(child[i])) {
+				if (!freeSubTree(i)) {
 					// if the tree wasn't freed then we have a new smallestChild
-					smallestChild_ = child[i];
+					smch_ = i;
 				}
 				// else, if the tree was freed, then freeSubTree() would not have reset
-				// smallestChild_, since it still pointed to the old value (which was
+				// smch_, since it still pointed to the old value (which was
 				// incorrect before the method call, but now correct, so nothing needs to
 				// be done).
 			}
 			// else, the smallestChild hasn't changed, so no more trees can be freed.
 
 		} else {
-			PrefixTree<K, V> t = smallestChild();
-			if (t != null) { freeSubTree(t); }
+			int t = smallestChild();
+			if (t > -1) { freeSubTree(t); }
 		}
 	}
 
 	/**
 	** Reshuffle after a remove operation of many elements, keeping the same
-	** constraints.
+	** constraints. The elements must belong to the same subgroup.
 	**
 	** @param i Subgroup of elements
 	** @param n Number of elements
@@ -360,7 +353,9 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	}
 
 	/**
-	** Make a subtree with the appropriate prefix.
+	** Make a subtree with the appropriate prefix. For effeciency, this method
+	** assumes that {@link #child}[i] does not already have a tree attached; it
+	** is up to the calling code to ensure that this holds.
 	**
 	** @param msym The last symbol in the prefix for the subtree.
 	** @return The subtree.
@@ -423,7 +418,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	public void clear() {
 		size = 0;
 		clearLocal();
-		smallestChild_ = null;
+		smch_ = -1;
 		for (int i=0; i<subtreesMax; ++i) {
 			child[i] = null;
 			sizePrefix[i] = 0;
@@ -433,6 +428,10 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 
 	public boolean isEmpty() {
 		return (size == 0);
+	}
+
+	public int size() {
+		return size;
 	}
 
 	/*========================================================================
@@ -468,6 +467,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	public int hashCode() {
 		int sum = getLocalMap().hashCode();
 		for (PrefixTree<K, V> ch: child) {
+			if (ch == null) { continue; }
 			sum += ch.hashCode();
 		}
 		return sum;

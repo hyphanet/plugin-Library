@@ -5,6 +5,7 @@ package plugins.Interdex.index;
 
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.SortedMap;
 import java.util.TreeSet;
 import java.util.HashSet;
 import java.util.HashMap;
@@ -125,7 +126,7 @@ public class Index {
 	** @throws DataNotLoadedException
 	**         if the TokenEntries have not been loaded
 	*/
-	public synchronized SortedSet<TokenEntry> FetchTokenEntries(String term, boolean auto) {
+	public synchronized SortedSet<TokenEntry> fetchTokenEntries(String term, boolean auto) {
 		// PRIORITY
 		// TODO make this use the bloom filter
 		throw new UnsupportedOperationException("Not implemented.");

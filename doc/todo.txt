@@ -20,8 +20,6 @@ same as GhostTreeSet below, but with keys instead of indexes
 also, the map can be modified (since add/rem key does not change the keys
 of the other entries)
 
-with deflate(Key)
-
 
 - implement GhostTreeSet (for SortedSet<TokenEntry>):
 
@@ -35,4 +33,25 @@ encounters an unloaded element.
 the set cannot be modified or toArray()'d unless it is live
 
 with deflate(Index)
+
+
+== Schedule ==
+
+ - implement deflate/inflate on STM/SPTM, 2-3 days
+ - implement auto-fetching of not loaded data 2-3 days
+ - implement index push/pull 1 day
+ - implement freenet inflate/deflate 5-7 days
+ - implement a serialiser to send progress reports 5-7 days
+ - implement Ghost* 3-5 days
+ - implement filters 2 days
+ - implement fcp 3-5 days depending on how much mikeb gets through
+
+ - implement interdex fcp with library 2-3 days
+ - implement interdex algorithm 5-7 days
+ - implement crawler...
+
+
+
+
+
 

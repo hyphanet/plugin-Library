@@ -19,94 +19,14 @@ import java.util.Collection;
 /**
 ** A {@link SkeletonMap} of a {@link PrefixTreeMap}.
 **
+** URGENT override makeSubTree etc to keep data consistent, or else make
+** a non-live map immutable.
+**
 ** @author infinity0
 */
 public class SkeletonPrefixTreeMap<K extends PrefixKey, V>
 extends PrefixTreeMap<K, V>
 implements SkeletonMap<K, V> {
-
-	/************************************************************************
-	**
-	** Represents a PrefixTreeMap which has not been loaded, but which a parent
-	** SkeletonPrefixTreeMap (that has been loaded) refers to.
-	**
-	** TODO maybe make this implement SkeletonMap
-	**
-	** @author infinity0
-	*/
-	public static class DummyPrefixTreeMap<K extends PrefixKey, V> extends PrefixTreeMap<K, V> {
-
-		public DummyPrefixTreeMap(K p, int len, int caplocal, SkeletonPrefixTreeMap<K, V> par) {
-			super(p, len, caplocal, par);
-		}
-
-		public DummyPrefixTreeMap(K p, int caplocal) {
-			super(p, 0, caplocal, null);
-		}
-
-		public DummyPrefixTreeMap(K p) {
-			super(p, 0, p.symbols(), null);
-		}
-
-		Object meta;
-
-		public Object getMeta() {
-			return meta;
-		}
-
-		public void setMeta(Object m) {
-			meta = m;
-		}
-
-		/*========================================================================
-		  public class PrefixTree
-		 ========================================================================*/
-
-		protected DummyPrefixTreeMap<K, V> selectNode(int i) {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
-		}
-
-		protected TreeMap<K, V> getLocalMap() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
-		}
-
-		protected void clearLocal() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
-		}
-
-		protected Set<K> keySetLocal() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
-		}
-
-		public int sizeLocal() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
-		}
-
-		/*========================================================================
-		  public interface Map
-		 ========================================================================*/
-
-		public boolean containsValue(Object o) {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
-		}
-
-		public Set<Map.Entry<K,V>> entrySet() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
-		}
-
-		public boolean isEmpty() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
-		}
-
-		public Set<K> keySet() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
-		}
-
-		public Collection<V> values() {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
-		}
-
-	}
 
 	/**
 	** The constructor points this to {@link PrefixTreeMap#tmap}, so we don't
@@ -115,9 +35,19 @@ implements SkeletonMap<K, V> {
 	final protected SkeletonTreeMap<K, V> tmap;
 
 	/**
-	** The meta data for this skeleton.
+	** The meta data for this skeleton. DOCUMENT
 	*/
 	protected Object meta = null;
+
+	/**
+	** Meta data for dummy child. DOCUMENT
+	*/
+	final protected Object[] childMeta;
+
+	/**
+	** Keeps track of the number of dummies in the map. TODO make sure put and remove update this.
+	*/
+	protected transient int dummyCount;
 
 	protected SkeletonPrefixTreeMap(K p, int len, int caplocal, SkeletonPrefixTreeMap<K, V> par) {
 		super(p, len, caplocal, new SkeletonTreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()], par);
@@ -126,6 +56,7 @@ implements SkeletonMap<K, V> {
 		String str = prefixString();
 		setMeta(str);
 		tmap.setMeta(str);
+		childMeta = new Object[subtrees];
 	}
 
 	public SkeletonPrefixTreeMap(K p, int caplocal) {
@@ -144,26 +75,26 @@ implements SkeletonMap<K, V> {
 		serialiserLocal = vs;
 		tmap.setSerialiser(vs);
 		for (PrefixTreeMap<K, V> ch: child) {
-			if (ch != null && ch instanceof SkeletonPrefixTreeMap) {
-				((SkeletonPrefixTreeMap<K, V>)ch).setSerialiser(s, vs);
-			}
+			if (ch == null) { continue; }
+			((SkeletonPrefixTreeMap<K, V>)ch).setSerialiser(s, vs);
 		}
 	}
 
 	/**
-	** Put a DummyPrefixTreeMap into the child array, with a dummy inside it.
-	** TODO make it actually use the dummy...
+	** Mark a subgroup as being a dummy tree.
 	**
-	** @param i The index to attach the dummy to.. UNUSED
+	** @param i The index to mark
 	*/
 	protected void putDummyChild(int i, Object dummy) {
-		child[i] = new DummyPrefixTreeMap((K)prefix.spawn(preflen, i), preflen+1, capacityLocal, this);
+		childMeta[i] = (dummy == null)? new Integer(i): dummy;
+		child[i] = null; // TODO check uses of this to make sure it's consistent
+		++dummyCount;
 	}
 
 	/**
 	** Attach an existing SkeletonPrefixTreeMap into this one. The prefix must
-	** match and there must already be a DummyPrefixTreeMap in its place in the
-	** child array.
+	** match and the childMeta array must have an entry in the corresponding
+	** index.
 	**
 	** @param t The tree to assimilate
 	*/
@@ -187,11 +118,16 @@ implements SkeletonMap<K, V> {
 			throw new IllegalArgumentException("The size of the subtree contradicts its entry in sizePrefix");
 		}
 
-		if (child[i] instanceof DummyPrefixTreeMap) {
+		if (childMeta[i] != null) {
 			child[i] = t;
+			childMeta[i] = null;
 		} else {
 			throw new IllegalArgumentException("This tree does not need attach a subtree with prefix " + t.prefix);
 		}
+	}
+
+	protected DataNotLoadedException childNotLoaded(int i) {
+		return new DataNotLoadedException("Child tree " + i + " not loaded for PrefixTreeMap " + prefix.toString(), this, prefix.spawn(preflen, i), childMeta[i]);
 	}
 
 	/*========================================================================
@@ -208,11 +144,88 @@ implements SkeletonMap<K, V> {
 	@Override protected Map<K, V> selectNode(int i) {
 		if (child[i] == null) {
 			return tmap;
-		} else if (child[i] instanceof DummyPrefixTreeMap) {
-			throw new DataNotLoadedException("PrefixTreeMap not loaded for " + prefix.toString(), this.parent, this.prefix, this);
+		} else if (childMeta[i] != null) {
+			throw childNotLoaded(i);
 		} else {
 			return child[i];
 		}
+	}
+
+	/*========================================================================
+	  public class PrefixTreeMap
+	 ========================================================================*/
+
+	@Override public void clear() {
+		super.clear();
+		for (int i=0; i<subtrees; ++i) {
+			childMeta[i] = null;
+		}
+	}
+
+	@Override public boolean containsValue(Object value) {
+		if (tmap.containsValue(value)) { return true; }
+		for (int i=0; i<subtrees; ++i) {
+			if (child[i] != null && child[i].containsValue(value)) {
+				return true;
+			} else if (childMeta[i] != null) {
+				throw childNotLoaded(i);
+			}
+		}
+		return false;
+	}
+
+	@Override public V put(K key, V value) {
+		if (!key.match(prefix, preflen)) {
+			throw new IllegalArgumentException("Key does not match prefix for this tree.");
+		}
+
+		int i = key.get(preflen);
+		Map<K, V> map = selectNode(i);
+		int s = map.size();
+		V v = map.put(key, value);
+
+		if (map.size() != s) {
+			// attempts to detect a situation where a reshuffle of the tree would occur
+			// but not all the data for this reshuffle has been loaded
+			if (map == tmap && !isLive() && childMeta[smallestChild()] != null) {
+				// TODO use the logic below instead...
+				map.remove(key);
+				throw childNotLoaded(smch_);
+				// if smallest child is not loaded, if map is local map,
+				// if smallestChild exists and its size == this subgroup's old size (sizePrefix hasn't been updated yet)
+				// then smallest child is going to be freed, so remove the value and
+				// throw DNL ex
+			}
+			reshuffleAfterPut(i);
+		}
+		return v;
+	}
+
+	@Override public V remove(Object key) {
+		K k; if (!(key instanceof PrefixKey) ||
+			!(k = (K) key).match(prefix, preflen)) { return null; }
+
+		int i = k.get(preflen);
+		Map<K, V> map = selectNode(i);
+		int s = map.size();
+		V v = map.remove(key);
+
+		if (map.size() != s) {
+			// attempts to detect a situation where a reshuffle of the tree would occur
+			// but not all the data for this reshuffle has been loaded
+			if (map == tmap && !isLive() && childMeta[smallestChild()] != null) {
+				// TODO use the logic below instead...
+				map.put(k, v);
+				throw childNotLoaded(smch_);
+				// if smallest child is not loaded,
+				// if map is local map, or if this subgroup's size is smallestChild's size
+				// and spaceleft is smallestChild's size - 2,
+				// then something is going to be freed, so put the value back in
+				// and throw DNL ex
+			}
+			reshuffleAfterRemove(i);
+		}
+		return v;
 	}
 
 	/*========================================================================
@@ -222,22 +235,13 @@ implements SkeletonMap<K, V> {
 	@Override public boolean isLive() {
 		// OPTIMISE use a counter
 		if (!tmap.isLive()) { return false; }
-		for (PrefixTreeMap t: child) {
-			if (t instanceof DummyPrefixTreeMap) { return false; }
-			if (t instanceof SkeletonPrefixTreeMap && !((SkeletonPrefixTreeMap)t).isLive()) {
-				return false;
-			}
-		}
-		return true;
+		return dummyCount == 0;
 	}
 
 	@Override public boolean isBare() {
 		// OPTIMISE use a counter
 		if (!tmap.isBare()) { return false; }
-		for (PrefixTreeMap t: child) {
-			if (t instanceof SkeletonPrefixTreeMap) { return false; }
-		}
-		return true;
+		return dummyCount == subtrees;
 	}
 
 	@Override public Object getMeta() {
@@ -250,7 +254,7 @@ implements SkeletonMap<K, V> {
 
 	@Override public Map<K, V> complete() {
 		if (!isLive()) {
-			throw new DataNotLoadedException("PrefixTreeMap not fully loaded for " + prefix.toString(), this, this);
+			throw new DataNotLoadedException("PrefixTreeMap not fully loaded for " + prefix.toString(), this);
 		} else {
 			TreeMap<K, V> ntmap = (TreeMap<K, V>)tmap.complete();
 			PrefixTreeMap<K, V>[] nchild = (PrefixTreeMap<K, V>[])new PrefixTreeMap[subtreesMax];
@@ -273,9 +277,9 @@ implements SkeletonMap<K, V> {
 		if (!tmap.isLive()) { tmap.inflate(); }
 
 		java.util.List<PullTask<SkeletonPrefixTreeMap<K, V>>> tasks = new java.util.ArrayList<PullTask<SkeletonPrefixTreeMap<K, V>>>(subtrees);
-		for (PrefixTreeMap<K, V> chd: child) {
-			if (chd == null || !(chd instanceof DummyPrefixTreeMap)) { continue; }
-			PullTask<SkeletonPrefixTreeMap<K, V>> task = new PullTask<SkeletonPrefixTreeMap<K, V>>(((DummyPrefixTreeMap<K, V>)chd).getMeta());
+		for (int i=0; i<child.length; ++i) {
+			if (child[i] == null) { continue; }
+			PullTask<SkeletonPrefixTreeMap<K, V>> task = new PullTask<SkeletonPrefixTreeMap<K, V>>(childMeta[i]);
 			task.data = this; // this is a bit of a hack, but oh well...
 			// the only way to supply the parent pointer is via the constructor
 			// and hence we must pass the parent pointer to the translator
@@ -285,6 +289,9 @@ implements SkeletonMap<K, V> {
 			// PrefixTree.parent to change that even if we make it non-final,
 			// since it is a grand-superclass. it's too late to recode the
 			// entire thing, sorry... :p
+			//
+			// TODO actually now that we have removed DummyPrefixTreeMap, we could just get rid of
+			// the parent field, maybe...
 			tasks.add(task);
 		}
 		serialiser.pull(tasks);
@@ -305,7 +312,7 @@ implements SkeletonMap<K, V> {
 
 		java.util.List<PushTask<SkeletonPrefixTreeMap<K, V>>> tasks = new java.util.ArrayList<PushTask<SkeletonPrefixTreeMap<K, V>>>(subtrees);
 		for (PrefixTreeMap<K, V> chd: child) {
-			if (chd == null || !(chd instanceof SkeletonPrefixTreeMap)) { continue; }
+			if (chd == null) { continue; }
 			SkeletonPrefixTreeMap<K, V> ch = (SkeletonPrefixTreeMap<K, V>)chd;
 			// TODO maybe find some way to make this concurrent, but not so important
 			if (!ch.isBare()) { ch.deflate(); }

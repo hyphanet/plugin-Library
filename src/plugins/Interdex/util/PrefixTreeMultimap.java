@@ -146,8 +146,8 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 
 	@Override public boolean containsValue(Object value) {
 		if (tmap.containsValue(value)) { return true; }
-		for (PrefixTreeMultimap<K, V> t: child) {
-			if (t.containsValue(value)) { return true; }
+		for (PrefixTreeMultimap<K, V> ch: child) {
+			if (ch != null && ch.containsValue(value)) { return true; }
 		}
 		return false;
 	}

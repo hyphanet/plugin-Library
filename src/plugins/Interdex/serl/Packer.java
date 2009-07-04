@@ -274,7 +274,7 @@ implements MapSerialiser<K, T> {
 		// prepare each task's meta data to hold information about the bins
 		for (PushTask<T> task: tasks.values()) {
 			Map<String, Object> metalist = new HashMap<String, Object>();
-			metalist.put(Field_SIZE, new Integer(sizeOf(task.data)));
+			metalist.put("size", new Integer(sizeOf(task.data)));
 			task.meta = metalist;
 		}
 

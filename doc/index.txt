@@ -11,7 +11,7 @@ splitmap metadata: [size, [index, index], [key, key]]
 
 TODO make the metadata for an index support "virtual" indexes like Interdex
 (ie. something that tells the library plugin,
-"this is not a virtual index, get the data from plugin X instead")
+"this is a virtual index, get the data from plugin X instead")
 
 - can have terms containing spaces by eg. having crawler add "x y" to its dictionary of
 terms to index, if it encounters this combination more than a few times on multiple pages.
@@ -68,11 +68,11 @@ TokenEntry - has relevance rating (TODO remove quality from the java class)
  : TokenIndexEntry - redirects to another index
  : TokenURIEntry - final target for term
 
-TokenEntries are stored in tk*.map*.yml, where tk* is the prefix of the node in
-the PTM where its corresponding Token is stored, and map* is the splitfiles
+TokenEntries are stored in tk*.tab*.yml, where tk* is the prefix of the node in
+the PTM where its corresponding Token is stored, and tab* is the splitfiles
 that the entries are stored under. All TokenEntries for a given Token is
 ordered by relevance and stored in this order in a contiguous subset of the
-map files, eg. map13, map14, map15.
+map files, eg. tab13, tab14, tab15.
 
 To aid query retrieval times, for each token, the 16 (or some other number)
 most relevant token entries from different sites, have their URIEntry (see
@@ -87,11 +87,11 @@ uri table.
 URIEntry - has quality rating (TODO code this)
  : etc? TODO
 
-URIEntries are stored in u*.map*.yml, where u* is the prefix of the node in the
-PTM where its corresponding URIKey is stored, and map* is the splitfiles that
+URIEntries are stored in u*.tab*.yml, where u* is the prefix of the node in the
+PTM where its corresponding URIKey is stored, and tab* is the splitfiles that
 the entries are stored under. All URIEntries for a given URIKey is ordered by
 the String form of its corresponding FreenetURI, and stored in this order in a
-contiguous subset of the map files, eg. map13, map14, map15.
+contiguous subset of the map files, eg. tab13, tab14, tab15.
 
 === Filter table ===
 
