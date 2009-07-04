@@ -345,6 +345,9 @@ public class Search implements Request<URIWrapper> {
 	 * @return Set of URIWrappers
 	 */
 	public Set<URIWrapper> getResult() {
+		if(getRequestStatus() != Request.RequestStatus.FINISHED)
+			return null;
+
 		if (!resultChanged() && result!=null)
 			return result;
 		result = new TreeSet<URIWrapper>();
@@ -359,6 +362,7 @@ public class Search implements Request<URIWrapper> {
 					}
 				else
 					result.addAll(r.getResult());
+		allsearches.remove(subject);
 		return result;
 	}
 
