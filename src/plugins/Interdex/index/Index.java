@@ -117,23 +117,31 @@ public class Index {
 	*/
 
 	/**
-	** Fetch the TokenEntries associated with a given term.
+	** Get the TokenEntries associated with a given term.
 	**
-	** @param term The term to fetch the entries for
-	** @return The fetched entries
+	** @param term The term to get the entries for
+	** @param auto Whether to catch and handle {@link DataNotLoadedException}
+	** @return The entries found
+	** @throws DataNotLoadedException
+	**         if the TokenEntries have not been loaded
 	*/
-	public synchronized SortedSet<TokenEntry> fetchTokenEntries(String term) {
+	public synchronized SortedSet<TokenEntry> getTokenEntries(String term, boolean auto) {
 		// PRIORITY
+		// TODO make this use the bloom filter
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	/**
-	** Clear all TokenEntries associated with a given Token.
+	** Clear all TokenEntries associated with a given term, and remove traces
+	** of this term from any associated URIEntries.
 	**
 	** @param term The term to clear the entries for
+	** @param auto Whether to catch and handle {@link DataNotLoadedException}
 	** @return The cleared entries
+	** @throws DataNotLoadedException
+	**         if the TokenEntries or URIEntries have not been loaded
 	*/
-	public synchronized SortedSet<TokenEntry> clearTokenEntries(String term) {
+	public synchronized SortedSet<TokenEntry> clearTokenEntries(String term, boolean auto) {
 		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
 		// for all TokenURIEntries in the set, remove the term from the
 		// corresponding URIEntry's "terms" field
@@ -141,12 +149,17 @@ public class Index {
 	}
 
 	/**
-	** Insert a TokenEntry into the index.
+	** Insert a TokenEntry into the index, and (TODO) update the filter. If
+	** appropriate, insert this term into the associated URIEntry.
 	**
 	** @param entry The entry to insert
+	** @param auto Whether to catch and handle {@link DataNotLoadedException}
 	** @return The previous entry
+	** @throws DataNotLoadedException
+	**         if the term's TokenEntries have not been loaded,
+	**         or if the filter or URIEntry has not been loaded
 	*/
-	public synchronized TokenEntry insertTokenEntry(TokenEntry entry) {
+	public synchronized TokenEntry insertTokenEntry(TokenEntry entry, boolean auto) {
 		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
 		// if it's a TokenURIEntry, its URIEntry must already be in the table
 		// in which case insert its subject to the URIEntry's "terms" field
@@ -157,12 +170,17 @@ public class Index {
 	}
 
 	/**
-	** Remove a TokenEntry from the index.
+	** Remove a TokenEntry from the index, and (TODO) updated the filter. If
+	** appropriate, remove this term from the associated URIEntry.
 	**
 	** @param entry The entry to remove
+	** @param auto Whether to catch and handle {@link DataNotLoadedException}.
 	** @return The removed entry
+	** @throws DataNotLoadedException
+	**         if the term's TokenEntries have not been loaded,
+	**         or if the filter or URIEntry has not been loaded
 	*/
-	public synchronized TokenEntry removeTokenEntry(TokenEntry entry) {
+	public synchronized TokenEntry removeTokenEntry(TokenEntry entry, boolean auto) {
 		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
 		// if it's a TokenURIEntry, its URIEntry must already be in the table
 		// in which case remove its subject from that URIEntry's "terms" field
@@ -173,23 +191,31 @@ public class Index {
 	}
 
 	/**
-	** Fetch a URIEntry from the index by its FreenetURI.
+	** Get a URIEntry from the index by its FreenetURI.
 	**
-	** @param uri The URI to fetch the entry for
-	** @return The fetched entry
+	** @param uri The URI to get the entry for
+	** @param auto Whether to catch and handle {@link DataNotLoadedException}
+	** @return The entry found
+	** @throws DataNotLoadedException
+	**         if the URIEntry has not been loaded
 	*/
-	public synchronized URIEntry fetchURIEntry(FreenetURI uri) {
+	public synchronized URIEntry fetchURIEntry(FreenetURI uri, boolean auto) {
 		// PRIORITY
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	/**
-	** Clear the URIEntry associated with a given FreenetURI.
+	** Clear the URIEntry associated with a given FreenetURI, and remove any
+	** TokenURIEntries for the terms that this URIEntry is associated with.
 	**
 	** @param uri The URI to clear the entry for
+	** @param auto Whether to catch and handle {@link DataNotLoadedException}
 	** @return The cleared entry
+	** @throws DataNotLoadedException
+	**         if the URIEntry has not been loaded,
+	**         or if the TokenEntries for any term has not been loaded
 	*/
-	public synchronized URIEntry clearURIEntry(FreenetURI uri) {
+	public synchronized URIEntry clearURIEntry(FreenetURI uri, boolean auto) {
 		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
 		// go through the "terms" and remove the TokenEntries associated with
 		// them from the index. this is expensive but it is hoped that this
@@ -201,9 +227,12 @@ public class Index {
 	** Insert a URIEntry into the index.
 	**
 	** @param entry The entry to insert
+	** @param auto Whether to catch and handle {@link DataNotLoadedException}
 	** @return The previous entry
+	** @throws DataNotLoadedException
+	**         if the URIEntry has not been loaded
 	*/
-	public synchronized URIEntry insertURIEntry(URIEntry entry) {
+	public synchronized URIEntry insertURIEntry(URIEntry entry, boolean auto) {
 		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
 		// make sure "terms" is empty. if the index is consistent (which we
 		// assume it is, in between method calls) then it is impossible for
@@ -216,9 +245,13 @@ public class Index {
 	** it.
 	**
 	** @param entry The entry to remove
+	** @param auto Whether to catch and handle {@link DataNotLoadedException}
 	** @return The removed entry
+	** @throws DataNotLoadedException
+	**         if the URIEntry has not been loaded,
+	**         or if the TokenEntries for any term has not been loaded
 	*/
-	public synchronized URIEntry removeURIEntry(URIEntry entry) {
+	public synchronized URIEntry removeURIEntry(URIEntry entry, boolean auto) {
 		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
 		// go through the "terms" and remove the TokenEntries associated with
 		// them from the index. this is expensive but it is hoped that this

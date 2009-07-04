@@ -33,7 +33,7 @@ public class URIEntry {
 	/**
 	** Terms that this URI is associated with.
 	*/
-	HashSet<String> terms;
+	Set<String> terms;
 
 	public URIEntry(FreenetURI u) {
 		subject = u;
