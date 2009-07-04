@@ -15,18 +15,37 @@ import freenet.keys.FreenetURI;
 */
 public class URIEntry {
 
-	final FreenetURI uri;
-	Date date_checked;
+	/**
+	** Subject URI of this entry.
+	*/
+	protected FreenetURI subject;
 
+	/**
+	** Quality rating. Must be in the closed interval [0,1].
+	*/
+	protected float qual;
+
+	Date date_checked;
 	String title;
 	int size;
-	String mime_type;
+	String type;
 
 	Set<FreenetURI> related;
 
 	public URIEntry(FreenetURI u) {
-		uri = u;
+		subject = u;
 		date_checked = new Date();
+	}
+
+	public float getQuality() {
+		return qual;
+	}
+
+	public void setQuality(float q) {
+		if (q < 0 || q > 1) {
+			throw new IllegalArgumentException("Relevance must be in the closed interval [0,1].");
+		}
+		qual = q;
 	}
 
 }

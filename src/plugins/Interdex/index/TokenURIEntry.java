@@ -31,7 +31,22 @@ public class TokenURIEntry extends TokenEntry {
 	*/
 	protected Map<String, Object> meta;
 
+	/**
+	** Pointer to the {@link URIEntry} relating to the target uri.
+	**
+	** TODO serialiser should fill this in.
+	*/
+	protected transient URIEntry uridata_;
+
+	/**
+	** Empty constructor for the JavaBean convention.
+	*/
 	public TokenURIEntry() { }
+
+	public TokenURIEntry(String s, FreenetURI u) {
+		super(s);
+		setURI(u);
+	}
 
 	public FreenetURI getURI() {
 		return uri;

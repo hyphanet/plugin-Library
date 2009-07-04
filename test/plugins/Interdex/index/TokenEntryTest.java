@@ -29,18 +29,15 @@ public class TokenEntryTest extends TestCase {
 		Map<String, Object> map = new HashMap<String, Object>();
 
 		TokenTermEntry w  = new TokenTermEntry("test", "lol");
-		w.setQuality(0.5f);
 		w.setRelevance(0.8f);
 		TokenIndexEntry x = null;
 		try {
 		x = new TokenIndexEntry("test", new FreenetURI("CHK@yeah"));
-		x.setQuality(0.5f);
 		x.setRelevance(0.8f);
 		} catch (MalformedURLException e) {
 		}
 		//TokenURIEntry
 		TokenTermEntry y  = new TokenTermEntry("test", "lol2");
-		y.setQuality(0.5f);
 		y.setRelevance(0.8f);
 
 		List<TokenEntry> l = new ArrayList<TokenEntry>();

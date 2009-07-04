@@ -19,17 +19,28 @@ terms to index, if it encounters this combination more than a few times on multi
 
 == Purpose ==
 
-Internal representation of an index
+Internal representation of an index.
 
 == Functionality ==
 
-TODO work on this
 
-get all entries
 
-put entry
+GetTokenEntries [term] [start] [number]
+	get a certain number of entries starting from a given position.
 
-etc
+GetTokenEntries [term]
+RemTokenEntries [term]
+PutTokenEntry [data]
+RemTokenEntry [data]
+
+GetURIEntry [uri]
+RemURIEntry [uri]
+PutURIEntry [data]
+RemURIEntry [data]
+
+
+PullIndex [index]
+PushIndex [index]
 
 
 == Format of data ==
@@ -112,3 +123,6 @@ site D: result 1 (click to retrieve site data)
 in the meantime, keep pulling URIEntry data in the background, and update the
 page as necessary.
 
+
+Results are ordered by relevance^3 * quality. If the URIEntry has not been
+loaded yet, we assume the quality is 0.9.

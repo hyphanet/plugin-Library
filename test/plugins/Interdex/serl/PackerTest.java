@@ -5,7 +5,7 @@ package plugins.Interdex.serl;
 
 import junit.framework.TestCase;
 
-import plugins.Interdex.serl.SplitMapSerialiser.Bin;
+import plugins.Interdex.serl.Packer.Bin;
 import plugins.Interdex.serl.Serialiser.*;
 
 import java.util.Map;
@@ -18,9 +18,9 @@ import java.util.HashMap;
 /**
 ** @author infinity0
 */
-public class SplitMapSerialiserTest extends TestCase {
+public class PackerTest extends TestCase {
 
-	final public static SplitMapSerialiser<String, HashSet> srl = new SplitMapSerialiser<String, HashSet>(256, HashSet.class, null);
+	final public static CollectionPacker<String, HashSet> srl = new CollectionPacker<String, HashSet>(256, HashSet.class, null);
 
 	protected Map<String, PushTask<HashSet>> generateTasks(int[] sizes) {
 		String meta = "dummy metadata";
