@@ -326,9 +326,9 @@ public class WebUI{
 				"\n" +
 				".result-url {color:green; font-size:small; padding-left:15px}\n" +
 				".result-uskbutton {color: #480000; font-variant: small-caps; font-size: small; padding-left: 20px}\n" +
-				"\n" +
-				"function showGroup(id){\n" +
-				"	"
+				".progress-table {border-spacing:10px 0px;}\n" +
+				".progress-bar-outline { width:300px; border:1px solid grey; height : 20px;}\n" +
+				".progress-bar-inner { background-color: red; height:15px; z-index:-1}\n"
 				);
 		return headNode;
 	}
@@ -367,7 +367,7 @@ public class WebUI{
             // Search description
 			HTMLNode progressTable = progressDiv.addChild("table", "width", "100%");
 				HTMLNode searchingforCell = progressTable.addChild("tr")
-					.addChild("td", "colspan", "2");
+					.addChild("td");
 						searchingforCell.addChild("#", xl.getString("Searching-for"));
 						searchingforCell.addChild("span", "class", "librarian-searching-for-target")
 							.addChild("b", search);
@@ -377,7 +377,6 @@ public class WebUI{
 
 				// Search status
 				HTMLNode statusRow = progressTable.addChild("tr");
-					statusRow.addChild("td", "width", "140", xl.getString("Search-status"));
 					statusRow.addChild("td")
 							.addChild(buildProgressNode(request));
 		return progressDiv;
@@ -389,11 +388,50 @@ public class WebUI{
 	 */
 	private static HTMLNode buildProgressNode(Request request) {
 		HTMLNode node = new HTMLNode("div", "id", "librarian-search-status");
-		node.addChild("p", "Status : "+request.getSubject()+"  "+request.getRequestStatus()+", Stage: "+request.getSubStage()+"/"+request.getSubStageCount()+", Blocks:"+request.getNumBlocksCompleted()+"/"+request.getNumBlocksTotal());
-		if(request.getSubRequests()!=null)
-			for(Object r : request.getSubRequests())
-				node.addChild("p", " Status : "+((Request)r).getSubject()+"  "+((Request)r).getRequestStatus()+", Stage: "+((Request)r).getSubStage()+"/"+((Request)r).getSubStageCount()+", Blocks:"+((Request)r).getNumBlocksCompleted()+"/"+((Request)r).getNumBlocksTotal());
+		node.addChild("table", new String[]{"id", "class"}, new String[]{"progress-table", "progress-table"}).addChild(progressBar(request));
+//		if(request.getSubRequests()!=null)
+//			for(Object r : request.getSubRequests())
+//				node.addChild("p", " Status : "+((Request)r).getSubject()+"  "+((Request)r).getRequestStatus()+", Stage: "+((Request)r).getSubStage()+"/"+((Request)r).getSubStageCount()+", Blocks:"+((Request)r).getNumBlocksCompleted()+"/"+((Request)r).getNumBlocksTotal());
 		return node;
+	}
+	
+	private static HTMLNode progressBar(Request request) {
+		HTMLNode bar; //new HTMLNode("div", new String[]{"style", "class"}, new String[]{"padding-left:20px", "progress-bar"});
+		if(request.getSubRequests()==null){
+			bar = new HTMLNode("tr");
+			bar.addChild("td", request.getSubject());
+			bar.addChild("td",
+					(request.getRequestStatus()==Request.RequestStatus.INPROGRESS)
+					?"Stage: "+request.getSubStage()+"/"+request.getSubStageCount()
+					:request.getRequestStatus().toString());
+			HTMLNode box = bar//.addChild("#", request.getSubStage()+"/"+request.getSubStageCount())
+					.addChild("td", new String[]{"class"}, new String[]{"progress-bar-outline"});
+			if(request.getNumBlocksTotal()==0){
+				bar.addChild("td", "");
+				box.addChild("#", "Not Fetching");
+			}else{
+				int percentage = (int)(100*request.getNumBlocksCompleted()/request.getNumBlocksTotal());
+				bar.addChild("td", percentage+"%");
+				box.addChild("div", new String[]{"class", "style"}, new String[]{"progress-bar-inner", "z-index : -1; width:"+percentage+"%;"});
+			}
+		}else if(request.getSubject().matches(".+%.+[ ;].+")){
+			bar = new HTMLNode("tbody");
+			Iterator it=request.getSubRequests().iterator();
+			while( it.hasNext()){
+				Request r = (Request)it.next();
+				HTMLNode indexrow = bar.addChild("tr");
+				indexrow.addChild("td", r.getSubject().split("%")[1]);
+				indexrow.addChild("td").addChild("table", "class", "progress-table").addChild(progressBar((Request)r));
+			}
+		}else{
+			bar = new HTMLNode("#");
+			Iterator it=request.getSubRequests().iterator();
+			while( it.hasNext()){
+				Request r = (Request)it.next();
+				bar.addChild(progressBar((Request)r));
+			}
+		}
+		return bar;
 	}
 
 	/**
@@ -451,7 +489,10 @@ public class WebUI{
 					"			var t = setTimeout('getProgress()', 1000);\n" +
 					"	}\n" +
 					"}\n" +
-					"getProgress();\n";
+					"getProgress();\n" +
+					"\n" +
+					"function showGroup(id){\n" +
+					"}\n";
 	}
 
 
