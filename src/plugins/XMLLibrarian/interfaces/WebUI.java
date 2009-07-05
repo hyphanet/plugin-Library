@@ -404,15 +404,15 @@ public class WebUI{
 					(request.getRequestStatus()==Request.RequestStatus.INPROGRESS)
 					?"Stage: "+request.getSubStage()+"/"+request.getSubStageCount()
 					:request.getRequestStatus().toString());
-			HTMLNode box = bar//.addChild("#", request.getSubStage()+"/"+request.getSubStageCount())
-					.addChild("td", new String[]{"class"}, new String[]{"progress-bar-outline"});
-			if(request.getNumBlocksTotal()==0){
-				bar.addChild("td", "");
-				box.addChild("#", "Not Fetching");
+			if(request.isFinished() || request.getNumBlocksTotal()==0){
+				bar.addChild("td", ""); bar.addChild("td");
 			}else{
 				int percentage = (int)(100*request.getNumBlocksCompleted()/request.getNumBlocksTotal());
+				bar//.addChild("#", request.getSubStage()+"/"+request.getSubStageCount())
+					.addChild("td", new String[]{"class"}, new String[]{"progress-bar-outline"})
+					.addChild("div", new String[]{"class", "style"}, new String[]{"progress-bar-inner", "z-index : -1; width:"+percentage+"%;"});
 				bar.addChild("td", percentage+"%");
-				box.addChild("div", new String[]{"class", "style"}, new String[]{"progress-bar-inner", "z-index : -1; width:"+percentage+"%;"});
+				
 			}
 		}else if(request.getSubject().matches(".+%.+[ ;].+")){
 			bar = new HTMLNode("tbody");
