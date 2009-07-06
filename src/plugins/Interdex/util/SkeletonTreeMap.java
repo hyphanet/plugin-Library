@@ -121,17 +121,13 @@ implements SkeletonMap<K, V> {
 	}
 
 	@Override public void inflate() {
-		// URGENT think about how pull(tasks, meta) should actually work...
-		if (serialiser == null) {
-			throw new IllegalStateException("No serialiser set for this structure.");
-		}
+		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		Map<K, PullTask<V>> tasks = new HashMap<K, PullTask<V>>(size()*2);
 		for (K k: keySet()) {
-			if (loaded.get(k) == null) { continue; }
 			Object o = loaded.get(k);
-			PullTask<V> d = new PullTask<V>(o);
-			tasks.put(k, d);
+			if (o == null) { continue; }
+			tasks.put(k, new PullTask<V>(o));
 		}
 		serialiser.pull(tasks, meta);
 
@@ -141,18 +137,17 @@ implements SkeletonMap<K, V> {
 	}
 
 	@Override public void deflate() {
-		if (serialiser == null) {
-			throw new IllegalStateException("No serialiser set for this structure.");
-		}
+		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		Map<K, PushTask<V>> tasks = new HashMap<K, PushTask<V>>(size()*2);
 		for (K k: keySet()) {
-			if (loaded.get(k) != null) { continue; }
-			V v = get(k);
-			PushTask<V> d = new PushTask<V>(v);
-			tasks.put(k, d);
+			tasks.put(k, new PushTask<V>(get(k), loaded.get(k)));
 		}
-		serialiser.push(tasks, meta);
+		try {
+			serialiser.push(tasks, meta);
+		} catch (DataNotLoadedException e) {
+			throw new DataNotLoadedException("The deflate operation requires some extra data to be loaded first", this, e.getKey(), e.getValue());
+		}
 
 		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
 			putDummy(en.getKey(), en.getValue().meta);
@@ -160,11 +155,39 @@ implements SkeletonMap<K, V> {
 	}
 
 	@Override public void inflate(K key) {
-		throw new UnsupportedOperationException("Not implemented.");
+		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
+
+		Map<K, PullTask<V>> tasks = new HashMap<K, PullTask<V>>();
+		tasks.put(key, new PullTask<V>(loaded.get(key)));
+
+		serialiser.pull(tasks, meta);
+		put(key, tasks.get(key).data);
 	}
 
 	@Override public void deflate(K key) {
-		throw new UnsupportedOperationException("Not implemented.");
+		// TODO: redesign this, or the bin packer
+		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
+
+		Map<K, PushTask<V>> tasks = new HashMap<K, PushTask<V>>(size()*2);
+		for (K k: keySet()) {
+			// PRIORITY there ought to be a better way of doing things than this. the
+			// whole system could be redesigned at some point to allow smoother partial
+			// writes of indexes
+
+			// also, at the moment, even the Packer does not support this
+			tasks.put(k, new PushTask<V>(k.equals(key)? get(k): null, loaded.get(k)));
+		}
+		try {
+			serialiser.push(tasks, meta);
+		} catch (DataNotLoadedException e) {
+			throw new DataNotLoadedException("The deflate operation requires some extra data to be loaded first", this, e.getKey(), e.getValue());
+		}
+
+		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
+			if (en.getValue().data != null) {
+				putDummy(en.getKey(), en.getValue().meta);
+			}
+		}
 	}
 
 	/************************************************************************
@@ -303,7 +326,7 @@ implements SkeletonMap<K, V> {
 				public int size() { return SkeletonTreeMap.this.size(); }
 
 				public Iterator<K> iterator() {
-					return new CombinedIterator(SkeletonTreeMap.super.keySet().iterator(), SkeletonTreeMap.this.loaded.keySet().iterator(), CombinedIterator.KEY);
+					return new CombinedIterator(SkeletonTreeMap.super.keySet().iterator(), SkeletonTreeMap.this.loaded.entrySet().iterator(), CombinedIterator.KEY);
 				}
 
 				public void clear() { SkeletonTreeMap.this.clear(); }
@@ -377,7 +400,7 @@ implements SkeletonMap<K, V> {
 				public int size() { return SkeletonTreeMap.this.size(); }
 
 				public Iterator<V> iterator() {
-					return new CombinedIterator(SkeletonTreeMap.super.values().iterator(), SkeletonTreeMap.this.loaded.values().iterator(), CombinedIterator.VALUE);
+					return new CombinedIterator(SkeletonTreeMap.super.values().iterator(), SkeletonTreeMap.this.loaded.entrySet().iterator(), CombinedIterator.VALUE);
 				}
 
 				public void clear() { SkeletonTreeMap.this.clear(); }
@@ -414,7 +437,7 @@ implements SkeletonMap<K, V> {
 	private static class CombinedIterator<T> implements Iterator<T> {
 
 		final private Iterator<T> iter;
-		final private Iterator<?> iterloaded;
+		final private Iterator<Map.Entry> iterloaded;
 
 		final private int type;
 		final private static int KEY = 0;
@@ -423,7 +446,7 @@ implements SkeletonMap<K, V> {
 
 		RuntimeException exceptionThrown;
 
-		CombinedIterator(Iterator<T> it, Iterator<?> itl, int t) {
+		CombinedIterator(Iterator<T> it, Iterator<Map.Entry> itl, int t) {
 			iter = it;
 			iterloaded = itl;
 			type = t;
@@ -439,19 +462,14 @@ implements SkeletonMap<K, V> {
 				throw new IllegalStateException(exceptionThrown);
 			}
 
-			Object o = iterloaded.next();
+			Map.Entry e = iterloaded.next();
 			T n = iter.next();
 
 			switch(type) {
 			case ENTRY:
-				Map.Entry e = (Map.Entry)o;
+			case VALUE:
 				if (e.getValue() != null) {
 					throw exceptionThrown = new DataNotLoadedException("Data not loaded for key " + e.getKey() + ": " + e.getValue(), this, e.getKey(), e.getValue());
-				}
-				break;
-			case VALUE:
-				if (o != null) {
-					throw exceptionThrown = new DataNotLoadedException("Data not loaded: " + o, this, null, o);
 				}
 				break;
 			}

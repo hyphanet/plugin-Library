@@ -9,7 +9,7 @@ import java.util.Set;
 import freenet.keys.FreenetURI;
 
 /**
-** DOCUMENT
+** Data associated with a {@link FreenetURI}. DOCUMENT expand this...
 **
 ** @author infinity0
 */
@@ -25,6 +25,7 @@ public class URIEntry {
 	*/
 	protected float qual;
 
+	// TODO make bean getter/setters for these
 	Date date_checked;
 	String title;
 	int size;

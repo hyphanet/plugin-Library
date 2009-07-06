@@ -13,7 +13,7 @@ import java.util.Comparator;
 import java.util.ArrayList;
 
 /**
-** DOCUMENT
+** A {@link Packer} of {@link Collection}s.
 **
 ** @author infinity0
 */
@@ -51,17 +51,29 @@ implements MapSerialiser<K, T> {
 		return el;
 	}
 
+	@Override protected void addPartitionTo(T element, T partition) {
+		for (Object t: partition) {
+			element.add(t);
+		}
+	}
+
 	@Override protected Iterable iterableOf(T element) {
 		return element;
 	}
 
-	@Override protected void setMetaAfterPack(Map<String, Object> meta, T element, int binindex) {
+	@Override protected int sizeOf(T element) {
+		return element.size();
+	}
+
+	@Override protected void addBinToMeta(Map<String, Object> meta, T element, int binindex) {
 		if (!meta.containsKey("bins")) { meta.put("bins", new ArrayList<Integer>()); }
 		((List)meta.get("bins")).add(binindex);
 	}
 
-	@Override protected int sizeOf(T element) {
-		return element.size();
+	@Override protected List<Integer> getBinsFromMeta(Map<String, Object> meta) {
+		// some archivers will push a list as an array
+		Object list = meta.get("bins");
+		return (list instanceof Integer[])? java.util.Arrays.asList((Integer[])list): (List<Integer>)list;
 	}
 
 }

@@ -19,14 +19,62 @@ import java.util.Collection;
 /**
 ** A {@link SkeletonMap} of a {@link PrefixTreeMap}.
 **
-** URGENT override makeSubTree etc to keep data consistent, or else make
-** a non-live map immutable.
+** URGENT this class needs serious testing. but do after inflate/deflate is
+** done.
+**
+** PRIORITY perhaps override equals and hashcode
 **
 ** @author infinity0
 */
 public class SkeletonPrefixTreeMap<K extends PrefixKey, V>
 extends PrefixTreeMap<K, V>
 implements SkeletonMap<K, V> {
+
+	protected static class DummyChild<K extends PrefixKey, V> extends SkeletonPrefixTreeMap<K, V> {
+
+		protected DummyChild(K p, int len, int caplocal, SkeletonPrefixTreeMap<K, V> par) {
+			super(p, len, caplocal, null, null, par);
+		}
+
+		@Override public void clear() { throw childNotLoaded(); }
+		@Override public boolean isEmpty() { throw childNotLoaded(); }
+		@Override public boolean containsKey(Object key) { throw childNotLoaded(); }
+		@Override public boolean containsValue(Object value) { throw childNotLoaded(); }
+		@Override public Set<Map.Entry<K,V>> entrySet() { throw childNotLoaded(); }
+		@Override public V get(Object key) { throw childNotLoaded(); }
+		@Override public Set<K> keySet() { throw childNotLoaded(); }
+		@Override public V put(K key, V value) { throw childNotLoaded(); }
+		@Override public void putAll(Map<? extends K,? extends V> t) { throw childNotLoaded(); }
+		@Override public V remove(Object key) { throw childNotLoaded(); }
+		@Override public int size() { throw childNotLoaded(); }
+		@Override public Collection<V> values() { throw childNotLoaded(); }
+
+		@Override public boolean isLive() { return false; }
+		@Override public boolean isBare() { return true; }
+
+		@Override public Map<K, V> complete() { throw childNotLoaded(); }
+		@Override public void inflate() { throw childNotLoaded(); }
+		@Override public void deflate() { throw childNotLoaded(); }
+		@Override public void inflate(K key) { throw childNotLoaded(); }
+		@Override public void deflate(K key) { throw childNotLoaded(); }
+
+		protected DataNotLoadedException childNotLoaded() {
+			return new DataNotLoadedException("Child tree " + prefix + " not loaded for PrefixTreeMap " + parent.prefix, parent, prefix, meta);
+		}
+
+	}
+
+	/**
+	** The constructor points this to {@link PrefixTreeMap#parent}, so we don't
+	** have to keep casting when we want to access the methods of the subclass.
+	*/
+	final protected SkeletonPrefixTreeMap<K, V> parent;
+
+	/**
+	** The constructor points this to {@link PrefixTreeMap#child}, so we don't
+	** have to keep casting when we want to access the methods of the subclass.
+	*/
+	final protected SkeletonPrefixTreeMap<K, V>[] child;
 
 	/**
 	** The constructor points this to {@link PrefixTreeMap#tmap}, so we don't
@@ -35,28 +83,31 @@ implements SkeletonMap<K, V> {
 	final protected SkeletonTreeMap<K, V> tmap;
 
 	/**
-	** The meta data for this skeleton. DOCUMENT
+	** The meta data for this skeleton. Passed to the local map, which uses it
+	** as the map-wide metadata for {@link MapSerialiser}'s push and pull
+	** methods.
 	*/
 	protected Object meta = null;
 
 	/**
-	** Meta data for dummy child. DOCUMENT
-	*/
-	final protected Object[] childMeta;
-
-	/**
-	** Keeps track of the number of dummies in the map. TODO make sure put and remove update this.
+	** Keeps track of the number of dummies in the map.
 	*/
 	protected transient int dummyCount;
 
-	protected SkeletonPrefixTreeMap(K p, int len, int caplocal, SkeletonPrefixTreeMap<K, V> par) {
-		super(p, len, caplocal, new SkeletonTreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()], par);
+	protected SkeletonPrefixTreeMap(K p, int len, int caplocal, SkeletonTreeMap<K, V> tm, SkeletonPrefixTreeMap<K, V>[] chd, SkeletonPrefixTreeMap<K, V> par) {
+		super(p, len, caplocal, tm, chd, par);
 
+		parent = (SkeletonPrefixTreeMap<K, V>)super.parent;
+		child = (SkeletonPrefixTreeMap<K, V>[])super.child;
 		tmap = (SkeletonTreeMap<K, V>)super.tmap;
+
 		String str = prefixString();
 		setMeta(str);
 		tmap.setMeta(str);
-		childMeta = new Object[subtrees];
+	}
+
+	protected SkeletonPrefixTreeMap(K p, int len, int caplocal, SkeletonPrefixTreeMap<K, V> par) {
+		this(p, len, caplocal, new SkeletonTreeMap<K, V>(), new SkeletonPrefixTreeMap[p.symbols()], par);
 	}
 
 	public SkeletonPrefixTreeMap(K p, int caplocal) {
@@ -81,20 +132,22 @@ implements SkeletonMap<K, V> {
 	}
 
 	/**
-	** Mark a subgroup as being a dummy tree.
+	** Attach a dummy subtree. If there is already a dummy in its place, does
+	** nothing.
 	**
 	** @param i The index to mark
+	** @
 	*/
-	protected void putDummyChild(int i, Object dummy) {
-		childMeta[i] = (dummy == null)? new Integer(i): dummy;
-		child[i] = null; // TODO check uses of this to make sure it's consistent
+	protected void putDummyChild(int i, Object meta) {
+		if (child[i] != null && child[i] instanceof DummyChild) { return; }
+		child[i] = new DummyChild<K, V>((K)prefix.spawn(preflen, i), preflen, capacityLocal, this);
+		child[i].setMeta(meta);
 		++dummyCount;
 	}
 
 	/**
 	** Attach an existing SkeletonPrefixTreeMap into this one. The prefix must
-	** match and the childMeta array must have an entry in the corresponding
-	** index.
+	** match and there must already be a dummy in the child array.
 	**
 	** @param t The tree to assimilate
 	*/
@@ -118,16 +171,12 @@ implements SkeletonMap<K, V> {
 			throw new IllegalArgumentException("The size of the subtree contradicts its entry in sizePrefix");
 		}
 
-		if (childMeta[i] != null) {
+		if (child[i] instanceof DummyChild) {
 			child[i] = t;
-			childMeta[i] = null;
+			--dummyCount;
 		} else {
 			throw new IllegalArgumentException("This tree does not need attach a subtree with prefix " + t.prefix);
 		}
-	}
-
-	protected DataNotLoadedException childNotLoaded(int i) {
-		return new DataNotLoadedException("Child tree " + i + " not loaded for PrefixTreeMap " + prefix.toString(), this, prefix.spawn(preflen, i), childMeta[i]);
 	}
 
 	/*========================================================================
@@ -141,38 +190,9 @@ implements SkeletonMap<K, V> {
 		return ch;
 	}
 
-	@Override protected Map<K, V> selectNode(int i) {
-		if (child[i] == null) {
-			return tmap;
-		} else if (childMeta[i] != null) {
-			throw childNotLoaded(i);
-		} else {
-			return child[i];
-		}
-	}
-
 	/*========================================================================
 	  public class PrefixTreeMap
 	 ========================================================================*/
-
-	@Override public void clear() {
-		super.clear();
-		for (int i=0; i<subtrees; ++i) {
-			childMeta[i] = null;
-		}
-	}
-
-	@Override public boolean containsValue(Object value) {
-		if (tmap.containsValue(value)) { return true; }
-		for (int i=0; i<subtrees; ++i) {
-			if (child[i] != null && child[i].containsValue(value)) {
-				return true;
-			} else if (childMeta[i] != null) {
-				throw childNotLoaded(i);
-			}
-		}
-		return false;
-	}
 
 	@Override public V put(K key, V value) {
 		if (!key.match(prefix, preflen)) {
@@ -187,10 +207,10 @@ implements SkeletonMap<K, V> {
 		if (map.size() != s) {
 			// attempts to detect a situation where a reshuffle of the tree would occur
 			// but not all the data for this reshuffle has been loaded
-			if (map == tmap && !isLive() && childMeta[smallestChild()] != null) {
+			if (map == tmap && !isLive() && child[smallestChild()] instanceof DummyChild) {
 				// TODO use the logic below instead...
 				map.remove(key);
-				throw childNotLoaded(smch_);
+				throw ((DummyChild)child[smch_]).childNotLoaded();
 				// if smallest child is not loaded, if map is local map,
 				// if smallestChild exists and its size == this subgroup's old size (sizePrefix hasn't been updated yet)
 				// then smallest child is going to be freed, so remove the value and
@@ -213,10 +233,10 @@ implements SkeletonMap<K, V> {
 		if (map.size() != s) {
 			// attempts to detect a situation where a reshuffle of the tree would occur
 			// but not all the data for this reshuffle has been loaded
-			if (map == tmap && !isLive() && childMeta[smallestChild()] != null) {
+			if (map == tmap && !isLive() && child[smallestChild()] instanceof DummyChild) {
 				// TODO use the logic below instead...
 				map.put(k, v);
-				throw childNotLoaded(smch_);
+				throw ((DummyChild)child[smch_]).childNotLoaded();
 				// if smallest child is not loaded,
 				// if map is local map, or if this subgroup's size is smallestChild's size
 				// and spaceleft is smallestChild's size - 2,
@@ -270,16 +290,14 @@ implements SkeletonMap<K, V> {
 	}
 
 	@Override public void inflate() {
-		if (serialiser == null) {
-			throw new IllegalStateException("No serialiser set for this structure.");
-		}
+		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		if (!tmap.isLive()) { tmap.inflate(); }
 
 		java.util.List<PullTask<SkeletonPrefixTreeMap<K, V>>> tasks = new java.util.ArrayList<PullTask<SkeletonPrefixTreeMap<K, V>>>(subtrees);
-		for (int i=0; i<child.length; ++i) {
-			if (child[i] == null) { continue; }
-			PullTask<SkeletonPrefixTreeMap<K, V>> task = new PullTask<SkeletonPrefixTreeMap<K, V>>(childMeta[i]);
+		for (SkeletonPrefixTreeMap<K, V> ch: child) {
+			if (ch == null || !(ch instanceof DummyChild)) { continue; }
+			PullTask<SkeletonPrefixTreeMap<K, V>> task = new PullTask<SkeletonPrefixTreeMap<K, V>>(ch.getMeta());
 			task.data = this; // this is a bit of a hack, but oh well...
 			// the only way to supply the parent pointer is via the constructor
 			// and hence we must pass the parent pointer to the translator
@@ -290,8 +308,8 @@ implements SkeletonMap<K, V> {
 			// since it is a grand-superclass. it's too late to recode the
 			// entire thing, sorry... :p
 			//
-			// TODO actually now that we have removed DummyPrefixTreeMap, we could just get rid of
-			// the parent field, maybe...
+			// TODO actually we could just get rid of the parent field.... it's
+			// not actually used anywhere in any of the algorithms...
 			tasks.add(task);
 		}
 		serialiser.pull(tasks);
@@ -306,17 +324,14 @@ implements SkeletonMap<K, V> {
 	}
 
 	@Override public void deflate() {
-		if (serialiser == null) {
-			throw new IllegalStateException("No serialiser set for this structure.");
-		}
+		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		java.util.List<PushTask<SkeletonPrefixTreeMap<K, V>>> tasks = new java.util.ArrayList<PushTask<SkeletonPrefixTreeMap<K, V>>>(subtrees);
-		for (PrefixTreeMap<K, V> chd: child) {
-			if (chd == null) { continue; }
-			SkeletonPrefixTreeMap<K, V> ch = (SkeletonPrefixTreeMap<K, V>)chd;
+		for (SkeletonPrefixTreeMap<K, V> ch: child) {
+			if (ch == null || ch instanceof DummyChild) { continue; }
 			// TODO maybe find some way to make this concurrent, but not so important
 			if (!ch.isBare()) { ch.deflate(); }
-			tasks.add(new PushTask<SkeletonPrefixTreeMap<K, V>>(ch));
+			tasks.add(new PushTask<SkeletonPrefixTreeMap<K, V>>(ch, ch.getMeta()));
 		}
 		serialiser.push(tasks);
 
@@ -330,11 +345,42 @@ implements SkeletonMap<K, V> {
 	}
 
 	@Override public void inflate(K key) {
-		throw new UnsupportedOperationException("Not implemented.");
+		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
+
+		int i = key.get(preflen);
+		if (child[i] == null) {
+			tmap.inflate(key);
+
+		} else {
+			if (child[i] instanceof DummyChild) {
+				PullTask<SkeletonPrefixTreeMap<K, V>> task = new PullTask<SkeletonPrefixTreeMap<K, V>>(child[i].getMeta());
+				task.data = this; // this is a hack that might be removed later, see inflate() for details
+				serialiser.pull(task);
+				putChild(task.data);
+			}
+
+			child[i].inflate(key);
+		}
 	}
 
 	@Override public void deflate(K key) {
-		throw new UnsupportedOperationException("Not implemented.");
+		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
+
+		int i = key.get(preflen);
+		if (child[i] == null) {
+			tmap.deflate(key);
+
+		} else if (!(child[i] instanceof DummyChild)) {
+			child[i].deflate(key);
+
+			// if the child is now bare, push it to disk too; a bare tree is useless
+			if (child[i].isBare()) {
+				PushTask<SkeletonPrefixTreeMap<K, V>> task = new PushTask<SkeletonPrefixTreeMap<K, V>>(child[i], child[i].getMeta());
+				serialiser.push(task);
+				putDummyChild(i, task.meta);
+			}
+
+		}
 	}
 
 	/************************************************************************

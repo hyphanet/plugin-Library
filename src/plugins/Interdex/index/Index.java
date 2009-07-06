@@ -17,9 +17,12 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import freenet.keys.FreenetURI;
 
 import plugins.Interdex.util.PrefixTreeMap;
+import plugins.Interdex.util.DataNotLoadedException;
 
 /**
-** DOCUMENT
+** Represents the data for an index.
+**
+** TODO make bean getter/setters for the fields
 **
 ** TODO work out locking
 **

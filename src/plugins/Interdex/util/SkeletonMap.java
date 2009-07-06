@@ -66,14 +66,14 @@ public interface SkeletonMap<K, V> {
 	*/
 	public void deflate();
 
-	/*/*
+	/*/* TODO remove
 	** Inflate the part of the skeleton which corresponds to the given submap.
 	**
 	** @param map The submap to inflate.
 	*/
 	//public void inflate(SkeletonMap<K, V> map);
 
-	/*/*
+	/*/* TODO remove
 	** Deflate the part of the skeleton which corresponds to the given submap.
 	**
 	** @param map The submap to deflate.

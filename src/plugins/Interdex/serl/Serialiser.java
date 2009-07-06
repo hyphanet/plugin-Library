@@ -12,12 +12,12 @@ import java.util.Map;
 ** An empty marker interface for serialisation classes. It defines some nested
 ** subclasses that acts as a unified interface between these classes.
 **
-** By default, nested data structures such as {@link PrefixTreeMap} use the
-** meta objects of their children directly during a serialisation operation.
-** Therefore, it is recommended that the meta objects returned by this class
-** (and related classes) be directly serialisable by an {@link Archiver}. This
-** will make the task of writing a {@link Translator} much easier, possibly
-** even unnecessary.
+** By default, nested data structures such as {@link PrefixTreeMap} will use
+** the metadata of their children directly (as in, without using a {@link
+** Translator} during a serialisation operation. Therefore, it is recommended
+** that all metadata passing through this class (and related classes) be
+** directly serialisable by an {@link Archiver}. This will make the task of
+** writing {@link Translator}s much easier, possibly even unnecessary.
 **
 ** The recommended way to ensure this is for it to be either: a primitive or
 ** Object form of a primitive; an Array, {@link Collection}, or {@link Map},
@@ -49,6 +49,15 @@ public interface Serialiser<T> {
 	/************************************************************************
 	** Defines a pull task: given some metadata, the task is to retrieve the
 	** data for this metadata, possibly updating the metadata in the process.
+	**
+	** For any single {@code PullTask}, the metadata should uniquely determine
+	** what data will be generated during a pull operation, independent of any
+	** information from other {@code PullTasks}, even if they are in the same
+	** group of tasks given to a compound {@link Serialiser} such as {@link
+	** MapSerialiser}. (The converse is not required for {@link PushTask}s.)
+	**
+	** Consequently, {@code Serialiser}s should be implemented so that its
+	** push operations generate metadata for which this property holds.
 	*/
 	public static class PullTask<T> extends Task<T> {
 
@@ -60,7 +69,16 @@ public interface Serialiser<T> {
 
 	/************************************************************************
 	** Defines a push task: given some data and optional metadata, the task is
-	** to submit this data and update the metadata for it in the process.
+	** to archive this data and generate the metadata for it in the process.
+	**
+	** For any single {@code PushTask}, the data may or may not uniquely
+	** determine the metadata that will be generated for it during the push
+	** operation. For example, compound {@link Serialiser}s that work on groups
+	** of tasks may use information from the whole group in order to optimise
+	** the operation. (The converse is required for {@link PullTask}s.)
+	**
+	** Consequently, {@code Serialiser}s may require that extra data is passed
+	** to its push operations such that it can...
 	*/
 	public static class PushTask<T> extends Task<T> {
 

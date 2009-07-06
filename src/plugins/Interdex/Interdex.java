@@ -52,7 +52,7 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
 		SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>> test = new
-		SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>(new Token(), 1024);
+		SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>(new Token(), 512);
 
 		IndexFileSerialiser f = new IndexFileSerialiser();
 		test.setSerialiser(f.s, f.sv);
@@ -62,7 +62,7 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 		for (int i=0; i<4096; ++i) {
 			String key = rndStr().substring(0,8);
 			SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
-			int n = rand.nextInt(240) + 16;
+			int n = rand.nextInt(496) + 16;
 
 			try {
 				for (int j=0; j<n; ++j) {

@@ -12,7 +12,8 @@ import java.util.Comparator;
 import java.util.ArrayList;
 
 /**
-** DOCUMENT
+** A {@link Packer} of {@link Map}s. It keeps track of the first keys of each
+** partition. (TODO maybe explicitly make this use SortedMap and firstKey()?)
 **
 ** @author infinity0
 */
@@ -51,20 +52,33 @@ implements MapSerialiser<K, T> {
 		return el;
 	}
 
+	@Override protected void addPartitionTo(T element, T partition) {
+		// for some reason java does not realise Map.entrySet() is Set<Map.Entry>
+		for (Map.Entry en: (java.util.Set<Map.Entry>)partition.entrySet()) {
+			element.put(en.getKey(), en.getValue());
+		}
+	}
+
 	@Override protected Iterable iterableOf(T element) {
 		return element.entrySet();
 	}
 
-	@Override protected void setMetaAfterPack(Map<String, Object> meta, T element, int binindex) {
+	@Override protected int sizeOf(T element) {
+		return element.size();
+	}
+
+	@Override protected void addBinToMeta(Map<String, Object> meta, T partition, int binindex) {
 		if (!meta.containsKey("bins")) { meta.put("bins", new ArrayList<Integer>()); }
 		if (!meta.containsKey("keys")) { meta.put("keys", new ArrayList()); }
 		((List)meta.get("bins")).add(binindex);
-		Iterator it = element.keySet().iterator();
+		Iterator it = partition.keySet().iterator();
 		((List)meta.get("keys")).add(it.hasNext()? it.next(): null);
 	}
 
-	@Override protected int sizeOf(T element) {
-		return element.size();
+	@Override protected List<Integer> getBinsFromMeta(Map<String, Object> meta) {
+		// some archivers will push a list as an array
+		Object list = meta.get("bins");
+		return (list instanceof Integer[])? java.util.Arrays.asList((Integer[])list): (List<Integer>)list;
 	}
 
 }

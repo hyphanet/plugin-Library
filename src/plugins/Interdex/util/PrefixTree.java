@@ -65,7 +65,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	** all mappings whose keys give the same key.get(preflen). At all times,
 	** the sum the array elements should equal the size field. Additionally,
 	** for all i: ({@link #child}[i] != null) implies ({@link #sizePrefix}[i]
-	** == {@link #child}[i].size()) and {@link #sizeLocal()} == sum{ {@link
+	** == {@link #child}[i].size()); and {@link #sizeLocal()} == sum{ {@link
 	** #sizePrefix}[j] : {@link #child}[j] == null }
 	*/
 	protected int sizePrefix[];
@@ -162,7 +162,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	**
 	** @return The index of the new subtree.
 	*/
-	protected int bindSubTree() {
+	private int bindSubTree() {
 		assert(sizeLocal() > 0);
 		assert(subtrees < subtreesMax);
 
