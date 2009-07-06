@@ -135,8 +135,8 @@ implements SkeletonMap<K, V> {
 	** Attach a dummy subtree. If there is already a dummy in its place, does
 	** nothing.
 	**
-	** @param i The index to mark
-	** @
+	** @param i The index to attach to
+	** @param meta The meta to associate the child with
 	*/
 	protected void putDummyChild(int i, Object meta) {
 		if (child[i] != null && child[i] instanceof DummyChild) { return; }

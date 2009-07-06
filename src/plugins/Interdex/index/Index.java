@@ -16,11 +16,15 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import freenet.keys.FreenetURI;
 
-import plugins.Interdex.util.PrefixTreeMap;
+import plugins.Interdex.util.SkeletonPrefixTreeMap;
+import plugins.Interdex.util.SkeletonMap;
 import plugins.Interdex.util.DataNotLoadedException;
 
 /**
 ** Represents the data for an index.
+**
+** TODO make this into an interface and put the actual implementation in
+** ProtoIndex.java
 **
 ** TODO make bean getter/setters for the fields
 **
@@ -56,28 +60,32 @@ public class Index {
 	/**
 	** Extra configuration options for the index.
 	*/
-	protected Map<String, Object> extra;
+	final protected Map<String, Object> extra;
 
 	/**
 	** Whether this index is writeable.
 	*/
 	final public transient boolean writeable;
 
-	/**
+	/* *
 	** Filter table. Used to make checks quicker.
+	** TODO implement
 	*/
-	protected PrefixTreeMap<Token, TokenFilter> filtab;
+	//protected SkeletonMap<Token, TokenFilter> filtab;
 
 	/**
 	** Token table. Provides information related to a Token-URI pairing.
 	*/
-	protected PrefixTreeMap<Token, SortedSet<TokenEntry>> tktab;
+	protected SkeletonMap<Token, SortedSet<TokenEntry>> tktab;
 
 	/**
 	** URI table. Provides information related to a URI.
 	*/
-	protected PrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>> utab;
+	protected SkeletonMap<URIKey, SortedMap<FreenetURI, URIEntry>> utab;
 
+	/**
+	** Read-write lock. PRIORITY: actually use this.
+	*/
 	final private transient ReadWriteLock lock = new ReentrantReadWriteLock();
 
 	public Index(FreenetURI i, String n) {
@@ -87,19 +95,19 @@ public class Index {
 		modified = new Date();
 		extra = new HashMap<String, Object>();
 
-		utab = new PrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKey(), UTAB_MAX);
-		tktab = new PrefixTreeMap<Token, SortedSet<TokenEntry>>(new Token(), TKTAB_MAX);
-		filtab = new PrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX);
+		utab = new SkeletonPrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKey(), UTAB_MAX);
+		tktab = new SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>(new Token(), TKTAB_MAX);
+		//filtab = new SkeletonPrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX);
 	}
 
 	/**
-	** This constructor is used by the {@link IndexTranslator translator} to
-	** create a skeleton index.
+	** This constructor is used by the {@link IndexFileSerialiser.IndexSerialiser.IndexTranslator
+	** translator} to create a skeleton index.
 	*/
 	protected Index(FreenetURI i, String n, Date m, Map<String, Object> x,
-		PrefixTreeMap<Token, TokenFilter> f,
-		PrefixTreeMap<Token, SortedSet<TokenEntry>> t,
-		PrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>> u
+		SkeletonMap<URIKey, SortedMap<FreenetURI, URIEntry>> u,
+		SkeletonMap<Token, SortedSet<TokenEntry>> t/*,
+		SkeletonMap<Token, TokenFilter> f*/
 		) {
 		id = i;
 		name = (n == null)? "".intern(): n;
@@ -107,9 +115,38 @@ public class Index {
 		modified = m;
 		extra = x;
 
-		filtab = f;
+		//filtab = f;
 		tktab = t;
 		utab = u;
+	}
+
+	public long getMagic() {
+		return MAGIC;
+	}
+
+	/**
+	** DOCUMENT
+	**
+	** TODO make Index extend a Skeleton class or something.
+	*/
+	public boolean isLive() {
+		return utab.isLive() && tktab.isLive()/* && filtab.isLive()*/;
+	}
+
+	public boolean isBare() {
+		return utab.isBare() && tktab.isBare()/* && filtab.isBare()*/;
+	}
+
+	public void inflate() {
+		//filtab.inflate();
+		tktab.inflate();
+		utab.inflate();
+	}
+
+	public void deflate() {
+		utab.deflate();
+		tktab.deflate();
+		//filtab.deflate();
 	}
 
 	/*

@@ -63,7 +63,6 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 			throw new IllegalArgumentException("YamlArchiver does not support such metadata: " + meta);
 		}
 
-		// TODO maybe have to deconvert primitive arrays
 		return m;
 	}
 
@@ -76,9 +75,12 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 		try {
 			File file = new File(prefix + s[0] + suffix + s[1] + ".yml");
 			FileInputStream is = new FileInputStream(file);
+			// TODO make this throw DataFormatException for bad YAML docs
 			t.data = (T)yaml.load(new InputStreamReader(is));
+			// URGENT maybe have to deconvert primitive arrays
 			is.close();
 		} catch (java.io.IOException e) {
+			// TODO make handling of this neater
 			throw new RuntimeException(e);
 		}
 	}
@@ -92,6 +94,7 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 			yaml.dump(t.data, new OutputStreamWriter(os));
 			os.close();
 		} catch (java.io.IOException e) {
+			// TODO make handling of this neater
 			throw new RuntimeException(e);
 		}
 	}

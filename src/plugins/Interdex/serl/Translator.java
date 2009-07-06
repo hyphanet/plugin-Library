@@ -16,15 +16,6 @@ import plugins.Interdex.util.SkeletonMap;
 public interface Translator<T, I> {
 
 	/**
-	** Reverse the translation.
-	**
-	** Implementations of this method which act on a recursive data structure
-	** that is designed to be partially loaded (such as {@link SkeletonMap}),
-	** should follow the same guidelines as in {@link Archiver#pull(Serialiser.PullTask)}.
-	*/
-	T rev(I intermediate);
-
-	/**
 	** Apply the translation.
 	**
 	** Implementations of this method which act on a recursive data structure
@@ -33,5 +24,14 @@ public interface Translator<T, I> {
 	** particularly with regards to throwing {@link IllegalArgumentException}.
 	*/
 	I app(T translatee);
+
+	/**
+	** Reverse the translation.
+	**
+	** Implementations of this method which act on a recursive data structure
+	** that is designed to be partially loaded (such as {@link SkeletonMap}),
+	** should follow the same guidelines as in {@link Archiver#pull(Serialiser.PullTask)}.
+	*/
+	T rev(I intermediate);
 
 }

@@ -37,9 +37,9 @@ with deflate(Index)
 
 == Schedule ==
 
- - implement deflate/inflate on STM/SPTM, 2-3 days
- - implement auto-fetching of not loaded data 2-3 days
+ # implement deflate/inflate on STM/SPTM, 2-3 days
  - implement index push/pull 1 day
+ - implement auto-fetching of not loaded data 2-3 days
  - implement a serialiser to send progress reports 5-7 days
  - implement Ghost* 3-5 days
  - implement freenet inflate/deflate 5-7 days

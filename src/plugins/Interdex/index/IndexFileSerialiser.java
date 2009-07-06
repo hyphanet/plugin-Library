@@ -16,13 +16,19 @@ import plugins.Interdex.serl.CompositeSerialiser;
 import plugins.Interdex.serl.CompositeArchiver;
 import plugins.Interdex.serl.CollectionPacker;
 import plugins.Interdex.serl.YamlArchiver;
+import plugins.Interdex.serl.DataFormatException;
 
-import java.util.HashMap;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.Map;
 import java.util.List;
+import java.util.Set;
+import java.util.Map;
 import java.util.ArrayList;
+import java.util.SortedMap;
+import java.util.SortedSet;
+import java.util.HashMap;
+import java.util.TreeSet;
+import java.util.Date;
+
+import freenet.keys.FreenetURI;
 
 /**
 ** This class handles serialisation of an Index into a filetree.
@@ -46,6 +52,97 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 		s = new PrefixTreeMapSerialiser<Token, SortedSet<TokenEntry>>();
 		sv = new TokenEntrySerialiser();
 		//
+	}
+
+
+	// TODO maybe rename this to a less generic name...
+	public static class IndexSerialiser
+	extends CompositeArchiver<Index, Map<String, Object>>
+	implements Archiver<Index> {
+
+		// TODO
+		// when doing this to/from freenet, we'll have to have two extra fields
+		// for the request/insert URIs
+
+		PrefixTreeMapSerialiser<Token, SortedSet<TokenEntry>> tksrl;
+		PrefixTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>> usrl;
+
+		public IndexSerialiser() {
+			super(new YamlArchiver<Map<String, Object>>("index", ""), new IndexTranslator());
+			tksrl = new PrefixTreeMapSerialiser<Token, SortedSet<TokenEntry>>();
+			usrl = new PrefixTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>>();
+		}
+
+		public void pull(PullTask<Index> task) {
+			// I hate Java.
+			PullTask<Map<String, Object>> subtask = new PullTask<Map<String, Object>>(null);
+			PullTask<SkeletonPrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>> utask = new PullTask<SkeletonPrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>>(null);
+			PullTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>> tktask = new PullTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>>(null);
+			subsrl.pull(subtask);
+			usrl.pull(utask);
+			tksrl.pull(tktask);
+
+			subtask.data.put("tktab", tktask.data);
+			subtask.data.put("utab", utask.data);
+
+			task.data = trans.rev(subtask.data);
+		}
+
+		public void push(PushTask<Index> task) {
+			// I hate Java.
+			Map<String, Object> intermediate = trans.app(task.data);
+
+			tksrl.push(new PushTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>>((SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>)intermediate.remove("tktab")));
+			usrl.push(new PushTask<SkeletonPrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>>((SkeletonPrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>)intermediate.remove("utab")));
+			subsrl.push(new PushTask<Map<String, Object>>(intermediate));
+		}
+
+
+		public static class IndexTranslator
+		implements Translator<Index, Map<String, Object>> {
+
+			public Map<String, Object> app(Index idx) {
+				if (!idx.isBare()) {
+					throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
+				}
+				Map<String, Object> map = new HashMap<String, Object>();
+				map.put("MAGIC", idx.getMagic());
+				map.put("id", idx.id);
+				map.put("name", idx.name);
+				map.put("modified", idx.modified);
+				map.put("extra", idx.extra);
+				// these are meant to be removed by the parent Serialiser and pushed
+				map.put("utab", idx.utab);
+				map.put("tktab", idx.tktab);
+				return map;
+			}
+
+			public Index rev(Map<String, Object> map) {
+				long magic = (Long)map.get("MAGIC");
+
+				if (magic == Index.MAGIC) {
+					try {
+						FreenetURI id = (FreenetURI)map.get("id");
+						String name = (String)map.get("name");
+						Date modified = (Date)map.get("modified");
+						Map<String, Object> extra = (Map<String, Object>)map.get("extra");
+						SkeletonPrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>> utab = (SkeletonPrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>)map.get("utab");
+						SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>> tktab = (SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>)map.get("tktab");
+
+						return new Index(id, name, modified, extra, utab, tktab);
+
+					} catch (ClassCastException e) {
+						// TODO maybe find a way to pass the actual bad data to the exception
+						throw new DataFormatException("Badly formatted data: " + e, e, null);
+					}
+
+				} else {
+					throw new DataFormatException("Unrecognised magic number", magic, map, "magic");
+				}
+			}
+
+		}
+
 	}
 
 	public static class PrefixTreeMapSerialiser<K extends PrefixKey, V>
@@ -78,7 +175,8 @@ public class IndexFileSerialiser /*implements Serialiser<Index>*/ {
 			}
 		}
 
-		public static class PrefixTreeMapTranslator<K extends PrefixKey, V> extends SkeletonPrefixTreeMap.PrefixTreeMapTranslator<K, V> {
+		public static class PrefixTreeMapTranslator<K extends PrefixKey, V>
+		extends SkeletonPrefixTreeMap.PrefixTreeMapTranslator<K, V> {
 
 			public SkeletonPrefixTreeMap<K, V> rev(Map<String, Object> map) {
 				throw new UnsupportedOperationException("Not implemented.");

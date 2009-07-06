@@ -4,7 +4,6 @@
 package plugins.Interdex.serl;
 
 import plugins.Interdex.serl.Serialiser.*;
-import plugins.Interdex.util.DataNotLoadedException;
 
 import java.util.List;
 import java.util.Set;
@@ -317,7 +316,7 @@ implements MapSerialiser<K, T> {
 		// exception
 		for (Map.Entry<K, PushTask<T>> en: tasks.entrySet()) {
 			if (en.getValue().meta != null) {
-				throw new DataNotLoadedException("Cannot repack when some of the bins have not been loaded", tasks, en.getKey(), en.getValue().meta);
+				throw new plugins.Interdex.util.DataNotLoadedException("Cannot repack when some of the bins have not been loaded", tasks, en.getKey(), en.getValue().meta);
 			}
 		}
 
