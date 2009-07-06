@@ -30,6 +30,8 @@ public class LibrarianHandler extends DefaultHandler {
 	private HashMap<String, String> titles;
 	private List<FindRequest> requests;
 	private List<FindRequest> wordMatches;
+	private URIWrapper inFile;
+	private StringBuilder characters;
 
 
 	/**
@@ -111,7 +113,9 @@ public class LibrarianHandler extends DefaultHandler {
 						//Logger.minor(this, "adding to all in "+wordMatches);
 						for(FindRequest<URIWrapper> match : wordMatches){
 							match.addResult(uri);
-							Logger.minor(this, "added "+uri+ " to "+ match);
+							inFile = uri;
+							characters = new StringBuilder("");
+							//Logger.minor(this, "added "+uri+ " to "+ match);
 						}
 					}
 				}
@@ -141,6 +145,30 @@ public class LibrarianHandler extends DefaultHandler {
 					Logger.error(this, "File id and key could not be retrieved. May be due to format clash", e);
 				}
 			}
+		}
+	}
+	
+	public void characters(char[] ch, int start, int length) {
+		if(characters!=null){
+			for (int i = start; i < start+length; i++) {
+				characters.append(ch[i]);
+			}
+		}
+	}
+
+	public void endElement(String namespaceURI, String localName, String qName) {
+		if(inFile!=null){
+			String[] termposs = characters.toString().split(",");
+			ArrayList<Integer> termpositions = new ArrayList();
+			for (String pos : termposs) {
+				try{
+					termpositions.add(Integer.valueOf(pos));
+				}catch(NumberFormatException e){
+				}
+			}
+			inFile.termpositions = termpositions;
+			inFile = null;
+			characters = null;
 		}
 	}
 }

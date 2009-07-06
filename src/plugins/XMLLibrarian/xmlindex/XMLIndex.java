@@ -380,7 +380,7 @@ public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 							is.close();
 						} catch (Throwable err) {
 							Logger.error(this, "Error parsing ", err);
-							throw new Exception("Could not parse XML: " + err.toString());
+							throw new Exception("Could not parse XML: ", err);
 						}
 					}else
 						break;
