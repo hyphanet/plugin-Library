@@ -68,13 +68,7 @@ public interface Request<E> {
 	 * @return true if RequestStatus is PARTIALRESULT or FINISHED
 	 */
 	public boolean hasResult();
-
-
-	/**
-	 * @return true if result has changed since it was last got
-	 */
-	public boolean resultChanged();
-
+	
 	/**
 	 * To be overridden by subclasses which depend on subrequests
 	 * @return Set of Requests

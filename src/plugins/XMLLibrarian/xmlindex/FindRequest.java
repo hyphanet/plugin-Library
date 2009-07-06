@@ -24,7 +24,6 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	protected Exception err;
 	private String eventDescription;
 	Set<E> result;
-	private boolean resultChanged=true;
 	
 	
 	/**
@@ -96,7 +95,6 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	 * @return result of this request
 	 */
 	public Set<E> getResult(){
-		resultChanged = false;
 		return result;
 	}
 	/**
@@ -144,12 +142,7 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 
 	public void addResult(E entry){
 		status = RequestStatus.PARTIALRESULT;
-		resultChanged = true;
 		result.add(entry);
-	}
-
-	public boolean resultChanged(){
-		return resultChanged;
 	}
 	
 	/**
@@ -203,11 +196,6 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 		for (FindRequest request : requests)
 			request.updateWithEvent(downloadProgress, downloadSize);
 		Logger.normal(FindRequest.class, "updated requests with progress");
-	}
-
-
-	public String getEventDescription() {
-		return eventDescription;
 	}
 
 	/**

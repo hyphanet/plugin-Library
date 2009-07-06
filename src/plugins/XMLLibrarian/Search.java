@@ -37,8 +37,6 @@ public class Search implements Request<URIWrapper> {
 	private long blocksCompleted;
 	private long blocksTotal;
 	protected Exception err;
-	// TODO Set operations wont maintain the results with the most information, these wil need to be retained
-	Set<URIWrapper> result;
 
 	private static HashMap<String, Search> allsearches = new HashMap<String, Search>();
 
@@ -348,9 +346,7 @@ public class Search implements Request<URIWrapper> {
 		if(getRequestStatus() != Request.RequestStatus.FINISHED)
 			return null;
 
-		if (!resultChanged() && result!=null)
-			return result;
-		result = new TreeSet<URIWrapper>();
+		TreeSet<URIWrapper> result = new TreeSet<URIWrapper>();
 		for(Request<URIWrapper> r : subsearches)
 			if(r.hasResult())
 				if(result.size()>0)
@@ -364,12 +360,5 @@ public class Search implements Request<URIWrapper> {
 					result.addAll(r.getResult());
 		allsearches.remove(subject);
 		return result;
-	}
-
-	public boolean resultChanged() {
-		for (Request r : subsearches)
-			if (r.resultChanged())
-				return true;
-		return false;
 	}
 }
