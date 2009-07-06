@@ -12,6 +12,7 @@ import org.xml.sax.helpers.DefaultHandler;
 import freenet.support.Logger;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import plugins.XMLLibrarian.URIWrapper;
 
 /**
@@ -37,7 +38,7 @@ public class LibrarianHandler extends DefaultHandler {
 	 * @throws java.lang.Exception
 	 */
 	public LibrarianHandler(List<FindRequest> requests) throws Exception {
-		this.requests = requests;
+		this.requests = new ArrayList(requests);
 		for(FindRequest r : requests)
 			r.setResult(new HashSet<URIWrapper>());
 	}
@@ -58,6 +59,8 @@ public class LibrarianHandler extends DefaultHandler {
 
 	public void startElement(String nameSpaceURI, String localName, String rawName, Attributes attrs)
 	        throws SAXException {
+		if(requests.size()==0&&wordMatches.size()==0)
+			return;
 		if (rawName == null) {
 			rawName = localName;
 		}
@@ -73,22 +76,21 @@ public class LibrarianHandler extends DefaultHandler {
 		 */
 		if (elt_name.equals("word")) {
 			try {
-				if(requests.size()==0)
-					return;
 				wordMatches = null;
 				String match = attrs.getValue("v");
 				if (requests!=null){
 					wordMatches = new ArrayList<FindRequest>();
-					for (FindRequest r : requests){
-						//System.out.println("comparing "+r.getSubject()+" with "+match);
+					for (Iterator<FindRequest> it = requests.iterator(); it.hasNext();) {
+						FindRequest r = it.next();
 						if (match.equals(r.getSubject())){
 							wordMatches.add(r);
-							requests.remove(r);
+							it.remove();
+							Logger.minor(this, "found word match "+wordMatches);
 						}
 					}
 				}
 			} catch (Exception e) {
-				Logger.error(this, "word key doesn't match" + e.toString(), e);
+				throw new SAXException(e);
 			}
 		}
 
@@ -106,8 +108,10 @@ public class LibrarianHandler extends DefaultHandler {
 						}
 						else
 							uri.descr = "not available";
+						//Logger.minor(this, "adding to all in "+wordMatches);
 						for(FindRequest<URIWrapper> match : wordMatches){
 							match.addResult(uri);
+							Logger.minor(this, "added "+uri+ " to "+ match);
 						}
 					}
 				}

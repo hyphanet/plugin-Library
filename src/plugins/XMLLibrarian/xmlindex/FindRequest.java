@@ -1,6 +1,5 @@
 package plugins.XMLLibrarian.xmlindex;
 
-import freenet.support.Logger;
 import java.util.List;
 import java.util.Set;
 import plugins.XMLLibrarian.Request;
@@ -210,7 +209,6 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 		boolean finalized = eventDescription.contains("(finalized total)");
 		for (FindRequest request : requests)
 			request.updateWithEvent(downloadProgress, downloadSize, finalized);
-		Logger.normal(FindRequest.class, "updated requests with progress");
 	}
 
 	/**

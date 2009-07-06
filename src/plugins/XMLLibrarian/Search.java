@@ -127,6 +127,7 @@ public class Search implements Request<URIWrapper> {
 		this.query = query;
 		this.indexURI = indexURI;
 		this.subject = makeString(query, indexURI);
+		this.resultOperation = ResultOperation.UNION;
 		allsearches.put(subject, this);
 	}
 	
