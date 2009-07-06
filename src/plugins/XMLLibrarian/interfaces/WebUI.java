@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import plugins.XMLLibrarian.Index;
-import plugins.XMLLibrarian.InvalidSearchException;
 import plugins.XMLLibrarian.Request;
 import plugins.XMLLibrarian.Search;
 import plugins.XMLLibrarian.URIWrapper;
@@ -242,7 +241,7 @@ public class WebUI{
 		while (it2.hasNext()) {
 			String key = it2.next();
 			Object ob = groupmap.get(key);
-			HTMLNode siteNode = resultsNode.addChild("div");
+			HTMLNode siteNode = resultsNode.addChild("div", "style", "padding: 6px;");
 			if(ob.getClass()==URIWrapper.class){
 				URIWrapper o = (URIWrapper)ob;
 				String showurl = o.URI.replaceAll("(CHK@.{5}).+(/.+)", "$1...$2");
@@ -287,7 +286,7 @@ public class WebUI{
 					URIWrapper u;
 					while(it4.hasNext()){
 						u = it4.next();
-						HTMLNode pageNode = versionCell.addChild("p", new String[]{"class", "style"}, new String[]{"result-title", "padding-left:15px"});
+						HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-title", "padding: 4px; padding-left:15px;"});
 						String showtitle = u.descr;
 						String showurl = u.URI.replaceAll("(SSK@.{5}).+(/.+)", "$1...$2");
 						if (showtitle.trim().length() == 0 || showtitle.equals("not available"))
