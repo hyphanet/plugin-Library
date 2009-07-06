@@ -73,6 +73,8 @@ public class LibrarianHandler extends DefaultHandler {
 		 */
 		if (elt_name.equals("word")) {
 			try {
+				if(requests.size()==0)
+					return;
 				wordMatches = null;
 				String match = attrs.getValue("v");
 				if (requests!=null){
@@ -81,6 +83,7 @@ public class LibrarianHandler extends DefaultHandler {
 						//System.out.println("comparing "+r.getSubject()+" with "+match);
 						if (match.equals(r.getSubject())){
 							wordMatches.add(r);
+							requests.remove(r);
 						}
 					}
 				}
