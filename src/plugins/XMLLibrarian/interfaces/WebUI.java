@@ -346,7 +346,8 @@ public class WebUI{
 				".result-uskbutton {color: #480000; font-variant: small-caps; font-size: small; padding-left: 20px}\n" +
 				".progress-table {border-spacing:10px 0px;}\n" +
 				".progress-bar-outline { width:300px; border:1px solid grey; height : 20px;}\n" +
-				".progress-bar-inner { background-color: red; height:15px; z-index:-1}\n"
+				".progress-bar-inner-final { background-color: red; height:15px; z-index:-1}\n" +
+				".progress-bar-inner-nonfinal { background-color: pink; height:15px; z-index:-1}\n"
 				);
 		return headNode;
 	}
@@ -442,10 +443,11 @@ public class WebUI{
 				bar.addChild("td", ""); bar.addChild("td");
 			}else{
 				int percentage = (int)(100*request.getNumBlocksCompleted()/request.getNumBlocksTotal());
+				boolean fetchFinalized = request.isNumBlocksCompletedFinal();
 				bar//.addChild("#", request.getSubStage()+"/"+request.getSubStageCount())
 					.addChild("td", new String[]{"class"}, new String[]{"progress-bar-outline"})
-					.addChild("div", new String[]{"class", "style"}, new String[]{"progress-bar-inner", "z-index : -1; width:"+percentage+"%;"});
-				bar.addChild("td", percentage+"%");
+					.addChild("div", new String[]{"class", "style"}, new String[]{fetchFinalized?"progress-bar-inner-final":"progress-bar-inner-nonfinal", "z-index : -1; width:"+percentage+"%;"});
+				bar.addChild("td", fetchFinalized?percentage+"%":"Fetch length unknown");
 				
 			}
 		// if request separates indexes, show their names

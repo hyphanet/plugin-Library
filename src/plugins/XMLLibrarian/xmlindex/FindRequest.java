@@ -20,6 +20,7 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	protected int stageCount;
 	private long blocksCompleted;
 	private long blocksTotal;
+	private boolean blocksfinalized;
 	private int expectedsize;
 	protected Exception err;
 	private String eventDescription;
@@ -81,7 +82,7 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	 * @return true if NumBlocksTotal is known to be final
 	 */
 	public boolean isNumBlocksCompletedFinal(){
-		return false;
+		return blocksfinalized;
 	}
 
 	/**
@@ -168,9 +169,10 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	 * @param downloadProgress
 	 * @param downloadSize
 	 */
-	private void updateWithEvent(long downloadProgress, long downloadSize) {
+	private void updateWithEvent(long downloadProgress, long downloadSize, boolean finalized) {
 		blocksCompleted = downloadProgress;
 		blocksTotal = downloadSize;
+		blocksfinalized = finalized;
 	}
 
 	/**
@@ -193,8 +195,9 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 		String download = eventDescription.split(" ")[2];
 		long downloadProgress = Integer.parseInt(download.split("/")[0]);
 		long downloadSize = Integer.parseInt(download.split("/")[1]);
+		boolean finalized = eventDescription.contains("(finalized total)");
 		for (FindRequest request : requests)
-			request.updateWithEvent(downloadProgress, downloadSize);
+			request.updateWithEvent(downloadProgress, downloadSize, finalized);
 		Logger.normal(FindRequest.class, "updated requests with progress");
 	}
 

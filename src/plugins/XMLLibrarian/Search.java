@@ -189,10 +189,6 @@ public class Search implements Request<URIWrapper> {
 		return allsearches;
 	}
 
-	public static void purgeSearches(){
-		allsearches = new HashMap<String, Search>();
-	}
-
     public String getQuery(){
 		return query;
 	}
