@@ -525,6 +525,9 @@ public class WebUI{
 					"		if(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('requeststatus').value=='FINISHED')\n" +
 					"			document.getElementById('results').innerHTML=" +
 									"resp.getElementsByTagName('result')[0].textContent;\n" +
+					"		if(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('requeststatus').value=='ERROR')\n" +
+					"			document.getElementById('errors').innerHTML+=" +
+									"resp.getElementsByTagName('error')[0].textContent;\n" +
 					"		else\n" +
 					"			var t = setTimeout('getProgress()', 1000);\n" +
 					"	}\n" +
@@ -563,8 +566,10 @@ public class WebUI{
 			if(search != null && search.getRequestStatus()==Request.RequestStatus.FINISHED)
 				resp.addChild("result", WebUI.resultNodeGrouped(Search.getSearch(searchquery, indexuri), showold, true).generate());
 			resp.addChild("progress", "requeststatus",  (search==null)?"":search.getRequestStatus().toString(), progress);
+			if(search != null && search.getRequestStatus()==Request.RequestStatus.ERROR)
+				addError(resp.addChild("error", "requeststatus",  "ERROR"), search.getError());
 		}catch(Exception e){
-			addError(resp.addChild("progress", "requeststatus",  "ERROR"), e);
+			addError(resp.addChild("error", "requeststatus",  "ERROR"), e);
 		}
 		return "<?xml version='1.0' encoding='ISO-8859-1'?>\n"+resp.generate();
 	}

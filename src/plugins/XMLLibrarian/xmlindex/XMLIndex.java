@@ -372,13 +372,14 @@ public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 							InputStream is = bucket.getInputStream();
 							///synchronized(waitingOnSubindex){
 								saxParser.parse(is, new LibrarianHandler(waitingOnSubindex));
+								Logger.minor(this, "parsing finished "+ waitingOnSubindex.toString());
 								for(FindRequest r : waitingOnSubindex)
 									r.setFinished();
 								waitingOnSubindex.clear();
 							///}
 							is.close();
 						} catch (Throwable err) {
-							err.printStackTrace();
+							Logger.error(this, "Error parsing ", err);
 							throw new Exception("Could not parse XML: " + err.toString());
 						}
 					}else
