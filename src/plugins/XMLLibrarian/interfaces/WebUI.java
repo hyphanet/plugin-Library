@@ -45,31 +45,21 @@ public class WebUI{
 		String searchstring = request.getParam("search");
 		String indexuri = request.isParameterSet("index") ? request.getParam("index") : XMLLibrarian.DEFAULT_INDEX_SITE;
 		
-		if(request.getPath().endsWith("xml")) // mini progress display for use with JS
+		// update of progress and results in xml for ajax update
+		if(request.getPath().endsWith("xml"))
 				return progressxml(searchstring,indexuri, "on".equals(request.getParam("showold")));
 		
-//		}else if(request.getPath().endsWith("result")){ // just get result for JS
-//			if (Search.hasSearch(searchstring, indexuri)){
-//				return Search.getSearch(searchstring, indexuri).getresult();
-//			}else return "No asyncronous search for "+HTMLEncoder.encode(searchstring)+" found.";
-
+		// displays all indexes for debugging them
 		if(request.getPath().endsWith("debug")){
 			return WebUI.debugpage();
 		}
-		if(request.getPath().endsWith("purgeSearches")){
-			Search.purgeSearches();
+		
+		// If no search is specified show the default page
+		if(searchstring == null || searchstring.equals("")){
 			return WebUI.searchpage(indexuri, request.isParameterSet("js"));
-		}
-		if(request.getPath().endsWith("listSearches"))
-			return WebUI.listSearches();
-
-		if(searchstring == null || searchstring.equals("")){   // no search main
-			// generate HTML and set it to no refresh
-			return WebUI.searchpage(indexuri, request.isParameterSet("js"));
-
-		}else{  // Full main searchpage
+		// Full main searchpage
+		}else{  
 			Search searchobject = null;
-
 			try{
 				//get Search object
 				searchobject = Search.startSearch(searchstring, indexuri);
@@ -77,6 +67,7 @@ public class WebUI{
 				// generate HTML for search object and set it to refresh
 				return searchpage(searchobject, indexuri, true, request.isParameterSet("js"), "on".equals(request.getParam("showold")), null);
 			}catch(Exception e){
+				// Show page with exception
 				return searchpage(searchobject, indexuri, false, false, false, e);
 			}
 		}
@@ -91,6 +82,7 @@ public class WebUI{
 	/**
 	 * Build an empty search page with no refresh
 	 * @param indexuri an index to put in the index box
+	 * @param js whether js is known to be enabled
 	 **/
 	public static String searchpage(String indexuri, boolean js){
 		return searchpage(null, indexuri, false, js, false, null);
@@ -102,9 +94,12 @@ public class WebUI{
 	 * @param request the request this page should be built to show the progress of
 	 * @param indexuri the index to show in the index box
 	 * @param refresh a preference as to whether this page should refresh, refresh is switched off in the event of an error or the request being finished
+	 * @param js whether js is known to be enabled
+	 * @param showold whether old SSK versions should be shown
 	 * @param e any exception which should be reported on the page
      **/
     public static String searchpage(Search request, String indexuri, boolean refresh, boolean js, boolean showold, Exception e){
+		// Don't refresh if there is no request option, if it is finished or there is an error to show
 		if(request==null || "".equals(request.getQuery()) || request.isFinished() || e!=null)
 			refresh = false;
 			
@@ -116,7 +111,8 @@ public class WebUI{
 		}
 		if (request != null && request.getRequestStatus() == Request.RequestStatus.ERROR)
 			addError(errorDiv, request.getError());
-			
+		
+		// encode parameters
 		String search = "";
 		try{
 			search = request !=null ? HTMLEncoder.encode(request.getQuery()) : "";
@@ -125,23 +121,23 @@ public class WebUI{
 		}catch(Exception exe){
 			addError(errorDiv, exe);
 		}
-			
-			
+		
+		// Start of page
 		HTMLNode pageNode = new HTMLNode.HTMLDoctype("html", "-//W3C//DTD XHTML 1.1//EN");
 		HTMLNode htmlNode = pageNode.addChild("html", "xml:lang", L10n.getSelectedLanguage().isoCode);
-			htmlNode.addChild(searchHead(plugName, search, indexuri, refresh && !js));
+			htmlNode.addChild(searchHead(plugName, search, refresh && !js));
 		
 		HTMLNode bodyNode = htmlNode.addChild("body");
 
         // Start of body
 		bodyNode.addChild(searchBox(search, indexuri, js, showold));
-
 		bodyNode.addChild("br");
-		
+		// show errors
 		bodyNode.addChild(errorDiv);
 
         // If showing a search
         if(request != null){
+			// show progress
 			bodyNode.addChild(progressBox(search, indexuri, request));
 			bodyNode.addChild("p");
 
@@ -156,6 +152,7 @@ public class WebUI{
 				bodyNode.addChild("div", "id", "results").addChild("#");
         }
 		
+		// Add scripts, TODO put in separate file
 		bodyNode.addChild("script", "type", "text/javascript").addChild("%", script(refresh,js, search, indexuri, showold));
 
 		return pageNode.generate();
@@ -165,7 +162,6 @@ public class WebUI{
 	 * Return a HTMLNode for this result
 	 */
 	public static HTMLNode resultNode(Request request){
-		// Output results
 		int results = 0;
 
 		HTMLNode node = new HTMLNode("div", "id", "results");
@@ -205,43 +201,51 @@ public class WebUI{
 	
 	/**
 	 * Return a HTMLNode for this result
+	 * @param showold whether to display results from older SSK versions
+	 * @param js whether js can be used to display results
 	 */
 	public static HTMLNode resultNodeGrouped(Request request, boolean showold, boolean js) throws Exception{
 		// Output results
 		int results = 0;
-
+		
+		// Loop to separate results into SSK groups
 		HTMLNode resultsNode = new HTMLNode("div", "id", "results");
 		HashMap groupmap = new HashMap();
 		Iterator<URIWrapper> it = request.getResult().iterator();
 		while(it.hasNext()){
 			URIWrapper o = it.next();
+			// CHK's need not be grouped so they can be put on top level
 			if(o.URI.contains("CHK"))
 				groupmap.put(o.URI, o);
-			else{
-				if(!o.URI.contains("SSK")){
-					Logger.normal(WebUI.class, "skipping " +o.URI);
-					continue;
-				}
+			else if(o.URI.contains("SSK")){
+				// Get the SSK key and name
 				String sitebase = o.URI.replaceAll("SSK@(.+)-\\d+/.*", "$1");
 				Integer sskVersion;
+				// Get the SSK version
 				try{
 					sskVersion = Integer.valueOf(o.URI.replaceAll("SSK@.+-(\\d+)/.*", "$1"));
 				}catch(Exception e) {
 					sskVersion = Integer.valueOf(-1);
 				}
+				// Add site, version & page
 				if(!groupmap.containsKey(sitebase))
 					groupmap.put(sitebase, new TreeMap<Integer, Set<URIWrapper>>());
 				SortedMap<Integer, Set<URIWrapper>> sitemap = (TreeMap<Integer, Set<URIWrapper>>)groupmap.get(sitebase);
 				if(!sitemap.containsKey(sskVersion))
 					sitemap.put(sskVersion, new HashSet());
 				sitemap.get(sskVersion).add(o);
+			}else{
+				Logger.normal(WebUI.class, "skipping " +o.URI);
+				continue;
 			}
 		}
+		// Loop over CHK's & SSK keys
 		Iterator<String> it2 = groupmap.keySet().iterator();
 		while (it2.hasNext()) {
 			String key = it2.next();
 			Object ob = groupmap.get(key);
 			HTMLNode siteNode = resultsNode.addChild("div", "style", "padding: 6px;");
+			// put CHK link on page
 			if(ob.getClass()==URIWrapper.class){
 				URIWrapper o = (URIWrapper)ob;
 				String showurl = o.URI.replaceAll("(CHK@.{5}).+(/.+)", "$1...$2");
@@ -260,30 +264,39 @@ public class WebUI{
 				siteNode.addChild("br");
 				siteNode.addChild("a", new String[]{"href", "class"}, new String[]{realurl, "result-url"}, showurl);
 				results++;
+			// Put SSK group
 			}else{
 				Map<Integer, Set<URIWrapper>> sitemap = (Map<Integer, Set<URIWrapper>>)ob;
 				Iterator<Integer> it3 = sitemap.keySet().iterator();
+				// Create a block for old versions of this SSK
 				HTMLNode siteBlockOldOuter = siteNode.addChild("div", new String[]{"id", "style"}, new String[]{"result-hiddenblock-"+key, (!showold?"display:none":"")});
+				// put title on block if it has more than one version in it
 				if(sitemap.size()>1)
 					siteBlockOldOuter.addChild("a", new String[]{"onClick", "name"}, new String[]{"toggleResult('"+key+"')", key}).addChild("h3", key.replaceAll("\\b.*/(.*)", "$1"));
+				// inner block for versions
 				HTMLNode siteBlockOld = siteBlockOldOuter.addChild("div", new String[]{"class", "style"}, new String[]{"result-hideblock", "border-left: thick black;"});
+				// Loop over all versions in this SSK key
 				while(it3.hasNext()){
 					Integer version = it3.next();
 					HTMLNode versionNode;
 					boolean newestVersion = !it3.hasNext();
-					if(newestVersion)	// not the newest one, hide if required
+					if(newestVersion)	// put older versions in block, newest outside block
 						siteBlockOld = siteNode;
+					// table for this version
 					versionNode = siteBlockOld.addChild("table", new String[]{"class", "width", "border", "cellspacing", "cellpadding"}, new String[]{"librarian-result", "95%", "0px 8px", "0", "0",});
 					HTMLNode grouptitle = versionNode.addChild("tr").addChild("td", new String[]{"padding", "colspan"}, new String[]{"0", "3"});
 					grouptitle.addChild("h4", "style", "display:inline; padding-top: 5px; color:"+(newestVersion?"black":"darkGrey"), key.replaceAll("\\b.*/(.*)", "$1")+(version.intValue()>=0 ? "-"+version.toString():""));
+					// Put link to show hidden older versions block if necessary
 					if(newestVersion && !showold && js && sitemap.size()>1)
 						grouptitle.addChild("a", new String[]{"href", "onClick"}, new String[]{"#"+key, "toggleResult('"+key+"')"}, "       ["+(sitemap.size()-1)+" older matching versions]");
 					HTMLNode versionrow = versionNode.addChild("tr");
 					versionrow.addChild("td", "width", "8px");
+					// draw black line down the side of the version
 					versionrow.addChild("td", new String[]{"bgcolor", "width"}, new String[]{"black", "2px"});
 					HTMLNode versionCell=versionrow.addChild("td");
-					Iterator<URIWrapper> it4 = sitemap.get(version).iterator();
 					URIWrapper u;
+					// loop over each result in this version
+					Iterator<URIWrapper> it4 = sitemap.get(version).iterator();
 					while(it4.hasNext()){
 						u = it4.next();
 						HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-title", "padding: 4px; padding-left:15px;"});
@@ -292,6 +305,7 @@ public class WebUI{
 						if (showtitle.trim().length() == 0 || showtitle.equals("not available"))
 							showtitle = showurl;
 						String realurl = (u.URI.startsWith("/") ? "" : "/") + u.URI;
+						// create usk url
 						String realuskurl = realurl.replaceAll("SSK@", "USK@").replaceAll("-(\\d+)/", "/$1/");
 						pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: "+(newestVersion?"Blue":"LightBlue"), u.URI}, showtitle);
 						pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "result-uskbutton"}, "[ USK ]");
@@ -306,10 +320,16 @@ public class WebUI{
 		return resultsNode;
     }
 
-
-	private static HTMLNode searchHead(String plugName, String search, String indexuri, boolean refresh){
+	/**
+	 * Create the head node
+	 * @param plugName
+	 * @param search search query to put in the title
+	 * @param refresh whether to set the page to refresh
+	 * @return head node
+	 */
+	private static HTMLNode searchHead(String plugName, String search, boolean refresh){
 		String title = plugName;
-		if(search != null && !search.equals("") && indexuri != null && !indexuri.equals(""))
+		if(search != null && !search.equals("") )
 			title = "\"" + search + "\" - "+plugName;
 
 		HTMLNode headNode = new HTMLNode("head");
@@ -317,6 +337,7 @@ public class WebUI{
             headNode.addChild("meta", new String[] { "http-equiv", "content" }, new String[] { "refresh", "1" });
 		headNode.addChild("meta", new String[] { "http-equiv", "content" }, new String[] { "Content-Type", "text/html; charset=utf-8" });
 		headNode.addChild("title", title);
+		// Stylesheet
 		headNode.addChild("style").addChild("%",
 				"body {font-family:sans-serif}\n" +
 				".result-sitename {color:black; font-weight:bold}\n" +
@@ -329,7 +350,15 @@ public class WebUI{
 				);
 		return headNode;
 	}
-
+	
+	/**
+	 * Create search form
+	 * @param search already started
+	 * @param indexuri
+	 * @param js whether js has been detected
+	 * @param showold 
+	 * @return
+	 */
 	private static HTMLNode searchBox(String search, String indexuri, boolean js, boolean showold){
 		HTMLNode searchDiv = new HTMLNode("div", "id", "searchbar");
 		HTMLNode searchForm = searchDiv.addChild("form", new String[]{"name", "method", "action"}, new String[]{"searchform", "GET", "plugins.XMLLibrarian.XMLLibrarian"});
@@ -351,7 +380,7 @@ public class WebUI{
 						.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", showold?"checked":"1"});
 		return searchDiv;
 	}
-
+	
 	private static String debugpage() {
 		HTMLNode debugpage = new HTMLNode("HTML");
 		HTMLNode bodynode = debugpage.addChild("body");
@@ -361,7 +390,14 @@ public class WebUI{
 		}
 		return debugpage.generate();
 	}
-
+	
+	/**
+	 * Draw progress box with bars
+	 * @param search
+	 * @param indexuri
+	 * @param request request to get progress from
+	 * @return
+	 */
 	private static HTMLNode progressBox(String search, String indexuri, Request request){
 			HTMLNode progressDiv = new HTMLNode("div", "id", "progress");
             // Search description
@@ -378,32 +414,30 @@ public class WebUI{
 				// Search status
 				HTMLNode statusRow = progressTable.addChild("tr");
 					statusRow.addChild("td")
-							.addChild(buildProgressNode(request));
+							.addChild("div", "id", "librarian-search-status")
+							.addChild("table", new String[]{"id", "class"}, new String[]{"progress-table", "progress-table"})
+							.addChild(progressBar(request));
 		return progressDiv;
 	}
 
 	/**
-	 * Build a node about the status of a request
+	 * Draw progress bars and describe progress
+	 * @param request
 	 * @return
 	 */
-	private static HTMLNode buildProgressNode(Request request) {
-		HTMLNode node = new HTMLNode("div", "id", "librarian-search-status");
-		node.addChild("table", new String[]{"id", "class"}, new String[]{"progress-table", "progress-table"}).addChild(progressBar(request));
-//		if(request.getSubRequests()!=null)
-//			for(Object r : request.getSubRequests())
-//				node.addChild("p", " Status : "+((Request)r).getSubject()+"  "+((Request)r).getRequestStatus()+", Stage: "+((Request)r).getSubStage()+"/"+((Request)r).getSubStageCount()+", Blocks:"+((Request)r).getNumBlocksCompleted()+"/"+((Request)r).getNumBlocksTotal());
-		return node;
-	}
-	
 	private static HTMLNode progressBar(Request request) {
-		HTMLNode bar; //new HTMLNode("div", new String[]{"style", "class"}, new String[]{"padding-left:20px", "progress-bar"});
+		HTMLNode bar;
+		// If it doesn't have subrequests, draw it's progress
 		if(request.getSubRequests()==null){
 			bar = new HTMLNode("tr");
+			// search term
 			bar.addChild("td", request.getSubject());
+			// search stage
 			bar.addChild("td",
 					(request.getRequestStatus()==Request.RequestStatus.INPROGRESS)
 					?"Stage: "+request.getSubStage()+"/"+request.getSubStageCount()
 					:request.getRequestStatus().toString());
+			// show fetch progress if fetching something
 			if(request.isFinished() || request.getNumBlocksTotal()==0){
 				bar.addChild("td", ""); bar.addChild("td");
 			}else{
@@ -414,6 +448,7 @@ public class WebUI{
 				bar.addChild("td", percentage+"%");
 				
 			}
+		// if request separates indexes, show their names
 		}else if(request.getSubject().matches(".+%.+[ ;].+")){
 			bar = new HTMLNode("tbody");
 			Iterator it=request.getSubRequests().iterator();
@@ -423,6 +458,7 @@ public class WebUI{
 				indexrow.addChild("td", r.getSubject().split("%")[1]);
 				indexrow.addChild("td").addChild("table", "class", "progress-table").addChild(progressBar((Request)r));
 			}
+		// get progress for subrequests
 		}else{
 			bar = new HTMLNode("#");
 			Iterator it=request.getSubRequests().iterator();
@@ -447,16 +483,15 @@ public class WebUI{
 			addError(error1, error.getCause());
 	}
 
-	public static String listSearches(){
-		HTMLNode searchlistpage = new HTMLNode("HTML");
-		HTMLNode bodynode = searchlistpage.addChild("body");
-		for(String s : Search.getAllSearches().keySet()){
-			HTMLNode searchnode = bodynode.addChild("p");
-			searchnode.addChild("#",s);
-		}
-		return searchlistpage.generate();
-	}
-
+	/**
+	 * returns scripts
+	 * @param refresh whether page is set to refresh
+	 * @param js whther js is detected
+	 * @param searchquery
+	 * @param indexuri
+	 * @param showold whether to show old versions of SSK's
+	 * @return
+	 */
 	private static String script(boolean refresh, boolean js, String searchquery, String indexuri, boolean showold){
 		return  (refresh&&!js) ?
 					"var loc = new String(window.location);\n" +
@@ -500,27 +535,33 @@ public class WebUI{
 					"}\n";
 	}
 
-
+	/**
+	 * Return progress and results on a request in xml format for ajax
+	 * @param searchquery
+	 * @param indexuri
+	 * @param showold
+	 * @return
+	 */
 	static String progressxml(String searchquery, String indexuri, boolean showold) {
 		HTMLNode resp = new HTMLNode("pagecontent");
 		try{
 			String progress;
 			Search search = Search.getSearch(searchquery, indexuri);
-			if(search!=null)
-				progress = WebUI.buildProgressNode(search).generate();
-			else
+			// If search is happening, return it's progress
+			if(search!=null){
+				HTMLNode progresstable = new HTMLNode("table", new String[]{"id", "class"}, new String[]{"progress-table", "progress-table"});
+					progresstable.addChild(progressBar(search));
+				progress = progresstable.generate();
+			}else
 				progress = "No search for this, something went wrong";
-				if(search != null && search.getRequestStatus()==Request.RequestStatus.FINISHED)
-					resp.addChild("result", WebUI.resultNodeGrouped(Search.getSearch(searchquery, indexuri), showold, true).generate());
-				resp.addChild("progress", "requeststatus",  (search==null)?"":search.getRequestStatus().toString(), progress);
+			// If it's finished, return it's results
+			if(search != null && search.getRequestStatus()==Request.RequestStatus.FINISHED)
+				resp.addChild("result", WebUI.resultNodeGrouped(Search.getSearch(searchquery, indexuri), showold, true).generate());
+			resp.addChild("progress", "requeststatus",  (search==null)?"":search.getRequestStatus().toString(), progress);
 		}catch(Exception e){
 			addError(resp.addChild("progress", "requeststatus",  "ERROR"), e);
 		}
 		return "<?xml version='1.0' encoding='ISO-8859-1'?>\n"+resp.generate();
-	}
-
-	private static String jssafename(String in){
-		return in.replaceAll("\\W+", "_");
 	}
 }
 
