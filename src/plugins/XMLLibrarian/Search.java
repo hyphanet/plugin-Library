@@ -3,9 +3,7 @@ package plugins.XMLLibrarian;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeSet;
 import freenet.support.Logger;
 import java.util.Locale;
 import java.util.Map;
@@ -19,13 +17,15 @@ public class Search implements Request<URIWrapper> {
 	static private XMLLibrarian xl;
 
 	/**
-	 * What should be done with the results of subsearches
-	 * TODO look into a complement set operation and phrase search, would need a different method for storing subsearches though
+	 * What should be done with the results of subsearches\n
+	 * INTERSECTION : result is common results of subsearches\n
+	 * UNION : result is all results of subsearches\n
+	 * REMOVE : (only 2 subsearches alowd) result is the results of the first subsearch with the second search removed
 	 */
-	public enum ResultOperation{INTERSECTION, UNION};
+	public enum ResultOperation{INTERSECTION, UNION, REMOVE, PHRASE};
 	private ResultOperation resultOperation;
 	
-	private HashSet<Request> subsearches;
+	private ArrayList<Request> subsearches;
 
 	private String subject;
 	private String query;
@@ -96,8 +96,12 @@ public class Search implements Request<URIWrapper> {
 	 * @throws InvalidSearchException if the search is invalid
 	 **/
 	private Search(String query, String indexURI, List<Request> requests, ResultOperation resultoperation) throws InvalidSearchException{
+		if(resultOperation==ResultOperation.REMOVE && requests.size()!=2)
+			throw new InvalidSearchException("Negative operations can only have 2 parameters");
+		if(resultOperation==ResultOperation.PHRASE && requests.size()<=2)
+			throw new InvalidSearchException("Phrase operations need more than one term");
 		query = query.toLowerCase(Locale.US).trim();
-		subsearches = new HashSet(requests);
+		subsearches = new ArrayList(requests);
 		
 		this.query = query;
 		this.indexURI = indexURI;
@@ -117,7 +121,7 @@ public class Search implements Request<URIWrapper> {
 	 */
 	private Search(String query, String indexURI, Request request){
 		query = query.toLowerCase(Locale.US).trim();
-		subsearches = new HashSet();
+		subsearches = new ArrayList();
 		subsearches.add(request);
 
 		this.query = query;
@@ -207,9 +211,9 @@ public class Search implements Request<URIWrapper> {
 	}
 
 	/**
-	 * @return Set of Requests this search depends on
+	 * @return List of Requests this search depends on
 	 */
-	public Set<Request> getSubRequests(){
+	public List<Request> getSubRequests(){
 		return subsearches;
 	}
 
@@ -346,22 +350,40 @@ public class Search implements Request<URIWrapper> {
 	 * Perform an intersection on results of all subsearches and return <br />
 	 * @return Set of URIWrappers
 	 */
-	public Set<URIWrapper> getResult() {
+	public Set<URIWrapper> getResult() throws InvalidSearchException{
 		if(getRequestStatus() != Request.RequestStatus.FINISHED)
 			return null;
 
-		TreeSet<URIWrapper> result = new TreeSet<URIWrapper>();
-		for(Request<URIWrapper> r : subsearches)
-			if(r.hasResult())
-				if(result.size()>0)
-					switch(resultOperation){
-						case UNION:
-							result.addAll(r.getResult());
-						case INTERSECTION:
-							result.retainAll(r.getResult());
-					}
-				else
+		ResultSet result = new ResultSet();
+		switch(resultOperation){
+			case UNION:
+				for(Request<URIWrapper> r : subsearches)
 					result.addAll(r.getResult());
+				break;
+			case INTERSECTION:
+				for(Request<URIWrapper> r : subsearches)
+					if(result.size()>0)
+						result.retainAll(r.getResult());
+					else
+						result.addAll(r.getResult());
+				break;
+			case REMOVE:
+				result.addAll(subsearches.get(0).getResult());
+				result.removeAll(subsearches.get(1).getResult());
+				break;
+			case PHRASE:
+				for(Request<URIWrapper> r : subsearches)
+					if(result.size()>0)
+						try {
+							result.retainFollowed(r.getResult());
+						} catch (Exception ex) {
+							throw new InvalidSearchException("Unable to determine term positions on these requests and thus unable to determine Phrase matches", ex);
+						}
+					else
+						result.addAll(r.getResult());
+				break;
+		}
+		
 		allsearches.remove(subject);
 		return result;
 	}

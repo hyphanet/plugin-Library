@@ -216,7 +216,7 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	/**
 	 * @return null, FindRequest is atomic
 	 */
-	public Set<Request> getSubRequests() {
+	public List<Request> getSubRequests() {
 		return null;
 	}
 }

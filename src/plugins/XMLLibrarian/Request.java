@@ -1,6 +1,7 @@
 
 package plugins.XMLLibrarian;
 
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -69,7 +70,7 @@ public interface Request<E> {
 	/**
 	 * @return result of this request
 	 */
-	public Set<E> getResult();
+	public Set<E> getResult() throws InvalidSearchException;
 	/**
 	 * @return true if RequestStatus is PARTIALRESULT or FINISHED
 	 */
@@ -77,9 +78,9 @@ public interface Request<E> {
 	
 	/**
 	 * To be overridden by subclasses which depend on subrequests
-	 * @return Set of Requests
+	 * @return List of Requests, or null
 	 */
-	public Set<Request> getSubRequests();
+	public List<Request> getSubRequests();
 
 	/**
 	 * Progress accessed flag<br />

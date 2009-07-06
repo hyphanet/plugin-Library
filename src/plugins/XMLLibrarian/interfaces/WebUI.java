@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import plugins.XMLLibrarian.Index;
+import plugins.XMLLibrarian.InvalidSearchException;
 import plugins.XMLLibrarian.Request;
 import plugins.XMLLibrarian.Search;
 import plugins.XMLLibrarian.URIWrapper;
@@ -161,7 +162,7 @@ public class WebUI{
 	/**
 	 * Return a HTMLNode for this result
 	 */
-	public static HTMLNode resultNode(Request request){
+	public static HTMLNode resultNode(Request request) throws InvalidSearchException{
 		int results = 0;
 
 		HTMLNode node = new HTMLNode("div", "id", "results");
