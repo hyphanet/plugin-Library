@@ -435,9 +435,11 @@ public class WebUI{
 			bar.addChild("td", request.getSubject());
 			// search stage
 			bar.addChild("td",
-					(request.getRequestStatus()==Request.RequestStatus.INPROGRESS)
-					?"Stage: "+request.getSubStage()+"/"+request.getSubStageCount()
-					:request.getRequestStatus().toString());
+					(request.getRequestStatus()==Request.RequestStatus.INPROGRESS||request.getRequestStatus()==Request.RequestStatus.PARTIALRESULT)
+						?(request.stageNames()==null)
+							?"Stage: "+request.getSubStage()+"/"+request.getSubStageCount()
+							:request.stageNames()[request.getSubStage()]
+						:request.getRequestStatus().toString());
 			// show fetch progress if fetching something
 			if(request.isFinished() || request.getNumBlocksTotal()==0){
 				bar.addChild("td", ""); bar.addChild("td");

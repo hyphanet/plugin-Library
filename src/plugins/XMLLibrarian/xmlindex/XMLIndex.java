@@ -265,7 +265,7 @@ public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 	private synchronized void setdependencies(FindRequest request) throws FetchException, MalformedURLException{
 		if (fetchStatus!=FetchStatus.FETCHED){
 			waitingOnMainIndex.add(request);
-			request.setStage(FindRequest.RequestStatus.INPROGRESS,1, 3);
+			request.setStage(FindRequest.RequestStatus.INPROGRESS,1);
 			startFetch();
 		}else{
 			SubIndex subindex = getSubIndex(request.getSubject());
@@ -334,9 +334,9 @@ public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 		 */
 		void addRequest(FindRequest request){
 			if(fetchStatus==FetchStatus.FETCHED)
-				request.setStage(Request.RequestStatus.INPROGRESS, 3, 3);
+				request.setStage(Request.RequestStatus.INPROGRESS, 3);
 			else
-				request.setStage(Request.RequestStatus.INPROGRESS, 2, 3);
+				request.setStage(Request.RequestStatus.INPROGRESS, 2);
 			synchronized(waitingOnSubindex){
 				waitingOnSubindex.add(request);
 			}
@@ -364,7 +364,7 @@ public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 						}
 					}else if(fetchStatus==FetchStatus.FETCHED){
 						for(FindRequest r : waitingOnSubindex)
-							r.setStage(Request.RequestStatus.INPROGRESS, 3, 3);
+							r.setStage(Request.RequestStatus.INPROGRESS, 3);
 						SAXParserFactory factory = SAXParserFactory.newInstance();
 						try {
 							factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);

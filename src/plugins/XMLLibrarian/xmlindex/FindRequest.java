@@ -17,7 +17,12 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	
 	protected RequestStatus status;
 	protected int stage=0;
-	protected int stageCount;
+	protected final String[] stageNames = new String[]{
+		"Nothing",
+		"Fetching Index Root",
+		"Fetching Subindex",
+		"Parsing Subindex"
+	};
 	private long blocksCompleted;
 	private long blocksTotal;
 	private boolean blocksfinalized;
@@ -65,7 +70,15 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	 * @return the number of substages expected in this request
 	 */
 	public int getSubStageCount(){
-		return stageCount;
+		return stageNames.length;
+	}
+
+	/**
+	 * Array of names of stages, length should be equal to the result of getSubStageCount()
+	 * @return null if not used
+	 */
+	public String[] stageNames(){
+		return stageNames;
 	}
 
 	/**
@@ -126,10 +139,9 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	 * @param status
 	 * @param stage
 	 */
-	public void setStage(RequestStatus status, int stage, int stagecount){
+	public void setStage(RequestStatus status, int stage){
 		this.status = status;
 		this.stage = stage;
-		this.stageCount=stagecount;
 	}
 
 	/**

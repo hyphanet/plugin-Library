@@ -292,6 +292,14 @@ public class Search implements Request<URIWrapper> {
 	}
 
 	/**
+	 * Array of names of stages, length should be equal to the result of getSubStageCount()
+	 * @return null if not used
+	 */
+	public String[] stageNames(){
+		return null;
+	}
+
+	/**
 	 * @return sum of NumBlocksCompleted
 	 */
 	public long getNumBlocksCompleted() {
