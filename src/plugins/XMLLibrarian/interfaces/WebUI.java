@@ -47,7 +47,7 @@ public class WebUI{
 		String indexuri = request.isParameterSet("index") ? request.getParam("index") : XMLLibrarian.DEFAULT_INDEX_SITE;
 		
 		if(request.getPath().endsWith("xml")) // mini progress display for use with JS
-				return progressxml(searchstring,indexuri);
+				return progressxml(searchstring,indexuri, "on".equals(request.getParam("showold")));
 		
 //		}else if(request.getPath().endsWith("result")){ // just get result for JS
 //			if (Search.hasSearch(searchstring, indexuri)){
@@ -76,9 +76,9 @@ public class WebUI{
 				searchobject = Search.startSearch(searchstring, indexuri);
 
 				// generate HTML for search object and set it to refresh
-				return searchpage(searchobject, indexuri, true, request.isParameterSet("js"), null);
+				return searchpage(searchobject, indexuri, true, request.isParameterSet("js"), "on".equals(request.getParam("showold")), null);
 			}catch(Exception e){
-				return searchpage(searchobject, indexuri, false, false, e);
+				return searchpage(searchobject, indexuri, false, false, false, e);
 			}
 		}
 	}
@@ -94,7 +94,7 @@ public class WebUI{
 	 * @param indexuri an index to put in the index box
 	 **/
 	public static String searchpage(String indexuri, boolean js){
-		return searchpage(null, indexuri, false, js, null);
+		return searchpage(null, indexuri, false, js, false, null);
 	}
 	
 	
@@ -105,7 +105,7 @@ public class WebUI{
 	 * @param refresh a preference as to whether this page should refresh, refresh is switched off in the event of an error or the request being finished
 	 * @param e any exception which should be reported on the page
      **/
-    public static String searchpage(Search request, String indexuri, boolean refresh, boolean js, Exception e){
+    public static String searchpage(Search request, String indexuri, boolean refresh, boolean js, boolean showold, Exception e){
 		if(request==null || "".equals(request.getQuery()) || request.isFinished() || e!=null)
 			refresh = false;
 			
@@ -135,7 +135,7 @@ public class WebUI{
 		HTMLNode bodyNode = htmlNode.addChild("body");
 
         // Start of body
-		bodyNode.addChild(searchBox(search, indexuri, js));
+		bodyNode.addChild(searchBox(search, indexuri, js, showold));
 
 		bodyNode.addChild("br");
 		
@@ -149,7 +149,7 @@ public class WebUI{
             // If search is complete show results
             if (request.getRequestStatus()==Request.RequestStatus.FINISHED)
 				try{
-					bodyNode.addChild(resultNodeGrouped(request));
+					bodyNode.addChild(resultNodeGrouped(request, showold, js));
 				}catch(Exception ex){
 					addError(errorDiv, ex);
 				}
@@ -157,7 +157,7 @@ public class WebUI{
 				bodyNode.addChild("div", "id", "results").addChild("#");
         }
 		
-		bodyNode.addChild("script", "type", "text/javascript").addChild("%", script(refresh,js, search, indexuri));
+		bodyNode.addChild("script", "type", "text/javascript").addChild("%", script(refresh,js, search, indexuri, showold));
 
 		return pageNode.generate();
     }
@@ -207,12 +207,11 @@ public class WebUI{
 	/**
 	 * Return a HTMLNode for this result
 	 */
-	public static HTMLNode resultNodeGrouped(Request request) throws Exception{
+	public static HTMLNode resultNodeGrouped(Request request, boolean showold, boolean js) throws Exception{
 		// Output results
 		int results = 0;
 
-		HTMLNode node = new HTMLNode("div", "id", "results");
-		HTMLNode resultTable = node.addChild("table", new String[]{"width", "class"}, new String[]{"95%", "librarian-results"});
+		HTMLNode resultsNode = new HTMLNode("div", "id", "results");
 		HashMap groupmap = new HashMap();
 		Iterator<URIWrapper> it = request.getResult().iterator();
 		while(it.hasNext()){
@@ -243,9 +242,8 @@ public class WebUI{
 		while (it2.hasNext()) {
 			String key = it2.next();
 			Object ob = groupmap.get(key);
+			HTMLNode siteNode = resultsNode.addChild("div");
 			if(ob.getClass()==URIWrapper.class){
-				resultTable.addChild("tr").addChild("td", "cellpadding", "3");
-				HTMLNode entry = resultTable.addChild("tr").addChild("td").addChild("table", new String[]{"class", "width", "border", "cellspacing", "cellpadding"}, new String[]{"librarian-result", "95%", "0", "0", "0"});
 				URIWrapper o = (URIWrapper)ob;
 				String showurl = o.URI.replaceAll("(CHK@.{5}).+(/.+)", "$1...$2");
 				String showtitle = o.descr;
@@ -259,54 +257,54 @@ public class WebUI{
 				}
 				String realurl = (o.URI.startsWith("/") ? "" : "/") + o.URI;
 				realurl = HTMLEncoder.encode(realurl);
-				HTMLNode entrycell = entry.addChild("tr").addChild("td");
-				entrycell.addChild("a", new String[]{"href", "title", "class"}, new String[]{realurl, o.URI, "result-title"}, showtitle);
-				entrycell.addChild("br");
-				entrycell.addChild("a", new String[]{"href", "class"}, new String[]{realurl, "result-url"}, showurl);
+				siteNode.addChild("a", new String[]{"href", "title", "class"}, new String[]{realurl, o.URI, "result-title"}, showtitle);
+				siteNode.addChild("br");
+				siteNode.addChild("a", new String[]{"href", "class"}, new String[]{realurl, "result-url"}, showurl);
 				results++;
 			}else{
 				Map<Integer, Set<URIWrapper>> sitemap = (Map<Integer, Set<URIWrapper>>)ob;
 				Iterator<Integer> it3 = sitemap.keySet().iterator();
-				HTMLNode versiontable = null, grouptitle = null;
-				Integer version = null;
+				HTMLNode siteBlockOldOuter = siteNode.addChild("div", new String[]{"id", "style"}, new String[]{"result-hiddenblock-"+key, (!showold?"display:none":"")});
+				if(sitemap.size()>1)
+					siteBlockOldOuter.addChild("a", new String[]{"onClick", "name"}, new String[]{"toggleResult('"+key+"')", key}).addChild("h3", key.replaceAll("\\b.*/(.*)", "$1"));
+				HTMLNode siteBlockOld = siteBlockOldOuter.addChild("div", new String[]{"class", "style"}, new String[]{"result-hideblock", "border-left: thick black;"});
 				while(it3.hasNext()){
-					HTMLNode entry = resultTable.addChild("tr").addChild("td");
-					version = it3.next();
-					versiontable = entry.addChild("table", new String[]{"class", "width", "border", "cellspacing", "cellpadding", "style", "id"}, new String[]{"librarian-result", "95%", "0", "0", "0", "visibility:collapse", "results-"+key+"-version-"+version.toString()});
-					grouptitle = versiontable.addChild("tr").addChild("td", new String[]{"padding", "colspan"}, new String[]{"0", "3"});
-					grouptitle.addChild("h4", key.replaceAll("\\b.{5}.*/(.*)", "$1")+(version.intValue()>=0 ? "-"+version.toString():""));
-					HTMLNode versionrow = versiontable.addChild("tr");
+					Integer version = it3.next();
+					HTMLNode versionNode;
+					boolean newestVersion = !it3.hasNext();
+					if(newestVersion)	// not the newest one, hide if required
+						siteBlockOld = siteNode;
+					versionNode = siteBlockOld.addChild("table", new String[]{"class", "width", "border", "cellspacing", "cellpadding"}, new String[]{"librarian-result", "95%", "0px 8px", "0", "0",});
+					HTMLNode grouptitle = versionNode.addChild("tr").addChild("td", new String[]{"padding", "colspan"}, new String[]{"0", "3"});
+					grouptitle.addChild("h4", "style", "display:inline; padding-top: 5px; color:"+(newestVersion?"black":"darkGrey"), key.replaceAll("\\b.*/(.*)", "$1")+(version.intValue()>=0 ? "-"+version.toString():""));
+					if(newestVersion && !showold && js && sitemap.size()>1)
+						grouptitle.addChild("a", new String[]{"href", "onClick"}, new String[]{"#"+key, "toggleResult('"+key+"')"}, "       ["+(sitemap.size()-1)+" older matching versions]");
+					HTMLNode versionrow = versionNode.addChild("tr");
 					versionrow.addChild("td", "width", "8px");
 					versionrow.addChild("td", new String[]{"bgcolor", "width"}, new String[]{"black", "2px"});
-					HTMLNode versionNode = versionrow.addChild("td");
+					HTMLNode versionCell=versionrow.addChild("td");
 					Iterator<URIWrapper> it4 = sitemap.get(version).iterator();
 					URIWrapper u;
 					while(it4.hasNext()){
 						u = it4.next();
-						HTMLNode pageNode = versionNode.addChild("p", new String[]{"class", "style"}, new String[]{"result-title", "padding-left:15px"});
+						HTMLNode pageNode = versionCell.addChild("p", new String[]{"class", "style"}, new String[]{"result-title", "padding-left:15px"});
 						String showtitle = u.descr;
 						String showurl = u.URI.replaceAll("(SSK@.{5}).+(/.+)", "$1...$2");
 						if (showtitle.trim().length() == 0 || showtitle.equals("not available"))
 							showtitle = showurl;
 						String realurl = (u.URI.startsWith("/") ? "" : "/") + u.URI;
 						String realuskurl = realurl.replaceAll("SSK@", "USK@").replaceAll("-(\\d+)/", "/$1/");
-						pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realurl, "result-title", u.URI}, showtitle);
+						pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: "+(newestVersion?"Blue":"LightBlue"), u.URI}, showtitle);
 						pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "result-uskbutton"}, "[ USK ]");
 						pageNode.addChild("br");
-						pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realurl, "result-url"}, showurl);
+						pageNode.addChild("a", new String[]{"href", "class", "style"}, new String[]{realurl, "result-url", "color: "+(newestVersion?"Green":"LightGreen")}, showurl);
 						results++;
 					}
 				}
-				versiontable.addAttribute("style", "visibility:visible");
-//				if(sitemap.size() > 1)
-//					grouptitle.addChild("a",
-//							new String[]{"href", "style"},
-//							new String[]{"javascript:showGroup('results-"+key+"-version-', "+sitemap.toString()+", "+version.toString()+");", "font-size: small"},
-//							"     Show "+(sitemap.size()-1)+" other editions");
 			}
 		}
-		node.addChild("p").addChild("span", "class", "librarian-summary-found", xl.getString("Found")+results+xl.getString("results"));
-		return node;
+		resultsNode.addChild("p").addChild("span", "class", "librarian-summary-found", xl.getString("Found")+results+xl.getString("results"));
+		return resultsNode;
     }
 
 
@@ -323,7 +321,7 @@ public class WebUI{
 		headNode.addChild("style").addChild("%",
 				"body {font-family:sans-serif}\n" +
 				".result-sitename {color:black; font-weight:bold}\n" +
-				"\n" +
+				".result-table { border-spacing : 5px; }\n" +
 				".result-url {color:green; font-size:small; padding-left:15px}\n" +
 				".result-uskbutton {color: #480000; font-variant: small-caps; font-size: small; padding-left: 20px}\n" +
 				".progress-table {border-spacing:10px 0px;}\n" +
@@ -333,12 +331,12 @@ public class WebUI{
 		return headNode;
 	}
 
-	private static HTMLNode searchBox(String search, String indexuri, boolean js){
+	private static HTMLNode searchBox(String search, String indexuri, boolean js, boolean showold){
 		HTMLNode searchDiv = new HTMLNode("div", "id", "searchbar");
 		HTMLNode searchForm = searchDiv.addChild("form", new String[]{"name", "method", "action"}, new String[]{"searchform", "GET", "plugins.XMLLibrarian.XMLLibrarian"});
 			HTMLNode searchTable = searchForm.addChild("table", "width", "100%");
 				HTMLNode searchTop = searchTable.addChild("tr");
-					HTMLNode titleCell = searchTop.addChild("td", new String[]{"rowspan","width"},new String[]{"2","120"});
+					HTMLNode titleCell = searchTop.addChild("td", new String[]{"rowspan","width"},new String[]{"3","120"});
 						titleCell.addChild("H1", plugName);
 					HTMLNode searchcell = searchTop.addChild("td", "width", "400");
 						searchcell.addChild("input", new String[]{"name", "size", "type", "value"}, new String[]{"search", "40", "text", search});
@@ -349,6 +347,9 @@ public class WebUI{
 				searchTable.addChild("tr")
 					.addChild("td", xl.getString("Index"))
 						.addChild("input", new String[]{"name", "type", "value", "size"}, new String[]{"index", "text", indexuri, "40"});
+				searchTable.addChild("tr")
+					.addChild("td", xl.getString("ShowOldVersions"))
+						.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", showold?"checked":"1"});
 		return searchDiv;
 	}
 
@@ -457,7 +458,7 @@ public class WebUI{
 		return searchlistpage.generate();
 	}
 
-	private static String script(boolean refresh, boolean js, String searchquery, String indexuri){
+	private static String script(boolean refresh, boolean js, String searchquery, String indexuri, boolean showold){
 		return  (refresh&&!js) ?
 					"var loc = new String(window.location);\n" +
 					"if(loc.match('\\\\?'))" +
@@ -466,7 +467,7 @@ public class WebUI{
 					"	window.location=loc+'?js';\n"
 				:
 					"\n" +
-					"var url = '/plugins/plugins.XMLLibrarian.XMLLibrarian/xml?search=" +searchquery+"&index="+indexuri+"';\n" +
+					"var url = '/plugins/plugins.XMLLibrarian.XMLLibrarian/xml?search=" +searchquery+"&index="+indexuri+"&showold="+(showold?"on":"off")+"';\n" +
 					"var xmlhttp;\n" +
 					"\n" +
 					"function getProgress(){\n" +
@@ -491,12 +492,17 @@ public class WebUI{
 					"}\n" +
 					"getProgress();\n" +
 					"\n" +
-					"function showGroup(id){\n" +
+					"function toggleResult(key){\n" +
+					"	var togglebox = document.getElementById('result-hiddenblock-'+key);\n" +
+					"	if(togglebox.style.display == 'block')\n" +
+					"		togglebox.style.display = 'none';\n" +
+					"	else\n" +
+					"		togglebox.style.display = 'block';\n" +
 					"}\n";
 	}
 
 
-	static String progressxml(String searchquery, String indexuri) {
+	static String progressxml(String searchquery, String indexuri, boolean showold) {
 		HTMLNode resp = new HTMLNode("pagecontent");
 		try{
 			String progress;
@@ -506,12 +512,16 @@ public class WebUI{
 			else
 				progress = "No search for this, something went wrong";
 				if(search != null && search.getRequestStatus()==Request.RequestStatus.FINISHED)
-					resp.addChild("result", WebUI.resultNodeGrouped(Search.getSearch(searchquery, indexuri)).generate());
+					resp.addChild("result", WebUI.resultNodeGrouped(Search.getSearch(searchquery, indexuri), showold, true).generate());
 				resp.addChild("progress", "requeststatus",  (search==null)?"":search.getRequestStatus().toString(), progress);
 		}catch(Exception e){
 			addError(resp.addChild("progress", "requeststatus",  "ERROR"), e);
 		}
 		return "<?xml version='1.0' encoding='ISO-8859-1'?>\n"+resp.generate();
+	}
+
+	private static String jssafename(String in){
+		return in.replaceAll("\\W+", "_");
 	}
 }
 
