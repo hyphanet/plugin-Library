@@ -80,12 +80,12 @@ public abstract class Index {
 		if (allindices.containsKey(indexuri))
 			return allindices.get(indexuri);
 		
-		if(indexuri.startsWith("xml:")){
-			Index index = new XMLIndex(indexuri.substring(4));
+		//if(indexuri.startsWith("xml:")){
+			Index index = new XMLIndex(indexuri);
 			allindices.put(indexuri, index);
 			return index;
-		}
-		throw new UnsupportedOperationException("Unrecognised index type, id format is <type>:<key> {"+indexuri+"}");
+		//}
+		//throw new UnsupportedOperationException("Unrecognised index type, id format is <type>:<key> {"+indexuri+"}");
 	}
 
 	/**
@@ -110,8 +110,8 @@ public abstract class Index {
 		Index.pr = pr;
 		executor = pr.getNode().executor;
 		try{
-			bookmarks.put("wanna", Index.getIndex("xml:USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/"));
-			bookmarks.put("wanna19", Index.getIndex("xml:SSK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search-19/"));
+			bookmarks.put("wanna", Index.getIndex("USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/"));
+			bookmarks.put("wanna19", Index.getIndex("SSK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search-19/"));
 		}catch(InvalidSearchException e){
 			// Couldnt add wanna for some reason
 		}

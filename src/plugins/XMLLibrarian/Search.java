@@ -60,26 +60,15 @@ public class Search implements Request<URIWrapper> {
 		Logger.minor(Search.class, "Starting new search for "+search+" in "+indexuri);
 
 		String[] indices = indexuri.split("[ ;]");
-		String[] searchterms = search.split("[^\\p{L}\\{N}]+");
-		if(indices.length<1 || searchterms.length<1)
+		if(indices.length<1 || search.trim().length()<1)
 			throw new InvalidSearchException("Attempt to start search with no index or terms");
-		else if(indices.length==1 && searchterms.length==1)
-			return new Search(search, indexuri, Index.getIndex(indices[0]).find(search));
-		else if(indices.length==1 && searchterms.length>1){
-			// Create search for multiple terms over 1 index
-			ArrayList<Request> requests = new ArrayList(searchterms.length);
-			for (String term : searchterms)
-				requests.add(startSearch(term,indices[0]));
-			return new Search(search, indexuri, requests, ResultOperation.INTERSECTION);
-		}else{
+		else if(indices.length==1)
+			return splitQuery(search, indexuri);
+		else{
 			// create search for multiple terms over multiple indices
 			ArrayList<Request> indexrequests = new ArrayList(indices.length);
-			for (String index : indices){
-				ArrayList<Request> termrequests = new ArrayList(searchterms.length);
-				for (String term : searchterms)
-					termrequests.add(startSearch(term, index));
-				indexrequests.add(new Search(search, index, termrequests, ResultOperation.UNION));
-			}
+			for (String index : indices)
+				indexrequests.add(startSearch(search, index));
 			return new Search(search, indexuri, indexrequests, ResultOperation.UNION);
 		}
 	}
@@ -132,21 +121,56 @@ public class Search implements Request<URIWrapper> {
 	}
 	
 	
-//	/**
-//	 * Splits query into multiple searches, will be used for advanced queries
-//	 *
-//	 * @return Set of subsearches or null if theres only one search
-//	 */
-//	private HashSet<Search> splitQuery(String query, Index index) throws InvalidSearchException{
-//		String[] searchWords = query.split("[^\\p{L}\\{N}]+");
-//		if (searchWords.length < 2)
-//			return null; // Just one search term
-//
-//		HashSet<Search> searches = new HashSet<Search>(searchWords.length);
-//		for ( String searchtoken : searchWords)
-//			searches.add(startSearch(searchtoken, index));
-//		return searches;
-//	}
+	/**
+	 * Splits query into multiple searches, will be used for advanced queries
+	 * @param query search query, can use various different search conventions
+	 * @param indexuri uri for one index
+	 * @return Set of subsearches or null if theres only one search
+	 */
+	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException{
+		if(query.length()==1)
+			throw new InvalidSearchException(query);
+		String formattedquery = query.replaceAll("((?:(?:\"[^\"]*\")?[^\"]*?)+?)\\s+or\\s+", "$1||")
+				.replaceAll("((?:(?:\"[^\"]*\")?[^\"]*?)+?)\\s+(?:not\\s*|-)(\\w+)\\b", "$1--($2)")
+				.replaceAll("((?:(?:\"[^\"]*\")?[^\"]*?)+?)\\s", "$1&&");
+
+			Logger.minor(Search.class, "query : "+formattedquery);
+		// Make complement search
+		if (formattedquery.contains("--(")){
+			ArrayList<Request> complementsearches = new ArrayList();
+			String[] splitup = formattedquery.split("(--\\(|\\))", 3);
+			complementsearches.add(splitQuery(splitup[0]+splitup[2], indexuri));
+			complementsearches.add(splitQuery(splitup[1], indexuri));
+			return new Search(query, indexuri, complementsearches, ResultOperation.REMOVE);
+		}
+		// Split intersections
+		if (formattedquery.contains("&&")){
+			ArrayList<Request> intersectsearches = new ArrayList();
+			String[] intersects = formattedquery.split("&&");
+			for (String subquery : intersects)
+				intersectsearches.add(splitQuery(subquery, indexuri));
+			return new Search(query, indexuri, intersectsearches, ResultOperation.INTERSECTION);
+		}
+		// Split Unions
+		if (formattedquery.contains("||")){
+			ArrayList<Request> unionsearches = new ArrayList();
+			String[] unions = formattedquery.split("\\|\\|");
+			for (String subquery : unions)
+				unionsearches.add(splitQuery(subquery, indexuri));
+			return new Search(query, indexuri, unionsearches, ResultOperation.UNION);
+		}
+		// Make phrase search
+		if (formattedquery.contains("\"")){
+			ArrayList<Request> phrasesearches = new ArrayList();
+			Logger.minor(Search.class, formattedquery.split("\"").toString());
+			String[] phrase = formattedquery.split("\"")[1].split(" ");
+			for (String subquery : phrase)
+				phrasesearches.add(splitQuery(subquery, indexuri));
+			return new Search(query, indexuri, phrasesearches, ResultOperation.PHRASE);
+		}
+		// Once it's this far it should be a single search term
+		return new Search(query, indexuri, Index.getIndex(indexuri).find(query));
+	}
 
 
 	/**

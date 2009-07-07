@@ -54,6 +54,8 @@ public class WebUI{
 		if(request.getPath().endsWith("debug")){
 			return WebUI.debugpage();
 		}
+		if(request.getPath().endsWith("listSearches"))
+			return WebUI.listSearches();
 		
 		// If no search is specified show the default page
 		if(searchstring == null || searchstring.equals("")){
@@ -116,7 +118,7 @@ public class WebUI{
 		// encode parameters
 		String search = "";
 		try{
-			search = request !=null ? HTMLEncoder.encode(request.getQuery()) : "";
+			search = request !=null ? request.getQuery() : "";
 			if(indexuri == null || indexuri.equals(""))
 				indexuri = request !=null  ? HTMLEncoder.encode(request.getIndexURI()) : XMLLibrarian.DEFAULT_INDEX_SITE;
 		}catch(Exception exe){
@@ -572,6 +574,16 @@ public class WebUI{
 			addError(resp.addChild("error", "requeststatus",  "ERROR"), e);
 		}
 		return "<?xml version='1.0' encoding='ISO-8859-1'?>\n"+resp.generate();
+	}
+
+	public static String listSearches(){
+		HTMLNode searchlistpage = new HTMLNode("HTML");
+		HTMLNode bodynode = searchlistpage.addChild("body");
+		for(String s : Search.getAllSearches().keySet()){
+			HTMLNode searchnode = bodynode.addChild("p");
+			searchnode.addChild("#",s);
+		}
+		return searchlistpage.generate();
 	}
 }
 
