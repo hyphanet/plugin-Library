@@ -26,12 +26,12 @@ public class TestInterface{
 				param = line.substring(1);
 				
 				if("f".equals(command)){
-					requests.put(""+requestcount,Library.findTerm("xml:index", param));
+					requests.put(""+requestcount,Library.findTerm("index", param));
 					System.out.println("Started request "+requestcount);
 					requestcount++;
 				}
 				if("s".equals(command)){
-					requests.put(""+requestcount,Search.startSearch(param, "xml:index"));
+					requests.put(""+requestcount,Search.startSearch(param, "index"));
 					System.out.println("Started request "+requestcount);
 					requestcount++;
 				}
@@ -40,7 +40,7 @@ public class TestInterface{
 				if("r".equals(command))
 					System.out.println(requests.get(param).getResult());
 				if("i".equals(command))
-					System.out.println(Library.getIndex("xml:index"));
+					System.out.println(Library.getIndex("index"));
 			}while(!"x".equals(command));
 		}catch(Exception e){
 			e.printStackTrace();

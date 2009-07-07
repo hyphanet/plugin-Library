@@ -128,17 +128,56 @@ public class Search implements Request<URIWrapper> {
 	 * @return Set of subsearches or null if theres only one search
 	 */
 	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException{
-		if(query.length()==1)
-			throw new InvalidSearchException(query);
-		String formattedquery = query.replaceAll("((?:(?:\"[^\"]*\")?[^\"]*?)+?)\\s+or\\s+", "$1||")
-				.replaceAll("((?:(?:\"[^\"]*\")?[^\"]*?)+?)\\s+(?:not\\s*|-)(\\w+)\\b", "$1--($2)")
-				.replaceAll("((?:(?:\"[^\"]*\")?[^\"]*?)+?)\\s", "$1&&");
+		if(query.matches("\\A\\w*\\Z"))
+			// single search term
+			return new Search(query, indexuri, Index.getIndex(indexuri).find(query));
+		
+		// Make phrase search
+		if(query.matches("\\A\".*\"\\Z")){
+			ArrayList<Request> phrasesearches = new ArrayList();
+			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split(" ");
+			Logger.minor(Search.class, "Phrase split"+query);
+			for (String subquery : phrase)
+				phrasesearches.add(splitQuery(subquery, indexuri));
+			return new Search(query, indexuri, phrasesearches, ResultOperation.PHRASE);
+		}
+		
+		Logger.minor(Search.class, "Splitting " + query);
+		String formattedquery="";
+		// Remove phrases, place them in arraylist and replace tem with references to the arraylist
+		ArrayList<String> phrases = new ArrayList();
+		String[] phraseparts = query.split("\"");
+		if(phraseparts.length>1)
+			for (int i = 0; i < phraseparts.length; i++) {
+				String string = phraseparts[i];
+				formattedquery+=string;
+				if (++i < phraseparts.length){
+					string = phraseparts[i];
+					formattedquery+="$"+phrases.size();
+					phrases.add(string);
+				}
+			}
+		formattedquery = formattedquery.replaceAll("\\s+or\\s+", "||");
+		Logger.minor(Search.class, "or query : "+formattedquery);
+		formattedquery = formattedquery.replaceAll("\\s+(?:not\\s*|-)(\\S+)", "^^($1)");
+		Logger.minor(Search.class, "not query : "+formattedquery);
+		formattedquery = formattedquery.replaceAll("\\s+", "&&");
+		Logger.minor(Search.class, "and query : "+formattedquery);
 
-			Logger.minor(Search.class, "query : "+formattedquery);
+		// Put phrases back in
+		phraseparts=formattedquery.split("\\$");
+		formattedquery=phraseparts[0];
+		for (int i = 1; i < phraseparts.length; i++) {
+			String string = phraseparts[i];
+			Logger.minor(Search.class, "replacing phrase "+string.replaceFirst("(\\d+).*", "$1"));
+			formattedquery += "\""+ phrases.get(Integer.parseInt(string.replaceFirst("(\\d+).*", "$1"))) +"\"" + string.replaceFirst("\\d+(.*)", "$1");
+		}
+		Logger.minor(Search.class, "phrase back query : "+formattedquery);
+
 		// Make complement search
-		if (formattedquery.contains("--(")){
+		if (formattedquery.contains("^^(")){
 			ArrayList<Request> complementsearches = new ArrayList();
-			String[] splitup = formattedquery.split("(--\\(|\\))", 3);
+			String[] splitup = formattedquery.split("(\\^\\^\\(|\\))", 3);
 			complementsearches.add(splitQuery(splitup[0]+splitup[2], indexuri));
 			complementsearches.add(splitQuery(splitup[1], indexuri));
 			return new Search(query, indexuri, complementsearches, ResultOperation.REMOVE);
@@ -159,17 +198,9 @@ public class Search implements Request<URIWrapper> {
 				unionsearches.add(splitQuery(subquery, indexuri));
 			return new Search(query, indexuri, unionsearches, ResultOperation.UNION);
 		}
-		// Make phrase search
-		if (formattedquery.contains("\"")){
-			ArrayList<Request> phrasesearches = new ArrayList();
-			Logger.minor(Search.class, formattedquery.split("\"").toString());
-			String[] phrase = formattedquery.split("\"")[1].split(" ");
-			for (String subquery : phrase)
-				phrasesearches.add(splitQuery(subquery, indexuri));
-			return new Search(query, indexuri, phrasesearches, ResultOperation.PHRASE);
-		}
-		// Once it's this far it should be a single search term
-		return new Search(query, indexuri, Index.getIndex(indexuri).find(query));
+
+		Logger.error(Search.class, "No split made, "+formattedquery+query);
+		return null;
 	}
 
 
