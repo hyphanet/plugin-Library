@@ -2,7 +2,6 @@ package plugins.XMLLibrarian;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -17,8 +16,6 @@ import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.SAXException;
 
 import freenet.client.FetchException;
-import freenet.keys.FreenetURI;
-import freenet.node.RequestStarter;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Logger;
 import freenet.support.api.Bucket;
@@ -188,18 +185,5 @@ public class Index {
 		if (result == null)
 			result = new LinkedList<URIWrapper>();
 		return result;
-	}
-	
-	public void preFetchAll() throws IOException, FetchException, SAXException {
-		fetch();
-		for (String subIndex : subIndice.values()) {
-			try {
-	            FreenetURI uri = new FreenetURI(baseURI + subIndex);
-        		Logger.debug(this, "Prefetching - " + uri);
-	            pr.getHLSimpleClient().prefetch(uri, Long.MAX_VALUE , 256 * 1024 * 1024, null, RequestStarter.MINIMUM_PRIORITY_CLASS);
-            } catch (MalformedURLException e) {
-        		Logger.debug(this, "Don't Prefetch - " + subIndex);
-            }
-		}
 	}
 }

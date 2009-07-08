@@ -1,10 +1,7 @@
 package plugins.XMLLibrarian;
 
-import java.io.IOException;
 import java.security.MessageDigest;
 import java.util.HashMap;
-
-import org.xml.sax.SAXException;
 
 import freenet.client.FetchException;
 import freenet.pluginmanager.FredPlugin;
@@ -191,21 +188,10 @@ public class XMLLibrarian implements FredPlugin, FredPluginHTTP, FredPluginVersi
 
 
 
-	public void runPlugin(final PluginRespirator pr) {
+	public void runPlugin(PluginRespirator pr) {
 		this.pr = pr;
         //Util.logs = logs;
         Util.hlsc = pr.getHLSimpleClient();
-
-        pr.getNode().executor.execute(new Runnable() {
-        	public void run() {
-        		Logger.debug(XMLLibrarian.this, "Prefetching " + DEFAULT_INDEX_SITE);
-                try {
-	                new Index(DEFAULT_INDEX_SITE, pr).preFetchAll();
-                } catch (Exception e) {
-                	Logger.debug(XMLLibrarian.this, "Can't prefetch " + DEFAULT_INDEX_SITE, e);
-                }
-        	}
-        }, "XMLLibrarian prefetch");
 	}
 
 	private static String convertToHex(byte[] data) {
