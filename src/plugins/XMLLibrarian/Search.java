@@ -157,8 +157,10 @@ public class Search implements Request<URIWrapper> {
 					phrases.add(string);
 				}
 			}
+		else
+			formattedquery=query;
+		Logger.minor(Search.class, "phrases removed query : "+formattedquery);
 		formattedquery = formattedquery.replaceAll("\\s+or\\s+", "||");
-		Logger.minor(Search.class, "or query : "+formattedquery);
 		formattedquery = formattedquery.replaceAll("\\s+(?:not\\s*|-)(\\S+)", "^^($1)");
 		Logger.minor(Search.class, "not query : "+formattedquery);
 		formattedquery = formattedquery.replaceAll("\\s+", "&&");
@@ -263,7 +265,7 @@ public class Search implements Request<URIWrapper> {
 
 	@Override
 	public String toString(){
-		return "Search: "+subject+" : "+subsearches;
+		return "Search: "+resultOperation+" : "+subject+" : "+subsearches;
 	}
 
 	/**
@@ -428,6 +430,7 @@ public class Search implements Request<URIWrapper> {
 				result.removeAll(subsearches.get(1).getResult());
 				break;
 			case PHRASE:
+				Logger.minor(this, "Getting results for phrase");
 				for(Request<URIWrapper> r : subsearches)
 					if(result.size()>0)
 						try {

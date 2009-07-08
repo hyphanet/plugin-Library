@@ -1,5 +1,6 @@
 package plugins.XMLLibrarian;
 
+import freenet.support.Logger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -29,7 +30,7 @@ public class URIWrapper implements Comparable<URIWrapper> {
 	 * @return
 	 */
 	public URIWrapper followedby(URIWrapper o) throws Exception{
-		if(!equals(o))
+		if(compareTo(o)!=0)
 			return null;
 		if(termpositions == null || o.termpositions == null)
 				throw new Exception("Term positions not recorded for these URIWrappers, cannot determine following");
@@ -37,8 +38,10 @@ public class URIWrapper implements Comparable<URIWrapper> {
 		// Loop through positions to find anywhere where positions in this URIWrapper are followed by those in o
 		for (Iterator<Integer> it = termpositions.iterator(); it.hasNext();) {
 			Integer integer = it.next()+1;
-			if(o.termpositions.contains(integer))
+			if(o.termpositions.contains(integer)){
 				newtermpositions.add(integer);
+				Logger.minor(this, descr + "followed at "+ integer.toString());
+			}
 		}
 		// If there are matches return a new URIWrapper of them
 		if(newtermpositions.size()>0){

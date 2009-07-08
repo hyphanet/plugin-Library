@@ -527,7 +527,7 @@ public class WebUI{
 					"		if(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('requeststatus').value=='FINISHED')\n" +
 					"			document.getElementById('results').innerHTML=" +
 									"resp.getElementsByTagName('result')[0].textContent;\n" +
-					"		if(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('requeststatus').value=='ERROR')\n" +
+					"		else if(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('requeststatus').value=='ERROR')\n" +
 					"			document.getElementById('errors').innerHTML+=" +
 									"resp.getElementsByTagName('error')[0].textContent;\n" +
 					"		else\n" +
@@ -565,8 +565,10 @@ public class WebUI{
 			}else
 				progress = "No search for this, something went wrong";
 			// If it's finished, return it's results
-			if(search != null && search.getRequestStatus()==Request.RequestStatus.FINISHED)
+			if(search != null && search.getRequestStatus()==Request.RequestStatus.FINISHED){
 				resp.addChild("result", WebUI.resultNodeGrouped(Search.getSearch(searchquery, indexuri), showold, true).generate());
+				resp.addChild("progress", "requeststatus",  "FINISHED", "Search complete");
+			}
 			resp.addChild("progress", "requeststatus",  (search==null)?"":search.getRequestStatus().toString(), progress);
 			if(search != null && search.getRequestStatus()==Request.RequestStatus.ERROR)
 				addError(resp.addChild("error", "requeststatus",  "ERROR"), search.getError());
@@ -579,9 +581,9 @@ public class WebUI{
 	public static String listSearches(){
 		HTMLNode searchlistpage = new HTMLNode("HTML");
 		HTMLNode bodynode = searchlistpage.addChild("body");
-		for(String s : Search.getAllSearches().keySet()){
+		for(Search s : Search.getAllSearches().values()){
 			HTMLNode searchnode = bodynode.addChild("p");
-			searchnode.addChild("#",s);
+			searchnode.addChild("#",s.toString());
 		}
 		return searchlistpage.generate();
 	}
