@@ -41,6 +41,8 @@ public class TestInterface{
 					System.out.println(requests.get(param).getResult());
 				if("i".equals(command))
 					System.out.println(Library.getIndex("index"));
+				if("w".equals(command))
+					WebUI.resultNodeGrouped(requests.get(param), true, true);
 			}while(!"x".equals(command));
 		}catch(Exception e){
 			e.printStackTrace();

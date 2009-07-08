@@ -218,18 +218,15 @@ public class WebUI{
 		while(it.hasNext()){
 			URIWrapper o = it.next();
 			// CHK's need not be grouped so they can be put on top level
-			if(o.URI.contains("CHK"))
+			if(o.URI.matches(".*CHK@.*"))
 				groupmap.put(o.URI, o);
-			else if(o.URI.contains("SSK")){
+			else if(o.URI.matches("\\A.*SSK@[^/]+/[^-/].*\\Z")){
 				// Get the SSK key and name
-				String sitebase = o.URI.replaceAll("SSK@(.+)-\\d+/.*", "$1");
-				Integer sskVersion;
+				String sitebase = o.URI.replaceAll("\\A.*SSK@([^/]+/[^-/]+).*\\Z", "$1");
 				// Get the SSK version
-				try{
-					sskVersion = Integer.valueOf(o.URI.replaceAll("SSK@.+-(\\d+)/.*", "$1"));
-				}catch(Exception e) {
-					sskVersion = Integer.valueOf(-1);
-				}
+				Integer sskVersion=-1;
+				if(o.URI.matches("\\A.*SSK@[^/]+/[^/]+-\\d+/.*\\Z"))
+					sskVersion = Integer.valueOf(o.URI.replaceAll(".*SSK@[^/]+/[^/]+-(\\d+)/.*", "$1"));
 				// Add site, version & page
 				if(!groupmap.containsKey(sitebase))
 					groupmap.put(sitebase, new TreeMap<Integer, Set<URIWrapper>>());
@@ -307,11 +304,13 @@ public class WebUI{
 						String showurl = u.URI.replaceAll("(SSK@.{5}).+(/.+)", "$1...$2");
 						if (showtitle.trim().length() == 0 || showtitle.equals("not available"))
 							showtitle = showurl;
-						String realurl = (u.URI.startsWith("/") ? "" : "/") + u.URI;
+						String realurl = u.URI.replaceAll(".*(SSK@.*)", "/$1");
 						// create usk url
-						String realuskurl = realurl.replaceAll("SSK@", "USK@").replaceAll("-(\\d+)/", "/$1/");
 						pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: "+(newestVersion?"Blue":"LightBlue"), u.URI}, showtitle);
-						pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "result-uskbutton"}, "[ USK ]");
+						if(version>0){
+							String realuskurl = realurl.replaceAll("SSK@", "USK@").replaceAll("-(\\d+)/", "/$1/");
+							pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "result-uskbutton"}, "[ USK ]");
+						}
 						pageNode.addChild("br");
 						pageNode.addChild("a", new String[]{"href", "class", "style"}, new String[]{realurl, "result-url", "color: "+(newestVersion?"Green":"LightGreen")}, showurl);
 						results++;
@@ -319,7 +318,7 @@ public class WebUI{
 				}
 			}
 		}
-		resultsNode.addChild("p").addChild("span", "class", "librarian-summary-found", xl.getString("Found")+results+xl.getString("results"));
+		resultsNode.addChild("p").addChild("span", "class", "librarian-summary-found", "Found"+results+"results");
 		return resultsNode;
     }
 
