@@ -1,4 +1,4 @@
-package plugins.XMLLibrarian;
+package plugins.XMLLibrarian.xmlindex;
 
 import java.util.HashMap;
 import java.util.HashSet;

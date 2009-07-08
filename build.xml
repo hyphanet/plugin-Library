@@ -42,8 +42,20 @@
 				<pathelement location="${freenet-cvs-snapshot.location}"/>
 			</classpath>
 			<include name="**/*.java"/>
+			<exclude name="plugins/XMLLibrarian/Interdex/*" />
 			<exclude name="**/*Test.java"/>
 		</javac>
+	</target>
+	
+	<target name="run" depends="dist">
+		<java
+			classname="plugins.XMLLibrarian.interfaces.TestInterface">
+			<classpath>
+				<pathelement location="../fred/lib/freenet-cvs-snapshot.jar"/>
+				<pathelement location="../fred/lib/freenet-ext.jar"/>
+				<pathelement location="dist/XMLLibrarian.jar"/>
+			</classpath>
+		</java>
 	</target>
 
 	<!-- ================================================== -->
@@ -88,6 +100,7 @@
 		description="generate the distribution" >
 		<jar jarfile="${dist}/XMLLibrarian.jar" duplicate="fail">
 			<manifest>
+				<attribute name="Main-Class" value="plugins.XMLLibrarian.TestInterface"/>
 				<attribute name="Plugin-Main-Class" value="plugins.XMLLibrarian.XMLLibrarian"/>
 			</manifest>
 			<fileset dir="src/" casesensitive="no">
@@ -96,6 +109,21 @@
 			<fileset dir="${build}/"/>
 		</jar>
 	</target>
+
+
+	<target name="javadoc">
+		<javadoc  destdir="docs">
+			<classpath>
+				<pathelement location="${freenet-ext.location}"/>
+				<pathelement location="${freenet-cvs-snapshot.location}"/>
+			</classpath>
+			<packageset dir="src" defaultexcludes="yes">
+			  <include name="**"/>
+			</packageset>
+		</javadoc>
+	</target>
+
+
 
 	<!-- ================================================== -->
 	<target name="clean" description="Delete class files and docs dir.">

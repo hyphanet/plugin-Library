@@ -1,189 +1,128 @@
 package plugins.XMLLibrarian;
 
-import java.io.IOException;
-import java.io.InputStream;
+
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
-
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
-
-import org.xml.sax.SAXException;
-
-import freenet.client.FetchException;
+import java.util.HashMap;
 import freenet.pluginmanager.PluginRespirator;
-import freenet.support.Logger;
-import freenet.support.api.Bucket;
+import freenet.support.Executor;
+import plugins.XMLLibrarian.xmlindex.XMLIndex;
 
 /**
- * Index Class
- * 
- * This does _NOT_ support index file generate by XMLSpider earlier then version 8 (Sep-2007).
- * 
- * @author j16sdiz (1024D/75494252)
+ * Index Class	<br />
+ * Index's are identified {Index type}:{Index identifier} <br />
+ * eg. index type 'xml' creates an XMLIndex
  */
-public class Index {
-	static final String DEFAULT_FILE = "index.xml";
-
-	protected String baseURI;
-	protected PluginRespirator pr;
-
-	protected boolean fetched;
+public abstract class Index {
+	public enum FetchStatus{UNFETCHED, FETCHING, FETCHED, FAILED}
+	static protected PluginRespirator pr;
+	static protected Executor executor;
 	/**
-	 * Index format version:
-	 * <ul>
-	 * <li>1 = XMLSpider 8 to 33</li>
-	 * </ul>
-	 * Earlier format are no longer supported.
+	 * Map of all indexes currently open Key is indexid
 	 */
-	protected int version;
+	static protected HashMap<String, Index> allindices = new HashMap<String, Index>();
+	static private HashMap<String, Index> bookmarks = new HashMap<String, Index>();
 
-	protected String title;
-	protected String ownerName;
-	protected String ownerEmail;
 
-	protected List<String> subIndiceList;
-	protected SortedMap<String, String> subIndice;
+	protected String indexuri;
+	protected FetchStatus fetchStatus = FetchStatus.UNFETCHED;
+
+	protected HashMap<String, String> indexMeta;
+	
 
 	/**
-	 * @param baseURI
-	 *            Base URI of the index (exclude the <tt>index.xml</tt> part)
-	 * @param pluginRespirator
+	 * Initialise indexMeta
 	 */
-	public Index(String baseURI, PluginRespirator pluginRespirator) {
-		if (!baseURI.endsWith("/"))
-			baseURI += "/";
-
-		this.baseURI = baseURI;
-		this.pr = pluginRespirator;
+	protected Index(){
+		indexMeta = new HashMap<String, String>();
 	}
-
+	
 	/**
-	 * Fetch the main index file
+	 * Returns a set of Index objects one for each of the uri's specified
+	 * gets an existing one if its there else makes a new one
 	 * 
-	 * @throws IOException
-	 * @throws FetchException
-	 * @throws SAXException
-	 */ 
-	public synchronized void fetch() throws IOException, FetchException, SAXException {
-        fetch(null);
-    }
-	public synchronized void fetch(Progress progress) throws IOException, FetchException, SAXException {
-		if (fetched)
-			return;
-
-        if(progress!=null) progress.set("Getting base index");
-		Bucket bucket = Util.fetchBucket(baseURI + DEFAULT_FILE, progress);
-        if(progress!=null) progress.set("Fetched base index");
-		try {
-			InputStream is = bucket.getInputStream();
-			parse(is);
-			is.close();
-		} finally {
-			bucket.free();
+	 * @param indexuris list of index specifiers separated by spaces
+	 * @return Set of Index objects
+	 */
+	public static final ArrayList<Index> getIndices(String indexuris) throws InvalidSearchException{
+		String[] uris = indexuris.split("[ ;]");
+		ArrayList<Index> indices = new ArrayList<Index>(uris.length);
+		
+		for ( String uri : uris){
+			indices.add(getIndex(uri));
 		}
-
-		fetched = true;
+		return indices;
 	}
 
-	private void parse(InputStream is) throws SAXException, IOException {
-		SAXParserFactory factory = SAXParserFactory.newInstance();
-
-		try {
-			factory.setNamespaceAware(true);
-			factory.setFeature("http://xml.org/sax/features/namespaces", true);
-			factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-
-			SAXParser saxParser = factory.newSAXParser();
-			MainIndexParser parser = new MainIndexParser();
-			saxParser.parse(is, parser);
-
-			version = parser.getVersion();
-			if (version == 1) {
-				title = parser.getHeader("title");
-				ownerName = parser.getHeader("owner");
-				ownerEmail = parser.getHeader("email");
-
-				subIndiceList = new ArrayList<String>();
-				subIndice = new TreeMap<String, String>();
-
-				for (String key : parser.getSubIndice()) {
-					subIndiceList.add(key);
-					subIndice.put(key, "index_" + key + ".xml");
-				}
-				Collections.sort(subIndiceList);
-			}
-		} catch (ParserConfigurationException e) {
-			Logger.error(this, "SAX ParserConfigurationException", e);
-			throw new SAXException(e);
-		}
+	/**
+	 * Static method to get all of the instatiated Indexes
+	 */
+	public static final Iterable<Index> getAllIndices() {
+		return allindices.values();
 	}
-
-	protected String getSubIndex(String keyword) {
-		String md5 = XMLLibrarian.MD5(keyword);
-		int idx = Collections.binarySearch(subIndiceList, md5);
-		if (idx < 0)
-			idx = -idx - 2;
-		return subIndice.get(subIndiceList.get(idx));
-	}
-
-	protected List<URIWrapper> search(String keyword) throws Exception {
-        return search(keyword, null);
-    }
-
-	protected List<URIWrapper> search(String keyword, Progress progress) throws Exception {
-		List<URIWrapper> result = new LinkedList<URIWrapper>();
-		String subIndex = getSubIndex(keyword);
-
-		try {
-            if(progress!=null) progress.set("Getting subindex "+subIndex+" to search for "+keyword);
-			Bucket bucket = Util.fetchBucket(baseURI + subIndex, progress);
-            if(progress!=null) progress.set("Fetched subindex "+subIndex+" to search for "+keyword);
-
-			SAXParserFactory factory = SAXParserFactory.newInstance();
-			try {
-				factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-				SAXParser saxParser = factory.newSAXParser();
-				InputStream is = bucket.getInputStream();
-				saxParser.parse(is, new LibrarianHandler(keyword, result));
-				is.close();
-			} catch (Throwable err) {
-				err.printStackTrace();
-				throw new Exception("Could not parse XML: " + err.toString());
-			} finally {
-				bucket.free();
-			}
-		} catch (Exception e) {
-			Logger.error(this, baseURI + subIndex + " could not be opened: " + e.toString(), e);
-			throw e;
-		}
-		return result;
-	}
-
-	public List<URIWrapper> search(String[] keywords) throws Exception {
-        return search(keywords, null);
-    }
-
-	public List<URIWrapper> search(String[] keywords, Progress progress) throws Exception {
-		List<URIWrapper> result = null;
-
-		for (String keyword : keywords) {
-			if (keyword.length() < 3)
-				continue;
-			List<URIWrapper> s = search(keyword, progress);
-
-			if (result == null)
-				result = s;
+	
+	/**
+	 * Returns an Index object for the uri specified,
+	 * gets an existing one if its there else makes a new one
+	 * 
+	 * @param indexuri index specifier
+	 * @return Index object
+	 */
+	public static final Index getIndex(String indexuri) throws InvalidSearchException{
+		if (indexuri.startsWith("bookmark:")){
+			if (bookmarks.containsKey(indexuri.substring(9)))
+				return bookmarks.get(indexuri.substring(9));
 			else
-				result.retainAll(s);
+				throw new InvalidSearchException("Index bookmark '"+indexuri.substring(9)+" does not exist");
 		}
-		if (result == null)
-			result = new LinkedList<URIWrapper>();
-		return result;
+
+		if (!indexuri.endsWith("/"))
+			indexuri += "/";
+		if (allindices.containsKey(indexuri))
+			return allindices.get(indexuri);
+		
+		//if(indexuri.startsWith("xml:")){
+			Index index = new XMLIndex(indexuri);
+			allindices.put(indexuri, index);
+			return index;
+		//}
+		//throw new UnsupportedOperationException("Unrecognised index type, id format is <type>:<key> {"+indexuri+"}");
+	}
+
+	/**
+	 * @return the baseURI of this INdex
+	 */
+	public String getIndexURI(){
+		return indexuri;
+	}
+
+	/**
+	 * Should be overriden with a function which searches for a term in this Index
+	 * @param term a single term to search for
+	 * @return Request tracking this operation
+	 */
+	public abstract Request find(String term);
+	
+	/**
+	 * Static method to setup Index class so it has access to PluginRespirator, and load bookmarks
+	 * TODO pull bookmarks from disk
+	 */
+	public static final void setup(PluginRespirator pr){
+		Index.pr = pr;
+		executor = pr.getNode().executor;
+		try{
+			bookmarks.put("wanna", Index.getIndex("USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/"));
+			bookmarks.put("wanna19", Index.getIndex("SSK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search-19/"));
+		}catch(InvalidSearchException e){
+			// Couldnt add wanna for some reason
+		}
+	}
+	
+	@Override
+	public String toString(){
+		return "Index : "+indexuri+" "+fetchStatus;
 	}
 }
+
+
+
+
