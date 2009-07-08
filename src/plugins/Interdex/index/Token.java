@@ -9,6 +9,7 @@ import java.security.MessageDigest;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 /**
@@ -19,9 +20,20 @@ import java.util.WeakHashMap;
 public class Token extends BytePrefixKey<Token> {
 
 	/**
-	** Internal pool of tokens.
+	** Internal map of string -> token. Note that there is no need to hold the
+	** token by a WeakReference here as the presence of the mapping implies
+	** that we want to keep access to it.
 	*/
-	final private static Map<String, WeakReference<Token>> intern = new WeakHashMap<String, WeakReference<Token>>();
+	final private static Map<String, Token> internMap = new WeakHashMap<String, Token>();
+
+	/**
+	** Internal pool of tokens. Ideally we would have a WeakHashSet but the
+	** {@link Set} interface does not provide a method to retrieve the actual
+	** object contained in the Set, so we need to use a {@link Map} of keys
+	** back to the keys. Also, this means that we need to wrap the value in a
+	** {@link WeakReference}.
+	*/
+	final private static Map<Token, WeakReference<Token>> internPool = new WeakHashMap<Token, WeakReference<Token>>();
 
 	/**
 	** Returns the canonical {@link Token} for a given string.
@@ -32,12 +44,29 @@ public class Token extends BytePrefixKey<Token> {
 	** @see String#intern()
 	*/
 	public static synchronized Token intern(String s) {
-		Token t;
-		if (!intern.containsKey(s) || (t = intern.get(s).get()) == null) {
-			t = new Token(s);
-			intern.put(s, new WeakReference<Token>(t));
+		Token t = internMap.get(s);
+		if (t == null) {
+			t = Token.intern(new Token(s));
+			internMap.put(s, t);
 		}
 		return t;
+	}
+
+	/**
+	** Returns the canonical representation of a {@link Token}.
+	**
+	** @see String#intern()
+	*/
+	public static synchronized Token intern(Token t) {
+		WeakReference<Token> ref = internPool.get(t);
+		Token tk;
+		if (ref == null || (tk = ref.get()) == null) {
+			// the referent could still be null, because the GC could have cleared the
+			// weak refs (including the key) between lines 1 and 2 of this method.
+			internPool.put(t, new WeakReference<Token>(t));
+			return t;
+		}
+		return tk;
 	}
 
 	public Token() {
@@ -66,6 +95,17 @@ public class Token extends BytePrefixKey<Token> {
 		} catch (java.io.UnsupportedEncodingException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	/**
+	** Returns the canonical representation of a {@link Token}.
+	**
+	** This implementation just calls {@link #intern(Token)}.
+	**
+	** @see String#intern()
+	*/
+	public Token intern() {
+		return intern(this);
 	}
 
 	/*========================================================================

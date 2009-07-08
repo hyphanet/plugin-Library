@@ -5,7 +5,45 @@ index: "suggested tokens" - suggest what other people should tag this index as;
 
 
 
-- implement de/inflate(k) for STM and SPTM
+- there should be only one entry per URI per Token (enforce this in the code at some point)
+
+>>> 7f0a7773dc3d60759145e10b750e706c584d8a7c
+>>>
+>>> URIKey: - I believe we agreed to index by the concatenation of the
+>>> routing key and the uri hash? is that the current plan? you could index
+>>> by the uri (toString(false, true) -> ascii), but that wouldn't be fixed
+>>> length. i dunno how much locality of reference matters within a given
+>>> routing key, if it does you need to either index by the actual uri or
+>>> use a locality-preserving hash such as tea hash.
+>> i'll need to rethink this at some point. the problem with just
+>> concatenation is that you'll end up with a tree that's (length of the
+>> first part) deep, with nodes in between that only have 1 children. so atm
+>> i've gone with only routingKey (probably will soon change this to
+>> routingKey + docName, as SSK uses). it will index small-to-medium sites
+>> fine, but will be bad for extremely large (thousands of pages) sites.
+>> maybe i could use skip-lists instead of a tree within a tree
+>> (http://en.wikipedia.org/wiki/Skip_list).
+>
+> Maybe, I'm not sure how you'd lazily load a skiplist? I guess you can
+> segment each level.
+>
+> Alternatively, what about allowing a child with a prefix longer than [ my
+> prefix ] + 1, provided that all keys in that bucket (with that next-element)
+> fit within it? And if and when one is added, create an intermediate subtree?
+> Of course this means changing the parent pointer when you move the tree
+> downwards, but is that such a big deal? You could have a protected or
+> package-local accessor...
+
+it would be easier to just grab a B-tree implementation and modify it to suit
+our purposes, lol (and we wouldn't have to hash them into Tokens)... actually i
+might do just that instead of coding a custom algorithm. atm though i'm going
+to carry on other parts of the project, i can mess about with fine-tuning the
+data structure more after the rest is working.
+
+
+
+
+
 
 
 - have a Skeleton<K> interface with deflate(K) methods so that
@@ -35,11 +73,12 @@ the set cannot be modified or toArray()'d unless it is live
 with deflate(Index)
 
 
+
 == Schedule ==
 
  # implement deflate/inflate on STM/SPTM, 2-3 days
- - implement index push/pull 1 day
- - implement auto-fetching of not loaded data 2-3 days
+ # implement index push/pull 1 day
+ - implement index methods including auto-fetching of not loaded data 2-3 days
  - implement a serialiser to send progress reports 5-7 days
  - implement Ghost* 3-5 days
  - implement freenet inflate/deflate 5-7 days

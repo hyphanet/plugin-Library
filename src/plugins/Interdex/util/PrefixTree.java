@@ -96,7 +96,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 		}
 
 		for (PrefixTree<K, V> c: chd) {
-			if (c != null) { ++subtrees; }
+			if (c != null) { throw new IllegalArgumentException("Child array to attach must be empty."); }
 		}
 
 		prefix = p;

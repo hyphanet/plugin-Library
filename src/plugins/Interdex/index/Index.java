@@ -23,12 +23,10 @@ import plugins.Interdex.util.DataNotLoadedException;
 /**
 ** Represents the data for an index.
 **
-** TODO make this into an interface and put the actual implementation in
+** PRIORITY make this into an interface and put the actual implementation in
 ** ProtoIndex.java
 **
-** TODO make bean getter/setters for the fields
-**
-** TODO work out locking
+** PRIORITY work out locking
 **
 ** @author infinity0
 */
@@ -90,7 +88,7 @@ public class Index {
 
 	public Index(FreenetURI i, String n) {
 		id = i;
-		name = (n == null)? "".intern(): n;
+		name = (n == null)? "": n;
 		writeable = true;
 		modified = new Date();
 		extra = new HashMap<String, Object>();
@@ -110,7 +108,7 @@ public class Index {
 		SkeletonMap<Token, TokenFilter> f*/
 		) {
 		id = i;
-		name = (n == null)? "".intern(): n;
+		name = (n == null)? "": n;
 		writeable = false;
 		modified = m;
 		extra = x;
@@ -167,9 +165,25 @@ public class Index {
 	**         if the TokenEntries have not been loaded
 	*/
 	public synchronized SortedSet<TokenEntry> fetchTokenEntries(String term, boolean auto) {
-		// PRIORITY
 		// TODO make this use the bloom filter
-		throw new UnsupportedOperationException("Not implemented.");
+		if (auto) {
+			// PRIORITY implement this using GhostTreeSet instead of TreeSet so we retrieve
+			// a SkeletonSet rather than the whole map, and then run the autoload
+			// algorithm on that again; see todo.txt for more details
+			SortedSet<TokenEntry> entries;
+			for (;;) {
+				try {
+					entries = tktab.get(new Token(term));
+					break;
+				} catch (DataNotLoadedException e) {
+					// URGENT refactor DataNotLoadedException so that this cast is unnecessary
+					((SkeletonMap)e.getParent()).deflate(e.getKey());
+				}
+			}
+			return entries;
+		} else {
+			return tktab.get(new Token(term));
+		}
 	}
 
 	/**
@@ -241,13 +255,29 @@ public class Index {
 	**         if the URIEntry has not been loaded
 	*/
 	public synchronized URIEntry fetchURIEntry(FreenetURI uri, boolean auto) {
-		// PRIORITY
-		throw new UnsupportedOperationException("Not implemented.");
+		if (auto) {
+			// PRIORITY implement this using GhostTreeMap instead of TreeMap so we retrieve
+			// a SkeletonMap rather than the whole map, and then run the autoload
+			// algorithm on that again; see todo.txt for more details
+			SortedMap<FreenetURI, URIEntry> entries;
+			for (;;) {
+				try {
+					entries = utab.get(new URIKey(uri));
+					break;
+				} catch (DataNotLoadedException e) {
+					// URGENT refactor DataNotLoadedException so that this cast is unnecessary
+					((SkeletonMap)e.getParent()).deflate(e.getKey());
+				}
+			}
+			return entries.get(uri);
+		} else {
+			return utab.get(new URIKey(uri)).get(uri);
+		}
 	}
 
 	/**
 	** Clear the URIEntry associated with a given FreenetURI, and remove any
-	** TokenURIEntries for the terms that this URIEntry is associated with.
+	** TokenURIEntries that point to this entry.
 	**
 	** @param uri The URI to clear the entry for
 	** @param auto Whether to catch and handle {@link DataNotLoadedException}

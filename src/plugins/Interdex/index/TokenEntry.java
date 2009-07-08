@@ -76,7 +76,7 @@ public abstract class TokenEntry implements Comparable<TokenEntry> {
 		float d = o.rel - rel;
 		// this is a bit of a hack but is needed since Tree* treats two objects
 		// as "equal" if their "compare" returns 0
-		if (d != 0) { return (int)(d * Integer.MAX_VALUE); }
+		if (d != 0) { return (d > 0)? 1: -1; }
 		int h = o.hashCode() - hashCode();
 		// on the off chance that the hashCodes are equal but the objects are not,
 		// test the string representations of them...

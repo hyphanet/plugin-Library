@@ -7,6 +7,10 @@ package plugins.Interdex.util;
 ** Thrown when data hasn't been loaded yet, eg. when a data structure hasn't
 ** been fully populated from the network.
 **
+** DOCUMENT The exception thrown should be such that a call to
+** e.getParent().deflate(e.getKey()) will prevent the exception from being
+** thrown next time round.
+**
 ** @author infinity0
 ** @see SkeletonMap
 */

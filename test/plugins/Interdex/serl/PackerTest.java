@@ -16,6 +16,10 @@ import java.util.HashSet;
 import java.util.HashMap;
 
 /**
+** TODO: toad : unit tests should be reproducible so they can be debugged; it
+** can be different each time but it must output a seed to reproduce the exact
+** run.
+**
 ** @author infinity0
 */
 public class PackerTest extends TestCase {

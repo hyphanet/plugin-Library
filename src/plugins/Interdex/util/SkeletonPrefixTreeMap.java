@@ -58,7 +58,7 @@ implements SkeletonMap<K, V> {
 		@Override public void inflate(K key) { throw childNotLoaded(); }
 		@Override public void deflate(K key) { throw childNotLoaded(); }
 
-		protected DataNotLoadedException childNotLoaded() {
+		final protected DataNotLoadedException childNotLoaded() {
 			return new DataNotLoadedException("Child tree " + prefix + " not loaded for PrefixTreeMap " + parent.prefix, parent, prefix, meta);
 		}
 

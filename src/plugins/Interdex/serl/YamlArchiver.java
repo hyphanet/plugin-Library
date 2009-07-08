@@ -33,12 +33,12 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 	protected final String suffix;
 
 	public YamlArchiver() {
-		suffix = prefix = "".intern();
+		suffix = prefix = "";
 	}
 
 	public YamlArchiver(String pre, String suf) {
-		prefix = (pre == null)? "".intern(): pre;
-		suffix = (suf == null)? "".intern(): suf;
+		prefix = (pre == null)? "": pre;
+		suffix = (suf == null)? "": suf;
 	}
 
 	protected String[] getFileParts(Object meta) {

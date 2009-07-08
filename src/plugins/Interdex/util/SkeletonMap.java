@@ -19,7 +19,7 @@ import java.util.Map;
 ** @author infinity0
 ** @see Serialiser
 */
-public interface SkeletonMap<K, V> {
+public interface SkeletonMap<K, V> extends Map<K, V> {
 
 	/**
 	** Whether the skeleton is fully loaded and has no data missing. In other
