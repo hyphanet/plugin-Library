@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 import freenet.support.Logger;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 
@@ -419,11 +420,13 @@ public class Search implements Request<URIWrapper> {
 					result.addAll(r.getResult());
 				break;
 			case INTERSECTION:
-				for(Request<URIWrapper> r : subsearches)
-					if(result.size()>0)
-						result.retainAll(r.getResult());
-					else
-						result.addAll(r.getResult());
+				Iterator<Request> it = subsearches.iterator();
+				Request r = it.next();
+				result.addAll(r.getResult());
+				while (it.hasNext()) {
+					r = it.next();
+					result.retainAll(r.getResult());
+				}
 				break;
 			case REMOVE:
 				result.addAll(subsearches.get(0).getResult());
@@ -431,15 +434,17 @@ public class Search implements Request<URIWrapper> {
 				break;
 			case PHRASE:
 				Logger.minor(this, "Getting results for phrase");
-				for(Request<URIWrapper> r : subsearches)
-					if(result.size()>0)
-						try {
-							result.retainFollowed(r.getResult());
-						} catch (Exception ex) {
-							throw new InvalidSearchException("Unable to determine term positions on these requests and thus unable to determine Phrase matches", ex);
-						}
-					else
-						result.addAll(r.getResult());
+				it = subsearches.iterator();
+				r = it.next();
+				result.addAll(r.getResult());
+				while (it.hasNext()) {
+					r = it.next();
+					try {
+						result.retainFollowed(r.getResult());
+					} catch (Exception ex) {
+						throw new InvalidSearchException("Unable to determine term positions on these requests and thus unable to determine Phrase matches", ex);
+					}
+				}
 				break;
 		}
 		

@@ -113,8 +113,9 @@ public class LibrarianHandler extends DefaultHandler {
 						//Logger.minor(this, "adding to all in "+wordMatches);
 						for(FindRequest<URIWrapper> match : wordMatches){
 							match.addResult(uri);
-							inFile = uri;
-							characters = new StringBuilder();
+							// removed these as they use lots of memory and are only used for phrase search which doesnt work
+							//inFile = uri;
+							//characters = new StringBuilder();
 							//Logger.minor(this, "added "+uri+ " to "+ match);
 						}
 					}
