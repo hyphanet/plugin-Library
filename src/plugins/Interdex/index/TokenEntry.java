@@ -10,6 +10,8 @@ package plugins.Interdex.index;
 ** TODO maybe have a "writeable" field to enforce immutability when inserted
 ** into a collection.
 **
+** URGENT code equals() for this and subclasses
+**
 ** @author infinity0
 */
 public abstract class TokenEntry implements Comparable<TokenEntry> {

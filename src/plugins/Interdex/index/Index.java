@@ -3,10 +3,13 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.index;
 
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.SortedMap;
 import java.util.TreeSet;
+import java.util.TreeMap;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Date;
@@ -27,6 +30,8 @@ import plugins.Interdex.util.DataNotLoadedException;
 ** ProtoIndex.java
 **
 ** PRIORITY work out locking
+**
+** TODO parallelise the fetches
 **
 ** @author infinity0
 */
@@ -176,8 +181,7 @@ public class Index {
 					entries = tktab.get(new Token(term));
 					break;
 				} catch (DataNotLoadedException e) {
-					// URGENT refactor DataNotLoadedException so that this cast is unnecessary
-					((SkeletonMap)e.getParent()).deflate(e.getKey());
+					e.getParent().deflate((Token)e.getKey());
 				}
 			}
 			return entries;
@@ -198,9 +202,31 @@ public class Index {
 	*/
 	public synchronized SortedSet<TokenEntry> clearTokenEntries(String term, boolean auto) {
 		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
+		// make sure the entry is loaded
+		SortedSet<TokenEntry> entries = fetchTokenEntries(term, auto);
+
 		// for all TokenURIEntries in the set, remove the term from the
-		// corresponding URIEntry's "terms" field
-		throw new UnsupportedOperationException("Not implemented.");
+		// corresponding URIEntry's "terms" field. we want this to be atomic,
+		// so grab all the entries first to make sure they are loaded.
+		Set<URIEntry> uris = new HashSet<URIEntry>();
+		for (TokenEntry en: entries) {
+			if (!(en instanceof TokenURIEntry)) { continue; }
+			URIEntry u = fetchURIEntry(((TokenURIEntry)en).getURI(), auto);
+			if (u == null) { continue; /* TODO or throw index corrupt exception? */ }
+			uris.add(u);
+		}
+
+		for (URIEntry u: uris) {
+			u.getTerms().remove(term);
+			// we do NOT automatically remove URIEntries that have no associated terms
+			// because they could be added again. also, in terms of the structure of
+			// the index, such a state is not inconsistent, and happens elsewhere, eg.
+			// directly after a call to insertURIEntry
+		}
+
+		// remove the entries from the tktab
+		tktab.remove(new Token(term));
+		return entries;
 	}
 
 	/**
@@ -209,19 +235,45 @@ public class Index {
 	**
 	** @param entry The entry to insert
 	** @param auto Whether to catch and handle {@link DataNotLoadedException}
-	** @return The previous entry
+	** @return The previous entry TODO just returns null for now
 	** @throws DataNotLoadedException
 	**         if the term's TokenEntries have not been loaded,
 	**         or if the filter or URIEntry has not been loaded
 	*/
 	public synchronized TokenEntry insertTokenEntry(TokenEntry entry, boolean auto) {
 		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
-		// if it's a TokenURIEntry, its URIEntry must already be in the table
-		// in which case insert its subject to the URIEntry's "terms" field
+		// make sure the entry is loaded
+		// TODO: when we implement GhostTreeSet, make sure that enough of the
+		// set is loaded to complete the add operation below
+		String term = entry.getSubject();
+		SortedSet<TokenEntry> entries = fetchTokenEntries(term, auto);
 
-		// insert entry into the tktab
-		// insert entry into the filtab
-		throw new UnsupportedOperationException("Not implemented.");
+		if (entry instanceof TokenURIEntry) {
+			// if it's a TokenURIEntry, its URIEntry must already be in the table
+			URIEntry u = fetchURIEntry(((TokenURIEntry)entry).getURI(), auto);
+			if (u == null) { throw new IllegalArgumentException("Can only add a TokenURIEntry for a FreenetURI already present in the URI table."); }
+			// in which case insert its subject to the URIEntry's "terms" field
+			u.getTerms().add(entry.getSubject());
+		}
+
+		// if the term is not indexed yet, prepare it for indexing
+		if (entries == null) {
+			entries = new TreeSet<TokenEntry>();
+			tktab.put(Token.intern(term), entries);
+		}
+
+		// add entry into the tktab
+		entries.add(entry);
+
+		// URGENT: at present, since the set of entries is sorted by relevance
+		// to make fetches of relevant stuff quicker, there is no way of
+		// preventing entries being added for the same URI, other than by
+		// scanning through the entire set. this is unacceptable for a simple
+		// "add" command, so i've decided to leave out this functionality for
+		// now and just allow entries with the same URI to be added.
+
+		// TODO insert entry into the filtab
+		return null;
 	}
 
 	/**
@@ -230,19 +282,42 @@ public class Index {
 	**
 	** @param entry The entry to remove
 	** @param auto Whether to catch and handle {@link DataNotLoadedException}.
-	** @return The removed entry
+	** @return The removed entry, or null if no entry was removed
 	** @throws DataNotLoadedException
 	**         if the term's TokenEntries have not been loaded,
 	**         or if the filter or URIEntry has not been loaded
 	*/
 	public synchronized TokenEntry removeTokenEntry(TokenEntry entry, boolean auto) {
 		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
-		// if it's a TokenURIEntry, its URIEntry must already be in the table
-		// in which case remove its subject from that URIEntry's "terms" field
+		// make sure the entry is loaded
+		// TODO: when we implement GhostTreeSet, make sure that enough of the
+		// set is loaded to complete the rem operation below
+		String term = entry.getSubject();
+		SortedSet<TokenEntry> entries = fetchTokenEntries(term, auto);
 
-		// remove entry from the tktab
-		// remove entry from the filtab
-		throw new UnsupportedOperationException("Not implemented.");
+		if (entries.contains(entry)) { return null; }
+
+		if (entry instanceof TokenURIEntry) {
+			// if it's a TokenURIEntry, its URIEntry must already be in the table
+			URIEntry u = fetchURIEntry(((TokenURIEntry)entry).getURI(), auto);
+			if (u == null) { throw new IllegalArgumentException("Can only add a TokenURIEntry for a FreenetURI already present in the URI table."); }
+			// in which case remove its subject from the URIEntry's "terms" field
+			u.getTerms().remove(entry.getSubject());
+		}
+
+		// rem entry from the tktab
+		entries.remove(entry);
+
+		// if there are no entries left, remove the whole set from the map
+		if (entries.isEmpty()) {
+			tktab.remove(term);
+		}
+
+		// TODO remove entry from the filtab
+
+		// TODO ideally this should return the same object the set holds, but
+		// java's Set interface doesn't let you do this
+		return entry;
 	}
 
 	/**
@@ -265,8 +340,7 @@ public class Index {
 					entries = utab.get(new URIKey(uri));
 					break;
 				} catch (DataNotLoadedException e) {
-					// URGENT refactor DataNotLoadedException so that this cast is unnecessary
-					((SkeletonMap)e.getParent()).deflate(e.getKey());
+					e.getParent().deflate((URIKey)e.getKey());
 				}
 			}
 			return entries.get(uri);
@@ -276,8 +350,9 @@ public class Index {
 	}
 
 	/**
-	** Clear the URIEntry associated with a given FreenetURI, and remove any
-	** TokenURIEntries that point to this entry.
+	** Clear all the terms associated with the URIEntry for a given FreenetURI,
+	** and for each term, remove all TokenURIEntries pointing to the URIEntry.
+	** Note: does NOT remove the URIEntry from the index.
 	**
 	** @param uri The URI to clear the entry for
 	** @param auto Whether to catch and handle {@link DataNotLoadedException}
@@ -288,47 +363,118 @@ public class Index {
 	*/
 	public synchronized URIEntry clearURIEntry(FreenetURI uri, boolean auto) {
 		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
+		URIEntry entry = fetchURIEntry(uri, auto);
+
 		// go through the "terms" and remove the TokenEntries associated with
 		// them from the index. this is expensive but it is hoped that this
 		// operation won't be called so often.
-		throw new UnsupportedOperationException("Not implemented.");
+		Set<String> terms = entry.getTerms();
+		Set<SortedSet<TokenEntry>> tks = new HashSet<SortedSet<TokenEntry>>();
+
+		for (String term: terms) {
+			// TODO when we use GhostTreeSet, we shall have to call inflate() here
+			// to make sure that all the entries are loaded
+			SortedSet<TokenEntry> entries = fetchTokenEntries(term, auto);
+			if (entries == null) { continue; /* or throw index corrupt? */ }
+			tks.add(entries);
+		}
+
+		for (SortedSet<TokenEntry> entries: tks) {
+			Iterator<TokenEntry> it = entries.iterator();
+			while (it.hasNext()) {
+				TokenEntry en = it.next();
+				if (!(en instanceof TokenURIEntry)) { continue; }
+				TokenURIEntry uen = (TokenURIEntry)en;
+				if (!uen.getURI().equals(uri)) { continue; }
+				it.remove();
+			}
+		}
+
+		return entry;
 	}
 
 	/**
-	** Insert a URIEntry into the index.
+	** Insert a URIEntry into the index. If there is already a URIEntry for its
+	** FreenetURI in the index, the associated terms is replaced with the set
+	** from the old entry; otherwise, the set is cleared.
 	**
 	** @param entry The entry to insert
 	** @param auto Whether to catch and handle {@link DataNotLoadedException}
-	** @return The previous entry
+	** @return The previous entry, or null if no entry was overwritten
 	** @throws DataNotLoadedException
 	**         if the URIEntry has not been loaded
 	*/
 	public synchronized URIEntry insertURIEntry(URIEntry entry, boolean auto) {
 		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
-		// make sure "terms" is empty. if the index is consistent (which we
-		// assume it is, in between method calls) then it is impossible for
-		// "terms" to be non-empty due to the restrictions on insertTokenEntry
-		throw new UnsupportedOperationException("Not implemented.");
+		SortedMap<FreenetURI, URIEntry> entries;
+		FreenetURI uri = entry.getSubject();
+
+		if (auto) {
+			for (;;) {
+				try {
+					entries = utab.get(new URIKey(uri));
+					break;
+				} catch (DataNotLoadedException e) {
+					e.getParent().deflate((URIKey)e.getKey());
+				}
+			}
+		} else {
+			entries = utab.get(new URIKey(uri));
+		}
+
+		// if the map doesn't exist, create it
+		if (entries == null) {
+			entries = new TreeMap<FreenetURI, URIEntry>();
+			utab.put(new URIKey(uri), entries);
+		}
+
+		// PRIORITY implement this using GhostTreeMap
+		// copy the "terms" from the old entry to maintain index consistency
+		URIEntry oldentry = entries.put(uri, entry);
+		if (oldentry == null) {
+			entry.getTerms().clear();
+		} else {
+			entry.setTerms(oldentry.getTerms());
+		}
+		return oldentry;
 	}
 
 	/**
-	** Remove a URIEntry from the index, and all TokenEntries associated with
-	** it.
+	** Remove a URIEntry from the index. The associated terms must be empty,
+	** and it must match the URIEntry already in the index. (Use {@link
+	** clearURIEntry} to clear the associated terms and return the URIEntry.)
 	**
 	** @param entry The entry to remove
 	** @param auto Whether to catch and handle {@link DataNotLoadedException}
-	** @return The removed entry
+	** @return The removed entry, or null if no entry was removed
 	** @throws DataNotLoadedException
 	**         if the URIEntry has not been loaded,
 	**         or if the TokenEntries for any term has not been loaded
 	*/
 	public synchronized URIEntry removeURIEntry(URIEntry entry, boolean auto) {
 		if (!writeable) { throw new IllegalStateException("Index is not writeable: " + id); }
-		// go through the "terms" and remove the TokenEntries associated with
-		// them from the index. this is expensive but it is hoped that this
-		// operation won't be called so often.
-		throw new UnsupportedOperationException("Not implemented.");
-	}
 
+		if (!entry.getTerms().isEmpty()) { return null; }
+
+		SortedMap<FreenetURI, URIEntry> entries;
+		FreenetURI uri = entry.getSubject();
+
+		if (auto) {
+			for (;;) {
+				try {
+					entries = utab.get(new URIKey(uri));
+					break;
+				} catch (DataNotLoadedException e) {
+					e.getParent().deflate((URIKey)e.getKey());
+				}
+			}
+		} else {
+			entries = utab.get(new URIKey(uri));
+		}
+
+		// PRIORITY implement this using GhostTreeMap
+		if (entries == null || !entries.get(uri).equals(entry)) { return null; }
+		return entries.remove(uri);
+	}
 
 }

@@ -52,7 +52,6 @@ implements SkeletonMap<K, V> {
 		@Override public boolean isLive() { return false; }
 		@Override public boolean isBare() { return true; }
 
-		@Override public Map<K, V> complete() { throw childNotLoaded(); }
 		@Override public void inflate() { throw childNotLoaded(); }
 		@Override public void deflate() { throw childNotLoaded(); }
 		@Override public void inflate(K key) { throw childNotLoaded(); }
@@ -270,23 +269,6 @@ implements SkeletonMap<K, V> {
 
 	@Override public void setMeta(Object m) {
 		meta = m;
-	}
-
-	@Override public Map<K, V> complete() {
-		if (!isLive()) {
-			throw new DataNotLoadedException("PrefixTreeMap not fully loaded for " + prefix.toString(), this);
-		} else {
-			TreeMap<K, V> ntmap = (TreeMap<K, V>)tmap.complete();
-			PrefixTreeMap<K, V>[] nchild = (PrefixTreeMap<K, V>[])new PrefixTreeMap[subtreesMax];
-
-			for (int i=0; i<subtreesMax; ++i) {
-				if (child[i] != null) {
-					nchild[i] = (PrefixTreeMap<K, V>)((SkeletonPrefixTreeMap<K, V>)child[i]).complete();
-				}
-			}
-
-			return new PrefixTreeMap(prefix, preflen, capacityLocal, ntmap, nchild, null);
-		}
 	}
 
 	@Override public void inflate() {

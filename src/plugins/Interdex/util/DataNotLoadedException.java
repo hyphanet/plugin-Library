@@ -4,22 +4,25 @@
 package plugins.Interdex.util;
 
 /**
-** Thrown when data hasn't been loaded yet, eg. when a data structure hasn't
-** been fully populated from the network.
+** Thrown when data hasn't been loaded yet, eg. when a {@link Skeleton} hasn't
+** been fully loaded into memory. Exceptions should be constructed such that
+** a method call to {@link Skeleton#deflate()} on {@link #getParent()} with
+** {@link #getKey()} as its argument will load the data and prevent an
+** exception from being thrown the next time round the data is accessed.
 **
-** DOCUMENT The exception thrown should be such that a call to
-** e.getParent().deflate(e.getKey()) will prevent the exception from being
-** thrown next time round.
+** Ideally, this would be {@code DataNotLoadedException<K>}, where {@code K} is
+** the type parameter for {@link Skeleton}, but java does not currently allow
+** parametrised classes to extend {@link Throwable}.
 **
 ** @author infinity0
-** @see SkeletonMap
+** @see Skeleton
 */
 public class DataNotLoadedException extends RuntimeException {
 
 	/**
 	** The parent container of the not-yet-loaded data.
 	*/
-	final Object parent;
+	final Skeleton parent;
 
 	/**
 	** The key, if any, that the not-yet-loaded data was associated with.
@@ -31,30 +34,30 @@ public class DataNotLoadedException extends RuntimeException {
 	*/
 	final Object meta;
 
-	public DataNotLoadedException(String s, Throwable t, Object p, Object k, Object v) {
+	public DataNotLoadedException(String s, Throwable t, Skeleton p, Object k, Object v) {
 		super(s, t);
 		parent = p;
 		key = k;
 		meta = v;
 	}
 
-	public DataNotLoadedException(Throwable t, Object p, Object k, Object v) {
+	public DataNotLoadedException(Throwable t, Skeleton p, Object k, Object v) {
 		this(null, t, p, k, v);
 	}
 
-	public DataNotLoadedException(String s, Object p, Object k, Object v) {
+	public DataNotLoadedException(String s, Skeleton p, Object k, Object v) {
 		this(s, null, p, k, v);
 	}
 
-	public DataNotLoadedException(String s, Object p, Object k) {
+	public DataNotLoadedException(String s, Skeleton p, Object k) {
 		this(s, null, p, k, null);
 	}
 
-	public DataNotLoadedException(String s, Object p) {
+	public DataNotLoadedException(String s, Skeleton p) {
 		this(s, null, p, null, null);
 	}
 
-	public Object getParent() { return parent; }
+	public Skeleton getParent() { return parent; }
 	public Object getKey() { return key; }
 	public Object getValue() { return meta; }
 

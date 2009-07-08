@@ -112,14 +112,6 @@ implements SkeletonMap<K, V> {
 		meta = m;
 	}
 
-	@Override public Map<K, V> complete() {
-		if (!isLive()) {
-			throw new DataNotLoadedException("TreeMap not fully loaded.", this);
-		} else {
-			return new TreeMap(this);
-		}
-	}
-
 	@Override public void inflate() {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
@@ -146,7 +138,7 @@ implements SkeletonMap<K, V> {
 		try {
 			serialiser.push(tasks, meta);
 		} catch (DataNotLoadedException e) {
-			throw new DataNotLoadedException("The deflate operation requires some extra data to be loaded first", this, e.getKey(), e.getValue());
+			throw new DataNotLoadedException("The deflate operation requires some extra data to be loaded first", this, (K)e.getKey(), e.getValue());
 		}
 
 		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
@@ -180,7 +172,7 @@ implements SkeletonMap<K, V> {
 		try {
 			serialiser.push(tasks, meta);
 		} catch (DataNotLoadedException e) {
-			throw new DataNotLoadedException("The deflate operation requires some extra data to be loaded first", this, e.getKey(), e.getValue());
+			throw new DataNotLoadedException("The deflate operation requires some extra data to be loaded first", this, (K)e.getKey(), e.getValue());
 		}
 
 		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
@@ -309,7 +301,7 @@ implements SkeletonMap<K, V> {
 	@Override public V get(Object key) {
 		Object o = loaded.get(key);
 		if (o != null) {
-			throw new DataNotLoadedException("Data not loaded for key " + key + ": " + o, this, key, o);
+			throw new DataNotLoadedException("Data not loaded for key " + key + ": " + o, this, (K)key, o);
 		}
 		return super.get(key);
 	}
@@ -434,10 +426,10 @@ implements SkeletonMap<K, V> {
 	**
 	** @author infinity0
 	*/
-	private static class CombinedIterator<T> implements Iterator<T> {
+	private class CombinedIterator<T> implements Iterator<T> {
 
 		final private Iterator<T> iter;
-		final private Iterator<Map.Entry> iterloaded;
+		final private Iterator<Map.Entry<K, V>> iterloaded;
 
 		final private int type;
 		final private static int KEY = 0;
@@ -446,7 +438,7 @@ implements SkeletonMap<K, V> {
 
 		RuntimeException exceptionThrown;
 
-		CombinedIterator(Iterator<T> it, Iterator<Map.Entry> itl, int t) {
+		CombinedIterator(Iterator<T> it, Iterator<Map.Entry<K, V>> itl, int t) {
 			iter = it;
 			iterloaded = itl;
 			type = t;
@@ -462,14 +454,14 @@ implements SkeletonMap<K, V> {
 				throw new IllegalStateException(exceptionThrown);
 			}
 
-			Map.Entry e = iterloaded.next();
+			Map.Entry<K, V> e = iterloaded.next();
 			T n = iter.next();
 
 			switch(type) {
 			case ENTRY:
 			case VALUE:
 				if (e.getValue() != null) {
-					throw exceptionThrown = new DataNotLoadedException("Data not loaded for key " + e.getKey() + ": " + e.getValue(), this, e.getKey(), e.getValue());
+					throw exceptionThrown = new DataNotLoadedException("Data not loaded for key " + e.getKey() + ": " + e.getValue(), SkeletonTreeMap.this, e.getKey(), e.getValue());
 				}
 				break;
 			}
