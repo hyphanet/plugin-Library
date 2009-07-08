@@ -114,7 +114,7 @@ public class LibrarianHandler extends DefaultHandler {
 						for(FindRequest<URIWrapper> match : wordMatches){
 							match.addResult(uri);
 							inFile = uri;
-							characters = new StringBuilder("");
+							characters = new StringBuilder();
 							//Logger.minor(this, "added "+uri+ " to "+ match);
 						}
 					}
@@ -150,9 +150,7 @@ public class LibrarianHandler extends DefaultHandler {
 	
 	public void characters(char[] ch, int start, int length) {
 		if(characters!=null){
-			for (int i = start; i < start+length; i++) {
-				characters.append(ch[i]);
-			}
+			characters.append(ch, start, length);
 		}
 	}
 
