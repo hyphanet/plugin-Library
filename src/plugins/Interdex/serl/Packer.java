@@ -299,7 +299,6 @@ implements MapSerialiser<K, T> {
 				addPartitionTo(tasks.get(en.getKey()).data, en.getValue());
 			}
 		}
-		if (i > 0) { throw new IllegalStateException(i + " / " + tasks.size()); }
 	}
 
 	/**

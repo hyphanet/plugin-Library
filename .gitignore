@@ -3,3 +3,4 @@ build-test
 dist
 lib
 javadoc
+test-run

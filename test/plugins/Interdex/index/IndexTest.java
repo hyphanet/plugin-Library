@@ -60,9 +60,9 @@ public class IndexTest extends TestCase {
 		PullTask tasq = new PullTask(task.meta);
 		f.s.pull(tasq);
 		test.inflate();
+		System.out.println("Entries re-loaded from disk");
 
 		int s = test.size();
-
 	}
 
 }
