@@ -18,6 +18,6 @@ Build and generate javadocs:
 
   plugin-Interdex$ ant
 
-Compile and test only:
+Compile, test and package only:
 
-  plugin-Interdex$ ant junit
+  plugin-Interdex$ ant jar

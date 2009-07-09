@@ -94,6 +94,20 @@
 	</target>
 
 	<!-- ================================================== -->
+	<target name="jar" depends="compile,junit" description="create a jar package">
+		<jar jarfile="${dist}/Interdex.jar" duplicate="fail">
+			<manifest>
+				<attribute name="Plugin-Main-Class" value="plugins.Interdex.Interdex"/>
+			</manifest>
+			<fileset dir="src/" casesensitive="no">
+				<include name="*.txt"/>
+			</fileset>
+			<fileset dir="${build}/"/>
+			<zipgroupfileset dir="lib/" includes="*.jar"/>
+		</jar>
+	</target>
+
+	<!-- ================================================== -->
 	<target name="javadoc" description="Generate javadocs for this package.">
 		<javadoc destdir="${javadoc}" author="true" version="true" use="true" private="true">
 			<fileset dir="src/" defaultexcludes="yes">
@@ -113,22 +127,7 @@
 	</target>
 
 	<!-- ================================================== -->
-	<target name="jar" depends="clean,compile,junit"
-		description="generate the distribution" >
-		<jar jarfile="${dist}/Interdex.jar" duplicate="fail">
-			<manifest>
-				<attribute name="Plugin-Main-Class" value="plugins.Interdex.Interdex"/>
-			</manifest>
-			<fileset dir="src/" casesensitive="no">
-				<include name="*.txt"/>
-			</fileset>
-			<fileset dir="${build}/"/>
-			<zipgroupfileset dir="lib/" includes="*.jar"/>
-		</jar>
-	</target>
-
-	<!-- ================================================== -->
-	<target name="dist" depends="jar,javadoc">
+	<target name="dist" depends="clean,jar,javadoc" description="generate the distribution">
 	</target>
 
 	<!-- ================================================== -->
@@ -136,6 +135,7 @@
 		<delete dir="${build}"/>
 		<delete dir="${build-test}"/>
 		<delete dir="${dist}"/>
+		<delete dir="${test-run}"/>
 		<delete dir="${javadoc}"/>
 	</target>
 
