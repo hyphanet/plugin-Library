@@ -28,15 +28,23 @@ public class TokenEntryTest extends TestCase {
 
 		Map<String, Object> map = new HashMap<String, Object>();
 
+		Token nulltest1 = Token.intern((Token)null);
+		Token nulltest2 = Token.intern((String)null);
+		assertTrue(nulltest1 == null);
+		assertTrue(nulltest2 == null);
+
 		TokenTermEntry w  = new TokenTermEntry("test", "lol");
 		w.setRelevance(0.8f);
 		TokenIndexEntry x = null;
+		TokenURIEntry z = null;
 		try {
-		x = new TokenIndexEntry("test", new FreenetURI("CHK@yeah"));
-		x.setRelevance(0.8f);
+			x = new TokenIndexEntry("test", new FreenetURI("CHK@yeah"));
+			x.setRelevance(0.8f);
+			z = new TokenURIEntry("lol", new FreenetURI("CHK@yeah"));
+			z.setRelevance(0.8f);
 		} catch (MalformedURLException e) {
+			// pass
 		}
-		//TokenURIEntry
 		TokenTermEntry y  = new TokenTermEntry("test", "lol2");
 		y.setRelevance(0.8f);
 
@@ -45,11 +53,16 @@ public class TokenEntryTest extends TestCase {
 		l.add(w);
 		l.add(x);
 		l.add(y);
+		l.add(z);
 		map.put("test", l);
 
 		ym.push(new PushTask<Map<String, Object>>(map));
 		PullTask<Map<String, Object>> pt = new PullTask<Map<String, Object>>("");
+		try{
 		ym.pull(pt);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 		assertTrue(pt.data instanceof Map);
 		Map<String, Object> m = pt.data;

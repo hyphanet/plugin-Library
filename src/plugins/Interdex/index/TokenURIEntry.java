@@ -55,7 +55,7 @@ public class TokenURIEntry extends TokenEntry {
 	}
 
 	public void setType(String t) {
-		type = t.intern();
+		type = (t == null)? null: t.intern();
 	}
 
 	public Map<String, Object> getMeta() {

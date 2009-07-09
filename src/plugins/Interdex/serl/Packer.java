@@ -293,11 +293,13 @@ implements MapSerialiser<K, T> {
 			task.data = newElement();
 		}
 
+		// URGENT catch NullPointerException and throw a DataFormatException here
 		for (PullTask<Map<K, T>> bintask: bintasks) {
 			for (Map.Entry<K, T> en: bintask.data.entrySet()) {
 				addPartitionTo(tasks.get(en.getKey()).data, en.getValue());
 			}
 		}
+		if (i > 0) { throw new IllegalStateException(i + " / " + tasks.size()); }
 	}
 
 	/**
@@ -339,6 +341,7 @@ implements MapSerialiser<K, T> {
 			Map<K, T> taskmap = new HashMap<K, T>(bin.size()*2);
 
 			for (Map.Entry<T, K> en: bin.entrySet()) {
+				// URGENT fix NullPointerException here
 				addBinToMeta((Map)tasks.get(en.getValue()).meta, en.getKey(), i);
 				taskmap.put(en.getValue(), en.getKey());
 			}

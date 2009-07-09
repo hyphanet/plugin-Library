@@ -111,7 +111,7 @@
 	</target>
 
 	<!-- ================================================== -->
-	<target name="dist" depends="clean,compile,junit,javadoc"
+	<target name="dist" depends="clean,compile,junit"
 		description="generate the distribution" >
 		<jar jarfile="${dist}/Interdex.jar" duplicate="fail">
 			<manifest>

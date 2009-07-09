@@ -124,6 +124,8 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 					throw new org.yaml.snakeyaml.constructor.ConstructorException("while constructing a FreenetURI", node.getStartMark(), "found malformed URI " + uri, null) {};
 				}
 			}
+			// TODO this might be removed in snakeYAML later
+			public void construct2ndStep(org.yaml.snakeyaml.nodes.Node node, Object object) { }
 		}
 	}
 

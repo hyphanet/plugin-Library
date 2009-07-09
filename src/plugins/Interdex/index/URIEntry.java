@@ -69,7 +69,7 @@ public class URIEntry {
 	}
 
 	public void setTerms(Set<String> t) {
-		terms = t;
+		terms = (t == null)? new HashSet<String>(): t;
 	}
 
 }

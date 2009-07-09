@@ -47,7 +47,7 @@ public class TokenTermEntry extends TokenEntry {
 	}
 
 	public void setTerm(String t) {
-		term = t.intern();
+		term = (t == null)? null: t.intern();
 	}
 
 	@Override public void setRelevance(float r) {

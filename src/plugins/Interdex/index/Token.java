@@ -44,6 +44,7 @@ public class Token extends BytePrefixKey<Token> {
 	** @see String#intern()
 	*/
 	public static synchronized Token intern(String s) {
+		if (s == null) { return null; }
 		Token t = internMap.get(s);
 		if (t == null) {
 			t = Token.intern(new Token(s));
@@ -58,6 +59,7 @@ public class Token extends BytePrefixKey<Token> {
 	** @see String#intern()
 	*/
 	public static synchronized Token intern(Token t) {
+		if (t == null) { return null; }
 		WeakReference<Token> ref = internPool.get(t);
 		Token tk;
 		if (ref == null || (tk = ref.get()) == null) {

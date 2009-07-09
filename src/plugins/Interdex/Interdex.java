@@ -16,15 +16,6 @@ import freenet.support.HTMLEncoder;
 import freenet.support.Logger;
 import freenet.support.api.HTTPRequest;
 
-import plugins.Interdex.util.*;
-import plugins.Interdex.serl.*;
-import plugins.Interdex.serl.Serialiser.*;
-import plugins.Interdex.index.*;
-
-import java.util.Random;
-import java.util.TreeSet;
-import java.util.SortedSet;
-
 /**
 ** @author infinity0
 */
@@ -46,46 +37,8 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 		// pass
 	}
 
-	public String rndStr() {
-		return java.util.UUID.randomUUID().toString();
-	}
-
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException {
-		SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>> test = new
-		SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>(new Token(), 512);
-
-		IndexFileSerialiser f = new IndexFileSerialiser();
-		test.setSerialiser(f.s, f.sv);
-
-		Random rand = new Random();
-
-		for (int i=0; i<256; ++i) {
-			String key = rndStr().substring(0,8);
-			SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
-			int n = rand.nextInt(496) + 16;
-
-			try {
-				for (int j=0; j<n; ++j) {
-					TokenEntry e = new TokenURIEntry(key, new FreenetURI("CHK@" + rndStr().replace('-', 'Z')));
-					e.setRelevance((float)Math.random());
-					entries.add(e);
-				}
-			} catch (java.net.MalformedURLException e) {
-				return "malformed URL";
-			}
-
-			test.put(new Token(key), entries);
-		}
-
-		test.deflate();
-		PushTask task = new PushTask(test);
-		f.s.push(task);
-
-		PullTask tasq = new PullTask(task.meta);
-		f.s.pull(tasq);
-		test.inflate();
-
-		return request.toString() + "<br />Hi<br />" + test.size();
+		return request.toString() + "<br />Hi<br />";
 		//return request.toString();
 	}
 

@@ -362,7 +362,7 @@ implements Archiver<Index> {
 					for (Object o: (List)en.getValue()) {
 						entries.add((TokenEntry)o);
 					}
-					map.put(Token.intern(en.getKey()), entries);
+					map.put(Token.intern(new Token(Token.hexToBytes(en.getKey()))), entries);
 				}
 			} catch (ClassCastException e) {
 				// TODO more meaningful error message

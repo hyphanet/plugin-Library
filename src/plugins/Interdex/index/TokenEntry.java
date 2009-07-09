@@ -40,7 +40,7 @@ public abstract class TokenEntry implements Comparable<TokenEntry> {
 	}
 
 	public void setSubject(String s) {
-		subject = s.intern();
+		subject = (s == null)? null: s.intern();
 	}
 
 	public float getRelevance() {
