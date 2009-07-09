@@ -86,7 +86,6 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 	}
 
 	@Override public void push(PushTask<T> t) {
-		convertPrimitiveArrays(t.data);
 		String[] s = getFileParts(t.meta);
 		try {
 			File file = new File(prefix + s[0] + suffix + s[1] + ".yml");
@@ -97,39 +96,6 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 			// TODO make handling of this neater
 			throw new RuntimeException(e);
 		}
-	}
-
-	// URGENT snakeYAML says "Arrays of primitives are not fully supported."
-	public void convertPrimitiveArrays(Map<String, Object> map) {
-
-		for (Map.Entry<String, Object> en: map.entrySet()) {
-			Object o = en.getValue();
-
-			if (o instanceof int[]) {
-				int[] ii = (int[]) o;
-				Integer[] arr = new Integer[ii.length];
-				for (int i=0; i<ii.length; ++i) { arr[i] = ii[i]; }
-				en.setValue(arr);
-
-			} else if (o instanceof boolean[]) {
-				boolean[] ii = (boolean[]) o;
-				Boolean[] arr = new Boolean[ii.length];
-				for (int i=0; i<ii.length; ++i) { arr[i] = ii[i]; }
-				en.setValue(arr);
-
-			// fuck it, skip coding Byte[] etc until we actually need it
-
-			} else if (o instanceof Map) {
-				try {
-					convertPrimitiveArrays((Map<String, Object>)o);
-				} catch (ClassCastException e) {
-					// ignore
-				}
-
-			}
-
-		}
-
 	}
 
 	public static class FreenetURIRepresenter extends org.yaml.snakeyaml.representer.Representer {

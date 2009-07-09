@@ -5,6 +5,13 @@ index: "suggested tokens" - suggest what other people should tag this index as;
 
 
 
+- for now, make URIKey use pkHash + docName for SSKs (until we find something better)
+
+
+- make sure deflate() methods are atomic if they throw DataFormatException
+
+
+
 - there should be only one entry per URI per Token (enforce this in the code at some point)
 
 >>> 7f0a7773dc3d60759145e10b750e706c584d8a7c
@@ -78,7 +85,7 @@ with deflate(Index)
 
  # implement deflate/inflate on STM/SPTM, 2-3 days
  # implement index push/pull 1 day
- - implement index methods including auto-fetching of not loaded data 2-3 days
+ # implement index methods including auto-fetching of not loaded data 2-3 days
  - implement a serialiser to send progress reports 5-7 days
  - implement Ghost* 3-5 days
  - implement freenet inflate/deflate 5-7 days

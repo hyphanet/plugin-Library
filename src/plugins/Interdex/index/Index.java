@@ -104,7 +104,7 @@ public class Index {
 	}
 
 	/**
-	** This constructor is used by the {@link IndexFileSerialiser.IndexSerialiser.IndexTranslator
+	** This constructor is used by the {@link IndexFileSerialiser.IndexTranslator
 	** translator} to create a skeleton index.
 	*/
 	protected Index(FreenetURI i, String n, Date m, Map<String, Object> x,
@@ -441,8 +441,9 @@ public class Index {
 
 	/**
 	** Remove a URIEntry from the index. The associated terms must be empty,
-	** and it must match the URIEntry already in the index. (Use {@link
-	** clearURIEntry} to clear the associated terms and return the URIEntry.)
+	** and it must match the URIEntry already in the index. (To clear the
+	** associated terms and return the entry, use {@link
+	** #clearURIEntry(FreenetURI, boolean)}.)
 	**
 	** @param entry The entry to remove
 	** @param auto Whether to catch and handle {@link DataNotLoadedException}

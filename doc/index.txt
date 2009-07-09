@@ -1,17 +1,6 @@
 = Index =
 
-== DOCUMENT ==
-
-"SplitMapMapSerialiser" and "SplitCollectionMapSerialiser"
-
-splitcollection metadata: [size, [index, index]]
-splitmap metadata: [size, [index, index], [key, key]]
-
 == TODO ==
-
-TODO make the metadata for an index support "virtual" indexes like Interdex
-(ie. something that tells the library plugin,
-"this is a virtual index, get the data from plugin X instead")
 
 - can have terms containing spaces by eg. having crawler add "x y" to its dictionary of
 terms to index, if it encounters this combination more than a few times on multiple pages.

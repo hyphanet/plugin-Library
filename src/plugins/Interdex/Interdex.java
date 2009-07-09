@@ -59,7 +59,7 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 
 		Random rand = new Random();
 
-		for (int i=0; i<4096; ++i) {
+		for (int i=0; i<256; ++i) {
 			String key = rndStr().substring(0,8);
 			SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
 			int n = rand.nextInt(496) + 16;
@@ -80,7 +80,12 @@ public class Interdex implements FredPlugin, FredPluginHTTP, FredPluginVersioned
 		test.deflate();
 		PushTask task = new PushTask(test);
 		f.s.push(task);
-		return request.toString() + "<br />Hi<br />" + task.meta.toString();
+
+		PullTask tasq = new PullTask(task.meta);
+		f.s.pull(tasq);
+		test.inflate();
+
+		return request.toString() + "<br />Hi<br />" + test.size();
 		//return request.toString();
 	}
 
