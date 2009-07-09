@@ -247,23 +247,27 @@ public class WebUI{
 					boolean newestVersion = !it3.hasNext();
 					if(newestVersion)	// put older versions in block, newest outside block
 						siteBlockOld = siteNode;
-					// table for this version
-					versionNode = siteBlockOld.addChild("table", new String[]{"class", "width", "border", "cellspacing", "cellpadding"}, new String[]{"librarian-result", "95%", "0px 8px", "0", "0",});
-					HTMLNode grouptitle = versionNode.addChild("tr").addChild("td", new String[]{"padding", "colspan"}, new String[]{"0", "3"});
-					grouptitle.addChild("h4", "style", "display:inline; padding-top: 5px; color:"+(newestVersion?"black":"darkGrey"), key.replaceAll("\\b.*/(.*)", "$1")+(version.longValue()>=0 ? "-"+version.toString():""));
-					// Put link to show hidden older versions block if necessary
-					if(newestVersion && !showold && js && sitemap.size()>1)
-						grouptitle.addChild("a", new String[]{"href", "onClick"}, new String[]{"#"+key, "toggleResult('"+key+"')"}, "       ["+(sitemap.size()-1)+" older matching versions]");
-					HTMLNode versionrow = versionNode.addChild("tr");
-					versionrow.addChild("td", "width", "8px");
-					// draw black line down the side of the version
-					versionrow.addChild("td", new String[]{"bgcolor", "width"}, new String[]{"black", "2px"});
-					HTMLNode versionCell=versionrow.addChild("td");
-					URIWrapper u;
+					HTMLNode versionCell;
+					if(sitemap.get(version).size()>1||sitemap.size()>1){
+						// table for this version
+						versionNode = siteBlockOld.addChild("table", new String[]{"class", "width", "border", "cellspacing", "cellpadding"}, new String[]{"librarian-result", "95%", "0px 8px", "0", "0",});
+						HTMLNode grouptitle = versionNode.addChild("tr").addChild("td", new String[]{"padding", "colspan"}, new String[]{"0", "3"});
+						grouptitle.addChild("h4", "style", "display:inline; padding-top: 5px; color:"+(newestVersion?"black":"darkGrey"), key.replaceAll("\\b.*/(.*)", "$1")+(version.longValue()>=0 ? "-"+version.toString():""));
+						// Put link to show hidden older versions block if necessary
+						if(newestVersion && !showold && js && sitemap.size()>1)
+							grouptitle.addChild("a", new String[]{"href", "onClick"}, new String[]{"#"+key, "toggleResult('"+key+"')"}, "       ["+(sitemap.size()-1)+" older matching versions]");
+						HTMLNode versionrow = versionNode.addChild("tr");
+						versionrow.addChild("td", "width", "8px");
+						// draw black line down the side of the version
+						versionrow.addChild("td", new String[]{"bgcolor", "width"}, new String[]{"black", "2px"});
+
+						versionCell=versionrow.addChild("td", "style", "padding-left:15px");
+					}else
+						versionCell = siteBlockOld;
 					// loop over each result in this version
 					Iterator<URIWrapper> it4 = sitemap.get(version).iterator();
 					while(it4.hasNext()){
-						u = it4.next();
+						URIWrapper u = it4.next();
 						FreenetURI uri = new FreenetURI(u.URI);
 						String showtitle = u.descr;
 						String showurl = uri.toShortString();
@@ -271,7 +275,7 @@ public class WebUI{
 							showtitle = showurl;
 						String realurl = "/"+uri.toString();
 						// create usk url
-						HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-title", "padding: 4px; padding-left:15px;"});
+						HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-title", ""});
 						pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: "+(newestVersion?"Blue":"LightBlue"), u.URI}, showtitle);
 						if(uri.isSSKForUSK()){
 							String realuskurl = "/"+uri.uskForSSK().toString();
