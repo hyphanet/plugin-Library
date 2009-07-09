@@ -1,5 +1,6 @@
 package plugins.XMLLibrarian.interfaces;
 
+import freenet.keys.FreenetURI;
 import freenet.pluginmanager.PluginHTTPException;
 import freenet.support.HTMLNode;
 import freenet.support.api.HTTPRequest;
@@ -160,47 +161,6 @@ public class WebUI{
 
 		return pageNode.generate();
     }
-
-	/**
-	 * Return a HTMLNode for this result
-	 */
-	public static HTMLNode resultNode(Request request) throws InvalidSearchException{
-		int results = 0;
-
-		HTMLNode node = new HTMLNode("div", "id", "results");
-		HTMLNode resultTable = node.addChild("table", new String[]{"width", "class"}, new String[]{"95%", "librarian-results"});
-		Iterator<URIWrapper> it = request.getResult().iterator();
-		while (it.hasNext()) {
-			HTMLNode entry = resultTable.addChild("tr").addChild("td").addChild("p").addChild("table", new String[]{"class", "width", "border"}, new String[]{"librarian-result", "95%", "0"});
-			URIWrapper o = it.next();
-			String showurl = o.URI;
-			String showtitle = o.descr;
-			if (showtitle.trim().length() == 0 || showtitle.equals("not available"))
-				showtitle = showurl;
-			String description = HTMLEncoder.encode(o.descr);
-			if (!description.equals("not available")) {
-				description = description.replaceAll("(\n|&lt;(b|B)(r|R)&gt;)", "<br>");
-				description = description.replaceAll("  ", "&nbsp; ");
-				description = description.replaceAll("&lt;/?[a-zA-Z].*/?&gt;", "");
-			}
-			showurl = HTMLEncoder.encode(showurl);
-			if (showurl.length() > 60)
-				showurl = showurl.substring(0, 15) + "&hellip;" + showurl.replaceFirst("[^/]*/", "/");
-			String realurl = (o.URI.startsWith("/") ? "" : "/") + o.URI;
-			String realuskurl = realurl.replaceAll("SSK@", "USK@").replaceAll("-(\\d+)/", "/$1/");
-			realurl = HTMLEncoder.encode(realurl);
-			entry.addChild("tr").addChild("td", new String[]{"align", "class"}, new String[]{"left", "librarian-result-title"})
-				.addChild("a", new String[]{"href", "title"}, new String[]{realurl, o.URI}, showtitle);
-			HTMLNode urlnode = entry.addChild("tr").addChild("td", new String[]{"align", "class"}, new String[]{"left", "librarian-result-url"});
-			urlnode.addChild("a", "href", realurl, showurl);
-			urlnode.addChild("#", "     ");
-			if(realurl.contains("SSK@"))
-					urlnode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "librarian-result-uskbutton"}, "[ USK ]");
-			results++;
-		}
-		node.addChild("p").addChild("span", "class", "librarian-summary-found", xl.getString("Found")+results+xl.getString("results"));
-		return node;
-    }
 	
 	/**
 	 * Return a HTMLNode for this result
@@ -218,19 +178,24 @@ public class WebUI{
 		while(it.hasNext()){
 			URIWrapper o = it.next();
 			// CHK's need not be grouped so they can be put on top level
-			if(o.URI.matches(".*CHK@.*"))
+			if((new FreenetURI(o.URI)).isCHK())
 				groupmap.put(o.URI, o);
-			else if(o.URI.matches("\\A.*SSK@[^/]+/[^-/].*\\Z")){
+			else if((new FreenetURI(o.URI)).isSSK()){
+				FreenetURI uri = new FreenetURI(o.URI);
 				// Get the SSK key and name
-				String sitebase = o.URI.replaceAll("\\A.*SSK@([^/]+/[^-/]+).*\\Z", "$1");
 				// Get the SSK version
-				Integer sskVersion=-1;
-				if(o.URI.matches("\\A.*SSK@[^/]+/[^/]+-\\d+/.*\\Z"))
-					sskVersion = Integer.valueOf(o.URI.replaceAll(".*SSK@[^/]+/[^/]+-(\\d+)/.*", "$1"));
+				Long sskVersion=Long.MIN_VALUE;
+				String sitebase = uri.toString().replaceFirst(".*@([^/]*/).*", "$1")+"/";
+				if(uri.isSSKForUSK()){
+					sitebase += uri.uskForSSK().getDocName();
+					sskVersion = uri.uskForSSK().getEdition();
+				}else
+					sitebase += uri.getDocName();
 				// Add site, version & page
+				Logger.minor(WebUI.class, sitebase);
 				if(!groupmap.containsKey(sitebase))
-					groupmap.put(sitebase, new TreeMap<Integer, Set<URIWrapper>>());
-				SortedMap<Integer, Set<URIWrapper>> sitemap = (TreeMap<Integer, Set<URIWrapper>>)groupmap.get(sitebase);
+					groupmap.put(sitebase, new TreeMap<Long, Set<URIWrapper>>());
+				SortedMap<Long, Set<URIWrapper>> sitemap = (TreeMap<Long, Set<URIWrapper>>)groupmap.get(sitebase);
 				if(!sitemap.containsKey(sskVersion))
 					sitemap.put(sskVersion, new HashSet());
 				sitemap.get(sskVersion).add(o);
@@ -266,8 +231,8 @@ public class WebUI{
 				results++;
 			// Put SSK group
 			}else{
-				Map<Integer, Set<URIWrapper>> sitemap = (Map<Integer, Set<URIWrapper>>)ob;
-				Iterator<Integer> it3 = sitemap.keySet().iterator();
+				Map<Long, Set<URIWrapper>> sitemap = (Map<Long, Set<URIWrapper>>)ob;
+				Iterator<Long> it3 = sitemap.keySet().iterator();
 				// Create a block for old versions of this SSK
 				HTMLNode siteBlockOldOuter = siteNode.addChild("div", new String[]{"id", "style"}, new String[]{"result-hiddenblock-"+key, (!showold?"display:none":"")});
 				// put title on block if it has more than one version in it
@@ -277,7 +242,7 @@ public class WebUI{
 				HTMLNode siteBlockOld = siteBlockOldOuter.addChild("div", new String[]{"class", "style"}, new String[]{"result-hideblock", "border-left: thick black;"});
 				// Loop over all versions in this SSK key
 				while(it3.hasNext()){
-					Integer version = it3.next();
+					Long version = it3.next();
 					HTMLNode versionNode;
 					boolean newestVersion = !it3.hasNext();
 					if(newestVersion)	// put older versions in block, newest outside block
@@ -285,7 +250,7 @@ public class WebUI{
 					// table for this version
 					versionNode = siteBlockOld.addChild("table", new String[]{"class", "width", "border", "cellspacing", "cellpadding"}, new String[]{"librarian-result", "95%", "0px 8px", "0", "0",});
 					HTMLNode grouptitle = versionNode.addChild("tr").addChild("td", new String[]{"padding", "colspan"}, new String[]{"0", "3"});
-					grouptitle.addChild("h4", "style", "display:inline; padding-top: 5px; color:"+(newestVersion?"black":"darkGrey"), key.replaceAll("\\b.*/(.*)", "$1")+(version.intValue()>=0 ? "-"+version.toString():""));
+					grouptitle.addChild("h4", "style", "display:inline; padding-top: 5px; color:"+(newestVersion?"black":"darkGrey"), key.replaceAll("\\b.*/(.*)", "$1")+(version.longValue()>=0 ? "-"+version.toString():""));
 					// Put link to show hidden older versions block if necessary
 					if(newestVersion && !showold && js && sitemap.size()>1)
 						grouptitle.addChild("a", new String[]{"href", "onClick"}, new String[]{"#"+key, "toggleResult('"+key+"')"}, "       ["+(sitemap.size()-1)+" older matching versions]");
@@ -299,16 +264,17 @@ public class WebUI{
 					Iterator<URIWrapper> it4 = sitemap.get(version).iterator();
 					while(it4.hasNext()){
 						u = it4.next();
-						HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-title", "padding: 4px; padding-left:15px;"});
+						FreenetURI uri = new FreenetURI(u.URI);
 						String showtitle = u.descr;
-						String showurl = u.URI.replaceAll("(SSK@.{5}).+(/.+)", "$1...$2");
+						String showurl = uri.toShortString();
 						if (showtitle.trim().length() == 0 || showtitle.equals("not available"))
 							showtitle = showurl;
-						String realurl = u.URI.replaceAll(".*(SSK@.*)", "/$1");
+						String realurl = "/"+uri.toString();
 						// create usk url
+						HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-title", "padding: 4px; padding-left:15px;"});
 						pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: "+(newestVersion?"Blue":"LightBlue"), u.URI}, showtitle);
-						if(version>0){
-							String realuskurl = realurl.replaceAll("SSK@", "USK@").replaceAll("-(\\d+)/", "/$1/");
+						if(uri.isSSKForUSK()){
+							String realuskurl = "/"+uri.uskForSSK().toString();
 							pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "result-uskbutton"}, "[ USK ]");
 						}
 						pageNode.addChild("br");
