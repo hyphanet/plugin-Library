@@ -8,6 +8,7 @@ import freenet.support.HTMLEncoder;
 import freenet.l10n.L10n;
 
 import freenet.support.Logger;
+import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -176,7 +177,14 @@ public class WebUI{
 		while(it.hasNext()){
 			URIWrapper o = it.next();
 			// Get the key and name
-			FreenetURI uri = new FreenetURI(o.URI);
+			FreenetURI uri;
+			try{
+				uri = new FreenetURI(o.URI);
+				o.URI=uri.toString();
+			}catch(MalformedURLException e){
+				Logger.error(WebUI.class, "URI in results is not a Freenet URI : "+o.URI, e);
+				continue;
+			}
 			Long uskVersion=Long.MIN_VALUE;
 			// convert usk's
 			if(uri.isSSKForUSK()){
