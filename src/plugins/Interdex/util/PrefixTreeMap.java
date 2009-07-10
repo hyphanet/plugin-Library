@@ -32,38 +32,31 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	final protected TreeMap<K, V> tmap;
 
 	/**
-	** The constructor points this to {@link PrefixTree#parent}, so we don't
-	** have to keep casting when we want to access the methods of the subclass.
-	*/
-	final protected PrefixTreeMap<K, V> parent;
-
-	/**
 	** The constructor points this to {@link PrefixTree#child}, so we don't
 	** have to keep casting when we want to access the methods of the subclass.
 	*/
 	final protected PrefixTreeMap<K, V>[] child;
 
-	protected PrefixTreeMap(K p, int len, int caplocal, TreeMap<K, V> tm, PrefixTreeMap<K, V>[] chd, PrefixTreeMap<K, V> par) {
-		super(p, len, caplocal, chd, par);
-		if (tm.size() + subtrees > caplocal) {
+	protected PrefixTreeMap(K p, int len, int caplocal, TreeMap<K, V> tm, PrefixTreeMap<K, V>[] chd) {
+		super(p, len, caplocal, chd);
+		if (tm != null && tm.size() + subtrees > caplocal) {
 			throw new IllegalArgumentException("The TreeMap being attached is too big (> " + (caplocal-subtrees) + ")");
 		}
 
 		tmap = tm;
-		parent = (PrefixTreeMap<K, V>)super.parent;
 		child = (PrefixTreeMap<K, V>[])super.child;
 	}
 
-	protected PrefixTreeMap(K p, int len, int caplocal, PrefixTreeMap<K, V> par) {
-		this(p, len, caplocal, new TreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()], par);
+	protected PrefixTreeMap(K p, int len, int caplocal) {
+		this(p, len, caplocal, new TreeMap<K, V>(), (PrefixTreeMap<K, V>[])new PrefixTreeMap[p.symbols()]);
 	}
 
 	public PrefixTreeMap(K p, int caplocal) {
-		this(p, 0, caplocal, null);
+		this(p, 0, caplocal);
 	}
 
 	public PrefixTreeMap(K p) {
-		this(p, 0, p.symbols(), null);
+		this(p, 0, p.symbols());
 	}
 
 	/*========================================================================
@@ -71,7 +64,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	 ========================================================================*/
 
 	@Override protected PrefixTreeMap<K, V> makeSubTree(int msym) {
-		return new PrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal, this);
+		return new PrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal);
 	}
 
 	@Override protected void transferLocalToSubtree(int i, K key) {

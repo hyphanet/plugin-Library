@@ -41,6 +41,11 @@ implements SkeletonMap<K, V> {
 	*/
 	protected Object meta = null;
 
+	/**
+	** Keeps track of the number of dummies in the map.
+	*/
+	protected transient int dummyCount;
+
 	public SkeletonTreeMap() {
 		super();
 		loaded = new TreeMap<K, Object>();
@@ -74,7 +79,9 @@ implements SkeletonMap<K, V> {
 
 	public Object putDummy(K key, Object o) {
 		put(key, null);
-		return loaded.put(key, o);
+		Object d = loaded.put(key, o);
+		if (d == null) { ++dummyCount; }
+		return d;
 	}
 
 	protected MapSerialiser<K, V> serialiser;
@@ -89,19 +96,11 @@ implements SkeletonMap<K, V> {
 	 ========================================================================*/
 
 	@Override public boolean isLive() {
-		// PRIORITY OPTIMISE use a counter
-		for (Object o: loaded.values()) {
-			if (o != null) { return false; }
-		}
-		return true;
+		return dummyCount == 0;
 	}
 
 	@Override public boolean isBare() {
-		// PRIORITY OPTIMISE use a counter
-		for (Object o: loaded.values()) {
-			if (o == null) { return false; }
-		}
-		return true;
+		return dummyCount == size();
 	}
 
 	@Override public Object getMeta() {
@@ -154,6 +153,8 @@ implements SkeletonMap<K, V> {
 
 		serialiser.pull(tasks, meta);
 		put(key, tasks.get(key).data);
+		// PRIORITY put any extra tasks that were also loaded as a side effect,
+		// into the main map
 	}
 
 	@Override public void deflate(K key) {
@@ -352,7 +353,8 @@ implements SkeletonMap<K, V> {
 	** the user's discretion.
 	*/
 	@Override public V put(K key, V value) {
-		loaded.put(key, null);
+		Object o = loaded.put(key, null);
+		if (o != null) { --dummyCount; }
 		return super.put(key, value);
 	}
 

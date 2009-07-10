@@ -70,16 +70,17 @@ public abstract class TokenEntry implements Comparable<TokenEntry> {
 	}*/
 
 	/**
-	** Compares two entries by their relevance. If these are the same, returns
-	** a random (but consistent, ie. obeying the contract of {@link
-	** Comparable#compareTo(Object)}) value, being 0 if and only(ish) if the
-	** entries are equal.
+	** Compares two entries by their relevance.
 	*/
 	@Override public int compareTo(TokenEntry o) {
 		if (this == o) { return 0; }
 		float f = o.rel - rel;
 		if (f != 0) { return (f > 0)? 1: -1; }
 		// PRIORITY hmmm, no, this won't do, we need a equals() based comparator
+		// actually, SortedSet won't do at all...
+		// we need a data structure that can sort itself on the fly without
+		// discarding elements which compare to 0, but which can detect
+		// equals() elements... RESEARCH
 		return IdentityComparator.comparator.compare(this, o);
 	}
 

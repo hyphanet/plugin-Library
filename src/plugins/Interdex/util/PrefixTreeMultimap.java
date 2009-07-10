@@ -29,6 +29,8 @@ import java.util.Collection;
 **   it, since we don't split values for the same key over different nodes)
 ** - the above dilemma is sufficiently well-handled by SplitMapSerialiser
 **
+** Changed sizeLocal() to report the number of keys - might be useful again?
+**
 ** @author infinity0
 */
 public class PrefixTreeMultimap<K extends PrefixKey, V extends Comparable>
@@ -43,19 +45,13 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 	final protected TreeMultimap<K, V> tmap;
 
 	/**
-	** The constructor points this to {@link PrefixTree#parent}, so we don't
-	** have to keep casting when we want to access the methods of the subclass.
-	*/
-	final protected PrefixTreeMultimap<K, V> parent;
-
-	/**
 	** The constructor points this to {@link PrefixTree#child}, so we don't
 	** have to keep casting when we want to access the methods of the subclass.
 	*/
 	final protected PrefixTreeMultimap<K, V>[] child;
 
-	protected PrefixTreeMultimap(K p, int len, int caplocal, TreeMultimap<K, V> tm, PrefixTreeMultimap<K, V>[] chd, PrefixTreeMultimap<K, V> par) {
-		super(p, len, caplocal, chd, par);
+	protected PrefixTreeMultimap(K p, int len, int caplocal, TreeMultimap<K, V> tm, PrefixTreeMultimap<K, V>[] chd) {
+		super(p, len, caplocal, chd);
 		if (tm.size() + subtrees > caplocal) {
 			throw new IllegalArgumentException("The TreeMultimap being attached is too big (> " + (caplocal-subtrees) + ")");
 		}
@@ -66,20 +62,19 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 			tmap = tm;
 		}
 		//tmap = (tm == null)? TreeMultimap.create(): tm; // java sucks, so this doesn't work
-		parent = (PrefixTreeMultimap<K, V>)super.parent;
 		child = (PrefixTreeMultimap<K, V>[])super.child;
 	}
 
-	public PrefixTreeMultimap(K p, int len, int caplocal, PrefixTreeMultimap<K, V> par) {
-		this(p, len, caplocal, null, (PrefixTreeMultimap<K, V>[])new PrefixTreeMultimap[p.symbols()], par);
+	public PrefixTreeMultimap(K p, int len, int caplocal) {
+		this(p, len, caplocal, null, (PrefixTreeMultimap<K, V>[])new PrefixTreeMultimap[p.symbols()]);
 	}
 
 	public PrefixTreeMultimap(K p, int caplocal) {
-		this(p, 0, caplocal, null);
+		this(p, 0, caplocal);
 	}
 
 	public PrefixTreeMultimap(K p) {
-		this(p, 0, p.symbols(), null);
+		this(p, 0, p.symbols());
 	}
 
 	/*========================================================================
@@ -87,7 +82,7 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 	 ========================================================================*/
 
 	@Override protected PrefixTreeMultimap<K, V> makeSubTree(int msym) {
-		return new PrefixTreeMultimap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal, this);
+		return new PrefixTreeMultimap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal);
 	}
 
 	@Override protected void transferLocalToSubtree(int i, K key) {
@@ -115,7 +110,7 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 	}
 
 	@Override public int sizeLocal() {
-		return tmap.size();
+		return tmap.keySet().size();
 	}
 
 	/*========================================================================

@@ -32,8 +32,10 @@ implements SkeletonMap<K, V> {
 
 	protected static class DummyChild<K extends PrefixKey, V> extends SkeletonPrefixTreeMap<K, V> {
 
+		SkeletonPrefixTreeMap<K, V> parent;
+
 		protected DummyChild(K p, int len, int caplocal, SkeletonPrefixTreeMap<K, V> par) {
-			super(p, len, caplocal, null, null, par);
+			super(p, len, caplocal, null, null);
 		}
 
 		@Override public void clear() { throw childNotLoaded(); }
@@ -64,12 +66,6 @@ implements SkeletonMap<K, V> {
 	}
 
 	/**
-	** The constructor points this to {@link PrefixTreeMap#parent}, so we don't
-	** have to keep casting when we want to access the methods of the subclass.
-	*/
-	final protected SkeletonPrefixTreeMap<K, V> parent;
-
-	/**
 	** The constructor points this to {@link PrefixTreeMap#child}, so we don't
 	** have to keep casting when we want to access the methods of the subclass.
 	*/
@@ -93,28 +89,27 @@ implements SkeletonMap<K, V> {
 	*/
 	protected transient int dummyCount;
 
-	protected SkeletonPrefixTreeMap(K p, int len, int caplocal, SkeletonTreeMap<K, V> tm, SkeletonPrefixTreeMap<K, V>[] chd, SkeletonPrefixTreeMap<K, V> par) {
-		super(p, len, caplocal, tm, chd, par);
+	protected SkeletonPrefixTreeMap(K p, int len, int caplocal, SkeletonTreeMap<K, V> tm, SkeletonPrefixTreeMap<K, V>[] chd) {
+		super(p, len, caplocal, tm, chd);
 
-		parent = (SkeletonPrefixTreeMap<K, V>)super.parent;
 		child = (SkeletonPrefixTreeMap<K, V>[])super.child;
 		tmap = (SkeletonTreeMap<K, V>)super.tmap;
 
 		String str = prefixString();
 		setMeta(str);
-		tmap.setMeta(str);
+		if (tmap != null) { tmap.setMeta(str); }
 	}
 
-	protected SkeletonPrefixTreeMap(K p, int len, int caplocal, SkeletonPrefixTreeMap<K, V> par) {
-		this(p, len, caplocal, new SkeletonTreeMap<K, V>(), new SkeletonPrefixTreeMap[p.symbols()], par);
+	protected SkeletonPrefixTreeMap(K p, int len, int caplocal) {
+		this(p, len, caplocal, new SkeletonTreeMap<K, V>(), new SkeletonPrefixTreeMap[p.symbols()]);
 	}
 
 	public SkeletonPrefixTreeMap(K p, int caplocal) {
-		this(p, 0, caplocal, null);
+		this(p, 0, caplocal);
 	}
 
 	public SkeletonPrefixTreeMap(K p) {
-		this(p, 0, p.symbols(), null);
+		this(p, 0, p.symbols());
 	}
 
 	protected IterableSerialiser<SkeletonPrefixTreeMap<K, V>> serialiser;
@@ -157,9 +152,6 @@ implements SkeletonMap<K, V> {
 		if (!t.prefix.match(prefix, preflen)) {
 			throw new IllegalArgumentException("Key does not match prefix for this tree.");
 		}
-		if (t.parent != this) {
-			throw new IllegalArgumentException("Subtree does not view this tree as its parent.");
-		}
 
 		int i = t.lastIndex();
 		if (child[i] == null) {
@@ -170,12 +162,12 @@ implements SkeletonMap<K, V> {
 			throw new IllegalArgumentException("The size of the subtree contradicts its entry in sizePrefix");
 		}
 
-		if (child[i] instanceof DummyChild) {
-			child[i] = t;
-			--dummyCount;
-		} else {
+		if (!(child[i] instanceof DummyChild)) {
 			throw new IllegalArgumentException("This tree does not need attach a subtree with prefix " + t.prefix);
 		}
+		child[i] = t;
+		child[i].setSerialiser(serialiser, serialiserLocal);
+		--dummyCount;
 	}
 
 	/*========================================================================
@@ -184,7 +176,7 @@ implements SkeletonMap<K, V> {
 
 	// We override this method so that the correct serialiser is set
 	@Override protected PrefixTreeMap<K, V> makeSubTree(int msym) {
-		SkeletonPrefixTreeMap<K, V> ch = new SkeletonPrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal, this);
+		SkeletonPrefixTreeMap<K, V> ch = new SkeletonPrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal);
 		ch.setSerialiser(serialiser, serialiserLocal);
 		return ch;
 	}
@@ -251,16 +243,30 @@ implements SkeletonMap<K, V> {
 	  public interface SkeletonMap
 	 ========================================================================*/
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implemenation returns negative results quicker than positive ones.
+	** (NP vs coNP)
+	*/
 	@Override public boolean isLive() {
-		// OPTIMISE use a counter
-		if (!tmap.isLive()) { return false; }
-		return dummyCount == 0;
+		if (!tmap.isLive() || dummyCount > 0) { return false; }
+		// no dummy children, check they are all live
+		for (SkeletonPrefixTreeMap<K, V> ch: child) {
+			if (ch == null) { continue; }
+			if (!ch.isLive()) { return false; }
+		}
+		return true;
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implemenation assumes that non-dummy childs are not bare. (This is
+	** enforced in {@link deflate(K)}.)
+	*/
 	@Override public boolean isBare() {
-		// OPTIMISE use a counter
-		if (!tmap.isBare()) { return false; }
-		return dummyCount == subtrees;
+		return (tmap.isBare() && dummyCount == subtrees);
 	}
 
 	@Override public Object getMeta() {
@@ -280,18 +286,6 @@ implements SkeletonMap<K, V> {
 		for (SkeletonPrefixTreeMap<K, V> ch: child) {
 			if (ch == null || !(ch instanceof DummyChild)) { continue; }
 			PullTask<SkeletonPrefixTreeMap<K, V>> task = new PullTask<SkeletonPrefixTreeMap<K, V>>(ch.getMeta());
-			task.data = this; // this is a bit of a hack, but oh well...
-			// the only way to supply the parent pointer is via the constructor
-			// and hence we must pass the parent pointer to the translator
-			// the only way to do this is here. there is no other way to supply
-			// the parent pointer - we could make PrefixTreeMap.parent
-			// non-final and change this field, but we can't access
-			// PrefixTree.parent to change that even if we make it non-final,
-			// since it is a grand-superclass. it's too late to recode the
-			// entire thing, sorry... :p
-			//
-			// TODO actually we could just get rid of the parent field.... it's
-			// not actually used anywhere in any of the algorithms...
 			tasks.add(task);
 		}
 		serialiser.pull(tasks);
@@ -406,14 +400,12 @@ implements SkeletonMap<K, V> {
 		}
 
 		/**
-		** Backwards translation. The translator is mandatory here. The parent
-		** can be retrieved from {@link PullTask#data} before the task begins.
+		** Backwards translation. The translator is mandatory here.
 		**
 		** @param intm A map of translated mappings to extract
-		** @param par The tree to mark as the parent of the new tree
 		** @param ktr A translator between key and {@link String}
 		*/
-		public static <K extends PrefixKey, V> SkeletonPrefixTreeMap<K, V> rev(Map<String, Object> intm, SkeletonPrefixTreeMap<K, V> par, Translator<K, String> ktr) {
+		public static <K extends PrefixKey, V> SkeletonPrefixTreeMap<K, V> rev(Map<String, Object> intm, Translator<K, String> ktr) {
 			if (ktr == null) {
 				throw new IllegalArgumentException("SkeletonPrefixTreeMap: Translator cannot be null for reverse translation.");
 			}
@@ -427,7 +419,7 @@ implements SkeletonMap<K, V> {
 				boolean[] chd = (boolean[])intm.get("_child");
 				Map<String, Object> tm = (Map<String, Object>)intm.get("_tmap");
 
-				SkeletonPrefixTreeMap<K, V> skel = new SkeletonPrefixTreeMap<K, V>(p, pl, cl, par);
+				SkeletonPrefixTreeMap<K, V> skel = new SkeletonPrefixTreeMap<K, V>(p, pl, cl);
 				SkeletonTreeMap.TreeMapTranslator.rev(tm, skel.tmap, ktr);
 
 				checkValid(p, pl, cl, sb, sz, sp, chd, skel.tmap.keySet());

@@ -59,18 +59,11 @@ implements Archiver<Index> {
 	PrefixTreeMapSerialiser<Token, SortedSet<TokenEntry>> tksrl;
 	PrefixTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>> usrl;
 
-	// debugging crap
-	public IterableSerialiser<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>> s;
-	public MapSerialiser<Token, SortedSet<TokenEntry>> sv;
-
 	public IndexFileSerialiser() {
 		super(new YamlArchiver<Map<String, Object>>("index", ""), new IndexTranslator());
 		tksrl = new PrefixTreeMapSerialiser<Token, SortedSet<TokenEntry>>(new TokenTranslator());
 		usrl = new PrefixTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKeyTranslator());
 
-		// debugging crap
-		s = new PrefixTreeMapSerialiser<Token, SortedSet<TokenEntry>>(new TokenTranslator());
-		sv = new TokenEntrySerialiser();
 	}
 
 	public void pull(PullTask<Index> task) {
@@ -167,8 +160,6 @@ implements Archiver<Index> {
 		public void pull(PullTask<SkeletonPrefixTreeMap<K, V>> task) {
 			PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(task.meta);
 			subsrl.pull(serialisable);
-			// TODO ugly hack, remove as soon as we're sure we can remove the parent pointer
-			serialisable.data.put("_parent", task.data);
 			SkeletonPrefixTreeMap<K, V> pulldata = trans.rev(serialisable.data);
 
 			task.meta = serialisable.meta; task.data = pulldata;
@@ -221,9 +212,7 @@ implements Archiver<Index> {
 				map.put("_child", boolArrayOf((List<Boolean>)map.get("_child")));
 				map.put("sizePrefix", intArrayOf((List<Integer>)map.get("sizePrefix")));
 
-				// TODO ugly hack, remove as soon as we're sure we can remove the parent pointer
-				SkeletonPrefixTreeMap<K, V> parent = (SkeletonPrefixTreeMap<K, V>)map.remove("_parent");
-				return rev(map, parent, ktr);
+				return rev(map, ktr);
 			}
 
 			// TODO maybe move this into a util class?

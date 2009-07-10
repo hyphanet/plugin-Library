@@ -26,11 +26,6 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	final protected int preflen;
 
 	/**
-	** Pointer to the parent tree.
-	*/
-	final protected PrefixTree<K, V> parent;
-
-	/**
 	** Array holding the child trees. There is one cell in the array for each
 	** symbol in the alphabet of the key. For all i: {@link #child}[i] != null,
 	** or {@link #child}[i].{@link #lastIndex()} == i.
@@ -78,9 +73,16 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	*/
 	protected transient int smch_ = -1;
 
-	protected PrefixTree(K p, int len, int maxsz, PrefixTree<K, V>[] chd, PrefixTree<K, V> par) {
-		if (chd.length != p.symbols()) {
-			throw new IllegalArgumentException("The child array must be able to exactly hold all its potential children, of which there are " + p.symbols());
+	protected PrefixTree(K p, int len, int maxsz, PrefixTree<K, V>[] chd) {
+		if (chd != null) {
+			// if the child array is null, we assume the caller knows what they're
+			// doing... this is needed for SkeletonPrefixTreeMap.DummyChild
+			if (chd.length != p.symbols()) {
+				throw new IllegalArgumentException("The child array must be able to exactly hold all its potential children, of which there are " + p.symbols());
+			}
+			for (PrefixTree<K, V> c: chd) {
+				if (c != null) { throw new IllegalArgumentException("Child array to attach must be empty."); }
+			}
 		}
 		if (maxsz < p.symbols()) {
 			throw new IllegalArgumentException("This tree must be able to hold all its potential children, of which there are " + p.symbols());
@@ -91,21 +93,13 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 		if (len < 0) {
 			throw new IllegalArgumentException("Length cannot be negative.");
 		}
-		if ((par == null && len != 0) || (par != null && (par.preflen != len-1 || !par.prefix.match(p, len-1)))) {
-			throw new IllegalArgumentException("Not a valid parent for this node.");
-		}
-
-		for (PrefixTree<K, V> c: chd) {
-			if (c != null) { throw new IllegalArgumentException("Child array to attach must be empty."); }
-		}
 
 		prefix = p;
 		prefix.clearFrom(len);
 		preflen = len;
 
 		child = chd;
-		parent = par;
-		sizePrefix = new int[child.length];
+		sizePrefix = (child == null)? null: new int[child.length];
 
 		subtreesMax = p.symbols();
 		capacityLocal = maxsz;
@@ -139,7 +133,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	*/
 	protected int smallestChild() {
 		if (smch_ < 0 && subtrees > 0) {
-			for (int i=0; i<subtrees; ++i) {
+			for (int i=0; i<subtreesMax; ++i) {
 				if (child[i] != null && (smch_ < 0 || sizePrefix[i] < sizePrefix[smch_])) {
 					smch_ = i;
 				}
