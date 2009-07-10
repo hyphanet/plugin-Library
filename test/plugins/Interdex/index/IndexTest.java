@@ -65,4 +65,10 @@ public class IndexTest extends TestCase {
 		int s = test.size();
 	}
 
+	public void test16() {
+		for (int i=0; i<16; ++i) {
+			testBasic();
+		}
+	}
+
 }

@@ -67,18 +67,15 @@ implements MapSerialiser<K, T> {
 		return element.size();
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation also keeps track of the first key of the element.
+	*/
 	@Override protected void addBinToMeta(Map<String, Object> meta, T partition, int binindex) {
-		if (!meta.containsKey("bins")) { meta.put("bins", new ArrayList<Integer>()); }
 		if (!meta.containsKey("keys")) { meta.put("keys", new ArrayList()); }
-		((List)meta.get("bins")).add(binindex);
 		Iterator it = partition.keySet().iterator();
 		((List)meta.get("keys")).add(it.hasNext()? it.next(): null);
-	}
-
-	@Override protected List<Integer> getBinsFromMeta(Map<String, Object> meta) {
-		// some archivers will push a list as an array
-		Object list = meta.get("bins");
-		return (list instanceof Integer[])? java.util.Arrays.asList((Integer[])list): (List<Integer>)list;
 	}
 
 }

@@ -65,15 +65,4 @@ implements MapSerialiser<K, T> {
 		return element.size();
 	}
 
-	@Override protected void addBinToMeta(Map<String, Object> meta, T element, int binindex) {
-		if (!meta.containsKey("bins")) { meta.put("bins", new ArrayList<Integer>()); }
-		((List)meta.get("bins")).add(binindex);
-	}
-
-	@Override protected List<Integer> getBinsFromMeta(Map<String, Object> meta) {
-		// some archivers will push a list as an array
-		Object list = meta.get("bins");
-		return (list instanceof Integer[])? java.util.Arrays.asList((Integer[])list): (List<Integer>)list;
-	}
-
 }

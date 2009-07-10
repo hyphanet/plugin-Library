@@ -5,6 +5,7 @@ package plugins.Interdex.serl;
 
 import plugins.Interdex.serl.Serialiser.*;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
@@ -91,9 +92,26 @@ implements MapSerialiser<K, T> {
 
 	abstract protected int sizeOf(T element);
 
-	abstract protected void addBinToMeta(Map<String, Object> meta, T partition, int binindex);
+	/**
+	** DOCUMENT
+	*/
+	protected void addBinToMeta(Map<String, Object> meta, T partition, int binindex) {
+		List<Integer> size = (List<Integer>)meta.get("size");
+		if (size == null) { size = new ArrayList<Integer>(); meta.put("size", size); }
+		size.add(sizeOf(partition));
 
-	abstract protected List<Integer> getBinsFromMeta(Map<String, Object> meta);
+		List<Integer> bins = (List<Integer>)meta.get("bins");
+		if (bins == null) { bins = new ArrayList<Integer>(); meta.put("bins", bins); }
+		bins.add(binindex);
+	}
+
+	/**
+	** DOCUMENT
+	*/
+	protected List<Integer> getBinsFromMeta(Map<String, Object> meta) {
+		Object list = meta.get("bins");
+		return (List<Integer>)list;
+	}
 
 	/**
 	** Given a map of sizeable tasks, return the bins the task data has been
@@ -222,13 +240,17 @@ implements MapSerialiser<K, T> {
 
 			// get the smallest element
 			T sm = fullest.lastKey();
+			if (!fullest.containsKey(sm)) {
+				System.out.println(sm);
+				System.out.println(fullest);
+				throw new IllegalStateException("lol wut");
+			}
 
 			if (sizeOf(sm) < fullest.filled() - smallest.filled()) {
 				// if its size is smaller than the difference between the size of F and S
 				// remove it and put it in S
 
-					smallest.put(sm, fullest.get(sm));
-					fullest.remove(sm);
+					smallest.put(sm, fullest.remove(sm));
 
 					if (fullest.filled() < smallest.filled()) {
 						// if this makes F become smaller than S, then push S's referent back onto
@@ -267,38 +289,58 @@ implements MapSerialiser<K, T> {
 	**
 	** This implementation will pull data for each task in the map with
 	** non-null metadata.
+	**
+	** The child serialiser should process metadata of the form Array[{@link
+	** Object} metadata, {@link Integer} binindex].
 	*/
 	@Override public void pull(Map<K, PullTask<T>> tasks, Object meta) {
-
 		// tasks has form {K:(*,M)}
 		// put all the bins from each task into a list of new tasks for each bin
-		Set<Integer> bins = new HashSet<Integer>();
+		Map<Integer, PullTask<Map<K, T>>> bins = new HashMap<Integer, PullTask<Map<K, T>>>();
 		for (Map.Entry<K, PullTask<T>> en: tasks.entrySet()) {
 			for (Integer i: getBinsFromMeta((Map<String, Object>)en.getValue().meta)) {
-				bins.add(i);
+				if (!bins.containsKey(i)) {
+					bins.put(i, new PullTask<Map<K, T>>(new Object[]{meta, i}));
+				}
 			}
 		}
-		List<PullTask<Map<K, T>>> bintasks = new ArrayList<PullTask<Map<K, T>>>(bins.size());
-		for (Integer i: bins) {
-			bintasks.add(new PullTask<Map<K, T>>(new Object[]{meta, i}));
-		}
+		Collection<PullTask<Map<K, T>>> bintasks = bins.values();
 
 		// bintasks has form [(*,[meta,I])]
 		// pull each bin
 		subsrl.pull(bintasks);
 		// bintasks has form [({K:T},[meta,I])]
 
-		// form the original task data from each bin task
-		for (PullTask<T> task: tasks.values()) {
+		// for each task, grab and remove its partitions from its bins
+		for (Map.Entry<K, PullTask<T>> en: tasks.entrySet()) {
+			PullTask<T> task = en.getValue();
 			task.data = newElement();
-		}
-
-		// URGENT catch NullPointerException and throw a DataFormatException here
-		for (PullTask<Map<K, T>> bintask: bintasks) {
-			for (Map.Entry<K, T> en: bintask.data.entrySet()) {
-				addPartitionTo(tasks.get(en.getKey()).data, en.getValue());
+			for (Integer i: getBinsFromMeta((Map<String, Object>)task.meta)) {
+				PullTask<Map<K, T>> bintask = bins.get(i);
+				T partition;
+				if (bintask.data == null || (partition = bintask.data.remove(en.getKey())) == null) {
+					// TODO use DFEx
+					throw new IllegalArgumentException("Packer did not find the expected partition in the given bin. Either the data is corrupt, or the child serialiser is buggy.");
+				}
+				addPartitionTo(task.data, partition);
 			}
 		}
+
+		// if there is any leftover data in the bins, load them anyway
+		for (PullTask<Map<K, T>> bintask: bintasks) {
+			for (Map.Entry<K, T> en: bintask.data.entrySet()) {
+				if (tasks.containsKey(en.getKey())) {
+					throw new IllegalArgumentException("Packer found an extra unexpected partition for a bin. Either the data is corrupt, or the child serialiser is buggy.");
+				}
+				PullTask<T> task = new PullTask<T>(new HashMap<String, Object>());
+				// set the metadata properly
+				addBinToMeta((Map<String, Object>)task.meta, en.getValue(), (Integer)((Object[])bintask.meta)[1]);
+				task.data = newElement();
+				tasks.put(en.getKey(), task);
+				addPartitionTo(task.data, en.getValue());
+			}
+		}
+
 	}
 
 	/**
@@ -308,8 +350,12 @@ implements MapSerialiser<K, T> {
 	** the map. It will push data for each task with null metadata. (TODO at
 	** the moment it also requires each task to have null metadata.)
 	**
-	** The metadata generated by a push operation is determined by the
-	** implementation of {@link #addBinToMeta}.
+	** The child serialiser should process metadata of the form Array[{@link
+	** Object} metadata, {@link Integer} binindex].
+	**
+	** The metadata passed back to the caller is determined by the
+	** implementation of {@link #addBinToMeta}. By default, this is a map of
+	** (a list of bins) and (a list of bin sizes).
 	*/
 	@Override public void push(Map<K, PushTask<T>> tasks, Object meta) {
 		// PRIORITY make binPack() able to try to do bin-packing even when
@@ -317,7 +363,7 @@ implements MapSerialiser<K, T> {
 		// exception
 		for (Map.Entry<K, PushTask<T>> en: tasks.entrySet()) {
 			if (en.getValue().meta != null) {
-				throw new plugins.Interdex.util.DataNotLoadedException("Cannot repack when some of the bins have not been loaded", null, en.getKey(), en.getValue().meta);
+				throw new UnsupportedOperationException("Cannot perform packing when some of the bins are not loaded.");
 			}
 		}
 
@@ -326,9 +372,7 @@ implements MapSerialiser<K, T> {
 
 		// prepare each task's meta data to hold information about the bins
 		for (PushTask<T> task: tasks.values()) {
-			Map<String, Object> metalist = new HashMap<String, Object>();
-			metalist.put("size", new Integer(sizeOf(task.data)));
-			task.meta = metalist;
+			task.meta = new HashMap<String, Object>();
 		}
 
 		// push the index of each element to its task
@@ -337,12 +381,26 @@ implements MapSerialiser<K, T> {
 		List<PushTask<Map<K, T>>> bintasks = new ArrayList<PushTask<Map<K, T>>>(bins.length);
 		for (Bin<T, K> bin: bins) {
 			assert(bin.getIndex() == i);
-			Map<K, T> taskmap = new HashMap<K, T>(bin.size()*2);
+			Map<K, T> taskmap = new HashMap<K, T>(bin.size()<<1);
 
 			for (Map.Entry<T, K> en: bin.entrySet()) {
-				// URGENT fix NullPointerException here
+				//try {
+				// URGENT fix NullPointerException here for tasks.get
+				// this occurs for some test runs
 				addBinToMeta((Map)tasks.get(en.getValue()).meta, en.getKey(), i);
 				taskmap.put(en.getValue(), en.getKey());
+				/*} catch (NullPointerException e) {
+					e.printStackTrace();
+					System.out.println("CULPRIT KEY: " + en.getValue());
+					// INFO: culprit key is always "null" so the bin packing algorithm must be
+					// associating a bin with a null key??
+					System.out.println("========KEYS=========");
+					System.out.println(tasks.keySet());
+					System.out.println("========BIN VALUES=========");
+					System.out.println(bin.values());
+					//System.out.println(java.util.Arrays.toString(bins));
+					throw e;
+				}*/
 			}
 
 			bintasks.add(new PushTask<Map<K, T>>(taskmap, new Object[]{meta, i}));
