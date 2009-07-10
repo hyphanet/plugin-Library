@@ -3,6 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.index;
 
+import plugins.Interdex.util.IdentityComparator;
+
 /**
 ** Represents data indexed by a {@link Token} and associated with a given
 ** subject {@link String} term.
@@ -75,14 +77,10 @@ public abstract class TokenEntry implements Comparable<TokenEntry> {
 	*/
 	@Override public int compareTo(TokenEntry o) {
 		if (this == o) { return 0; }
-		float d = o.rel - rel;
-		// this is a bit of a hack but is needed since Tree* treats two objects
-		// as "equal" if their "compare" returns 0
-		if (d != 0) { return (d > 0)? 1: -1; }
-		int h = o.hashCode() - hashCode();
-		// on the off chance that the hashCodes are equal but the objects are not,
-		// test the string representations of them...
-		return (h != 0)? h: (equals(o))? 0: toString().compareTo(o.toString());
+		float f = o.rel - rel;
+		if (f != 0) { return (f > 0)? 1: -1; }
+		// PRIORITY hmmm, no, this won't do, we need a equals() based comparator
+		return IdentityComparator.comparator.compare(this, o);
 	}
 
 }

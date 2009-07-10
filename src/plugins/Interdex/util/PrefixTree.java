@@ -562,7 +562,7 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 			for (int i=0; i<size(); ++i) {
 				int x = get(i);
 				int y = p.get(i);
-				if (x != y) { return x-y; }
+				if (x != y) { return (x > y) ? 1: -1; }
 			}
 			return 0;
 		}

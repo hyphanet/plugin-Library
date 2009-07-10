@@ -4,6 +4,7 @@
 package plugins.Interdex.serl;
 
 import plugins.Interdex.serl.Serialiser.*;
+import plugins.Interdex.util.IdentityComparator;
 
 import java.util.Collection;
 import java.util.List;
@@ -240,11 +241,6 @@ implements MapSerialiser<K, T> {
 
 			// get the smallest element
 			T sm = fullest.lastKey();
-			if (!fullest.containsKey(sm)) {
-				System.out.println(sm);
-				System.out.println(fullest);
-				throw new IllegalStateException("lol wut");
-			}
 
 			if (sizeOf(sm) < fullest.filled() - smallest.filled()) {
 				// if its size is smaller than the difference between the size of F and S
@@ -384,23 +380,8 @@ implements MapSerialiser<K, T> {
 			Map<K, T> taskmap = new HashMap<K, T>(bin.size()<<1);
 
 			for (Map.Entry<T, K> en: bin.entrySet()) {
-				//try {
-				// URGENT fix NullPointerException here for tasks.get
-				// this occurs for some test runs
 				addBinToMeta((Map)tasks.get(en.getValue()).meta, en.getKey(), i);
 				taskmap.put(en.getValue(), en.getKey());
-				/*} catch (NullPointerException e) {
-					e.printStackTrace();
-					System.out.println("CULPRIT KEY: " + en.getValue());
-					// INFO: culprit key is always "null" so the bin packing algorithm must be
-					// associating a bin with a null key??
-					System.out.println("========KEYS=========");
-					System.out.println(tasks.keySet());
-					System.out.println("========BIN VALUES=========");
-					System.out.println(bin.values());
-					//System.out.println(java.util.Arrays.toString(bins));
-					throw e;
-				}*/
 			}
 
 			bintasks.add(new PushTask<Map<K, T>>(taskmap, new Object[]{meta, i}));
@@ -468,10 +449,9 @@ implements MapSerialiser<K, T> {
 		*/
 		@Override public int compareTo(Bin bin) {
 			if (this == bin) { return 0; }
-			int d = bin.filled() - filled();
-			// this is a bit of a hack but is needed since Tree* treats two objects
-			// as "equal" if their "compare" returns 0
-			return (d != 0)? d: getIndex() - bin.getIndex();
+			int d = filled() - bin.filled();
+			if (d != 0) { return (d < 0)? 1: -1; }
+			return IdentityComparator.comparator.compare(this, bin);
 		}
 
 	}

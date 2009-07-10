@@ -4,6 +4,7 @@
 package plugins.Interdex.serl;
 
 import plugins.Interdex.serl.Serialiser.*;
+import plugins.Interdex.util.IdentityComparator;
 
 import java.util.Collection;
 import java.util.List;
@@ -21,17 +22,12 @@ public class CollectionPacker<K, T extends Collection>
 extends Packer<K, T>
 implements MapSerialiser<K, T> {
 
-	final protected static Comparator<Collection> BinElementComparator = new Comparator<Collection>() {
+	final protected static Comparator<Collection> BinElementComparator = new IdentityComparator<Collection>() {
 		public int compare(Collection c1, Collection c2) {
 			if (c1 == c2) { return 0; }
-			int d = c2.size() - c1.size();
-			// this is a bit of a hack but is needed since Tree* treats two objects
-			// as "equal" if their "compare" returns 0
-			if (d != 0) { return d; }
-			int h = c2.hashCode() - c1.hashCode();
-			// on the off chance that the hashCodes are equal but the objects are not,
-			// test the string representations of them...
-			return (h != 0)? h: (c2.equals(c1))? 0: c2.toString().compareTo(c1.toString());
+			int d = c1.size() - c2.size();
+			if (d != 0) { return (d < 0)? 1: -1; }
+			return super.compare(c1, c2);
 		}
 	};
 
