@@ -5,8 +5,10 @@ package plugins.Interdex.serl;
 
 import plugins.Interdex.serl.Serialiser.*;
 
-import java.util.Map;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
@@ -17,10 +19,11 @@ import java.util.concurrent.TimeUnit;
 **
 ** It also keeps track of each task's progress and provides methods to retrieve
 ** this data. For this to function properly, the data/metadata for push/pull
-** tasks (respectively) MUST NOT be internally modified by the child {@link
-** Archiver}, since these are used as keys into {@link IdentityHashMap}s.
+** tasks (respectively) MUST NOT be null, and MUST NOT be internally modified
+** by the child {@link Archiver}, since these are used as keys into {@link
+** IdentityHashMap}s.
 **
-** URGENT atm has deadlock problems...
+** PRIORITY deadlock problems fixed... there might be more... re-check this
 **
 ** @author infinity0
 */
@@ -79,6 +82,7 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 		if (numThreads != 0) { return; }
 		++numThreads;
 		(new QueueHandler()).start();
+		//System.out.println("thread started");
 	}
 
 	public Progress getPullProgress(Object meta) {
@@ -105,9 +109,13 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 	@Override public void pull(Iterable<PullTask<T>> tasks) {
 		kickStart();
 		try {
+			List<Progress> plist = new ArrayList<Progress>();
 			Iterator<PullTask<T>> it = tasks.iterator();
 			while (it.hasNext()) {
 				PullTask<T> t = it.next();
+				if (t.meta == null) {
+					throw new IllegalArgumentException("ParallelArchiver cannot handle pull tasks with null metadata");
+				}
 				synchronized (pullProgress) {
 					// if we are already pushing this then skip it
 					if (pullProgress.containsKey(t.meta)) {
@@ -115,18 +123,23 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 						continue;
 					}
 					// TODO use mikeb's Progress class
-					pullProgress.put(t.meta, new Progress());
+					Progress p = new Progress();
+					plist.add(p);
+					pullProgress.put(t.meta, p);
 				}
-				if (!queue.offer(t, 1, TimeUnit.SECONDS)) {
+				while (!queue.offer(t, 1, TimeUnit.SECONDS)) {
 					startHandler();
 				}
 			}
-			for (PullTask<T> t: tasks) {
-				getPullProgress(t.meta).join();
+			for (Progress p: plist) { p.join(); }
+			synchronized (pullProgress) {
+				for (PullTask<T> t: tasks) {
+					pullProgress.remove(t.meta);
+				}
 			}
 		} catch (InterruptedException e) {
 			throw new TaskFailException("ParallelArchiver pull was interrupted", e);
-		}
+		} // URGENT finally clause
 	}
 
 	/**
@@ -137,9 +150,13 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 	@Override public void push(Iterable<PushTask<T>> tasks) {
 		kickStart();
 		try {
+			List<Progress> plist = new ArrayList<Progress>();
 			Iterator<PushTask<T>> it = tasks.iterator();
 			while (it.hasNext()) {
 				PushTask<T> t = it.next();
+				if (t.data == null) {
+					throw new IllegalArgumentException("ParallelArchiver cannot handle pull tasks with null metadata");
+				}
 				synchronized (pushProgress) {
 					// if we are already pushing this then skip it
 					if (pushProgress.containsKey(t.data)) {
@@ -147,14 +164,19 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 						continue;
 					}
 					// TODO use mikeb's Progress class
-					pushProgress.put(t.data, new Progress());
+					Progress p = new Progress();
+					plist.add(p);
+					pushProgress.put(t.data, p);
 				}
-				if (!queue.offer(t, 1, TimeUnit.SECONDS)) {
+				while (!queue.offer(t, 1, TimeUnit.SECONDS)) {
 					startHandler();
 				}
 			}
-			for (PushTask<T> t: tasks) {
-				getPushProgress(t.data).join();
+			for (Progress p: plist) { p.join(); }
+			synchronized (pushProgress) {
+				for (PushTask<T> t: tasks) {
+					pushProgress.remove(t.data);
+				}
 			}
 		} catch (InterruptedException e) {
 			throw new TaskFailException("ParallelArchiver push was interrupted", e);
@@ -206,6 +228,7 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 					--numThreads;
 				}
 			}
+			//System.out.println("Thread ended");
 		}
 	}
 

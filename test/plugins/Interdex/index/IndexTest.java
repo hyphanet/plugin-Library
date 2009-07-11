@@ -160,7 +160,7 @@ public class IndexTest extends TestCase {
 	}
 
 	public void testPartialInflateMulti() {
-		int n = 4;
+		int n = 8;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
 			partialInflate();
