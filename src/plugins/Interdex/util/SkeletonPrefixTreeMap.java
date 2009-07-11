@@ -263,7 +263,7 @@ implements SkeletonMap<K, V> {
 	** {@inheritDoc}
 	**
 	** This implemenation assumes that non-dummy childs are not bare. (This is
-	** enforced in {@link deflate(K)}.)
+	** enforced in {@link #deflate(K)}.)
 	*/
 	@Override public boolean isBare() {
 		return (tmap.isBare() && dummyCount == subtrees);
@@ -330,7 +330,6 @@ implements SkeletonMap<K, V> {
 		} else {
 			if (child[i] instanceof DummyChild) {
 				PullTask<SkeletonPrefixTreeMap<K, V>> task = new PullTask<SkeletonPrefixTreeMap<K, V>>(child[i].getMeta());
-				task.data = this; // this is a hack that might be removed later, see inflate() for details
 				serialiser.pull(task);
 				putChild(task.data);
 			}

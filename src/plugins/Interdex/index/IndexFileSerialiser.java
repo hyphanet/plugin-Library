@@ -14,6 +14,7 @@ import plugins.Interdex.serl.IterableSerialiser;
 import plugins.Interdex.serl.MapSerialiser;
 import plugins.Interdex.serl.CompositeSerialiser;
 import plugins.Interdex.serl.CompositeArchiver;
+import plugins.Interdex.serl.ParallelArchiver;
 import plugins.Interdex.serl.CollectionPacker;
 import plugins.Interdex.serl.MapPacker;
 import plugins.Interdex.serl.YamlArchiver;
@@ -39,6 +40,8 @@ import freenet.keys.FreenetURI;
 **
 ** TODO: could have this class load balance itself by having a queue of threads
 ** in the main class.
+**
+** DOCUMENT
 **
 ** OPTIMISE: make Token and URIKey use halfbytes instead of bytes, and make this
 ** serialiser save 3 levels of PrefixTrees into the same file. Or something.
@@ -149,6 +152,8 @@ implements Archiver<Index> {
 	}
 
 
+
+
 	public static class PrefixTreeMapSerialiser<K extends PrefixKey, V>
 	extends CompositeArchiver<SkeletonPrefixTreeMap<K, V>, Map<String, Object>>
 	implements IterableSerialiser<SkeletonPrefixTreeMap<K, V>> {
@@ -244,6 +249,10 @@ implements Archiver<Index> {
 
 	}
 
+
+
+
+
 	abstract public static class URIEntrySerialiser
 	extends MapPacker<URIKey, SortedMap<FreenetURI, URIEntry>>
 	implements MapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>> {
@@ -316,6 +325,8 @@ implements Archiver<Index> {
 	}
 
 
+
+
 	public static class TokenEntrySerialiser
 	extends CollectionPacker<Token, SortedSet<TokenEntry>>
 	implements MapSerialiser<Token, SortedSet<TokenEntry>> {
@@ -333,14 +344,15 @@ implements Archiver<Index> {
 	}
 
 	public static class TokenEntryGroupSerialiser
-	extends CompositeSerialiser<Map<Token, SortedSet<TokenEntry>>, Map<String, Object>, Archiver<Map<String, Object>>>
+	//extends CompositeSerialiser<Map<Token, SortedSet<TokenEntry>>, Map<String, Object>, Archiver<Map<String, Object>>>
+	extends ParallelArchiver<Map<Token, SortedSet<TokenEntry>>, Map<String, Object>>
 	implements IterableSerialiser<Map<Token, SortedSet<TokenEntry>>> {
 
 		public TokenEntryGroupSerialiser() {
 			super(new YamlArchiver<Map<String, Object>>("tk", ".tab"));
 		}
 
-		public void pull(PullTask<Map<Token, SortedSet<TokenEntry>>> task) {
+		@Override public void pull(PullTask<Map<Token, SortedSet<TokenEntry>>> task) {
 			PullTask<Map<String, Object>> t = new PullTask<Map<String, Object>>(task.meta);
 			subsrl.pull(t);
 
@@ -361,7 +373,7 @@ implements Archiver<Index> {
 			task.data = map;
 		}
 
-		public void push(PushTask<Map<Token, SortedSet<TokenEntry>>> task) {
+		@Override public void push(PushTask<Map<Token, SortedSet<TokenEntry>>> task) {
 			Map<String, Object> conv = new HashMap<String, Object>();
 			for (Map.Entry<Token, SortedSet<TokenEntry>> mp: task.data.entrySet()) {
 				List entries = new ArrayList();
@@ -376,7 +388,7 @@ implements Archiver<Index> {
 			task.meta = t.meta;
 		}
 
-		public void pull(Iterable<PullTask<Map<Token, SortedSet<TokenEntry>>>> tasks) {
+		/*public void pull(Iterable<PullTask<Map<Token, SortedSet<TokenEntry>>>> tasks) {
 			// TODO threads
 			for (PullTask<Map<Token, SortedSet<TokenEntry>>> task: tasks) {
 				pull(task);
@@ -387,7 +399,7 @@ implements Archiver<Index> {
 			for (PushTask<Map<Token, SortedSet<TokenEntry>>> task: tasks) {
 				push(task);
 			}
-		}
+		}*/
 
 	}
 

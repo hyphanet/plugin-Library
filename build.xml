@@ -69,7 +69,9 @@
 	</target>
 
 	<target name="junit" depends="unit-build" if="junit.present" unless="skip_tests">
-		<junit printsummary="yes" fork="yes" haltonfailure="yes" dir="${test-run}">
+		<delete dir="${test-run}"/>
+		<mkdir dir="${test-run}"/>
+		<junit printsummary="yes" fork="yes" haltonfailure="yes" dir="${test-run}" showoutput="yes">
 			<classpath>
 				<pathelement path="${build}"/>
 				<pathelement path="${build-test}"/>
@@ -80,9 +82,7 @@
 				</fileset>
 				<pathelement location="${junit.location}"/>
 			</classpath>
-
-			<formatter type="plain" usefile="false"/>
-
+			<!--<formatter type="plain" usefile="false"/>-->
 			<batchtest fork="yes">
 				<fileset dir="${build-test}">
 					<include name="**/*Test.class"/>

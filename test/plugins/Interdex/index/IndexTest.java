@@ -54,13 +54,15 @@ public class IndexTest extends TestCase {
 		"laborum."
 	));
 
-	protected void setUp() {
+	protected void newTestSkeleton() {
 		test = new SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>(new Token(), 512);
 		test.setSerialiser(srl, vsrl);
 		timeDiff();
 	}
 
-	public void testBasic() {
+	public void fullInflate() {
+		newTestSkeleton();
+
 		int totalentries = 0;
 
 		for (int i=0; i<256; ++i) {
@@ -98,16 +100,18 @@ public class IndexTest extends TestCase {
 		assertTrue(test.isLive());
 		assertFalse(test.isBare());
 		System.out.println("inflated in " + timeDiff() + " ms");
-
 	}
 
-	public void testBasic16() {
-		for (int i=0; i<4/*16*/; ++i) {
-			testBasic();
+	public void testBasicMulti() {
+		int n = 8;
+		for (int i=0; i<n; ++i) {
+			System.out.print(i + "/" + n + ": ");
+			fullInflate();
 		}
 	}
 
-	public void testPartialInflate() {
+	public void partialInflate() {
+		newTestSkeleton();
 		int totalentries = 0;
 
 		for (String word: randomWords) {
@@ -155,11 +159,12 @@ public class IndexTest extends TestCase {
 
 	}
 
-	public void testPartialInflate16() {
-		for (int i=0; i<16; ++i) {
-			testPartialInflate();
+	public void testPartialInflateMulti() {
+		int n = 4;
+		for (int i=0; i<n; ++i) {
+			System.out.print(i + "/" + n + ": ");
+			partialInflate();
 		}
 	}
-
 
 }

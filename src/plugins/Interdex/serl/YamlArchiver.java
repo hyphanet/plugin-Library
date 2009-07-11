@@ -32,6 +32,11 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 	protected final String prefix;
 	protected final String suffix;
 
+	// DEBUG
+	private boolean testmode = false;
+	public void setTestMode() { testmode = true; }
+	public void randomWait() { try { Thread.sleep((long)(Math.random()*3+2)*1000); } catch (InterruptedException e) { } }
+
 	public YamlArchiver() {
 		suffix = prefix = "";
 	}
@@ -73,28 +78,29 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 	@Override public void pull(PullTask<T> t) {
 		String[] s = getFileParts(t.meta);
 		try {
+			if (testmode) { randomWait(); }
 			File file = new File(prefix + s[0] + suffix + s[1] + ".yml");
 			FileInputStream is = new FileInputStream(file);
-			// TODO make this throw DataFormatException for bad YAML docs
+			// PRIORITY make this throw DataFormatException for bad YAML docs
 			t.data = (T)yaml.load(new InputStreamReader(is));
-			// URGENT maybe have to deconvert primitive arrays
 			is.close();
 		} catch (java.io.IOException e) {
 			// TODO make handling of this neater
-			throw new RuntimeException(e);
+			throw new TaskFailException(e);
 		}
 	}
 
 	@Override public void push(PushTask<T> t) {
 		String[] s = getFileParts(t.meta);
 		try {
+			if (testmode) { randomWait(); }
 			File file = new File(prefix + s[0] + suffix + s[1] + ".yml");
 			FileOutputStream os = new FileOutputStream(file);
 			yaml.dump(t.data, new OutputStreamWriter(os));
 			os.close();
 		} catch (java.io.IOException e) {
 			// TODO make handling of this neater
-			throw new RuntimeException(e);
+			throw new TaskFailException(e);
 		}
 	}
 

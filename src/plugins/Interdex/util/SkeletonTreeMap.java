@@ -148,13 +148,13 @@ implements SkeletonMap<K, V> {
 	@Override public void inflate(K key) {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
+		// OPTIMISE make it skip if the key's already inflated
 		Map<K, PullTask<V>> tasks = new HashMap<K, PullTask<V>>();
 		tasks.put(key, new PullTask<V>(loaded.get(key)));
 
 		serialiser.pull(tasks, meta);
 		put(key, tasks.get(key).data);
-		// PRIORITY put any extra tasks that were also loaded as a side effect,
-		// into the main map
+		// OPTIMISE add extra tasks that were also inflated, into the main map
 	}
 
 	@Override public void deflate(K key) {
@@ -205,6 +205,7 @@ implements SkeletonMap<K, V> {
 			if (!map.isBare()) {
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
+			// OPTIMISE maybe get rid of intm and just always use IdentityHashMap
 			if (ktr != null) {
 				for (Map.Entry<K, Object> en: map.loaded.entrySet()) {
 					intm.put(ktr.app(en.getKey()), en.getValue());
