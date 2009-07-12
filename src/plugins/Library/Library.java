@@ -1,10 +1,15 @@
 package plugins.Library;
 
+import plugins.Library.ui.FCPInterface;
+import freenet.pluginmanager.PluginReplySender;
+import freenet.support.SimpleFieldSet;
+import freenet.support.api.Bucket;
 import plugins.Library.util.Request;
 import plugins.Library.util.InvalidSearchException;
 import plugins.Library.search.Search;
 import plugins.Library.index.Index;
 import freenet.pluginmanager.FredPlugin;
+import freenet.pluginmanager.FredPluginFCP;
 import freenet.pluginmanager.FredPluginHTTP;
 import freenet.pluginmanager.FredPluginRealVersioned;
 import freenet.pluginmanager.FredPluginThreadless;
@@ -22,7 +27,7 @@ import plugins.Library.ui.WebUI;
  * @author MikeB
  */
 public class Library implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
-		FredPluginRealVersioned, FredPluginThreadless {
+		FredPluginRealVersioned, FredPluginThreadless, FredPluginFCP {
 	// Library functions
 
 
@@ -124,5 +129,10 @@ public class Library implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	// FredPluginFCP
+	public void handle(PluginReplySender replysender, SimpleFieldSet params, Bucket data, int accesstype) {
+		FCPInterface.handle(replysender, params, data, accesstype);
 	}
 }
