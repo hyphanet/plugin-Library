@@ -11,7 +11,8 @@
 	<property name="build-test" location="build-test/"/>
 	<property name="dist" location="dist/"/>
 	<property name="junit.location" value="/usr/share/java/junit.jar"/>
-	<available file="src/plugins/XMLLibrarian/Version.java" property="version.present"/>
+	<property name="packagebase" value="plugins.Library" />
+	<available file="src/plugins/Library/Version.java" property="version.present"/>
 	<available file="${junit.location}" property="junit.present"/>
 
 	<target name="mkdir">
@@ -24,7 +25,7 @@
 	
 	<target name="setver" if="version.present">
 		<!-- Update the Version file -->
-		<replace file="src/plugins/XMLLibrarian/Version.java">
+		<replace file="src/plugins/Library/Version.java">
 			<replacefilter token="@custom@" value="${svn.revision}"/>
 		</replace>
 	</target>
@@ -42,18 +43,18 @@
 				<pathelement location="${freenet-cvs-snapshot.location}"/>
 			</classpath>
 			<include name="**/*.java"/>
-			<exclude name="plugins/XMLLibrarian/Interdex/*" />
+			<exclude name="plugins/Library/index/Interdex/*" />
 			<exclude name="**/*Test.java"/>
 		</javac>
 	</target>
 	
 	<target name="run" depends="dist">
 		<java
-			classname="plugins.XMLLibrarian.interfaces.TestInterface">
+			classname="${packagebase}.interfaces.TestInterface">
 			<classpath>
 				<pathelement location="../fred/lib/freenet-cvs-snapshot.jar"/>
 				<pathelement location="../fred/lib/freenet-ext.jar"/>
-				<pathelement location="dist/XMLLibrarian.jar"/>
+				<pathelement location="dist/Library.jar"/>
 			</classpath>
 		</java>
 	</target>
@@ -98,10 +99,10 @@
 	<!-- ================================================== -->
 	<target name="dist" depends="clean,compile,junit"
 		description="generate the distribution" >
-		<jar jarfile="${dist}/XMLLibrarian.jar" duplicate="fail">
+		<jar jarfile="${dist}/Library.jar" duplicate="fail">
 			<manifest>
-				<attribute name="Main-Class" value="plugins.XMLLibrarian.TestInterface"/>
-				<attribute name="Plugin-Main-Class" value="plugins.XMLLibrarian.XMLLibrarian"/>
+				<attribute name="Main-Class" value="${packagebase}.ui.TestInterface"/>
+				<attribute name="Plugin-Main-Class" value="${packagebase}.Library"/>
 			</manifest>
 			<fileset dir="src/" casesensitive="no">
 				<include name="*.txt"/>

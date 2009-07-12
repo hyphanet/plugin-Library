@@ -3,8 +3,10 @@
  * and open the template in the editor.
  */
 
-package plugins.Library;
+package plugins.Library.search;
 
+import plugins.Library.util.URIWrapper;
+import plugins.Library.*;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;

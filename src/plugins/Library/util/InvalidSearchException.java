@@ -1,4 +1,4 @@
-package plugins.Library;
+package plugins.Library.util;
 
 
 
@@ -11,7 +11,7 @@ public class InvalidSearchException extends Exception{
 		super (s);
 	}
 
-	InvalidSearchException(String string, Exception ex) {
+	public InvalidSearchException(String string, Exception ex) {
 		super(string, ex);
 	}
 }

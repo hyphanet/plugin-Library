@@ -1,4 +1,4 @@
-package plugins.Library.xmlindex;
+package plugins.Library.index.xml;
 
 import java.io.File;
 import java.net.MalformedURLException;

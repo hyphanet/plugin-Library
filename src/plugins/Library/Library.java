@@ -1,6 +1,9 @@
 package plugins.Library;
 
-import plugins.Library.Index;
+import plugins.Library.util.Request;
+import plugins.Library.util.InvalidSearchException;
+import plugins.Library.search.Search;
+import plugins.Library.index.Index;
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginHTTP;
 import freenet.pluginmanager.FredPluginRealVersioned;
@@ -11,14 +14,15 @@ import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Logger;
 import freenet.support.api.HTTPRequest;
 import java.security.MessageDigest;
-import plugins.Library.interfaces.WebUI;
+import plugins.Library.ui.WebUI;
 
 
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces
  * @author MikeB
  */
-public class Library implements FredPlugin, FredPluginHTTP, FredPluginVersioned, FredPluginRealVersioned, FredPluginThreadless {
+public class Library implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
+		FredPluginRealVersioned, FredPluginThreadless {
 	// Library functions
 
 

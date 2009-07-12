@@ -1,4 +1,4 @@
-package plugins.Library.Interdex;
+package plugins.Library.index.Interdex;
 
 import plugins.XMLLibrarian.Request;
 import plugins.Interdex.index.Index;

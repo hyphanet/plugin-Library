@@ -1,4 +1,4 @@
-package plugins.Library.xmlindex;
+package plugins.Library.index.xml;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -33,10 +33,10 @@ import java.util.TreeMap;
 import java.util.SortedMap;
 import java.net.MalformedURLException;
 
-import plugins.Library.Index;
-import plugins.Library.InvalidSearchException;
-import plugins.Library.Request;
-import plugins.Library.XMLLibrarian;
+import plugins.Library.Library;
+import plugins.Library.index.Index;
+import plugins.Library.util.InvalidSearchException;
+import plugins.Library.util.Request;
 
 
 /**
@@ -229,7 +229,7 @@ public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 	 * Gets the SubIndex object which should hold the keyword
 	 */
 	private SubIndex getSubIndex(String keyword) {
-		String md5 = XMLLibrarian.MD5(keyword);
+		String md5 = Library.MD5(keyword);
 		int idx = Collections.binarySearch(subIndiceList, md5);
 		if (idx < 0)
 			idx = -idx - 2;

@@ -1,12 +1,14 @@
-package plugins.Library;
+package plugins.Library.index;
 
 
+import plugins.Library.util.InvalidSearchException;
+import plugins.Library.util.Request;
 import plugins.Library.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Executor;
-import plugins.Library.xmlindex.XMLIndex;
+import plugins.Library.index.xml.XMLIndex;
 
 /**
  * Index Class	<br />

@@ -1,4 +1,4 @@
-package plugins.Library.xmlindex;
+package plugins.Library.index.xml;
 
 import java.util.HashMap;
 import java.util.HashSet;

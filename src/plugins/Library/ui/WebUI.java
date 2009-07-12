@@ -1,4 +1,4 @@
-package plugins.Library.interfaces;
+package plugins.Library.ui;
 
 import freenet.keys.FreenetURI;
 import freenet.pluginmanager.PluginHTTPException;
@@ -15,11 +15,11 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import plugins.Library.Index;
+import plugins.Library.index.Index;
 import plugins.Library.Library;
-import plugins.Library.Request;
-import plugins.Library.Search;
-import plugins.Library.URIWrapper;
+import plugins.Library.util.Request;
+import plugins.Library.search.Search;
+import plugins.Library.util.URIWrapper;
 
 
 /**
@@ -315,7 +315,7 @@ public class WebUI{
 	 */
 	private static HTMLNode searchBox(String search, String indexuri, boolean js, boolean showold){
 		HTMLNode searchDiv = new HTMLNode("div", "id", "searchbar");
-		HTMLNode searchForm = searchDiv.addChild("form", new String[]{"name", "method", "action"}, new String[]{"searchform", "GET", "plugins.XMLLibrarian.XMLLibrarian"});
+		HTMLNode searchForm = searchDiv.addChild("form", new String[]{"name", "method", "action"}, new String[]{"searchform", "GET", "plugins.Library.Library"});
 			HTMLNode searchTable = searchForm.addChild("table", "width", "100%");
 				HTMLNode searchTop = searchTable.addChild("tr");
 					HTMLNode titleCell = searchTop.addChild("td", new String[]{"rowspan","width"},new String[]{"3","120"});
@@ -458,7 +458,7 @@ public class WebUI{
 					"	window.location=loc+'?js';\n"
 				:
 					"\n" +
-					"var url = '/plugins/plugins.XMLLibrarian.XMLLibrarian/xml?search=" +searchquery+"&index="+indexuri+"&showold="+(showold?"on":"off")+"';\n" +
+					"var url = '/plugins/plugins.Library.Library/xml?search=" +searchquery+"&index="+indexuri+"&showold="+(showold?"on":"off")+"';\n" +
 					"var xmlhttp;\n" +
 					"\n" +
 					"function getProgress(){\n" +

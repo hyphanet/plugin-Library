@@ -1,4 +1,4 @@
-package plugins.Library.xmlindex;
+package plugins.Library.index.xml;
 
 import java.util.HashMap;
 import java.util.List;
@@ -13,7 +13,7 @@ import freenet.support.Logger;
 
 import java.util.HashSet;
 import java.util.Iterator;
-import plugins.Library.URIWrapper;
+import plugins.Library.util.URIWrapper;
 
 /**
  * Required for using SAX parser on XML indices

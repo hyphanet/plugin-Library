@@ -1,4 +1,4 @@
-package plugins.Library.interfaces;
+package plugins.Library.ui;
 
 import freenet.l10n.L10n;
 import freenet.l10n.L10n.LANGUAGE;

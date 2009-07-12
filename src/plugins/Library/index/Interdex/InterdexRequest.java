@@ -1,10 +1,10 @@
-package plugins.Library.Interdex;
+package plugins.Library.index.Interdex;
 
 import java.util.Set;
 import plugins.Interdex.index.Index;
 import plugins.Interdex.index.Token;
 import plugins.Interdex.util.DataNotLoadedException;
-import plugins.Library.Request;
+import plugins.Library.util.Request;
 
 
 public class InterdexRequest implements Request<Set> {

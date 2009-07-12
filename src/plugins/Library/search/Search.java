@@ -1,6 +1,9 @@
-package plugins.Library;
+package plugins.Library.search;
 
-import plugins.Library.Index;
+import plugins.Library.util.Request;
+import plugins.Library.util.URIWrapper;
+import plugins.Library.util.InvalidSearchException;
+import plugins.Library.index.Index;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -1,8 +1,8 @@
-package plugins.Library.xmlindex;
+package plugins.Library.index.xml;
 
 import java.util.List;
 import java.util.Set;
-import plugins.Library.Request;
+import plugins.Library.util.Request;
 
 
 /**

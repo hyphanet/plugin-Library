@@ -1,6 +1,8 @@
-package plugins.Library.interfaces;
+package plugins.Library.ui;
 
 
+import plugins.Library.util.Request;
+import plugins.Library.search.Search;
 import plugins.Library.*;
 import freenet.support.Logger;
 import java.util.HashMap;
