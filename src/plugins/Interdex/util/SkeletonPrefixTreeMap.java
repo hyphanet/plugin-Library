@@ -82,7 +82,7 @@ implements SkeletonMap<K, V> {
 	** as the map-wide metadata for {@link MapSerialiser}'s push and pull
 	** methods.
 	*/
-	protected Object meta = null;
+	protected Object meta;
 
 	/**
 	** Keeps track of the number of dummies in the map.

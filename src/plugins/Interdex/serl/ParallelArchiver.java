@@ -82,7 +82,6 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 		if (numThreads != 0) { return; }
 		++numThreads;
 		(new QueueHandler()).start();
-		//System.out.println("thread started");
 	}
 
 	public Progress getPullProgress(Object meta) {
@@ -130,6 +129,7 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 				while (!queue.offer(t, 1, TimeUnit.SECONDS)) {
 					startHandler();
 				}
+				//System.out.println("pushed " + t);
 			}
 			for (Progress p: plist) { p.join(); }
 			synchronized (pullProgress) {
@@ -171,6 +171,7 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 				while (!queue.offer(t, 1, TimeUnit.SECONDS)) {
 					startHandler();
 				}
+				//System.out.println("pushed " + t);
 			}
 			for (Progress p: plist) { p.join(); }
 			synchronized (pushProgress) {
@@ -206,9 +207,11 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 
 	protected class QueueHandler extends Thread {
 		public void run() {
+			//System.out.println(Thread.currentThread() + " started");
 			try {
 				Task<T> t;
 				while ((t = queue.poll(1, TimeUnit.SECONDS)) != null) {
+					//System.out.println(Thread.currentThread() + " popped " + t);
 					if (t instanceof PullTask) {
 						Progress p = getPullProgress(t.meta);
 						pull((PullTask<T>)t);
@@ -228,7 +231,7 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 					--numThreads;
 				}
 			}
-			//System.out.println("Thread ended");
+			//System.out.println(Thread.currentThread() + " ended");
 		}
 	}
 

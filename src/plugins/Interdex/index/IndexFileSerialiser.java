@@ -155,7 +155,7 @@ implements Archiver<Index> {
 
 
 	public static class PrefixTreeMapSerialiser<K extends PrefixKey, V>
-	extends CompositeArchiver<SkeletonPrefixTreeMap<K, V>, Map<String, Object>>
+	extends ParallelArchiver<SkeletonPrefixTreeMap<K, V>, Map<String, Object>>
 	implements IterableSerialiser<SkeletonPrefixTreeMap<K, V>> {
 
 		public PrefixTreeMapSerialiser(Translator<K, String> ktr) {

@@ -33,9 +33,9 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 	protected final String suffix;
 
 	// DEBUG
-	private boolean testmode = false;
-	public void setTestMode() { testmode = true; }
-	public void randomWait() { try { Thread.sleep((long)(Math.random()*3+2)*1000); } catch (InterruptedException e) { } }
+	private static boolean testmode = false;
+	public static void setTestMode() { testmode = true; }
+	public static void randomWait() { try { Thread.sleep((long)(Math.random()*3+2)*1000); } catch (InterruptedException e) { } }
 
 	public YamlArchiver() {
 		suffix = prefix = "";

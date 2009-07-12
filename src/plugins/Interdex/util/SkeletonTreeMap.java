@@ -39,7 +39,7 @@ implements SkeletonMap<K, V> {
 	/**
 	** The meta data for this skeleton.
 	*/
-	protected Object meta = null;
+	protected Object mapmeta;
 
 	/**
 	** Keeps track of the number of dummies in the map.
@@ -104,11 +104,11 @@ implements SkeletonMap<K, V> {
 	}
 
 	@Override public Object getMeta() {
-		return meta;
+		return mapmeta;
 	}
 
 	@Override public void setMeta(Object m) {
-		meta = m;
+		mapmeta = m;
 	}
 
 	@Override public void inflate() {
@@ -120,7 +120,7 @@ implements SkeletonMap<K, V> {
 			if (o == null) { continue; }
 			tasks.put(k, new PullTask<V>(o));
 		}
-		serialiser.pull(tasks, meta);
+		serialiser.pull(tasks, mapmeta);
 
 		for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
 			put(en.getKey(), en.getValue().data);
@@ -135,7 +135,7 @@ implements SkeletonMap<K, V> {
 			tasks.put(k, new PushTask<V>(get(k), loaded.get(k)));
 		}
 		try {
-			serialiser.push(tasks, meta);
+			serialiser.push(tasks, mapmeta);
 		} catch (DataNotLoadedException e) {
 			throw new DataNotLoadedException("The deflate operation requires some extra data to be loaded first", this, (K)e.getKey(), e.getValue());
 		}
@@ -148,13 +148,33 @@ implements SkeletonMap<K, V> {
 	@Override public void inflate(K key) {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
-		// OPTIMISE make it skip if the key's already inflated
+		Object keymeta = loaded.get(key);
+		if (keymeta == null) { return; }
 		Map<K, PullTask<V>> tasks = new HashMap<K, PullTask<V>>();
-		tasks.put(key, new PullTask<V>(loaded.get(key)));
+		tasks.put(key, new PullTask<V>(keymeta));
 
-		serialiser.pull(tasks, meta);
-		put(key, tasks.get(key).data);
-		// OPTIMISE add extra tasks that were also inflated, into the main map
+		serialiser.pull(tasks, mapmeta);
+
+		put(key, tasks.remove(key).data);
+		if (tasks.isEmpty()) { /*System.out.println("exited inflate early");*/ return; }
+
+		for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
+			// other keys may also have been inflated, so add them if the metadata
+			// match. if they don't match, then the data was only partially inflated
+			// so ignore for now. (needs a new data structure to allow partial
+			// inflates of values...)
+			K k = en.getKey();
+			PullTask<V> t = en.getValue();
+			Object m = loaded.get(k);
+			// System.out.print(t.meta + " " + m + ": ");
+			if (m.equals(t.meta)) {
+				// System.out.println("yes");
+				put(k, t.data);
+			} /*else {
+				System.out.println("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
+			}*/
+		}
+		//System.out.println("exited inflate");
 	}
 
 	@Override public void deflate(K key) {
@@ -171,7 +191,7 @@ implements SkeletonMap<K, V> {
 			tasks.put(k, new PushTask<V>(k.equals(key)? get(k): null, loaded.get(k)));
 		}
 		try {
-			serialiser.push(tasks, meta);
+			serialiser.push(tasks, mapmeta);
 		} catch (DataNotLoadedException e) {
 			throw new DataNotLoadedException("The deflate operation requires some extra data to be loaded first", this, (K)e.getKey(), e.getValue());
 		}
