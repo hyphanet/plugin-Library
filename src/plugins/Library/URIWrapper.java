@@ -1,4 +1,4 @@
-package plugins.XMLLibrarian;
+package plugins.Library;
 
 import freenet.support.Logger;
 import java.util.ArrayList;

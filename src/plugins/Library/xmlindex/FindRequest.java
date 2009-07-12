@@ -1,8 +1,8 @@
-package plugins.XMLLibrarian.xmlindex;
+package plugins.Library.xmlindex;
 
 import java.util.List;
 import java.util.Set;
-import plugins.XMLLibrarian.Request;
+import plugins.Library.Request;
 
 
 /**

@@ -1,5 +1,5 @@
 
-package plugins.XMLLibrarian;
+package plugins.Library;
 
 import java.util.List;
 import java.util.Set;

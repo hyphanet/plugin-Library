@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package plugins.XMLLibrarian;
+package plugins.Library;
 
 import java.util.Iterator;
 import java.util.Set;

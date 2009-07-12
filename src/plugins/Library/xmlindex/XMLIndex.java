@@ -1,4 +1,4 @@
-package plugins.XMLLibrarian.xmlindex;
+package plugins.Library.xmlindex;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
@@ -33,10 +33,10 @@ import java.util.TreeMap;
 import java.util.SortedMap;
 import java.net.MalformedURLException;
 
-import plugins.XMLLibrarian.Index;
-import plugins.XMLLibrarian.InvalidSearchException;
-import plugins.XMLLibrarian.Request;
-import plugins.XMLLibrarian.XMLLibrarian;
+import plugins.Library.Index;
+import plugins.Library.InvalidSearchException;
+import plugins.Library.Request;
+import plugins.Library.XMLLibrarian;
 
 
 /**

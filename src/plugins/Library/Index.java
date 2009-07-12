@@ -1,11 +1,12 @@
-package plugins.XMLLibrarian;
+package plugins.Library;
 
 
+import plugins.Library.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Executor;
-import plugins.XMLLibrarian.xmlindex.XMLIndex;
+import plugins.Library.xmlindex.XMLIndex;
 
 /**
  * Index Class	<br />

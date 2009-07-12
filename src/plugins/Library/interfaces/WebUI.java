@@ -1,4 +1,4 @@
-package plugins.XMLLibrarian.interfaces;
+package plugins.Library.interfaces;
 
 import freenet.keys.FreenetURI;
 import freenet.pluginmanager.PluginHTTPException;
@@ -12,15 +12,14 @@ import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import plugins.XMLLibrarian.Index;
-import plugins.XMLLibrarian.Request;
-import plugins.XMLLibrarian.Search;
-import plugins.XMLLibrarian.URIWrapper;
-import plugins.XMLLibrarian.XMLLibrarian;
+import plugins.Library.Index;
+import plugins.Library.Library;
+import plugins.Library.Request;
+import plugins.Library.Search;
+import plugins.Library.URIWrapper;
 
 
 /**
@@ -29,11 +28,9 @@ import plugins.XMLLibrarian.XMLLibrarian;
  */
 public class WebUI{
 	static String plugName;
-	static XMLLibrarian xl;
 	
-	public static void setup(XMLLibrarian xl, String plugName){
+	public static void setup(String plugName){
 		WebUI.plugName = plugName;
-		WebUI.xl = xl;
 	}
 
 
@@ -45,7 +42,7 @@ public class WebUI{
 	 */
 	public static String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
 		String searchstring = request.getParam("search");
-		String indexuri = request.isParameterSet("index") ? request.getParam("index") : XMLLibrarian.DEFAULT_INDEX_SITE;
+		String indexuri = request.isParameterSet("index") ? request.getParam("index") : Library.DEFAULT_INDEX_SITE;
 		
 		// update of progress and results in xml for ajax update
 		if(request.getPath().endsWith("xml"))
@@ -121,7 +118,7 @@ public class WebUI{
 		try{
 			search = request !=null ? request.getQuery() : "";
 			if(indexuri == null || indexuri.equals(""))
-				indexuri = request !=null  ? HTMLEncoder.encode(request.getIndexURI()) : XMLLibrarian.DEFAULT_INDEX_SITE;
+				indexuri = request !=null  ? HTMLEncoder.encode(request.getIndexURI()) : Library.DEFAULT_INDEX_SITE;
 		}catch(Exception exe){
 			addError(errorDiv, exe);
 		}
@@ -330,10 +327,10 @@ public class WebUI{
 							searchcell.addChild("input", new String[]{"type","name"}, new String[]{"hidden","js"});
 
 				searchTable.addChild("tr")
-					.addChild("td", xl.getString("Index"))
+					.addChild("td", L10nString.getString("Index"))
 						.addChild("input", new String[]{"name", "type", "value", "size"}, new String[]{"index", "text", indexuri, "40"});
 				searchTable.addChild("tr")
-					.addChild("td", xl.getString("ShowOldVersions"))
+					.addChild("td", L10nString.getString("ShowOldVersions"))
 						.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", showold?"checked":"1"});
 		return searchDiv;
 	}
@@ -361,10 +358,10 @@ public class WebUI{
 			HTMLNode progressTable = progressDiv.addChild("table", "width", "100%");
 				HTMLNode searchingforCell = progressTable.addChild("tr")
 					.addChild("td");
-						searchingforCell.addChild("#", xl.getString("Searching-for"));
+						searchingforCell.addChild("#", L10nString.getString("Searching-for"));
 						searchingforCell.addChild("span", "class", "librarian-searching-for-target")
 							.addChild("b", search);
-						searchingforCell.addChild("#", xl.getString("in-index"));
+						searchingforCell.addChild("#", L10nString.getString("in-index"));
 						searchingforCell.addChild("i", indexuri);
 
 

@@ -1,7 +1,7 @@
-package plugins.XMLLibrarian.interfaces;
+package plugins.Library.interfaces;
 
 
-import plugins.XMLLibrarian.*;
+import plugins.Library.*;
 import freenet.support.Logger;
 import java.util.HashMap;
 import java.io.BufferedReader;

@@ -1,5 +1,6 @@
-package plugins.XMLLibrarian;
+package plugins.Library;
 
+import plugins.Library.Index;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,7 +16,6 @@ import java.util.Map;
  * @author MikeB
  */
 public class Search implements Request<URIWrapper> {
-	static private XMLLibrarian xl;
 
 	/**
 	 * What should be done with the results of subsearches\n
@@ -211,8 +211,7 @@ public class Search implements Request<URIWrapper> {
 	 * Sets the parent plugin to be used for logging & plugin api
 	 * @param xl Parent plugin
 	 */
-	public static void setup(XMLLibrarian xl){
-		Search.xl = xl;
+	public static void setup(){
 		Search.allsearches = new HashMap<String, Search>();
 	}
 	
