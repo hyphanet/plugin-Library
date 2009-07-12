@@ -5,6 +5,19 @@
 - can have terms containing spaces by eg. having crawler add "x y" to its dictionary of
 terms to index, if it encounters this combination more than a few times on multiple pages.
 
+
+- notes for synchronization:
+
+read operations should be able to occur concurrently
+
+put/remove modify the map structurally.
+when this is happening, no other operations can happen
+
+deflate/inflate modify the map data but not structure.
+deflate/inflate should be able to occur concurrently on different nodes/keys
+it should block put/remove operations, but not read operations
+
+
 == Purpose ==
 
 Internal representation of an index.

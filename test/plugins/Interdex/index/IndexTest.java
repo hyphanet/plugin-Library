@@ -82,7 +82,8 @@ public class IndexTest extends TestCase {
 					entries.add(e);
 				}
 			} catch (java.net.MalformedURLException e) {
-				// pass
+				// should not happen
+				throw new RuntimeException(e);
 			}
 
 			test.put(new Token(key), entries);
@@ -108,10 +109,10 @@ public class IndexTest extends TestCase {
 
 	public void testBasicMulti() {
 		int n = 8;
-		/*for (int i=0; i<n; ++i) {
+		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
 			fullInflate();
-		}*/
+		}
 	}
 
 	public void partialInflate() {
@@ -164,7 +165,7 @@ public class IndexTest extends TestCase {
 	}
 
 	public void testPartialInflateMulti() {
-		int n = 128;
+		int n = 8;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
 			partialInflate();

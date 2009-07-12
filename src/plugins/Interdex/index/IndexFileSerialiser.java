@@ -367,7 +367,7 @@ implements Archiver<Index> {
 				}
 			} catch (ClassCastException e) {
 				// TODO more meaningful error message
-				throw new DataFormatException("could not retrieve data from bin", null);
+				throw new DataFormatException("could not retrieve data from bin", e, null, null, null);
 			}
 
 			task.data = map;

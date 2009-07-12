@@ -147,10 +147,6 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		return false;
 	}
 
-	@Override public Set<Map.Entry<K,V>> entries() {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
 	@Override public Set<V> get(K key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return null; }
@@ -158,14 +154,6 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		int i = k.get(preflen);
 		SetMultimap<K, V> map = selectNode(i);
 		return map.get(k);
-	}
-
-	@Override public Multiset<K> keys() {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
-	@Override public Set<K> keySet() {
-		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	@Override public boolean put(K key, V value) {
@@ -244,6 +232,18 @@ implements SetMultimap<K, V>/*, SortedSetMultimap<K,V>,
 		if (prevsz > newsz) { reshuffleAfterRemove(i, prevsz-newsz); }
 		else if (prevsz < newsz) { reshuffleAfterPut(i, newsz-prevsz); }
 		return vs;
+	}
+
+	@Override public Set<Map.Entry<K,V>> entries() {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	@Override public Multiset<K> keys() {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	@Override public Set<K> keySet() {
+		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	@Override public Collection<V> values() {

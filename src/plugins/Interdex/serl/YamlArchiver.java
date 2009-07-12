@@ -8,6 +8,17 @@ import plugins.Interdex.serl.Serialiser.*;
 import freenet.keys.FreenetURI;
 
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.error.YAMLException;
+import org.yaml.snakeyaml.Loader;
+import org.yaml.snakeyaml.Dumper;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.representer.Representer;
+import org.yaml.snakeyaml.representer.Represent;
+import org.yaml.snakeyaml.nodes.Node;
+import org.yaml.snakeyaml.nodes.ScalarNode;
+import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.constructor.Construct;
+import org.yaml.snakeyaml.constructor.ConstructorException;
 
 import java.util.Map;
 import java.io.File;
@@ -15,6 +26,8 @@ import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.io.IOException;
+import java.nio.channels.FileLock;
 
 /**
 ** Converts between a map of {@link String} to {@link Object}, and a YAML
@@ -27,15 +40,31 @@ import java.io.InputStreamReader;
 */
 public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> {
 
-	final static Yaml yaml = new Yaml(new org.yaml.snakeyaml.Loader(new FreenetURIConstructor()),
-	                                  new org.yaml.snakeyaml.Dumper(new FreenetURIRepresenter(), new org.yaml.snakeyaml.DumperOptions()));
-	protected final String prefix;
-	protected final String suffix;
+	/**
+	** Thread local yaml processor.
+	**
+	** @see ThreadLocal
+	*/
+	final private static ThreadLocal<Yaml> yaml = new ThreadLocal() {
+		protected synchronized Yaml initialValue() {
+			return new Yaml(new Loader(new FreenetURIConstructor()),
+			                new Dumper(new FreenetURIRepresenter(), new DumperOptions()));
+		}
+	};
 
 	// DEBUG
 	private static boolean testmode = false;
-	public static void setTestMode() { testmode = true; }
-	public static void randomWait() { try { Thread.sleep((long)(Math.random()*3+2)*1000); } catch (InterruptedException e) { } }
+	public static void setTestMode() { System.out.println("YamlArchiver will now randomly pause between 1 and 5 seconds for a task"); testmode = true; }
+	public static void randomWait() { try { Thread.sleep((long)(Math.random()*4+1)*1000); } catch (InterruptedException e) { } }
+
+	/**
+	** Prefix of filename
+	*/
+	protected final String prefix;
+	/**
+	** Suffix of filename
+	*/
+	protected final String suffix;
 
 	public YamlArchiver() {
 		suffix = prefix = "";
@@ -77,61 +106,78 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 
 	@Override public void pull(PullTask<T> t) {
 		String[] s = getFileParts(t.meta);
+		File file = new File(prefix + s[0] + suffix + s[1] + ".yml");
 		try {
-			if (testmode) { randomWait(); }
-			File file = new File(prefix + s[0] + suffix + s[1] + ".yml");
 			FileInputStream is = new FileInputStream(file);
-			// PRIORITY make this throw DataFormatException for bad YAML docs
-			t.data = (T)yaml.load(new InputStreamReader(is));
-			is.close();
-		} catch (java.io.IOException e) {
-			// TODO make handling of this neater
+			try {
+				if (testmode) { randomWait(); }
+				FileLock lock = is.getChannel().lock(0L, Long.MAX_VALUE, true); // shared lock for reading
+				try {
+					t.data = (T)yaml.get().load(new InputStreamReader(is));
+				} catch (YAMLException e) {
+					throw new DataFormatException("Yaml could not process the document " + file, e, file);
+				} finally {
+					lock.release();
+				}
+			} finally {
+				try { is.close(); } catch (IOException f) { }
+			}
+		} catch (IOException e) {
 			throw new TaskFailException(e);
 		}
 	}
 
 	@Override public void push(PushTask<T> t) {
 		String[] s = getFileParts(t.meta);
+		File file = new File(prefix + s[0] + suffix + s[1] + ".yml");
 		try {
-			if (testmode) { randomWait(); }
-			File file = new File(prefix + s[0] + suffix + s[1] + ".yml");
 			FileOutputStream os = new FileOutputStream(file);
-			yaml.dump(t.data, new OutputStreamWriter(os));
-			os.close();
+			try {
+				if (testmode) { randomWait(); }
+				FileLock lock = os.getChannel().lock();
+				try {
+					yaml.get().dump(t.data, new OutputStreamWriter(os));
+				} catch (YAMLException e) {
+					throw new DataFormatException("Yaml could not process the object", e, t.data);
+				} finally {
+					lock.release();
+				}
+			} finally {
+				try { os.close(); } catch (IOException f) { }
+			}
 		} catch (java.io.IOException e) {
-			// TODO make handling of this neater
 			throw new TaskFailException(e);
 		}
 	}
 
-	public static class FreenetURIRepresenter extends org.yaml.snakeyaml.representer.Representer {
+	public static class FreenetURIRepresenter extends Representer {
 		public FreenetURIRepresenter() {
 			this.representers.put(FreenetURI.class, new RepresentFreenetURI());
 		}
 
-		private class RepresentFreenetURI implements org.yaml.snakeyaml.representer.Represent {
-			public org.yaml.snakeyaml.nodes.Node representData(Object data) {
+		private class RepresentFreenetURI implements Represent {
+			@Override public Node representData(Object data) {
 				return representScalar("!FreenetURI", ((FreenetURI) data).toString());
 			}
 		}
 	}
 
-	public static class FreenetURIConstructor extends org.yaml.snakeyaml.constructor.Constructor {
+	public static class FreenetURIConstructor extends Constructor {
 		public FreenetURIConstructor() {
 			this.yamlConstructors.put("!FreenetURI", new ConstructFreenetURI());
 		}
 
-		private class ConstructFreenetURI implements org.yaml.snakeyaml.constructor.Construct {
-			public Object construct(org.yaml.snakeyaml.nodes.Node node) {
-				String uri = (String) constructScalar((org.yaml.snakeyaml.nodes.ScalarNode)node);
+		private class ConstructFreenetURI implements Construct {
+			@Override public Object construct(Node node) {
+				String uri = (String) constructScalar((ScalarNode)node);
 				try {
 					return new FreenetURI(uri);
 				} catch (java.net.MalformedURLException e) {
-					throw new org.yaml.snakeyaml.constructor.ConstructorException("while constructing a FreenetURI", node.getStartMark(), "found malformed URI " + uri, null) {};
+					throw new ConstructorException("while constructing a FreenetURI", node.getStartMark(), "found malformed URI " + uri, null) {};
 				}
 			}
 			// TODO this might be removed in snakeYAML later
-			public void construct2ndStep(org.yaml.snakeyaml.nodes.Node node, Object object) { }
+			@Override public void construct2ndStep(Node node, Object object) { }
 		}
 	}
 

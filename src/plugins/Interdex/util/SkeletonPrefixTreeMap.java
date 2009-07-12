@@ -19,6 +19,8 @@ import java.util.Collection;
 /**
 ** A {@link SkeletonMap} of a {@link PrefixTreeMap}.
 **
+** This implementation is NOT thread-safe.
+**
 ** URGENT this class needs serious testing. but do after inflate/deflate is
 ** done.
 **
@@ -263,7 +265,7 @@ implements SkeletonMap<K, V> {
 	** {@inheritDoc}
 	**
 	** This implemenation assumes that non-dummy childs are not bare. (This is
-	** enforced in {@link #deflate(K)}.)
+	** enforced in {@link #deflate(Object)}.)
 	*/
 	@Override public boolean isBare() {
 		return (tmap.isBare() && dummyCount == subtrees);

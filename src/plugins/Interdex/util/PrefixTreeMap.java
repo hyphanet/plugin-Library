@@ -116,10 +116,6 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return false;
 	}
 
-	@Override public Set<Map.Entry<K,V>> entrySet() {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
 	@Override public V get(Object key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return null; }
@@ -127,10 +123,6 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		int i = k.get(preflen);
 		Map<K, V> map = selectNode(i);
 		return map.get(k);
-	}
-
-	@Override public Set<K> keySet() {
-		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	@Override public V put(K key, V value) {
@@ -166,6 +158,14 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 
 		if (map.size() != s) { reshuffleAfterRemove(i); }
 		return v;
+	}
+
+	@Override public Set<Map.Entry<K,V>> entrySet() {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	@Override public Set<K> keySet() {
+		throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	@Override public Collection<V> values() {

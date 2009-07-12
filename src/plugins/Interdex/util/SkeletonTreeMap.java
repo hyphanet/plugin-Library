@@ -21,6 +21,8 @@ import java.util.Iterator;
 /**
 ** A {@link SkeletonMap} of a {@link TreeMap}.
 **
+** This implementation is NOT thread-safe.
+**
 ** @author infinity0
 */
 public class SkeletonTreeMap<K, V>
