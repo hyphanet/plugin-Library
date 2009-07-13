@@ -8,17 +8,28 @@ import java.util.Map;
 /**
 ** A simple implementation of {@link CompositeSerialiser} on a single task.
 **
+** @deprecated
 ** @author infinity0
 ** @see Translator
 */
-abstract public class CompositeArchiver<T, I> extends CompositeSerialiser<T, I, Archiver<I>> implements Archiver<T> {
+abstract public class CompositeArchiver<T, I>
+extends CompositeSerialiser<T, I, Archiver<I>>
+implements Archiver<T>, Serialiser.Translate<T, I> {
+
+	final protected Translator<T, I> trans;
 
 	public CompositeArchiver(Archiver<I> s, Translator<T, I> t) {
-		super(s, t);
+		super(s);
+		trans = t;
 	}
 
 	public CompositeArchiver(Archiver<I> s) {
-		super(s, null);
+		super(s);
+		trans = null;
+	}
+
+	@Override public Translator<T, I> getTranslator() {
+		return trans;
 	}
 
 	/*========================================================================

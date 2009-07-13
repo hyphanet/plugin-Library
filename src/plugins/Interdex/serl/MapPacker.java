@@ -31,8 +31,8 @@ implements MapSerialiser<K, T> {
 		}
 	};
 
-	public MapPacker(int c, Class<? extends T> cc, IterableSerialiser<Map<K, T>> s) {
-		super(c, BinElementComparator, cc, s);
+	public MapPacker(IterableSerialiser<Map<K, T>> s, int c, Class<? extends T> cc) {
+		super(s, c, BinElementComparator, cc);
 	}
 
 	/*========================================================================

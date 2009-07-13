@@ -17,6 +17,9 @@ import java.util.SortedSet;
 ** generates identity hashcodes based on memory address, that can be used to
 ** test object identity.
 **
+** URGENT this is SERIOUSLY bugged because System.identityHashCode has a small
+** chance of returning the same value for two distinct objects!!!
+**
 ** @author infinity0
 ** @see System#identityHashCode(Object)
 ** @see Comparator#compare(Object, Object)

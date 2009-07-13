@@ -8,18 +8,22 @@ import plugins.Interdex.util.SkeletonPrefixTreeMap;
 import plugins.Interdex.util.SkeletonTreeMap;
 
 import plugins.Interdex.serl.Serialiser.*;
+import plugins.Interdex.serl.Serialiser;
 import plugins.Interdex.serl.Translator;
+import plugins.Interdex.serl.ProgressTracker;
 import plugins.Interdex.serl.Archiver;
 import plugins.Interdex.serl.IterableSerialiser;
 import plugins.Interdex.serl.MapSerialiser;
-import plugins.Interdex.serl.CompositeSerialiser;
-import plugins.Interdex.serl.CompositeArchiver;
 import plugins.Interdex.serl.ParallelArchiver;
 import plugins.Interdex.serl.CollectionPacker;
 import plugins.Interdex.serl.MapPacker;
+import plugins.Interdex.serl.Progress;
+import plugins.Interdex.serl.AtomicProgress;
+import plugins.Interdex.serl.CompoundProgress;
 import plugins.Interdex.serl.YamlArchiver;
 import plugins.Interdex.serl.DataFormatException;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
@@ -29,6 +33,7 @@ import java.util.SortedSet;
 import java.util.HashMap;
 import java.util.TreeSet;
 import java.util.TreeMap;
+import java.util.IdentityHashMap;
 import java.util.Date;
 
 import freenet.keys.FreenetURI;
@@ -49,27 +54,40 @@ import freenet.keys.FreenetURI;
 ** @author infinity0
 */
 public class IndexFileSerialiser
-extends CompositeArchiver<Index, Map<String, Object>>
-implements Archiver<Index> {
+implements Archiver<Index>,
+           Serialiser.Composite<Archiver<Map<String, Object>>>,
+           Serialiser.Translate<Index, Map<String, Object>>/*,
+           Serialiser.Trackable<Index>*/ {
 
-	final public static int UBIN_MAX = 512;
-	final public static int TKBIN_MAX = 512;
+	final protected static int UBIN_MAX = 512;
+	final protected static int TKBIN_MAX = 512;
 
 	// TODO
 	// when doing this to/from freenet, we'll have to have two extra fields
 	// for the request/insert URIs
 
+	final protected Archiver<Map<String, Object>> subsrl;
+	final protected Translator<Index, Map<String, Object>> trans;
+
 	PrefixTreeMapSerialiser<Token, SortedSet<TokenEntry>> tksrl;
 	PrefixTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>> usrl;
 
 	public IndexFileSerialiser() {
-		super(new YamlArchiver<Map<String, Object>>("index", ""), new IndexTranslator());
+		subsrl = new YamlArchiver<Map<String, Object>>("index", "");
+		trans = new IndexTranslator();
 		tksrl = new PrefixTreeMapSerialiser<Token, SortedSet<TokenEntry>>(new TokenTranslator());
 		usrl = new PrefixTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKeyTranslator());
-
 	}
 
-	public void pull(PullTask<Index> task) {
+	@Override public Archiver<Map<String, Object>> getChildSerialiser() {
+		return subsrl;
+	}
+
+	@Override public Translator<Index, Map<String, Object>> getTranslator() {
+		return trans;
+	}
+
+	@Override public void pull(PullTask<Index> task) {
 		// I hate Java.
 		PullTask<Map<String, Object>> subtask;
 		PullTask<SkeletonPrefixTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>> utask;
@@ -83,7 +101,7 @@ implements Archiver<Index> {
 		task.data = trans.rev(subtask.data);
 	}
 
-	public void push(PushTask<Index> task) {
+	@Override public void push(PushTask<Index> task) {
 		// I hate Java.
 		Map<String, Object> intermediate = trans.app(task.data);
 
@@ -97,7 +115,7 @@ implements Archiver<Index> {
 	public static class IndexTranslator
 	implements Translator<Index, Map<String, Object>> {
 
-		public Map<String, Object> app(Index idx) {
+		@Override public Map<String, Object> app(Index idx) {
 			if (!idx.isBare()) {
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
@@ -113,7 +131,7 @@ implements Archiver<Index> {
 			return map;
 		}
 
-		public Index rev(Map<String, Object> map) {
+		@Override public Index rev(Map<String, Object> map) {
 			long magic = (Long)map.get("MAGIC");
 
 			if (magic == Index.MAGIC) {
@@ -142,27 +160,42 @@ implements Archiver<Index> {
 
 
 	public static class TokenTranslator implements Translator<Token, String> {
-		public String app(Token t) { return t.toString(); }
-		public Token rev(String s) { return Token.intern(new Token(Token.hexToBytes(s))); }
+		@Override public String app(Token t) { return t.toString(); }
+		@Override public Token rev(String s) { return Token.intern(new Token(Token.hexToBytes(s))); }
 	}
 
 	public static class URIKeyTranslator implements Translator<URIKey, String> {
-		public String app(URIKey k) { return k.toString(); }
-		public URIKey rev(String s) { return new URIKey(URIKey.hexToBytes(s)); }
+		@Override public String app(URIKey k) { return k.toString(); }
+		@Override public URIKey rev(String s) { return new URIKey(URIKey.hexToBytes(s)); }
 	}
 
 
 
 
 	public static class PrefixTreeMapSerialiser<K extends PrefixKey, V>
-	extends ParallelArchiver<SkeletonPrefixTreeMap<K, V>, Map<String, Object>>
-	implements IterableSerialiser<SkeletonPrefixTreeMap<K, V>> {
+	extends ParallelArchiver<SkeletonPrefixTreeMap<K, V>>
+	implements IterableSerialiser<SkeletonPrefixTreeMap<K, V>>,
+	           Serialiser.Translate<SkeletonPrefixTreeMap<K, V>, Map<String, Object>>,
+	           Serialiser.Composite<Archiver<Map<String, Object>>> {
+
+		final protected Translator<SkeletonPrefixTreeMap<K, V>, Map<String, Object>> trans;
+		final protected Archiver<Map<String, Object>> subsrl;
 
 		public PrefixTreeMapSerialiser(Translator<K, String> ktr) {
-			super(new YamlArchiver<Map<String, Object>>("tk", ""), new PrefixTreeMapTranslator<K, V>(ktr));
+			super(new ProgressTracker<SkeletonPrefixTreeMap<K, V>, AtomicProgress>(AtomicProgress.class));
+			subsrl = new YamlArchiver<Map<String, Object>>("tk", "");
+			trans = new PrefixTreeMapTranslator<K, V>(ktr);
 		}
 
-		public void pull(PullTask<SkeletonPrefixTreeMap<K, V>> task) {
+		@Override public Translator<SkeletonPrefixTreeMap<K, V>, Map<String, Object>> getTranslator() {
+			return trans;
+		}
+
+		@Override public Archiver<Map<String, Object>> getChildSerialiser() {
+			return subsrl;
+		}
+
+		@Override public void pull(PullTask<SkeletonPrefixTreeMap<K, V>> task) {
 			PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(task.meta);
 			subsrl.pull(serialisable);
 			SkeletonPrefixTreeMap<K, V> pulldata = trans.rev(serialisable.data);
@@ -170,27 +203,18 @@ implements Archiver<Index> {
 			task.meta = serialisable.meta; task.data = pulldata;
 		}
 
-		public void push(PushTask<SkeletonPrefixTreeMap<K, V>> task) {
+		@Override public void push(PushTask<SkeletonPrefixTreeMap<K, V>> task) {
 			if (!task.data.isBare()) {
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
 			if (task.meta == null) {
 				task.meta = task.data.getMeta();
 			}
-			super.push(task);
-		}
+			Map<String, Object> intermediate = trans.app(task.data);
+			PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(intermediate, task.meta);
+			subsrl.push(serialisable);
 
-		public void pull(Iterable<PullTask<SkeletonPrefixTreeMap<K, V>>> tasks) {
-			// TODO threads
-			for (PullTask<SkeletonPrefixTreeMap<K, V>> task: tasks) {
-				pull(task);
-			}
-		}
-
-		public void push(Iterable<PushTask<SkeletonPrefixTreeMap<K, V>>> tasks) {
-			for (PushTask<SkeletonPrefixTreeMap<K, V>> task: tasks) {
-				push(task);
-			}
+			task.meta = serialisable.meta;
 		}
 
 		public static class PrefixTreeMapTranslator<K extends PrefixKey, V>
@@ -202,7 +226,7 @@ implements Archiver<Index> {
 				ktr = k;
 			}
 
-			public Map<String, Object> app(SkeletonPrefixTreeMap<K, V> tree) {
+			@Override public Map<String, Object> app(SkeletonPrefixTreeMap<K, V> tree) {
 				Map<String, Object> map = new HashMap<String, Object>(16);
 				Map<String, Object> lmap = new HashMap<String, Object>(tree.sizeLocal()<<1);
 				app(tree, map, lmap, null);
@@ -212,7 +236,7 @@ implements Archiver<Index> {
 				return map;
 			}
 
-			public SkeletonPrefixTreeMap<K, V> rev(Map<String, Object> map) {
+			@Override public SkeletonPrefixTreeMap<K, V> rev(Map<String, Object> map) {
 				// SnakeYAML can't handle arrays of primitives
 				map.put("_child", boolArrayOf((List<Boolean>)map.get("_child")));
 				map.put("sizePrefix", intArrayOf((List<Integer>)map.get("sizePrefix")));
@@ -254,22 +278,21 @@ implements Archiver<Index> {
 
 
 	abstract public static class URIEntrySerialiser
-	extends MapPacker<URIKey, SortedMap<FreenetURI, URIEntry>>
-	implements MapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>> {
+	/*extends MapPacker<URIKey, SortedMap<FreenetURI, URIEntry>, URIEntryGroupSerialiser>
+	implements MapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>>*/ {
 
 		public URIEntrySerialiser() {
 			// java compiler is retarded, see below
-			super(UBIN_MAX, (Class<TreeMap<FreenetURI, URIEntry>>)((new TreeMap<FreenetURI, URIEntry>()).getClass()),
-			new URIEntryGroupSerialiser());
+			//super(new URIEntryGroupSerialiser(), UBIN_MAX, (Class<TreeMap<FreenetURI, URIEntry>>)((new TreeMap<FreenetURI, URIEntry>()).getClass()));
 		}
 	}
 
 	public static class URIEntryGroupSerialiser
-	extends CompositeSerialiser<Map<URIKey, SortedMap<FreenetURI, URIEntry>>, Map<String, Object>, Archiver<Map<String, Object>>>
-	implements IterableSerialiser<Map<URIKey, SortedMap<FreenetURI, URIEntry>>> {
+	/*extends ParallelArchiver<Map<URIKey, SortedMap<FreenetURI, URIEntry>>, Map<String, Object>>
+	implements IterableSerialiser<Map<URIKey, SortedMap<FreenetURI, URIEntry>>>*/ {
 
 		public URIEntryGroupSerialiser() {
-			super(new YamlArchiver<Map<String, Object>>("u", ".tab"));
+			//super(new YamlArchiver<Map<String, Object>>("u", ".tab"), new ProgressTracker(null)); // URGENT
 		}
 
 		public void pull(PullTask<Map<URIKey, SortedMap<FreenetURI, URIEntry>>> task) {
@@ -325,31 +348,92 @@ implements Archiver<Index> {
 	}
 
 
-
-
 	public static class TokenEntrySerialiser
 	extends CollectionPacker<Token, SortedSet<TokenEntry>>
-	implements MapSerialiser<Token, SortedSet<TokenEntry>> {
+	implements MapSerialiser<Token, SortedSet<TokenEntry>>,
+	           Serialiser.Trackable<SortedSet<TokenEntry>> {
+
+		final protected ProgressTracker<SortedSet<TokenEntry>, CompoundProgress> tracker;
+		final protected TokenEntryGroupSerialiser subsrl;
 
 		public TokenEntrySerialiser() {
-			// java compiler is retarded.
-			// the following doesn't work:
+			// java compiler is retarded; the following doesn't work:
 			// - TreeSet.class
 			// - TreeSet<TokenEntry>.class (syntax error)
 			// - (new TreeSet<TokenEntry>()).getClass()
 			// - (Class<TreeSet<TokenEntry>>)(TreeSet.class)
-			super(TKBIN_MAX, (Class<TreeSet<TokenEntry>>)((new TreeSet<TokenEntry>()).getClass()),
-			new TokenEntryGroupSerialiser());
+			super(new TokenEntryGroupSerialiser(), TKBIN_MAX, (Class<TreeSet<TokenEntry>>)((new TreeSet<TokenEntry>()).getClass()));
+			subsrl = (TokenEntryGroupSerialiser)super.subsrl;
+			tracker = new ProgressTracker<SortedSet<TokenEntry>, CompoundProgress>(CompoundProgress.class);
 		}
+
+		@Override public ProgressTracker<SortedSet<TokenEntry>, CompoundProgress> getTracker() {
+			return tracker;
+		}
+
+		/**
+		** {@inheritDoc}
+		**
+		** This implementation associates each task metadata with all the
+		** metadata of every bintask. This allows {@link ProgressTracker#getPullProgress(Object)}
+		** to report the accumulated progress of the whole set of tasks, by
+		** querying the progress of all the bintasks.
+		*/
+		@Override protected void preprocessPullBins(Map<Token, PullTask<SortedSet<TokenEntry>>> tasks, Collection<PullTask<Map<Token, SortedSet<TokenEntry>>>> bintasks) {
+			List<Object> mib = new ArrayList<Object>(bintasks.size());
+			for (PullTask<Map<Token, SortedSet<TokenEntry>>> t: bintasks) {
+				mib.add(t.meta);
+			}
+
+			for (PullTask<SortedSet<TokenEntry>> t: tasks.values()) {
+				CompoundProgress p = tracker.addPullProgress(t.meta);
+				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPull(mib)); }
+			}
+		}
+
+		/**
+		** {@inheritDoc}
+		**
+		** This implementation associates each task metadata with all the
+		** metadata of every bintask. This allows {@link ProgressTracker#getPushProgress(Object)}
+		** to report the accumulated progress of the whole set of tasks, by
+		** querying the progress of all the bintasks.
+		*/
+		@Override protected void preprocessPushBins(Map<Token, PushTask<SortedSet<TokenEntry>>> tasks, Collection<PushTask<Map<Token, SortedSet<TokenEntry>>>> bintasks) {
+			List<Map<Token, SortedSet<TokenEntry>>> dib = new ArrayList<Map<Token, SortedSet<TokenEntry>>>(bintasks.size());
+			for (PushTask<Map<Token, SortedSet<TokenEntry>>> t: bintasks) {
+				dib.add(t.data);
+			}
+
+			for (PushTask<SortedSet<TokenEntry>> t: tasks.values()) {
+				CompoundProgress p = (CompoundProgress)tracker.addPushProgress(t.data);
+				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPush(dib)); }
+			}
+		}
+
 	}
 
 	public static class TokenEntryGroupSerialiser
-	//extends CompositeSerialiser<Map<Token, SortedSet<TokenEntry>>, Map<String, Object>, Archiver<Map<String, Object>>>
-	extends ParallelArchiver<Map<Token, SortedSet<TokenEntry>>, Map<String, Object>>
-	implements IterableSerialiser<Map<Token, SortedSet<TokenEntry>>> {
+	extends ParallelArchiver<Map<Token, SortedSet<TokenEntry>>>
+	implements IterableSerialiser<Map<Token, SortedSet<TokenEntry>>>,
+	           Serialiser.Composite<Archiver<Map<String, Object>>>,
+	           Serialiser.Trackable<Map<Token, SortedSet<TokenEntry>>> {
+
+		final protected ProgressTracker<Map<Token, SortedSet<TokenEntry>>, AtomicProgress> tracker;
+		final protected Archiver<Map<String, Object>> subsrl;
 
 		public TokenEntryGroupSerialiser() {
-			super(new YamlArchiver<Map<String, Object>>("tk", ".tab"));
+			super(new ProgressTracker<Map<Token, SortedSet<TokenEntry>>, AtomicProgress>(AtomicProgress.class));
+			subsrl = new YamlArchiver<Map<String, Object>>("tk", ".tab");
+			tracker = (ProgressTracker<Map<Token, SortedSet<TokenEntry>>, AtomicProgress>)super.tracker;
+		}
+
+		@Override public Archiver<Map<String, Object>> getChildSerialiser() {
+			return subsrl;
+		}
+
+		@Override public ProgressTracker<Map<Token, SortedSet<TokenEntry>>, AtomicProgress> getTracker() {
+			return tracker;
 		}
 
 		@Override public void pull(PullTask<Map<Token, SortedSet<TokenEntry>>> task) {
@@ -367,10 +451,12 @@ implements Archiver<Index> {
 				}
 			} catch (ClassCastException e) {
 				// TODO more meaningful error message
-				throw new DataFormatException("could not retrieve data from bin", e, null, null, null);
+				throw new DataFormatException("could not retrieve data from bin " + t.data.keySet(), e, null, null, null);
 			}
 
 			task.data = map;
+			AtomicProgress p = tracker.getPullProgress(task.meta);
+			if (p != null) { p.setDone(); }
 		}
 
 		@Override public void push(PushTask<Map<Token, SortedSet<TokenEntry>>> task) {
@@ -386,20 +472,9 @@ implements Archiver<Index> {
 			PushTask<Map<String, Object>> t = new PushTask<Map<String, Object>>(conv, task.meta);
 			subsrl.push(t);
 			task.meta = t.meta;
+			AtomicProgress p = tracker.getPushProgress(task.data);
+			if (p != null) { p.setDone(); }
 		}
-
-		/*public void pull(Iterable<PullTask<Map<Token, SortedSet<TokenEntry>>>> tasks) {
-			// TODO threads
-			for (PullTask<Map<Token, SortedSet<TokenEntry>>> task: tasks) {
-				pull(task);
-			}
-		}
-
-		public void push(Iterable<PushTask<Map<Token, SortedSet<TokenEntry>>>> tasks) {
-			for (PushTask<Map<Token, SortedSet<TokenEntry>>> task: tasks) {
-				push(task);
-			}
-		}*/
 
 	}
 

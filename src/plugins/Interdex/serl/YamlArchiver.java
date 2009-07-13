@@ -115,7 +115,7 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 				try {
 					t.data = (T)yaml.get().load(new InputStreamReader(is));
 				} catch (YAMLException e) {
-					throw new DataFormatException("Yaml could not process the document " + file, e, file);
+					throw new DataFormatException("Yaml could not process the document " + file, e, file, null, null);
 				} finally {
 					lock.release();
 				}
@@ -138,7 +138,7 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 				try {
 					yaml.get().dump(t.data, new OutputStreamWriter(os));
 				} catch (YAMLException e) {
-					throw new DataFormatException("Yaml could not process the object", e, t.data);
+					throw new DataFormatException("Yaml could not process the object", e, t.data, null, null);
 				} finally {
 					lock.release();
 				}

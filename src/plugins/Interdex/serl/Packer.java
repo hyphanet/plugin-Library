@@ -27,8 +27,8 @@ import java.util.TreeSet;
 ** @author infinity0
 */
 abstract public class Packer<K, T>
-extends CompositeSerialiser<T, Map<K, T>, IterableSerialiser<Map<K, T>>>
-implements MapSerialiser<K, T> {
+implements MapSerialiser<K, T>,
+           Serialiser.Composite<IterableSerialiser<Map<K, T>>> {
 
 	/**
 	** The maximum load a bin can hold.
@@ -50,29 +50,54 @@ implements MapSerialiser<K, T> {
 	*/
 	final protected Comparator<? super T> binElementComparator;
 
-	public Packer(int c, Comparator<? super T> binElemComp, Class<? extends T> cc, IterableSerialiser<Map<K, T>> s) {
-		super(s);
+	/**
+	** DOCUMENT
+	*/
+	final protected IterableSerialiser<Map<K, T>> subsrl;
+	public IterableSerialiser<Map<K, T>> getChildSerialiser() { return subsrl; }
+
+	/**
+	** DOCUMENT
+	**
+	** @param cc A class with a nullary constructor that is used to instantiate
+	**           new elements of bins. This argument may be null if a subclass
+	**           overrides {@link #newElement()}.
+	*/
+	public Packer(IterableSerialiser<Map<K, T>> s, int c, Comparator<? super T> binElemComp, Class<? extends T> cc) {
+		if (s == null) {
+			throw new IllegalArgumentException("Can't have a null child serialiser");
+		}
 		if (c <= 0) {
 			throw new IllegalArgumentException("Capacity must be greater than zero.");
 		}
 		try {
-			cc.newInstance();
+			if (cc != null) { cc.newInstance(); }
 		} catch (InstantiationException e) {
 			throw new IllegalArgumentException("Cannot instantiate class. Make sure it has a nullary constructor.", e);
 		} catch (IllegalAccessException e) {
 			throw new IllegalArgumentException("Cannot instantiate class. Make sure you have access to it.", e);
 		}
+		subsrl = s;
 		capacity = c;
 		caphalf = c>>1;
 		elementClass = cc;
 		binElementComparator = binElemComp;
 	}
 
+	/**
+	** Creates a new bin with the appropriate settings for this packer.
+	*/
 	protected Bin newBin(int index) {
 		return new Bin(capacity, index, this);
 	}
 
+	/**
+	** Creates a new bin element from the class passed into the constructor.
+	*/
 	protected T newElement() {
+		if (elementClass == null) {
+			throw new IllegalStateException("Packer cannot create element: No class was given to the constructor, but newElement() was not overriden.");
+		}
 		try {
 			return elementClass.newInstance();
 		} catch (InstantiationException e) {
@@ -83,18 +108,56 @@ implements MapSerialiser<K, T> {
 	}
 
 	/**
-	** DOCUMENT
+	** Creates a new partition a bin element, given an iterator through the
+	** element and the number of items to add to the partition.
+	**
+	** @param i An iterator through the items of the element
+	** @param num Number of items in the partition
+	** @return The partition
 	*/
-	abstract protected T newPartitionOf(Iterator i, int max);
+	abstract protected T newPartitionOf(Iterator i, int num);
 
+	/**
+	** Adds the items of a partition of an element to the object representing
+	** the whole element.
+	**
+	** @param element The parent element
+	** @param partition The partition containing the items to add
+	*/
 	abstract protected void addPartitionTo(T element, T partition);
 
+	/**
+	** Returns an iterator over a bin element, that can be passed to {@link
+	** #newPartitionOf(Iterator, int)}.
+	*/
 	abstract protected Iterable iterableOf(T element);
 
+	/**
+	** Returns the size of a bin element.
+	*/
 	abstract protected int sizeOf(T element);
 
 	/**
-	** DOCUMENT
+	** Any tasks that need to be done after the bin tasks have been formed,
+	** but before they have been passed to the child serialiser. The default
+	** implementation does nothing.
+	*/
+	protected void preprocessPullBins(Map<K, PullTask<T>> tasks, Collection<PullTask<Map<K, T>>> bintasks) { }
+
+	/**
+	** Any tasks that need to be done after the bin tasks have been formed,
+	** but before they have been passed to the child serialiser. The default
+	** implementation does nothing.
+	*/
+	protected void preprocessPushBins(Map<K, PushTask<T>> tasks, Collection<PushTask<Map<K, T>>> bintasks) { }
+
+	/**
+	** Given partition and its containing bin, register its details with the
+	** given metadata.
+	**
+	** This implementation assumes the metadata map contains "size" and "bins"
+	** keys mapping to to {@link List}<{@link Integer}>s, and adds the
+	** partition's size and the bin's index to these lists, respectively.
 	*/
 	protected void addBinToMeta(Map<String, Object> meta, T partition, int binindex) {
 		List<Integer> size = (List<Integer>)meta.get("size");
@@ -107,7 +170,7 @@ implements MapSerialiser<K, T> {
 	}
 
 	/**
-	** DOCUMENT
+	** Given a map of metadata, retrieve the list of bins that it describes.
 	*/
 	protected List<Integer> getBinsFromMeta(Map<String, Object> meta) {
 		Object list = meta.get("bins");
@@ -115,11 +178,11 @@ implements MapSerialiser<K, T> {
 	}
 
 	/**
-	** Given a map of sizeable tasks, return the bins the task data has been
-	** packed into. Each element in each bin is associated with the key of the
-	** original task from which the element was taken. Tasks larger than the
-	** size of one bin are split over several bins. The resulting group of bins
-	** will include at most one bin which is half full or less.
+	** Given a map of {@link PushTask}s, pack the task data into a set of bins,
+	** partitioning each task data (element) if it it is too big to fit into
+	** a single bin. Each element in each bin is associated with the key of the
+	** original task from which the element was taken. The resulting group of
+	** bins will include at most one bin which is half full or less.
 	**
 	** @param tasks The tasks to pack
 	** @return The bins containing the task data
@@ -301,6 +364,7 @@ implements MapSerialiser<K, T> {
 			}
 		}
 		Collection<PullTask<Map<K, T>>> bintasks = bins.values();
+		preprocessPullBins(tasks, bintasks);
 
 		// bintasks has form [(*,[meta,I])]
 		// pull each bin
@@ -388,6 +452,7 @@ implements MapSerialiser<K, T> {
 			++i;
 		}
 		// tasks has form {K:(T,M)} where M is whatever setMetaAfterPack() returns
+		preprocessPushBins(tasks, bintasks);
 
 		// bintasks has form [({K:T},[meta,I])]
 		subsrl.push(bintasks);

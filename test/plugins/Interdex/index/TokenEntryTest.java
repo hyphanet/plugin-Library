@@ -74,5 +74,17 @@ public class TokenEntryTest extends TestCase {
 		assertTrue(ll.get(2) instanceof TokenIndexEntry);
 		assertTrue(ll.get(3) instanceof TokenTermEntry);
 	}
+/*
+- !!plugins.Interdex.index.TokenURIEntry {URI: !FreenetURI 'CHK@93bc0cf5Za702Z464fZ87fcZfc8c91dae7cb',
+  meta: null, relevance: &id001 0.13795233, subject: deserunt, type: null}
+- *id001
+- !!plugins.Interdex.index.TokenURIEntry {URI: !FreenetURI 'CHK@ec2dba44Zf528Z4e31Zaa00Zfa9fb46ef23e',
+  meta: null, relevance: 0.09885842, subject: deserunt, type: null}
+- !!plugins.Interdex.index.TokenURIEntry {URI: !FreenetURI 'CHK@68bae25cZ2121Z4cc6Za48eZd30a571cb0b6',
+  meta: null, relevance: 0.08213969, subject: deserunt, type: null}
+- !!plugins.Interdex.index.TokenURIEntry {URI: !FreenetURI 'CHK@178ce9d7Z31d2Z4c61Z8bcfZ8dc2505977c4',
+  meta: null, relevance: 0.03161039, subject: deserunt, type: null}
+*/
+
 
 }

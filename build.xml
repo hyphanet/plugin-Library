@@ -82,7 +82,7 @@
 				</fileset>
 				<pathelement location="${junit.location}"/>
 			</classpath>
-			<!--<formatter type="plain" usefile="false"/>-->
+			<formatter type="plain" usefile="false"/>
 			<batchtest fork="yes">
 				<fileset dir="${build-test}">
 					<include name="**/*Test.class"/>

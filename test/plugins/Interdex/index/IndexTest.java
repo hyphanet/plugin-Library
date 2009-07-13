@@ -15,6 +15,10 @@ import freenet.keys.FreenetURI;
 import java.util.*;
 
 /**
+** As of 2009-07-13 this test has a one in ~2^12 chance of failing due to
+** SnakeYAML misusing {@link System#identityHashCode(Object)} (in the same way
+** I do in {@link IdentityComparator}); a bug report has been filed.
+**
 ** @author infinity0
 */
 public class IndexTest extends TestCase {

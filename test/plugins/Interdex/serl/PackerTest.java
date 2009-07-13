@@ -24,7 +24,13 @@ import java.util.HashMap;
 */
 public class PackerTest extends TestCase {
 
-	final public static CollectionPacker<String, HashSet> srl = new CollectionPacker<String, HashSet>(256, HashSet.class, null);
+	final public static CollectionPacker<String, HashSet> srl = new
+	CollectionPacker<String, HashSet>(new IterableSerialiser<Map<String, HashSet>>() {
+		public void pull(Iterable<PullTask<Map<String, HashSet>>> t) {}
+		public void push(Iterable<PushTask<Map<String, HashSet>>> t) {}
+		public void pull(PullTask<Map<String, HashSet>> t) {}
+		public void push(PushTask<Map<String, HashSet>> t) {}
+	}, 256, HashSet.class);
 
 	protected Map<String, PushTask<HashSet>> generateTasks(int[] sizes) {
 		String meta = "dummy metadata";

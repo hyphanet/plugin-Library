@@ -9,7 +9,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -17,40 +16,33 @@ import java.util.concurrent.TimeUnit;
 ** An {@link IterableSerialiser} that uses threads to handle tasks given to it
 ** in parallel.
 **
-** It also keeps track of each task's progress and provides methods to retrieve
-** this data. For this to function properly, the data/metadata for push/pull
-** tasks (respectively) MUST NOT be null, and MUST NOT be internally modified
-** by the child {@link Archiver}, since these are used as keys into {@link
-** IdentityHashMap}s.
+** This class expects the overrides of {@link #pull(Serialiser.PullTask)}
+** and {@link #push(Serialiser.PushTask)} to call {@link Progress#setDone()}.
+** If this does not occur, deadlock will result.
 **
-** PRIORITY deadlock problems fixed... there might be more... re-check this
+** TODO rename
 **
 ** @author infinity0
 */
-public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements IterableSerialiser<T> {
+public abstract class ParallelArchiver<T>
+implements IterableSerialiser<T>,
+           Serialiser.Trackable<T> {
 
 	protected int maxThreads = 4;
 	protected int numThreads = 0;
 	protected SynchronousQueue<Task<T>> queue = new SynchronousQueue<Task<T>>();
 
-	/**
-	** Keeps track of the progress of each {@link PullTask}. The key is the
-	** metadata of the task.
-	*/
-	protected IdentityHashMap<Object, Progress> pullProgress = new IdentityHashMap<Object, Progress>();
+	final protected ProgressTracker<T, ? extends Progress> tracker;
 
-	/**
-	** Keeps track of the progress of each {@link PushTask}. The key is the
-	** data of the task.
-	*/
-	protected IdentityHashMap<T, Progress> pushProgress = new IdentityHashMap<T, Progress>();
-
-	public ParallelArchiver(Archiver<I> s, Translator<T, I> t) {
-		super(s, t);
+	public ParallelArchiver(ProgressTracker<T, ? extends Progress> k) {
+		if (k == null) {
+			throw new IllegalArgumentException("ParallelArchiver must have a progress tracker.");
+		}
+		tracker = k;
 	}
 
-	public ParallelArchiver(Archiver<I> s) {
-		super(s, null);
+	@Override public ProgressTracker<T, ? extends Progress> getTracker() {
+		return tracker;
 	}
 
 	/**
@@ -84,18 +76,6 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 		(new QueueHandler()).start();
 	}
 
-	public Progress getPullProgress(Object meta) {
-		synchronized (pullProgress) {
-			return pullProgress.get(meta);
-		}
-	}
-
-	public Progress getPushProgress(T data) {
-		synchronized (pushProgress) {
-			return pushProgress.get(data);
-		}
-	}
-
 	/*========================================================================
 	  public interface IterableSerialiser
 	 ========================================================================*/
@@ -115,31 +95,26 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 				if (t.meta == null) {
 					throw new IllegalArgumentException("ParallelArchiver cannot handle pull tasks with null metadata");
 				}
-				synchronized (pullProgress) {
+
+				Progress p = tracker.addPullProgress(t.meta);
+				if (p == null) {
 					// if we are already pushing this then skip it
-					if (pullProgress.containsKey(t.meta)) {
-						it.remove();
-						continue;
-					}
-					// TODO use mikeb's Progress class
-					Progress p = new Progress();
-					plist.add(p);
-					pullProgress.put(t.meta, p);
+					it.remove();
+					continue;
 				}
+				plist.add(p);
+
 				while (!queue.offer(t, 1, TimeUnit.SECONDS)) {
 					startHandler();
 				}
 				//System.out.println("pushed " + t);
 			}
 			for (Progress p: plist) { p.join(); }
-			synchronized (pullProgress) {
-				for (PullTask<T> t: tasks) {
-					pullProgress.remove(t.meta);
-				}
-			}
 		} catch (InterruptedException e) {
 			throw new TaskFailException("ParallelArchiver pull was interrupted", e);
-		} // URGENT finally clause
+		} finally {
+			for (PullTask<T> t: tasks) { tracker.remPullProgress(t.data); }
+		}
 	}
 
 	/**
@@ -157,52 +132,25 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 				if (t.data == null) {
 					throw new IllegalArgumentException("ParallelArchiver cannot handle pull tasks with null metadata");
 				}
-				synchronized (pushProgress) {
+
+				Progress p = tracker.addPushProgress(t.data);
+				if (p == null) {
 					// if we are already pushing this then skip it
-					if (pushProgress.containsKey(t.data)) {
-						it.remove();
-						continue;
-					}
-					// TODO use mikeb's Progress class
-					Progress p = new Progress();
-					plist.add(p);
-					pushProgress.put(t.data, p);
+					it.remove();
+					continue;
 				}
+				plist.add(p);
+
 				while (!queue.offer(t, 1, TimeUnit.SECONDS)) {
 					startHandler();
 				}
 				//System.out.println("pushed " + t);
 			}
 			for (Progress p: plist) { p.join(); }
-			synchronized (pushProgress) {
-				for (PushTask<T> t: tasks) {
-					pushProgress.remove(t.data);
-				}
-			}
+			for (PushTask<T> t: tasks) { tracker.remPushProgress(t.data); }
 		} catch (InterruptedException e) {
 			throw new TaskFailException("ParallelArchiver push was interrupted", e);
 		}
-	}
-
-
-	// TODO use mikeb's Progress class instead...
-	public static class Progress {
-
-		private boolean done;
-
-		public String getProgress() {
-			return "ongoing";
-		}
-
-		public synchronized void done() {
-			done = true;
-			notifyAll();
-		}
-
-		public synchronized void join() throws InterruptedException {
-			while (!done) { wait(); }
-		}
-
 	}
 
 	protected class QueueHandler extends Thread {
@@ -213,13 +161,9 @@ public class ParallelArchiver<T, I> extends CompositeArchiver<T, I> implements I
 				while ((t = queue.poll(1, TimeUnit.SECONDS)) != null) {
 					//System.out.println(Thread.currentThread() + " popped " + t);
 					if (t instanceof PullTask) {
-						Progress p = getPullProgress(t.meta);
 						pull((PullTask<T>)t);
-						p.done();
 					} else {
-						Progress p = getPushProgress(t.data);
 						push((PushTask<T>)t);
-						p.done();
 					}
 				}
 			} catch (InterruptedException e) {

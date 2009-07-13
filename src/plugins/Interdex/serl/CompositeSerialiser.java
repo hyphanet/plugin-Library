@@ -13,30 +13,21 @@ import java.util.Map;
 ** should help to reduce implementation effort.
 **
 ** Implementations may handle the type conversion itself, or it may specify a
-** {@link Translator} to do this for it.
+** {@link Translator} to do this for it. DOCUMENT this has changed
 **
+** @deprecated
 ** @author infinity0
 ** @see Translator
 */
 abstract public class CompositeSerialiser<T, I, S extends Serialiser<I>> implements Serialiser<T> {
 
 	/**
-	** The option {@link Translator} to handle type conversion.
-	*/
-	final protected Translator<T, I> trans;
-
-	/**
 	** The {@link Serialiser} for the next stage of the process.
 	*/
 	final protected S subsrl;
 
-	public CompositeSerialiser(S s, Translator<T, I> t) {
-		subsrl = s;
-		trans = t;
-	}
-
 	public CompositeSerialiser(S s) {
-		this(s, null);
+		subsrl = s;
 	}
 
 }

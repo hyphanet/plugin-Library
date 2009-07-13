@@ -59,7 +59,7 @@ public interface Serialiser<T> {
 	** Consequently, {@code Serialiser}s should be implemented so that its
 	** push operations generate metadata for which this property holds.
 	*/
-	public static class PullTask<T> extends Task<T> {
+	final public static class PullTask<T> extends Task<T> {
 
 		public PullTask(Object m) {
 			meta = m;
@@ -80,7 +80,7 @@ public interface Serialiser<T> {
 	** Consequently, {@code Serialiser}s may require that extra data is passed
 	** to its push operations such that it can...
 	*/
-	public static class PushTask<T> extends Task<T> {
+	final public static class PushTask<T> extends Task<T> {
 
 		public PushTask(T d) {
 			data = d;
@@ -90,6 +90,37 @@ public interface Serialiser<T> {
 			data = d;
 			meta = m;
 		}
+
+	}
+
+	/**
+	** TODO find a better place to put this...
+	**
+	** DOCUMENT
+	*/
+	public interface Trackable<T> extends Serialiser<T> {
+
+		public ProgressTracker<T, ?> getTracker();
+
+	}
+
+	/**
+	** TODO rename this to something better...
+	*/
+	public interface Translate<T, I> extends Serialiser<T> {
+
+		public Translator<T, I> getTranslator();
+
+	}
+
+	/**
+	** TODO find a tidy way to make this extend Serialiser<T>...
+	**
+	** DOCUMENT, copy from CompositeSerialiser
+	*/
+	public interface Composite<S extends Serialiser> /*extends Serialiser*/ {
+
+		public S getChildSerialiser();
 
 	}
 
