@@ -33,7 +33,6 @@ import java.util.SortedSet;
 import java.util.HashMap;
 import java.util.TreeSet;
 import java.util.TreeMap;
-import java.util.IdentityHashMap;
 import java.util.Date;
 
 import freenet.keys.FreenetURI;

@@ -7,7 +7,6 @@ import plugins.Interdex.serl.Serialiser.*;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.ArrayList;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
@@ -17,10 +16,10 @@ import java.util.concurrent.TimeUnit;
 ** in parallel.
 **
 ** This class expects the overrides of {@link #pull(Serialiser.PullTask)}
-** and {@link #push(Serialiser.PushTask)} to call {@link Progress#setDone()}.
-** If this does not occur, deadlock will result.
+** and {@link #push(Serialiser.PushTask)} to notify all threads blocking on
+** {@link Progress#join()}. If this does not occur, deadlock will result.
 **
-** TODO rename
+** PRIORITY rename to ParallelSerialiser or ParallelTracker or something...
 **
 ** @author infinity0
 */
@@ -147,9 +146,10 @@ implements IterableSerialiser<T>,
 				//System.out.println("pushed " + t);
 			}
 			for (Progress p: plist) { p.join(); }
-			for (PushTask<T> t: tasks) { tracker.remPushProgress(t.data); }
 		} catch (InterruptedException e) {
 			throw new TaskFailException("ParallelArchiver push was interrupted", e);
+		} finally {
+			for (PushTask<T> t: tasks) { tracker.remPushProgress(t.data); }
 		}
 	}
 
