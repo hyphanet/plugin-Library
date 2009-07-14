@@ -30,7 +30,10 @@ import java.util.Collection;
 ** - the above dilemma is sufficiently well-handled by SplitMapSerialiser
 **
 ** Changed sizeLocal() to report the number of keys - might be useful again?
+** TODO: this requries changes to putAll() etc, to reflect keys added, not
+** entries added
 **
+** @deprecated
 ** @author infinity0
 */
 public class PrefixTreeMultimap<K extends PrefixKey, V extends Comparable>

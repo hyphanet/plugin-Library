@@ -461,7 +461,7 @@ implements MapSerialiser<K, T>,
 	/************************************************************************
 	** A class that represents a bin with a certain capacity.
 	**
-	** Note: this implementation is incomplete, since we do not override the
+	** NOTE: this implementation is incomplete, since we do not override the
 	** remove() methods of the collections and iterators returned by {@link
 	** Map#entrySet()} etc. to also modify the weight, but these are never used
 	** here so it's OK.
@@ -514,8 +514,9 @@ implements MapSerialiser<K, T>,
 		*/
 		@Override public int compareTo(Bin bin) {
 			if (this == bin) { return 0; }
-			int d = filled() - bin.filled();
-			if (d != 0) { return (d < 0)? 1: -1; }
+			int f1 = filled();
+			int f2 = bin.filled();
+			if (f1 != f2) { return (f2 > f1)? 1: -1; }
 			return IdentityComparator.comparator.compare(this, bin);
 		}
 
@@ -530,7 +531,7 @@ implements MapSerialiser<K, T>,
 	protected static class DummyBin<T, K> extends Bin<T, K> {
 
 		public DummyBin(int c, int l, Packer p) {
-			super(c, 0, p);
+			super(c, -1, p);
 			load = l;
 		}
 

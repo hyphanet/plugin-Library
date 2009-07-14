@@ -5,6 +5,8 @@ package plugins.Interdex.util;
 
 import java.util.Comparator;
 import java.util.SortedSet;
+import java.util.IdentityHashMap;
+import java.util.HashMap;
 
 /**
 ** A comparator that is consistent with the identity operator on objects. The
@@ -13,12 +15,14 @@ import java.util.SortedSet;
 ** like {@link SortedSet}, but want to be able to have two objects (that would
 ** otherwise compare equal) to be present in the collection simultaneously.
 **
-** NOTE: this implementation assumes that you are using a sane JVM that
-** generates identity hashcodes based on memory address, that can be used to
-** test object identity.
+** This implementation will remain consistent even if it encounters two objects
+** with the *same* identity hash code, by assigning a unique 64-bit id to each
+** distinct object, as it encounters such objects.
 **
-** URGENT this is SERIOUSLY bugged because System.identityHashCode has a small
-** chance of returning the same value for two distinct objects!!!
+** Since identity hashcodes are generated arbitrarily by the JVM, the ordering
+** imposed by this comparator will change between different runs of the JVM.
+** Hence, the exact ordering must not be treated as an instrinsic or immutable
+** property of the underlying collection.
 **
 ** @author infinity0
 ** @see System#identityHashCode(Object)
@@ -36,11 +40,44 @@ public class IdentityComparator<T> implements Comparator<T> {
 	protected IdentityComparator() { }
 
 	/**
+	** Keeps track of objects with the same identity hashcode, and the unique
+	** IDs assigned to them by the comparator. This map is *ONLY* used if the
+	** comparator encounters two distinct objects with the same identity
+	** hashcodes.
+	*/
+	final private static IdentityHashMap<Object, Long> objectid = new IdentityHashMap<Object, Long>(4);
+
+	/**
+	** Counts the number of objects that have a given identity hashcode. This
+	** map is *ONLY* used if the comparator encounters two distinct objects
+	** with the same identity hashcodes.
+	*/
+	final private static HashMap<Integer, Long> idcounter = new HashMap<Integer, Long>(4);
+
+	/**
 	** Compare two objects by identity.
 	*/
 	public int compare(T o1, T o2) {
-		int d = System.identityHashCode(o1) - System.identityHashCode(o2);
-		return (d == 0)? 0: (d < 0)? 1: -1;
+		if (o1 == o2) { return 0; }
+		int h1 = System.identityHashCode(o1);
+		int h2 = System.identityHashCode(o2);
+		if (h1 != h2) {
+			return (h1 > h2)? 1: -1;
+		} else {
+			synchronized (IdentityComparator.class) {
+				Long counter = idcounter.get(h1);
+				if (counter == null) { counter = 0L; }
+
+				Long l1 = objectid.get(o1);
+				Long l2 = objectid.get(o2);
+				if (l1 == null) { l1 = counter++; objectid.put(o1, l1); }
+				if (l2 == null) { l2 = counter++; objectid.put(o2, l2); }
+
+				idcounter.put(h1, counter);
+				assert(l1 != l2);
+				return (l1 > l2)? 1: -1;
+			}
+		}
 	}
 
 }
