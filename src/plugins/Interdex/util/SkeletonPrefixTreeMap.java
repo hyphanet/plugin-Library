@@ -38,6 +38,7 @@ implements SkeletonMap<K, V> {
 
 		protected DummyChild(K p, int len, int caplocal, SkeletonPrefixTreeMap<K, V> par) {
 			super(p, len, caplocal, null, null);
+			parent = par;
 		}
 
 		@Override public void clear() { throw childNotLoaded(); }

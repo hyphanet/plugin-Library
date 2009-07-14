@@ -54,8 +54,8 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 
 	// DEBUG
 	private static boolean testmode = false;
-	public static void setTestMode() { System.out.println("YamlArchiver will now randomly pause between 1 and 5 seconds for a task"); testmode = true; }
-	public static void randomWait() { try { Thread.sleep((long)(Math.random()*4+1)*1000); } catch (InterruptedException e) { } }
+	public static void setTestMode() { System.out.println("YamlArchiver will now randomly pause 5-10s for each task, to simulate network speeds"); testmode = true; }
+	public static void randomWait() { try { Thread.sleep((long)(Math.random()*5+5)*1000); } catch (InterruptedException e) { } }
 
 	/**
 	** Prefix of filename

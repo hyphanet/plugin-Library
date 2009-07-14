@@ -75,7 +75,7 @@ public class ProgressTracker<T, P extends Progress> {
 		}
 	}
 
-	public P getPushProgress(T data) {
+	public P getPushProgress(Object data) { // Object, not T, to match map.get(Object)
 		synchronized (pushProgress) {
 			return pushProgress.get(data);
 		}

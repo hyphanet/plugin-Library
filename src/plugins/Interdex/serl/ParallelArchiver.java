@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 ** This class expects the overrides of {@link #pull(Serialiser.PullTask)}
 ** and {@link #push(Serialiser.PushTask)} to notify all threads blocking on
 ** {@link Progress#join()}. If this does not occur, deadlock will result.
+** TODO get rid of this requirement...
 **
 ** PRIORITY rename to ParallelSerialiser or ParallelTracker or something...
 **

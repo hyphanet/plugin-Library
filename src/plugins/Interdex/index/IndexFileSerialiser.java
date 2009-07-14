@@ -179,11 +179,13 @@ implements Archiver<Index>,
 
 		final protected Translator<SkeletonPrefixTreeMap<K, V>, Map<String, Object>> trans;
 		final protected Archiver<Map<String, Object>> subsrl;
+		final protected ProgressTracker<SkeletonPrefixTreeMap<K, V>, AtomicProgress> tracker;
 
 		public PrefixTreeMapSerialiser(Translator<K, String> ktr) {
 			super(new ProgressTracker<SkeletonPrefixTreeMap<K, V>, AtomicProgress>(AtomicProgress.class));
 			subsrl = new YamlArchiver<Map<String, Object>>("tk", "");
 			trans = new PrefixTreeMapTranslator<K, V>(ktr);
+			tracker = (ProgressTracker<SkeletonPrefixTreeMap<K, V>, AtomicProgress>)super.tracker;
 		}
 
 		@Override public Translator<SkeletonPrefixTreeMap<K, V>, Map<String, Object>> getTranslator() {
@@ -200,6 +202,8 @@ implements Archiver<Index>,
 			SkeletonPrefixTreeMap<K, V> pulldata = trans.rev(serialisable.data);
 
 			task.meta = serialisable.meta; task.data = pulldata;
+			AtomicProgress p = tracker.getPullProgress(task.meta);
+			if (p != null) { p.setDone(); }
 		}
 
 		@Override public void push(PushTask<SkeletonPrefixTreeMap<K, V>> task) {
@@ -214,6 +218,8 @@ implements Archiver<Index>,
 			subsrl.push(serialisable);
 
 			task.meta = serialisable.meta;
+			AtomicProgress p = tracker.getPushProgress(task.data);
+			if (p != null) { p.setDone(); }
 		}
 
 		public static class PrefixTreeMapTranslator<K extends PrefixKey, V>
