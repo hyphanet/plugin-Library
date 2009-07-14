@@ -212,7 +212,6 @@ public class Search implements Request<URIWrapper> {
 
 	/**
 	 * Sets the parent plugin to be used for logging & plugin api
-	 * @param xl Parent plugin
 	 */
 	public static void setup(){
 		Search.allsearches = new HashMap<String, Search>();

@@ -1,9 +1,5 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 
-package plugins.Library.ui;
+package plugins.Library.fcp;
 
 import freenet.pluginmanager.PluginNotFoundException;
 import freenet.pluginmanager.PluginReplySender;
@@ -16,12 +12,16 @@ import java.util.Iterator;
 
 /**
  *
- * @author devl
+ * @author MikeB
  */
-public class FCPInterface {
+public class FCPRequestHandler {
 	static Class exposedMethods = FCPExposedMethods.class;
 
 
+	/**
+	 * The Parameter types alowed
+	 * TODO Will need Exceptions, Collections
+	 */
 	enum ParameterTypes{
 		Boolean(Boolean.class),
 		Char(Character.class),
@@ -36,7 +36,7 @@ public class FCPInterface {
 	};
 
 	/**
-	 * Call any methods from {@link FCPExposedMethods}.
+	 * Call any methods from {@link FCPExposedMethods} in response to FCP requests
 	 * @param replysender
 	 * @param params Specifies the method to call and the parameters, ("method"=>[Method name], [Type]_[Name]=>[Parameter])
 	 * @param data
@@ -48,28 +48,41 @@ public class FCPInterface {
 			String methodname = null;
 			ArrayList<Class> parameterTypes = new ArrayList();
 			ArrayList<Object> parameterValues = new ArrayList();
+			Logger.normal(params, params.toOrderedString());
+			// Get method name and parameters from params
 			for (Iterator<String> it = params.keyIterator(); it.hasNext();) {
 				String key = it.next();
 				if (key.equalsIgnoreCase("method")) {
 					methodname = params.get(key);
+					Logger.normal(FCPRequestHandler.class, "method: "+methodname);
 				} else {
 					String type = key.split("_")[0];
 					String value = params.get(key);
 					parameterTypes.add(ParameterTypes.valueOf(type).rclass);
 					parameterValues.add(value);
+					Logger.normal(FCPRequestHandler.class, "param("+type+") : "+value);
 				}
 			}
-			Method remoteMethod = exposedMethods.getMethod(methodname, (Class[]) parameterTypes.toArray());
-			Object returnval = remoteMethod.invoke(null, parameterValues.toArray());
-			returnSet.putOverwrite(returnval.getClass().getSimpleName()+"_return", returnval.toString());
+			Method remoteMethod = exposedMethods.getMethod(methodname, parameterTypes.toArray(new Class[0]));
+			Logger.normal(remoteMethod, "invoking "+remoteMethod+" : "+methodname);
+			Object returnval = null;
+			try{
+				returnval = remoteMethod.invoke(null, parameterValues.toArray());
+			}catch(NullPointerException e){
+				Logger.error(e, e.getMessage(), e);
+			}
+			returnSet.putOverwrite("return", returnval.toString());
 		} catch (Exception ex) {
-			Logger.error(FCPInterface.class, null, ex);
-			returnSet.putOverwrite(ex.getClass().getName()+"_exception", ex.getMessage());
+			// Ideally we could actually send back the exception, that would require changes to PluginReplySender and I guess it would need a seperate FCPTalkerException interface to receive it
+			// This doesn't even send causes currently
+			// TODO more robust error system, even if it only logs them and refers to them in an Exception generated the other side
+			Logger.error(FCPRequestHandler.class, null, ex);
+			returnSet.putOverwrite("exception", ex.getMessage());
 		}
 		try {
 			replysender.send(returnSet);
 		} catch (PluginNotFoundException ex) {
-			Logger.error(FCPInterface.class, "Invalid plugin for reply", ex);
+			Logger.error(FCPRequestHandler.class, "Invalid plugin for reply", ex);
 		}
 	}
 

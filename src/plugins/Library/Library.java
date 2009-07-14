@@ -1,6 +1,6 @@
 package plugins.Library;
 
-import plugins.Library.ui.FCPInterface;
+import plugins.Library.fcp.FCPRequestHandler;
 import freenet.pluginmanager.PluginReplySender;
 import freenet.support.SimpleFieldSet;
 import freenet.support.api.Bucket;
@@ -133,6 +133,6 @@ public class Library implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
 
 	// FredPluginFCP
 	public void handle(PluginReplySender replysender, SimpleFieldSet params, Bucket data, int accesstype) {
-		FCPInterface.handle(replysender, params, data, accesstype);
+		FCPRequestHandler.handle(replysender, params, data, accesstype);
 	}
 }

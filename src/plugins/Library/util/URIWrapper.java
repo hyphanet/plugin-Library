@@ -27,7 +27,6 @@ public class URIWrapper implements Comparable<URIWrapper> {
 	 * a new URIWrapper is returned containing the postion of the second terms of matching phrases.
 	 * null is returned if no cases are found
 	 * @param o
-	 * @return
 	 */
 	public URIWrapper followedby(URIWrapper o) throws Exception{
 		if(compareTo(o)!=0)
