@@ -55,13 +55,13 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 	protected Node root = new Node(true);
 
 	/**
-	** Number of entries in the node.
+	** Number of entries currently in the map.
 	*/
 	protected int size = 0;;
 
 	/**
 	** Creates a new empty map, sorted according to the given comparator, and
-	** with each node having the given minimum number of subnodes.
+	** with each non-root node having the given minimum number of subnodes.
 	**
 	** @param cmp The comparator for the tree, or {@code null} to use the keys'
 	**            {@link Comparable natural} ordering.
@@ -80,8 +80,8 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 
 	/**
 	** Creates a new empty map, sorted according to the keys' {@link Comparable
-	** natural} ordering, and with each node having the given minimum number of
-	** subnodes.
+	** natural} ordering, and with each non-root node having the given minimum
+	** number of subnodes.
 	**
 	** @param node_min Minimum number of subnodes in each node
 	**/
@@ -89,6 +89,11 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 		this(null, node_min);
 	}
 
+	/**
+	** Creates a new empty map, sorted according to the keys' {@link Comparable
+	** natural} ordering, and with each non-root node having at least 256
+	** subnodes.
+	*/
 	public BTreeMap() {
 		this(null, 0x100);
 	}
@@ -97,11 +102,11 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 	** DOCUMENT
 	**
 	** <pre>
-	**    <- lkey                  Node                  -> rkey
-	**
-	**         V1    V2    V3    V4    V5    V6    V7    V8
-	**         |     |     |     |     |     |     |     |
-	**   null  K1    K2    K3    K4    K5    K6    K7    K8  null
+	**    ^                        Node                        ^
+	**    |                                                    |
+	**    |    V1    V2    V3    V4    V5    V6    V7    V8    |
+	**    |    |     |     |     |     |     |     |     |     |
+	**   lkey  K1    K2    K3    K4    K5    K6    K7    K8  rkey
 	**     \  /  \  /  \  /  \  /  \  /  \  /  \  /  \  /  \  /
 	**     Node  Node  Node  Node  Node  Node  Node  Node  Node
 	**
@@ -126,27 +131,25 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 
 		/**
 		** Map of entries to their immediate smaller nodes. The greatest node
-		** is mapped to by {@code null}.
+		** is mapped to by {@link #rkey}.
 		*/
 		final Map<K, Node> lnodes;
 
 		/**
 		** Map of entries to their immediate greater nodes. The smallest node
-		** is mapped to by {@code null}.
+		** is mapped to by {@code #lkey}.
 		*/
 		final Map<K, Node> rnodes;
 
 		/**
-		** Greatest key smaller than all entries in this node and subnodes.
-		** This is {@code null} when the node is at the corresponding edge of
-		** the tree.
+		** Greatest key smaller than all keys in this node and subnodes. This
+		** is {@code null} when the node is at the minimum-key end of the tree.
 		*/
 		K lkey = null;
 
 		/**
-		** Smallest key greater than all entries in this node and subnodes.
-		** This is {@code null} when the node is at the corresponding edge of
-		** the tree.
+		** Smallest key greater than all keys in this node and subnodes. This
+		** is {@code null} when the node is at the maximum-key end of the tree.
 		*/
 		K rkey = null;
 
@@ -178,7 +181,8 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 
 		/**
 		** Returns the greatest subnode smaller than the given key, which must
-		** be local to the node.
+		** be local to the node. If {@code key} is rkey, returns the greatest
+		** subnode.
 		**
 		** Note: This method assumes that the input key is strictly between
 		** {@link #lkey} and {@link #rkey}; it is up to the calling code to
@@ -190,15 +194,16 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 		** @throws NullPointerException if this is a leaf node
 		*/
 		Node nodeL(K key) {
-			assert(compare2(lkey, key) < 0);
-			assert(compare2(key, rkey) < 0);
+			assert(key == null && lkey == null && rkey == null
+			    || compare2(lkey, key) < 0 && compare2(key, rkey) <= 0);
 
 			return lnodes.get(key);
 		}
 
 		/**
 		** Returns the smallest subnode greater than the given key, which must
-		** be local to the node. If {@code key} is
+		** be local to the node. If {@code key} is lkey, returns the smallest
+		** subnode.
 		**
 		** Note: This method assumes that the input key is strictly between
 		** {@link #lkey} and {@link #rkey}; it is up to the calling code to
@@ -210,8 +215,8 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 		** @throws NullPointerException if this is a leaf node
 		*/
 		Node nodeR(K key) {
-			assert(compare2(lkey, key) < 0);
-			assert(compare2(key, rkey) < 0);
+			assert(key == null && lkey == null && rkey == null
+			    || compare2(lkey, key) <= 0 && compare2(key, rkey) < 0);
 
 			return rnodes.get(key);
 		}
@@ -237,20 +242,65 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 
 			SortedMap<K, V> tailmap = entries.tailMap(key);
 			if (tailmap.isEmpty()) {
-				return lnodes.get(null);
+				return lnodes.get(rkey);
 			} else {
 				K next = tailmap.firstKey();
 				return (compare(key, next) == 0)? null: lnodes.get(next);
 			}
 		}
 
+		// TODO make this show the values too, and move the keys-only into a
+		// separate function
+		public String toString() {
+			StringBuilder s = new StringBuilder();
+			s.append("[").append(lkey).append(")");
+			if (isLeaf) {
+				for (K k: entries.keySet()) {
+					s.append(" ").append(k);
+				}
+			} else {
+				s.append(" ").append(rnodes.get(lkey));
+				for (K k: entries.keySet()) {
+					s.append(" ").append(k).append(" ").append(nodeR(k));
+				}
+			}
+			s.append(" (").append(rkey).append("]");
+			return s.toString();
+		}
+
+		public String toPrettyString(String istr) {
+			String nistr = istr + "\t";
+			StringBuilder s = new StringBuilder();
+			s.append(istr).append('(').append(lkey).append(')').append('\n');
+			if (isLeaf) {
+				for (Map.Entry<K, V> en: entries.entrySet()) {
+					s.append(istr).append(en.getKey()).append(" : ").append(en.getValue()).append('\n');
+				}
+			} else {
+				s.append(rnodes.get(lkey).toPrettyString(nistr));
+				for (Map.Entry<K, V> en: entries.entrySet()) {
+					s.append(istr).append(en.getKey()).append(" : ").append(en.getValue()).append('\n');
+					s.append(nodeR(en.getKey()).toPrettyString(nistr));
+				}
+			}
+			s.append(istr).append('(').append(rkey).append(')').append('\n');
+			return s.toString();
+		}
+
+	}
+
+	public String toString() {
+		return root.toString();
+	}
+
+	public String toPrettyString() {
+		return root.toPrettyString("");
 	}
 
 	/**
-	** Split a full child node into two nodes with the minimum size allowed,
-	** using the median key as the separator between these new nodes in the
-	** parent. If parent is {@code null}, creates a new {@link Node} and points
-	** {@link #root} to it.
+	** Split a maximal child node into two minimal nodes, using the median key
+	** as the separator between these new nodes in the parent. If the parent is
+	** {@code null}, creates a new {@link Node} and points {@link #root} to it.
 	**
 	** Note: This method assumes that the child is an actual subnode of the
 	** parent, and that it is actually full. It is up to the calling code to
@@ -258,18 +308,25 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 	**
 	** The exact implementation of this may change from time to time, so the
 	** calling code should regard the input subnode as effectively destroyed,
-	** and re-get the relevant subnode from calling the appropriate methods on
-	** the parent node.
+	** and re-get the desired result subnode from calling the appropriate
+	** get methods on the parent node.
 	**
 	** @param parent The node to (re)attach the split subnodes to.
+	** @param child The subnode to split
 	*/
 	private K split(Node parent, Node child) {
 		assert(child.entries.size() == ENT_MAX);
-		assert(parent.entries.size() < ENT_MAX);
-		assert(!parent.isLeaf && parent.nodeR(child.lkey) == child
-		                      && parent.nodeL(child.rkey) == child);
+		assert(parent == null? (child.lkey == null && child.rkey == null):
+		                       (parent.entries.size() < ENT_MAX
+		                     && !parent.isLeaf
+		                     && parent.nodeR(child.lkey) == child
+		                     && parent.nodeL(child.rkey) == child));
 
-		if (parent == null) { parent = root = new Node(); }
+		if (parent == null) {
+			parent = root = new Node();
+			parent.lnodes.put(null, child);
+			parent.rnodes.put(null, child);
+		}
 		Node lnode = new Node(child.isLeaf);
 
 		if (child.isLeaf) {
@@ -279,13 +336,12 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 			for (int i=0; i<ENT_MIN; ++i) {
 				Map.Entry<K, V> entry = it.next();
 				K key = entry.getKey();
-				it.remove();
 
 				lnode.entries.put(key, entry.getValue());
+				it.remove();
 			}
 			Map.Entry<K, V> median = it.next();
 			K mkey = median.getKey();
-			it.remove();
 
 			lnode.lkey = child.lkey;
 			lnode.rkey = child.lkey = mkey;
@@ -296,25 +352,24 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 			parent.rnodes.put(mkey, child);
 			parent.lnodes.put(mkey, lnode);
 
+			it.remove();
 			return mkey;
 
 		} else {
-			lnode.rnodes.put(null, child.lnodes.get(child.entries.firstKey()));
+			lnode.rnodes.put(child.lkey, child.rnodes.remove(child.lkey));
 			Iterator<Map.Entry<K, V>> it = child.entries.entrySet().iterator();
 			for (int i=0; i<ENT_MIN; ++i) {
 				Map.Entry<K, V> entry = it.next();
 				K key = entry.getKey();
-				it.remove();
 
 				lnode.entries.put(key, entry.getValue());
 				lnode.lnodes.put(key, child.lnodes.remove(key));
 				lnode.rnodes.put(key, child.rnodes.remove(key));
+				it.remove();
 			}
 			Map.Entry<K, V> median = it.next();
 			K mkey = median.getKey();
-			it.remove();
-			lnode.lnodes.put(null, child.lnodes.remove(mkey));
-			child.rnodes.put(null, child.rnodes.remove(mkey));
+			lnode.lnodes.put(mkey, child.lnodes.remove(mkey));
 
 			lnode.lkey = child.lkey;
 			lnode.rkey = child.lkey = mkey;
@@ -325,16 +380,29 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 			parent.rnodes.put(mkey, child);
 			parent.lnodes.put(mkey, lnode);
 
+			it.remove();
 			return mkey;
 		}
 	}
 
 	/**
-	** If parent is {@link #root} and the merge makes it empty, make the merged
-	** child the new {@code root}.
+	** Merge two minimal child nodes into a maximal node, using the key that
+	** separates them in the parent as the key that joins the halfnodes in the
+	** merged node. If the parent is the {@link #root} and the merge makes it
+	** empty, point {@code root} to the new merged node.
 	**
+	** Note: This method assumes that both childs are an actual subnodes of the
+	** parent, that they are adjacent in the parent, and that they are actually
+	** minimally full. It is up to the calling code to ensure that this holds.
 	**
-	** @param parent
+	** The exact implementation of this may change from time to time, so the
+	** calling code should regard both input subnodes as effectively destroyed,
+	** and re-get the desired result subnode from calling the appropriate
+	** get methods on the parent node.
+	**
+	** @param parent The node to (re)attach the merge node to.
+	** @param lnode The smaller subnode to merge
+	** @param rnode The greater subnode to merge
 	*/
 	private K merge(Node parent, Node lnode, Node rnode) {
 		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
@@ -369,9 +437,8 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 			K mkey = rnode.lkey; // same as lnode.rkey;
 			rnode.entries.put(mkey, parent.entries.remove(mkey));
 
-			rnode.lnodes.put(mkey, lnode.lnodes.get(null));
-			rnode.rnodes.put(mkey, rnode.rnodes.get(null));
-			rnode.rnodes.put(null, lnode.rnodes.get(null));
+			rnode.lnodes.put(mkey, lnode.lnodes.get(mkey));
+			rnode.rnodes.put(lnode.lkey, lnode.rnodes.get(lnode.lkey));
 
 			parent.rnodes.remove(mkey);
 			parent.lnodes.remove(mkey);
@@ -383,6 +450,8 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 	}
 
 	/**
+	** Performs a rotate operation towards the smaller node.
+	**
 	** DOCUMENT and put asserts in
 	*/
 	private K rotateL(Node parent, Node lnode, Node rnode) {
@@ -402,10 +471,8 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 		parent.lnodes.put(skey, parent.lnodes.remove(mkey));
 
 		if (!lnode.isLeaf) {
-			lnode.rnodes.put(mkey, rnode.rnodes.remove(null));
-			lnode.lnodes.put(mkey, lnode.lnodes.remove(null));
-			rnode.rnodes.put(null, rnode.rnodes.remove(skey));
-			lnode.lnodes.put(null, rnode.lnodes.remove(skey));
+			lnode.rnodes.put(mkey, rnode.rnodes.remove(mkey));
+			lnode.lnodes.put(skey, rnode.lnodes.remove(skey));
 		}
 
 		return mkey;
@@ -431,10 +498,8 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 		parent.rnodes.put(skey, parent.rnodes.remove(mkey));
 
 		if (!rnode.isLeaf) {
-			rnode.lnodes.put(mkey, lnode.lnodes.remove(null));
-			rnode.rnodes.put(mkey, rnode.rnodes.remove(null));
-			lnode.lnodes.put(null, lnode.lnodes.remove(skey));
-			rnode.rnodes.put(null, lnode.rnodes.remove(skey));
+			rnode.lnodes.put(mkey, lnode.lnodes.remove(mkey));
+			rnode.rnodes.put(skey, lnode.rnodes.remove(skey));
 		}
 
 		return mkey;
@@ -510,15 +575,15 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 			Iterator<K> it = node.entries.keySet().iterator();
 			verify(it.hasNext());
 
-			K prev = null;
+			K prev = node.lkey;
 			K curr = it.next();
-			while (curr != null || prev != null) {
+			while (curr != node.rkey || prev != node.rkey) {
 				Node node1 = node.nodeR(prev);
 				verify(node1 != null && compare2(curr, node1.rkey) == 0);
 				Node node2 = node.nodeL(curr);
 				verify(node1 == node2 && compare2(node2.lkey, prev) == 0);
 				prev = curr;
-				curr = it.hasNext()? it.next(): null;
+				curr = it.hasNext()? it.next(): node.rkey;
 			}
 
 			verify(node.entries.size() + 1 == node.rnodes.size());
@@ -550,7 +615,7 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 			for (Node n: node.lnodes.values()) {
 				int d = verifyTreeIntegrity(n);
 				if (depth < 0) { depth = d; }
-				verify(d != depth);
+				verify(d == depth);
 			}
 			return depth + 1;
 		}
