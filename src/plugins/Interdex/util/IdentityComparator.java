@@ -24,20 +24,21 @@ import java.util.HashMap;
 ** Hence, the exact ordering must not be treated as an instrinsic or immutable
 ** property of the underlying collection.
 **
+** The intended use of this class is for another class to subclass it, or to
+** have a {@link Comparable#compareTo(Object)} call the method of the singleton
+** provided in the {@link #comparator} field.
+**
 ** @author infinity0
 ** @see System#identityHashCode(Object)
 ** @see Comparator#compare(Object, Object)
 ** @see Comparable#compareTo(Object)
 */
-public class IdentityComparator<T> implements Comparator<T> {
+abstract public class IdentityComparator<T> implements Comparator<T> {
 
 	/**
 	** A singleton comparator for use by {@link Comparable#compareTo(Object)}.
 	*/
-	final public static IdentityComparator comparator = new IdentityComparator();
-
-	// why would you ever want one of these by itself? rethink your logic
-	protected IdentityComparator() { }
+	final public static IdentityComparator comparator = new IdentityComparator() {};
 
 	/**
 	** Keeps track of objects with the same identity hashcode, and the unique
