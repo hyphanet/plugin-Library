@@ -5,7 +5,9 @@ import freenet.pluginmanager.PluginNotFoundException;
 import freenet.support.Logger;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import plugins.Library.Library;
+import plugins.Library.util.InvalidSearchException;
 import plugins.Library.util.Request;
 
 /**
@@ -13,7 +15,7 @@ import plugins.Library.util.Request;
  *
  * @author MikeB
  */
-public class FCPExposedMethods {
+public class FCPExposedMethods{
 	static HashMap<Integer, Request> requests = new HashMap();
 	
 	static private Integer requestnumber(Request req){
@@ -59,7 +61,11 @@ public class FCPExposedMethods {
 	 * @param meta key-value pairs of meta data about this page
 	 * @return id of page for modification
 	 */
-	static public Integer addPage(String uri, String title, Map<String, String> meta) throws PluginNotFoundException {
+	static public Integer addPage(String uri, String title, Map<String, String> meta) {
 		throw new UnsupportedOperationException("Not supported yet.");
+	}
+
+	static public Set getResults(Integer request) throws InvalidSearchException {
+		return requests.get(request).getResult();
 	}
 }
