@@ -9,19 +9,33 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
+import java.util.AbstractSet;
+import java.util.AbstractMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.HashMap;
+import java.util.Stack;
 import java.util.ArrayList;
+import java.util.NoSuchElementException;
 
 /**
 ** General purpose BTree implementation
 **
 ** DOCUMENT
 **
+** NOTE: at the moment there is a slight bug in this implementation that causes
+** indeterminate behaviour when used with a comparator that admits {@code null}
+** keys. This is due to {@code null} having special semantics, meaning "end of
+** map", for the {@link Node#lkey} and {@link Node#rkey} fields. This is NOT
+** an urgent priority to fix, but might be done in the future.
+**
 ** @author infinity0
+** @see TreeMap
+** @see Comparator
+** @see Comparable
 */
-public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
+public class BTreeMap<K, V> extends AbstractMap<K, V>
+implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializable*/ {
 
 	/**
 	** Minimum number of children of each node.
@@ -240,26 +254,7 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 			}
 		}
 
-		// TODO make this show the values too, and move the keys-only into a
-		// separate function
-		public String toString() {
-			StringBuilder s = new StringBuilder();
-			s.append("[").append(lkey).append(")");
-			if (isLeaf) {
-				for (K k: entries.keySet()) {
-					s.append(" ").append(k);
-				}
-			} else {
-				s.append(" ").append(rnodes.get(lkey));
-				for (K k: entries.keySet()) {
-					s.append(" ").append(k).append(" ").append(rnodes.get(k));
-				}
-			}
-			s.append(" (").append(rkey).append("]");
-			return s.toString();
-		}
-
-		public String toPrettyString(String istr) {
+		public String toTreeString(String istr) {
 			String nistr = istr + "\t";
 			StringBuilder s = new StringBuilder();
 			s.append(istr).append('(').append(lkey).append(')').append('\n');
@@ -268,10 +263,10 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 					s.append(istr).append(en.getKey()).append(" : ").append(en.getValue()).append('\n');
 				}
 			} else {
-				s.append(rnodes.get(lkey).toPrettyString(nistr));
+				s.append(rnodes.get(lkey).toTreeString(nistr));
 				for (Map.Entry<K, V> en: entries.entrySet()) {
 					s.append(istr).append(en.getKey()).append(" : ").append(en.getValue()).append('\n');
-					s.append(rnodes.get(en.getKey()).toPrettyString(nistr));
+					s.append(rnodes.get(en.getKey()).toTreeString(nistr));
 				}
 			}
 			s.append(istr).append('(').append(rkey).append(')').append('\n');
@@ -280,12 +275,8 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 
 	}
 
-	public String toString() {
-		return root.toString();
-	}
-
-	public String toPrettyString() {
-		return root.toPrettyString("");
+	public String toTreeString() {
+		return root.toTreeString("");
 	}
 
 	/**
@@ -659,18 +650,45 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 		size = 0;
 	}
 
-	@Override public boolean containsKey(Object key) {
-		throw new UnsupportedOperationException("not implemented");
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation just descends the tree, returning {@code true} if it
+	** finds the given key.
+	**
+	** @throws ClassCastException key cannot be compared with the keys
+	**         currently in the map
+	** @throws NullPointerException key is {@code null} and this map uses
+	**         natural order, or its comparator does not tolerate {@code null}
+	**         keys
+	*/
+	@Override public boolean containsKey(Object k) {
+		K key = (K) k;
+		Node node = root;
+
+		for (;;) {
+			if (node.isLeaf) {
+				return node.entries.containsKey(key);
+			}
+
+			Node nextnode = node.selectNode(key);
+			if (nextnode == null) {
+				return true;
+			}
+
+			node = nextnode;
+		}
 	}
 
+	/* provided by AbstractMap
 	@Override public boolean containsValue(Object key) {
 		throw new UnsupportedOperationException("not implemented");
-	}
+	}*/
 
 	/**
 	** {@inheritDoc}
 	**
-	** This implementation just descends the tree, returning the value for a
+	** This implementation just descends the tree, returning the value for the
 	** given key if it can be found.
 	**
 	** @throws ClassCastException key cannot be compared with the keys
@@ -862,23 +880,144 @@ StringBuilder output = new StringBuilder();
 		}
 	}
 
+	/* provided by AbstractMap
+	 *
+	 * possible extension: if the tree is empty, then we can use the
+	 * "construct a new BTree" algorithm described on the wikipedia page
 	@Override public void putAll(Map<? extends K, ? extends V> map) {
 		for (Map.Entry<? extends K, ? extends V> en: map.entrySet()) {
 			put(en.getKey(), en.getValue());
 		}
+	}*/
+
+	// maybe make this a WeakReference?
+	Set<Map.Entry<K, V>> entrySet = null;
+	@Override public Set<Map.Entry<K, V>> entrySet() {
+		if (entrySet == null) {
+			entrySet = new AbstractSet<Map.Entry<K, V>>() {
+
+				@Override public int size() { return BTreeMap.this.size(); }
+
+				@Override public Iterator<Map.Entry<K, V>> iterator() {
+					// URGENT - this does NOT yet throw ConcurrentModificationException
+					// use a modCount counter
+					return new Iterator<Map.Entry<K, V>>() {
+
+						Stack<Node> nodestack = new Stack<Node>();
+						Stack<Iterator<Map.Entry<K, V>>> itstack = new Stack<Iterator<Map.Entry<K, V>>>();
+
+						Node cnode = BTreeMap.this.root;
+						Iterator<Map.Entry<K, V>> centit = cnode.entries.entrySet().iterator();
+
+						K lastkey = null;
+
+						@Override public boolean hasNext() {
+							for (Iterator<Map.Entry<K, V>> it: itstack) {
+								if (it.hasNext()) { return true; }
+							}
+							if (centit.hasNext()) { return true; }
+							return false;
+						}
+
+						@Override public Map.Entry<K, V> next() {
+							if (cnode.isLeaf) {
+								while (!centit.hasNext()) {
+									if (nodestack.empty()) {
+										assert(itstack.empty());
+										throw new NoSuchElementException();
+									}
+									cnode = nodestack.pop();
+									centit = itstack.pop();
+								}
+								Map.Entry<K, V> next = centit.next(); lastkey = next.getKey();
+								return next;
+							} else {
+								while (!cnode.isLeaf) {
+									nodestack.push(cnode);
+									itstack.push(centit);
+									// lastkey initialised to null, so this will get the right node even at the
+									// smaller edge of the map
+									cnode = cnode.rnodes.get(lastkey);
+									centit = cnode.entries.entrySet().iterator();
+								}
+								Map.Entry<K, V> next = centit.next(); lastkey = next.getKey();
+								return next;
+							}
+						}
+
+						@Override public void remove() {
+							BTreeMap.this.remove(lastkey);
+							// we need to find our position in the tree again, since there may have
+							// been structural modifications to in.
+
+							// OPTIMISE have a "structual modifications counter" that
+							// split, merge, rotateL, rotateR increment, and do this only if it
+							// changes
+							nodestack.clear();
+							itstack.clear();
+							cnode = BTreeMap.this.root;
+							centit = cnode.entries.entrySet().iterator();
+
+							K stopkey = null;
+							while(!cnode.isLeaf) {
+								stopkey = findstopkey(stopkey);
+								nodestack.push(cnode);
+								itstack.push(centit);
+								// stopkey initialised to null, so this will get the right node even at the
+								// smaller edge of the map
+								cnode = cnode.rnodes.get(stopkey);
+								centit = cnode.entries.entrySet().iterator();
+							}
+
+							lastkey = findstopkey(stopkey);
+						}
+
+						private K findstopkey(K stopkey) {
+							SortedMap<K, V> headmap = cnode.entries.headMap(lastkey);
+							if (!headmap.isEmpty()) {
+								stopkey = headmap.lastKey();
+								while (compare(centit.next().getKey(), stopkey) < 0);
+							}
+							return stopkey;
+						}
+
+					};
+				}
+
+				@Override public void clear() {
+					BTreeMap.this.clear();
+				}
+
+				@Override public boolean contains(Object o) {
+					if (!(o instanceof Map.Entry)) { return false; }
+					Map.Entry e = (Map.Entry)o;
+					Object value = BTreeMap.this.get(e.getKey());
+					return value != null && value.equals(e.getValue());
+				}
+
+				@Override public boolean remove(Object o) {
+					if (contains(o)) {
+						Map.Entry e = (Map.Entry)o;
+						BTreeMap.this.remove(e.getKey());
+						return true;
+					}
+					return false;
+				}
+
+			};
+		}
+		return entrySet;
 	}
 
+	/* provided by AbstractMap
 	@Override public Set<K> keySet() {
 		throw new UnsupportedOperationException("not implemented");
-	}
+	}*/
 
-	@Override public Set<Map.Entry<K, V>> entrySet() {
-		throw new UnsupportedOperationException("not implemented");
-	}
-
+	/* provided by AbstractMap
 	@Override public Collection<V> values() {
 		throw new UnsupportedOperationException("not implemented");
-	}
+	}*/
 
 	/*========================================================================
 	  public interface Map
@@ -889,11 +1028,21 @@ StringBuilder output = new StringBuilder();
 	}
 
 	@Override public K firstKey() {
-		throw new UnsupportedOperationException("not implemented");
+		Node node = root;
+		for (;;) {
+			K fkey = node.entries.firstKey();
+			if (node.isLeaf) { return fkey; }
+			node = node.lnodes.get(fkey);
+		}
 	}
 
 	@Override public K lastKey() {
-		throw new UnsupportedOperationException("not implemented");
+		Node node = root;
+		for (;;) {
+			K lkey = node.entries.lastKey();
+			if (node.isLeaf) { return lkey; }
+			node = node.rnodes.get(lkey);
+		}
 	}
 
 	@Override public SortedMap<K, V> headMap(K rkey) {

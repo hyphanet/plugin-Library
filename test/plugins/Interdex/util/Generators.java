@@ -5,18 +5,22 @@ package plugins.Interdex.util;
 
 import junit.framework.TestCase;
 
-import java.util.Map;
-import java.util.Iterator;
+import java.util.UUID;
+import java.util.Random;
 
 /**
 ** @author infinity0
 */
-public class SkeletonPrefixTreeMapTest extends TestCase {
+abstract public class Generators {
 
-
-	public void testBasic() {
-		// URGENT
-		// do this after Index is done, probably...
+	public static String rndStr() {
+		return UUID.randomUUID().toString();
 	}
+
+	public static String rndKey() {
+		return rndStr().substring(0,8);
+	}
+
+	public static Random rand = new Random();
 
 }

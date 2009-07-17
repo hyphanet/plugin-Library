@@ -5,13 +5,13 @@ package plugins.Interdex.serl;
 
 import junit.framework.TestCase;
 
+import plugins.Interdex.util.Generators;
 import plugins.Interdex.serl.Packer.Bin;
 import plugins.Interdex.serl.Serialiser.*;
 
 import java.util.Map;
 import java.util.List;
 import java.util.Iterator;
-import java.util.UUID;
 import java.util.HashSet;
 import java.util.HashMap;
 
@@ -40,7 +40,7 @@ public class PackerTest extends TestCase {
 			for (int i=0; i<size; ++i) {
 				hs.add(new Integer(i));
 			}
-			tasks.put(UUID.randomUUID().toString(), new PushTask<HashSet>(hs, meta));
+			tasks.put(Generators.rndStr(), new PushTask<HashSet>(hs, meta));
 		}
 		return tasks;
 	}

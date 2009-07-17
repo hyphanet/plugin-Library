@@ -23,10 +23,6 @@ public class IndexTest extends TestCase {
 		//plugins.Interdex.serl.YamlArchiver.setTestMode();
 	}
 
-	public String rndStr() {
-		return java.util.UUID.randomUUID().toString();
-	}
-
 	long time = 0;
 
 	public long timeDiff() {
@@ -70,14 +66,14 @@ public class IndexTest extends TestCase {
 		int totalentries = 0;
 
 		for (int i=0; i<256; ++i) {
-			String key = rndStr().substring(0,8);
+			String key = Generators.rndKey();
 			SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
 			int n = rand.nextInt(16) + 16;
 			totalentries += n;
 
 			try {
 				for (int j=0; j<n; ++j) {
-					TokenEntry e = new TokenURIEntry(key, new FreenetURI("CHK@" + rndStr().replace('-', 'Z')));
+					TokenEntry e = new TokenURIEntry(key, new FreenetURI("CHK@" + Generators.rndStr().replace('-', 'Z')));
 					e.setRelevance((float)Math.random());
 					entries.add(e);
 				}
@@ -126,7 +122,7 @@ public class IndexTest extends TestCase {
 
 			try {
 				for (int j=0; j<n; ++j) {
-					TokenEntry e = new TokenURIEntry(word, new FreenetURI("CHK@" + rndStr().replace('-', 'Z')));
+					TokenEntry e = new TokenURIEntry(word, new FreenetURI("CHK@" + Generators.rndStr().replace('-', 'Z')));
 					e.setRelevance((float)Math.random());
 					entries.add(e);
 				}
@@ -182,7 +178,7 @@ public class IndexTest extends TestCase {
 
 		System.out.println("Generating a shit load of entries to test progress polling. This may take a while...");
 		for (int i=0; i<numterms; ++i) {
-			String key = rndStr().substring(0,8);
+			String key = Generators.rndStr().substring(0,8);
 			if (i == save) { sterm = key; }
 			SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
 			int n = rand.nextInt(512) + 512;
@@ -190,7 +186,7 @@ public class IndexTest extends TestCase {
 
 			try {
 				for (int j=0; j<n; ++j) {
-					TokenEntry e = new TokenURIEntry(key, new FreenetURI("CHK@" + rndStr().replace('-', 'Z')));
+					TokenEntry e = new TokenURIEntry(key, new FreenetURI("CHK@" + Generators.rndStr().replace('-', 'Z')));
 					e.setRelevance((float)Math.random());
 					entries.add(e);
 				}
