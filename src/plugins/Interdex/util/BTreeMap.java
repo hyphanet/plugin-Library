@@ -137,7 +137,7 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 
 		/**
 		** Map of entries to their immediate greater nodes. The smallest node
-		** is mapped to by {@code #lkey}.
+		** is mapped to by {@link #lkey}.
 		*/
 		final Map<K, Node> rnodes;
 
@@ -180,45 +180,37 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 		}
 
 		/**
-		** Returns the greatest subnode smaller than the given key, which must
-		** be local to the node. If {@code key} is rkey, returns the greatest
-		** subnode.
+		** Returns the greatest subnode smaller than the given node.
 		**
-		** Note: This method assumes that the input key is strictly between
-		** {@link #lkey} and {@link #rkey}; it is up to the calling code to
-		** ensure that this holds.
+		** Note: This method assumes that the input is an actual subnode of
+		** this node; it is up to the calling code to ensure that this holds.
 		**
-		** @param key The key to lookup the node for
-		** @return The appropriate node, or null if the key is not local to the
-		**         node
+		** @param node The node to lookup its neighbour for
+		** @return The neighbour node, or null if the input node is at the edge
 		** @throws NullPointerException if this is a leaf node
 		*/
-		Node nodeL(K key) {
-			assert(key == null && lkey == null && rkey == null
-			    || compare2(lkey, key) < 0 && compare2(key, rkey) <= 0);
+		Node nodeL(Node node) {
+			assert(lnodes.get(node.rkey) == node
+			    && rnodes.get(node.lkey) == node);
 
-			return lnodes.get(key);
+			return (compare2(lkey, node.lkey) == 0)? null: lnodes.get(node.lkey);
 		}
 
 		/**
-		** Returns the smallest subnode greater than the given key, which must
-		** be local to the node. If {@code key} is lkey, returns the smallest
-		** subnode.
+		** Returns the smallest subnode greater than the given node.
 		**
-		** Note: This method assumes that the input key is strictly between
-		** {@link #lkey} and {@link #rkey}; it is up to the calling code to
-		** ensure that this holds.
+		** Note: This method assumes that the input is an actual subnode of
+		** this node; it is up to the calling code to ensure that this holds.
 		**
-		** @param key The key to lookup the node for
-		** @return The appropriate node, or null if the key is not local to the
-		**         node
+		** @param node The node to lookup its neighbour for
+		** @return The neighbour node, or null if the input node is at the edge
 		** @throws NullPointerException if this is a leaf node
 		*/
-		Node nodeR(K key) {
-			assert(key == null && lkey == null && rkey == null
-			    || compare2(lkey, key) <= 0 && compare2(key, rkey) < 0);
+		Node nodeR(Node node) {
+			assert(lnodes.get(node.rkey) == node
+			    && rnodes.get(node.lkey) == node);
 
-			return rnodes.get(key);
+			return (compare2(node.rkey, rkey) == 0)? null: rnodes.get(node.rkey);
 		}
 
 		/**
@@ -237,8 +229,7 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 		**         its comparator does not tolerate {@code null} keys
 		*/
 		Node selectNode(K key) {
-			assert(compare2(lkey, key) < 0);
-			assert(compare2(key, rkey) < 0);
+			assert(compare2(lkey, key) < 0 && compare2(key, rkey) < 0);
 
 			SortedMap<K, V> tailmap = entries.tailMap(key);
 			if (tailmap.isEmpty()) {
@@ -261,7 +252,7 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 			} else {
 				s.append(" ").append(rnodes.get(lkey));
 				for (K k: entries.keySet()) {
-					s.append(" ").append(k).append(" ").append(nodeR(k));
+					s.append(" ").append(k).append(" ").append(rnodes.get(k));
 				}
 			}
 			s.append(" (").append(rkey).append("]");
@@ -280,7 +271,7 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 				s.append(rnodes.get(lkey).toPrettyString(nistr));
 				for (Map.Entry<K, V> en: entries.entrySet()) {
 					s.append(istr).append(en.getKey()).append(" : ").append(en.getValue()).append('\n');
-					s.append(nodeR(en.getKey()).toPrettyString(nistr));
+					s.append(rnodes.get(en.getKey()).toPrettyString(nistr));
 				}
 			}
 			s.append(istr).append('(').append(rkey).append(')').append('\n');
@@ -295,214 +286,6 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 
 	public String toPrettyString() {
 		return root.toPrettyString("");
-	}
-
-	/**
-	** Split a maximal child node into two minimal nodes, using the median key
-	** as the separator between these new nodes in the parent. If the parent is
-	** {@code null}, creates a new {@link Node} and points {@link #root} to it.
-	**
-	** Note: This method assumes that the child is an actual subnode of the
-	** parent, and that it is actually full. It is up to the calling code to
-	** ensure that this holds.
-	**
-	** The exact implementation of this may change from time to time, so the
-	** calling code should regard the input subnode as effectively destroyed,
-	** and re-get the desired result subnode from calling the appropriate
-	** get methods on the parent node.
-	**
-	** @param parent The node to (re)attach the split subnodes to.
-	** @param child The subnode to split
-	*/
-	private K split(Node parent, Node child) {
-		assert(child.entries.size() == ENT_MAX);
-		assert(parent == null? (child.lkey == null && child.rkey == null):
-		                       (parent.entries.size() < ENT_MAX
-		                     && !parent.isLeaf
-		                     && parent.nodeR(child.lkey) == child
-		                     && parent.nodeL(child.rkey) == child));
-
-		if (parent == null) {
-			parent = root = new Node();
-			parent.lnodes.put(null, child);
-			parent.rnodes.put(null, child);
-		}
-		Node lnode = new Node(child.isLeaf);
-
-		if (child.isLeaf) {
-			// this is just the same as the code in the else block, but with leaf
-			// references to rnodes and lnodes removed (since they are null)
-			Iterator<Map.Entry<K, V>> it = child.entries.entrySet().iterator();
-			for (int i=0; i<ENT_MIN; ++i) {
-				Map.Entry<K, V> entry = it.next();
-				K key = entry.getKey();
-
-				lnode.entries.put(key, entry.getValue());
-				it.remove();
-			}
-			Map.Entry<K, V> median = it.next();
-			K mkey = median.getKey();
-
-			lnode.lkey = child.lkey;
-			lnode.rkey = child.lkey = mkey;
-
-			parent.rnodes.put(lnode.lkey, lnode);
-			parent.lnodes.put(child.rkey, child);
-			parent.entries.put(mkey, median.getValue());
-			parent.rnodes.put(mkey, child);
-			parent.lnodes.put(mkey, lnode);
-
-			it.remove();
-			return mkey;
-
-		} else {
-			lnode.rnodes.put(child.lkey, child.rnodes.remove(child.lkey));
-			Iterator<Map.Entry<K, V>> it = child.entries.entrySet().iterator();
-			for (int i=0; i<ENT_MIN; ++i) {
-				Map.Entry<K, V> entry = it.next();
-				K key = entry.getKey();
-
-				lnode.entries.put(key, entry.getValue());
-				lnode.lnodes.put(key, child.lnodes.remove(key));
-				lnode.rnodes.put(key, child.rnodes.remove(key));
-				it.remove();
-			}
-			Map.Entry<K, V> median = it.next();
-			K mkey = median.getKey();
-			lnode.lnodes.put(mkey, child.lnodes.remove(mkey));
-
-			lnode.lkey = child.lkey;
-			lnode.rkey = child.lkey = mkey;
-
-			parent.rnodes.put(lnode.lkey, lnode);
-			parent.lnodes.put(child.rkey, child);
-			parent.entries.put(mkey, median.getValue());
-			parent.rnodes.put(mkey, child);
-			parent.lnodes.put(mkey, lnode);
-
-			it.remove();
-			return mkey;
-		}
-	}
-
-	/**
-	** Merge two minimal child nodes into a maximal node, using the key that
-	** separates them in the parent as the key that joins the halfnodes in the
-	** merged node. If the parent is the {@link #root} and the merge makes it
-	** empty, point {@code root} to the new merged node.
-	**
-	** Note: This method assumes that both childs are an actual subnodes of the
-	** parent, that they are adjacent in the parent, and that they are actually
-	** minimally full. It is up to the calling code to ensure that this holds.
-	**
-	** The exact implementation of this may change from time to time, so the
-	** calling code should regard both input subnodes as effectively destroyed,
-	** and re-get the desired result subnode from calling the appropriate
-	** get methods on the parent node.
-	**
-	** @param parent The node to (re)attach the merge node to.
-	** @param lnode The smaller subnode to merge
-	** @param rnode The greater subnode to merge
-	*/
-	private K merge(Node parent, Node lnode, Node rnode) {
-		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
-		assert(lnode.isLeaf && rnode.isLeaf || !lnode.isLeaf && !rnode.isLeaf);
-		assert(lnode.entries.size() == ENT_MIN);
-		assert(rnode.entries.size() == ENT_MIN);
-		assert(parent == root && parent.entries.size() > 0
-		                      || parent.entries.size() > ENT_MIN);
-		assert(!parent.isLeaf && parent.nodeR(lnode.rkey) == rnode
-		                      && parent.nodeL(rnode.lkey) == lnode);
-
-		if (rnode.isLeaf) {
-			// this is just the same as the code in the else block, but with leaf
-			// references to rnodes and lnodes removed (since they are null)
-			rnode.entries.putAll(lnode.entries);
-
-			K mkey = rnode.lkey; // same as lnode.rkey;
-			rnode.entries.put(mkey, parent.entries.remove(mkey));
-
-			parent.rnodes.remove(mkey);
-			parent.lnodes.remove(mkey);
-			parent.rnodes.put(lnode.lkey, rnode);
-
-			if (parent == root && parent.entries.isEmpty()) { root = rnode; }
-			return mkey;
-
-		} else {
-			rnode.entries.putAll(lnode.entries);
-			rnode.lnodes.putAll(lnode.lnodes);
-			rnode.rnodes.putAll(lnode.rnodes);
-
-			K mkey = rnode.lkey; // same as lnode.rkey;
-			rnode.entries.put(mkey, parent.entries.remove(mkey));
-
-			rnode.lnodes.put(mkey, lnode.lnodes.get(mkey));
-			rnode.rnodes.put(lnode.lkey, lnode.rnodes.get(lnode.lkey));
-
-			parent.rnodes.remove(mkey);
-			parent.lnodes.remove(mkey);
-			parent.rnodes.put(lnode.lkey, rnode);
-
-			if (parent == root && parent.entries.isEmpty()) { root = rnode; }
-			return mkey;
-		}
-	}
-
-	/**
-	** Performs a rotate operation towards the smaller node.
-	**
-	** DOCUMENT and put asserts in
-	*/
-	private K rotateL(Node parent, Node lnode, Node rnode) {
-		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
-		assert(lnode.isLeaf && rnode.isLeaf || !lnode.isLeaf && !rnode.isLeaf);
-		assert(rnode.entries.size() >= lnode.entries.size());
-		assert(rnode.entries.size() > ENT_MIN);
-		assert(!parent.isLeaf && parent.nodeR(lnode.rkey) == rnode
-		                      && parent.nodeL(rnode.lkey) == lnode);
-
-		K mkey = rnode.lkey;
-		K skey = rnode.entries.firstKey();
-
-		lnode.entries.put(mkey, parent.entries.remove(mkey));
-		parent.entries.put(skey, rnode.entries.remove(skey));
-		parent.rnodes.put(skey, parent.rnodes.remove(mkey));
-		parent.lnodes.put(skey, parent.lnodes.remove(mkey));
-
-		if (!lnode.isLeaf) {
-			lnode.rnodes.put(mkey, rnode.rnodes.remove(mkey));
-			lnode.lnodes.put(skey, rnode.lnodes.remove(skey));
-		}
-
-		return mkey;
-	}
-
-	/**
-	** DOCUMENT and put asserts in
-	*/
-	private K rotateR(Node parent, Node lnode, Node rnode) {
-		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
-		assert(lnode.isLeaf && rnode.isLeaf || !lnode.isLeaf && !rnode.isLeaf);
-		assert(lnode.entries.size() >= rnode.entries.size());
-		assert(lnode.entries.size() > ENT_MIN);
-		assert(!parent.isLeaf && parent.nodeR(lnode.rkey) == rnode
-		                      && parent.nodeL(rnode.lkey) == lnode);
-
-		K mkey = lnode.rkey;
-		K skey = lnode.entries.lastKey();
-
-		rnode.entries.put(mkey, parent.entries.remove(mkey));
-		parent.entries.put(skey, lnode.entries.remove(skey));
-		parent.lnodes.put(skey, parent.lnodes.remove(mkey));
-		parent.rnodes.put(skey, parent.rnodes.remove(mkey));
-
-		if (!rnode.isLeaf) {
-			rnode.lnodes.put(mkey, lnode.lnodes.remove(mkey));
-			rnode.rnodes.put(skey, lnode.rnodes.remove(skey));
-		}
-
-		return mkey;
 	}
 
 	/**
@@ -541,7 +324,7 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 	** @throws IllegalStateException if the test condition is false
 	*/
 	final void verify(boolean b) {
-		if (!b) { throw new IllegalStateException("Assert failed"); }
+		if (!b) { throw new IllegalStateException("Verification failed"); }
 	}
 
 	/**
@@ -553,7 +336,7 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 	**
 	** - for each pair of adjacent keys (including two null keys either side of
 	**   the list of keys), it is possible to traverse between the keys, and
-	**   the single node between them, using the nodeL(), nodeR() methods and
+	**   the single node between them, using the lnodes, rnodes maps and
 	**   the lkey, rkey pointers.
 	** - lnodes' and rnodes' size is 1 greater than that of entries. Ie. there
 	**   is nothing else in the node beyond what we visited in the previous
@@ -568,6 +351,12 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 	** @throws IllegalStateException if the constraints are not satisfied
 	*/
 	void verifyNodeIntegrity(Node node) {
+		if (node.entries.isEmpty()) {
+			verify(node == root && node.lkey == null && node.rkey == null);
+			verify(node.isLeaf && node.rnodes == null && node.lnodes == null);
+			return;
+		}
+
 		verify(compare2(node.lkey, node.entries.firstKey()) < 0);
 		verify(compare2(node.entries.lastKey(), node.rkey) < 0);
 
@@ -578,9 +367,9 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 			K prev = node.lkey;
 			K curr = it.next();
 			while (curr != node.rkey || prev != node.rkey) {
-				Node node1 = node.nodeR(prev);
+				Node node1 = node.rnodes.get(prev);
 				verify(node1 != null && compare2(curr, node1.rkey) == 0);
-				Node node2 = node.nodeL(curr);
+				Node node2 = node.lnodes.get(curr);
 				verify(node1 == node2 && compare2(node2.lkey, prev) == 0);
 				prev = curr;
 				curr = it.hasNext()? it.next(): node.rkey;
@@ -629,6 +418,228 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 	*/
 	void verifyTreeIntegrity() {
 		verifyTreeIntegrity(root);
+	}
+
+	/**
+	** Split a maximal child node into two minimal nodes, using the median key
+	** as the separator between these new nodes in the parent. If the parent is
+	** {@code null}, creates a new {@link Node} and points {@link #root} to it.
+	**
+	** Note: This method assumes that the child is an actual subnode of the
+	** parent, and that it is actually full. It is up to the calling code to
+	** ensure that this holds.
+	**
+	** The exact implementation of this may change from time to time, so the
+	** calling code should regard the input subnode as effectively destroyed,
+	** and re-get the desired result subnode from calling the appropriate
+	** get methods on the parent node.
+	**
+	** @param parent The node to (re)attach the split subnodes to.
+	** @param child The subnode to split
+	*/
+	private K split(Node parent, Node child) {
+		assert(child.entries.size() == ENT_MAX);
+		assert(parent == null? (child.lkey == null && child.rkey == null):
+		                       (parent.entries.size() < ENT_MAX
+		                     && !parent.isLeaf
+		                     && parent.rnodes.get(child.lkey) == child
+		                     && parent.lnodes.get(child.rkey) == child));
+
+		if (parent == null) {
+			assert(child.lkey == null && child.rkey == null);
+			parent = root = new Node();
+			parent.lnodes.put(null, child);
+			parent.rnodes.put(null, child);
+		}
+		Node lnode = new Node(child.isLeaf);
+		K mkey;
+
+		if (child.isLeaf) {
+			// this is just the same as the code in the else block, but with leaf
+			// references to rnodes and lnodes removed (since they are null)
+			Iterator<Map.Entry<K, V>> it = child.entries.entrySet().iterator();
+			for (int i=0; i<ENT_MIN; ++i) {
+				Map.Entry<K, V> entry = it.next(); it.remove();
+				K key = entry.getKey();
+
+				lnode.entries.put(key, entry.getValue());
+			}
+			Map.Entry<K, V> median = it.next(); it.remove();
+			mkey = median.getKey();
+
+			lnode.lkey = child.lkey;
+			lnode.rkey = child.lkey = mkey;
+
+			parent.rnodes.put(lnode.lkey, lnode);
+			parent.lnodes.put(child.rkey, child);
+			parent.entries.put(mkey, median.getValue());
+			parent.rnodes.put(mkey, child);
+			parent.lnodes.put(mkey, lnode);
+
+		} else {
+			lnode.rnodes.put(child.lkey, child.rnodes.remove(child.lkey));
+			Iterator<Map.Entry<K, V>> it = child.entries.entrySet().iterator();
+			for (int i=0; i<ENT_MIN; ++i) {
+				Map.Entry<K, V> entry = it.next(); it.remove();
+				K key = entry.getKey();
+
+				lnode.entries.put(key, entry.getValue());
+				lnode.lnodes.put(key, child.lnodes.remove(key));
+				lnode.rnodes.put(key, child.rnodes.remove(key));
+			}
+			Map.Entry<K, V> median = it.next(); it.remove();
+			mkey = median.getKey();
+			lnode.lnodes.put(mkey, child.lnodes.remove(mkey));
+
+			lnode.lkey = child.lkey;
+			lnode.rkey = child.lkey = mkey;
+
+			parent.rnodes.put(lnode.lkey, lnode);
+			parent.lnodes.put(child.rkey, child);
+			parent.entries.put(mkey, median.getValue());
+			parent.rnodes.put(mkey, child);
+			parent.lnodes.put(mkey, lnode);
+		}
+
+		assert(parent.rnodes.get(mkey) == child);
+		assert(parent.lnodes.get(mkey) == lnode);
+		return mkey;
+	}
+
+	/**
+	** Merge two minimal child nodes into a maximal node, using the key that
+	** separates them in the parent as the key that joins the halfnodes in the
+	** merged node. If the parent is the {@link #root} and the merge makes it
+	** empty, point {@code root} to the new merged node.
+	**
+	** Note: This method assumes that both childs are an actual subnodes of the
+	** parent, that they are adjacent in the parent, and that they are actually
+	** minimally full. It is up to the calling code to ensure that this holds.
+	**
+	** The exact implementation of this may change from time to time, so the
+	** calling code should regard both input subnodes as effectively destroyed,
+	** and re-get the desired result subnode from calling the appropriate
+	** get methods on the parent node.
+	**
+	** @param parent The node to (re)attach the merge node to.
+	** @param lnode The smaller subnode to merge
+	** @param rnode The greater subnode to merge
+	*/
+	private K merge(Node parent, Node lnode, Node rnode) {
+		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
+		assert(lnode.isLeaf && rnode.isLeaf || !lnode.isLeaf && !rnode.isLeaf);
+		assert(lnode.entries.size() == ENT_MIN);
+		assert(rnode.entries.size() == ENT_MIN);
+		assert(parent == root && parent.entries.size() > 0
+		                      || parent.entries.size() > ENT_MIN);
+		assert(!parent.isLeaf && parent.rnodes.get(lnode.rkey) == rnode
+		                      && parent.lnodes.get(rnode.lkey) == lnode);
+
+		K mkey = rnode.lkey; // same as lnode.rkey;
+
+		if (rnode.isLeaf) {
+			// this is just the same as the code in the else block, but with leaf
+			// references to rnodes and lnodes removed (since they are null)
+			rnode.entries.putAll(lnode.entries);
+
+			rnode.entries.put(mkey, parent.entries.remove(mkey));
+			rnode.lkey = lnode.lkey;
+
+			parent.rnodes.remove(mkey);
+			parent.lnodes.remove(mkey);
+			parent.rnodes.put(lnode.lkey, rnode);
+
+		} else {
+			rnode.entries.putAll(lnode.entries);
+			rnode.lnodes.putAll(lnode.lnodes);
+			rnode.rnodes.putAll(lnode.rnodes);
+
+			rnode.entries.put(mkey, parent.entries.remove(mkey));
+			rnode.lnodes.put(mkey, lnode.lnodes.get(mkey));
+			rnode.rnodes.put(lnode.lkey, lnode.rnodes.get(lnode.lkey));
+			rnode.lkey = lnode.lkey;
+
+			parent.rnodes.remove(mkey);
+			parent.lnodes.remove(mkey);
+			parent.rnodes.put(lnode.lkey, rnode);
+
+		}
+
+		if (parent == root && parent.entries.isEmpty()) {
+			assert(parent.lkey == null && parent.rkey == null
+			    && rnode.lkey == null && rnode.rkey == null);
+			root = rnode;
+		}
+
+		assert(parent.rnodes.get(rnode.lkey) == rnode);
+		assert(parent.lnodes.get(rnode.rkey) == rnode);
+		return mkey;
+	}
+
+	/**
+	** Performs a rotate operation towards the smaller node.
+	**
+	** DOCUMENT
+	*/
+	private K rotateL(Node parent, Node lnode, Node rnode) {
+		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
+		assert(lnode.isLeaf && rnode.isLeaf || !lnode.isLeaf && !rnode.isLeaf);
+		assert(rnode.entries.size() >= lnode.entries.size());
+		assert(rnode.entries.size() > ENT_MIN);
+		assert(!parent.isLeaf && parent.rnodes.get(lnode.rkey) == rnode
+		                      && parent.lnodes.get(rnode.lkey) == lnode);
+
+		K mkey = rnode.lkey;
+		K skey = rnode.entries.firstKey();
+
+		lnode.entries.put(mkey, parent.entries.remove(mkey));
+		parent.entries.put(skey, rnode.entries.remove(skey));
+		parent.rnodes.put(skey, parent.rnodes.remove(mkey));
+		parent.lnodes.put(skey, parent.lnodes.remove(mkey));
+
+		lnode.rkey = rnode.lkey = skey;
+
+		if (!lnode.isLeaf) {
+			lnode.rnodes.put(mkey, rnode.rnodes.remove(mkey));
+			lnode.lnodes.put(skey, rnode.lnodes.remove(skey));
+		}
+
+		assert(parent.rnodes.get(skey) == rnode);
+		assert(parent.lnodes.get(skey) == lnode);
+		return mkey;
+	}
+
+	/**
+	** Performs a rotate operation towards the greater node.
+	**
+	** DOCUMENT
+	*/
+	private K rotateR(Node parent, Node lnode, Node rnode) {
+		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
+		assert(lnode.isLeaf && rnode.isLeaf || !lnode.isLeaf && !rnode.isLeaf);
+		assert(lnode.entries.size() >= rnode.entries.size());
+		assert(lnode.entries.size() > ENT_MIN);
+		assert(!parent.isLeaf && parent.rnodes.get(lnode.rkey) == rnode
+		                      && parent.lnodes.get(rnode.lkey) == lnode);
+
+		K mkey = lnode.rkey;
+		K skey = lnode.entries.lastKey();
+
+		rnode.entries.put(mkey, parent.entries.remove(mkey));
+		parent.entries.put(skey, lnode.entries.remove(skey));
+		parent.lnodes.put(skey, parent.lnodes.remove(mkey));
+		parent.rnodes.put(skey, parent.rnodes.remove(mkey));
+
+		lnode.rkey = rnode.lkey = skey;
+
+		if (!rnode.isLeaf) {
+			rnode.lnodes.put(mkey, lnode.lnodes.remove(mkey));
+			rnode.rnodes.put(skey, lnode.rnodes.remove(skey));
+		}
+
+		assert(parent.rnodes.get(skey) == rnode);
+		assert(parent.lnodes.get(skey) == lnode);
+		return mkey;
 	}
 
 	/*========================================================================
@@ -791,13 +802,23 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 	@Override public V remove(Object k) {
 		K key = (K) k;
 		Node node = root, parent = null;
-
+StringBuilder output = new StringBuilder();
 		for (;;) {
+			output.append(node.lkey).append(' ').append(key).append(' ').append(node.rkey).append('\n');
 			if (node != root && node.entries.size() == ENT_MIN) {
-				Node lnode = parent.nodeL(node.lkey), rnode = parent.nodeR(node.rkey);
-				int L = lnode.entries.size(), R = rnode.entries.size();
+				Node lnode = parent.nodeL(node), rnode = parent.nodeR(node);
+				int L = (lnode == null)? -1: lnode.entries.size();
+				int R = (rnode == null)? -1: rnode.entries.size();
 
-				K kk = (R > L)? rotateL(parent, node, rnode):
+				K kk = // in java, ?: must be used in a statement :|
+				// lnode doesn't exist
+				(L < 0)? ((R == ENT_MIN)? merge(parent, node, rnode):
+				                          rotateL(parent, node, rnode)):
+				// rnode doesn't exist
+				(R < 0)? ((L == ENT_MIN)? merge(parent, lnode, node):
+				                          rotateR(parent, lnode, node)):
+				// pick the node with more entries
+				(R > L)? rotateL(parent, node, rnode):
 				(L > R)? rotateR(parent, lnode, node):
 				// otherwise pick one at "random"
 				(size&1) == 1? (R == ENT_MIN? merge(parent, node, rnode):
@@ -807,7 +828,7 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 				node = parent.selectNode(key);
 				assert(node != null);
 			}
-			assert(node.entries.size() > ENT_MIN);
+			assert(node == root || node.entries.size() >= ENT_MIN);
 
 			if (node.isLeaf) { // leaf node
 				int sz = node.entries.size();
@@ -819,16 +840,19 @@ public class BTreeMap<K, V> implements Map<K, V>, SortedMap<K, V> {
 
 			Node nextnode = node.selectNode(key);
 			if (nextnode == null) { // key is already in the node
-				Node lnode = node.nodeL(key), rnode = node.nodeR(key);
+				Node lnode = node.lnodes.get(key), rnode = node.rnodes.get(key);
 				int L = lnode.entries.size(), R = rnode.entries.size();
 
-				K kk = (R > L)? rotateL(parent, lnode, rnode):
-				(L > R)? rotateR(parent, lnode, rnode):
+				K kk =
+				// both lnode and rnode must exist, so
+				// pick the one with more entries
+				(R > L)? rotateL(node, lnode, rnode):
+				(L > R)? rotateR(node, lnode, rnode):
 				// otherwise pick one at "random"
-				(size&1) == 1? (R == ENT_MIN? merge(parent, lnode, rnode):
-				                              rotateL(parent, lnode, rnode)):
-				               (L == ENT_MIN? merge(parent, lnode, rnode):
-				                              rotateR(parent, lnode, rnode));
+				(size&1) == 1? (R == ENT_MIN? merge(node, lnode, rnode):
+				                              rotateL(node, lnode, rnode)):
+				               (L == ENT_MIN? merge(node, lnode, rnode):
+				                              rotateR(node, lnode, rnode));
 				nextnode = node.selectNode(key);
 				assert(nextnode != null);
 			}
