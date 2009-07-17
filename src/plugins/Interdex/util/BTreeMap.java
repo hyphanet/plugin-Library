@@ -788,12 +788,12 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** (*) If the node is not the root, and if the number of entries is equal
 	** to {@link #ENT_MIN}, select its two siblings (L and R). Perform one of
 	** the following operations (ties being broken arbitrarily):
-	**   - {@link #merge(Node, Node, Node) merge} with X, if X also has {@link
-	**     #ENT_MIN} entries
-	**   - {@link #rotateL(Node, Node, Node) rotateL} with R, if the R subnode
-	**     has more entries than L (or equal)
-	**   - {@link #rotateR(Node, Node, Node) rotateR} with L, if the L subnode
-	**     has more entries than R (or equal)
+	** - {@link #merge(Node, Node, Node) merge} with X, if X also has {@link
+	**   #ENT_MIN} entries
+	** - {@link #rotateL(Node, Node, Node) rotateL} with R, if the R subnode
+	**   has more entries than L (or equal)
+	** - {@link #rotateR(Node, Node, Node) rotateR} with L, if the L subnode
+	**   has more entries than R (or equal)
 	** The selected node now has more than {@link #ENT_MIN} entries.
 	**
 	** If the node is a leaf, remove the value and stop. Otherwise, if the key
@@ -802,12 +802,12 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** Otherwise, select the two subnodes (L and R) that this key separates.
 	** Perform one of the following operations (ties being broken arbitrarily):
-	**   - {@link #merge(Node, Node, Node) merge}, if both subnodes have {@link
-	**     #ENT_MIN} entries.
-	**   - {@link #rotateL(Node, Node, Node) rotateL}, if the R subnode has
-	**     more entries than L (or equal)
-	**   - {@link #rotateR(Node, Node, Node) rotateR}, if the L subnode has
-	**     more entries than R (or equal)
+	** - {@link #merge(Node, Node, Node) merge}, if both subnodes have {@link
+	**   #ENT_MIN} entries.
+	** - {@link #rotateL(Node, Node, Node) rotateL}, if the R subnode has more
+	**   entries than L (or equal)
+	** - {@link #rotateR(Node, Node, Node) rotateR}, if the L subnode has more
+	**   entries than R (or equal)
 	** The node that the key ended up in now has more than {@link #ENT_MIN}
 	** entries (and will be selected for the next stage).
 	**
@@ -820,9 +820,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	@Override public V remove(Object k) {
 		K key = (K) k;
 		Node node = root, parent = null;
-StringBuilder output = new StringBuilder();
+
 		for (;;) {
-			output.append(node.lkey).append(' ').append(key).append(' ').append(node.rkey).append('\n');
 			if (node != root && node.entries.size() == ENT_MIN) {
 				Node lnode = parent.nodeL(node), rnode = parent.nodeR(node);
 				int L = (lnode == null)? -1: lnode.entries.size();
@@ -880,15 +879,131 @@ StringBuilder output = new StringBuilder();
 		}
 	}
 
-	/* provided by AbstractMap
-	 *
-	 * possible extension: if the tree is empty, then we can use the
-	 * "construct a new BTree" algorithm described on the wikipedia page
-	@Override public void putAll(Map<? extends K, ? extends V> map) {
-		for (Map.Entry<? extends K, ? extends V> en: map.entrySet()) {
-			put(en.getKey(), en.getValue());
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation has the following optimisation: if {@code this} map
+	** is empty, and the input map is a {@link SortedMap}, then it uses the
+	** BTree bulk-loading algorithm:
+	**
+	** - distribute all the entries of the map across the least number of nodes
+	**   possible, excluding the entries that will act as separators between
+	**   these nodes
+	** - repeat for the separator entries, and use them to join the nodes from
+	**   the previous level appropriately to form a node at this level
+	** - repeat until there are no more entries on a level, at which point use
+	**   the (single) node from the previous level as the root
+	**
+	** @param t mappings to be stored in this map
+	*/
+	@Override public void putAll(Map<? extends K, ? extends V> t) {
+		if (isEmpty() && !t.isEmpty() && t instanceof SortedMap) {
+			SortedMap<K, V> map = (SortedMap<K, V>)t, nextmap;
+			Map<K, Node> lnodes = null, nextlnodes;
+
+			if (!(comparator == null && map.comparator() == null || comparator.equals(map.comparator()))) {
+				super.putAll(map);
+				return;
+			}
+
+			while (map.size() > 0) {
+				// find the smallest k: k * ENT_MAX + (k-1) >= map.size()
+				// ie. k * NODE_MAX >= map.size() + 1
+				// this is the number of leaves
+				int k = (map.size() + NODE_MAX) / NODE_MAX;
+
+				// number of entries in each leaf (or one less than this)
+				int n = map.size() / k;
+				// how many leaves will have n entries (as opposed to n-1)
+				int leftovers = map.size() % k;
+
+				// TODO find a better algorithm that distributes the weights
+				// more evenly that just "heaviest first"
+				assert(n >= ENT_MIN);
+
+				nextlnodes = new HashMap<K, Node>(k<<1);
+				nextmap = new TreeMap<K, V>();
+
+				Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
+				K prevkey = null;
+				int i=0;
+				for (; i<=leftovers; ++i) {
+					// put n entries into a new leaf
+					Map.Entry<K, V> en = makeNode(it, n, prevkey, lnodes, nextlnodes);
+					if (en != null) { nextmap.put(prevkey = en.getKey(), en.getValue()); }
+				}
+				--n;
+				for (; i<k; ++i) {
+					Map.Entry<K, V> en = makeNode(it, n, prevkey, lnodes, nextlnodes);
+					if (en != null) { nextmap.put(prevkey = en.getKey(), en.getValue()); }
+				}
+
+				lnodes = nextlnodes;
+				map = nextmap;
+			}
+
+			assert(lnodes.size() == 1);
+			root = lnodes.get(null);
+
+		} else {
+			super.putAll(t);
 		}
-	}*/
+	}
+
+	/**
+	** Helper method for the bulk-loading algorithm.
+	**
+	** @param it Iterator over the entries at the current level
+	** @param n Number of entries to add to the map
+	** @param prevkey Last key encountered before calling this method
+	** @param lnodes Complete map of keys to their lnodes at this level
+	** @param nextlnodes In-construction lnodes map for the next level
+	*/
+	private Map.Entry<K, V> makeNode(Iterator<Map.Entry<K, V>> it, int n, K prevkey, Map<K, Node> lnodes, Map<K, Node> nextlnodes) {
+		Node node;
+		if (lnodes == null) {
+			node = new Node(true);
+			node.lkey = prevkey;
+			for (int i=0; i<n; ++i) {
+				Map.Entry<K, V> en = it.next();
+				K key = en.getKey();
+				node.entries.put(key, en.getValue());
+				prevkey = key;
+			}
+		} else {
+			node = new Node();
+			node.lkey = prevkey;
+			for (int i=0; i<n; ++i) {
+				Map.Entry<K, V> en = it.next();
+				K key = en.getKey();
+				node.entries.put(key, en.getValue());
+				Node subnode = lnodes.get(key);
+				node.rnodes.put(prevkey, subnode);
+				node.lnodes.put(key, subnode);
+				prevkey = key;
+			}
+		}
+
+		Map.Entry<K, V> next;
+		K key;
+		if (it.hasNext()) {
+			next = it.next();
+			key = next.getKey();
+		} else {
+			next = null;
+			key = null;
+		}
+
+		if (lnodes != null) {
+			Node subnode = lnodes.get(key);
+			node.rnodes.put(prevkey, subnode);
+			node.lnodes.put(key, subnode);
+		}
+		node.rkey = key;
+		nextlnodes.put(key, node);
+
+		return next;
+	}
 
 	// maybe make this a WeakReference?
 	Set<Map.Entry<K, V>> entrySet = null;
@@ -948,7 +1063,7 @@ StringBuilder output = new StringBuilder();
 						@Override public void remove() {
 							BTreeMap.this.remove(lastkey);
 							// we need to find our position in the tree again, since there may have
-							// been structural modifications to in.
+							// been structural modifications to it.
 
 							// OPTIMISE have a "structual modifications counter" that
 							// split, merge, rotateL, rotateR increment, and do this only if it

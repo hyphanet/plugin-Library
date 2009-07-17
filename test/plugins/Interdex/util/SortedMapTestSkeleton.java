@@ -22,7 +22,7 @@ abstract public class SortedMapTestSkeleton extends TestCase {
 
 	public void fillTestMap() {
 		testmap = makeTestMap();
-		for (int i=0; i<0x100; ++i) {
+		for (int i=0; i<0x1000; ++i) {
 			testmap.put(Generators.rndStr(), Generators.rand.nextInt());
 		}
 	}

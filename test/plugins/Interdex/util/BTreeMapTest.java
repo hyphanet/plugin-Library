@@ -7,6 +7,7 @@ import junit.framework.TestCase;
 
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -50,6 +51,23 @@ public class BTreeMapTest extends SortedMapTestSkeleton {
 		} catch (AssertionError e) {
 			System.out.println(testmap.toTreeString());
 			throw e;
+		}
+
+	}
+
+	public void testBulkLoading() {
+
+		for (int n=0; n<0x100; ++n) {
+			Map<String, String> backmap = new TreeMap<String, String>();
+			for (int i=0; i<n; ++i) {
+				String k = Generators.rndKey(), v = Generators.rndStr();
+				backmap.put(k, v);
+			}
+
+			BTreeMap<String, String> testmap = new BTreeMap<String, String>(2);
+			testmap.putAll(backmap);
+			testmap.verifyTreeIntegrity();
+			//if (n<10) { System.out.println(testmap.toTreeString()); }
 		}
 
 	}
