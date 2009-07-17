@@ -19,15 +19,61 @@ import java.util.ArrayList;
 import java.util.NoSuchElementException;
 
 /**
-** General purpose BTree implementation
+** General purpose B-tree implementation.
 **
-** DOCUMENT
+** From wikipedia: A B-tree is a tree data structure that keeps data sorted and
+** allows searches, insertions, and deletions in logarithmic amortized time.
+** Unlike self-balancing binary search trees, it is optimized for systems that
+** read and write large blocks of data. It is most commonly used in databases
+** and filesystems.
+**
+** In B-trees, internal (non-leaf) nodes can have a variable number of child
+** nodes within some pre-defined range. When data is inserted or removed from a
+** node, its number of child nodes changes. In order to maintain the
+** pre-defined range, internal nodes may be joined or split. Because a range of
+** child nodes is permitted, B-trees do not need re-balancing as frequently as
+** other self-balancing search trees, but may waste some space, since nodes are
+** not entirely full.
+**
+** A B-tree is kept balanced by requiring that all leaf nodes are at the same
+** depth. This depth will increase slowly as elements are added to the tree,
+** but an increase in the overall depth is infrequent, and results in all leaf
+** nodes being one more node further away from the root.
+**
+** A B-tree of order m (the maximum number of children for each node) is a tree
+** which satisfies the following properties:
+**
+** - Every node has between m-1 and m/2-1 entries, except for the root node,
+**   which has between 1 and m/2-1 entries.
+** - All leaves are the same distance from the root.
+** - Every non-leaf node with k entries has k+1 subnodes arranged in sorted
+**   order between the entries (for details, see {@link Node}).
+**
+** B-trees have substantial advantages over alternative implementations when
+** node access times far exceed access times within nodes. This usually occurs
+** when most nodes are in secondary storage such as hard drives. By maximizing
+** the number of child nodes within each internal node, the height of the tree
+** decreases, balancing occurs less often, and efficiency increases. Usually
+** this value is set such that each node takes up a full disk block or an
+** analogous size in secondary storage.
+**
+** This class is not meant as a general use {@link SortedMap}; for that use
+** {@link TreeMap}. When {@link #NODE_MIN} is {@link #BTreeMap(int) set to} 2,
+** the resulting tree is structurally and algorithmically equivalent to a 2-3-4
+** tree, which is itself equivalent to a red-black tree, which is the
+** implementation of {@link TreeMap} in the standard Java Class Library. This
+** B-tree implementation has additional overheads due to generalisation of the
+** structures and algorithms involved, and is therefore meant to be used to
+** represent a B-tree stored in secondary storage, as per the above paragraph.
 **
 ** NOTE: at the moment there is a slight bug in this implementation that causes
 ** indeterminate behaviour when used with a comparator that admits {@code null}
 ** keys. This is due to {@code null} having special semantics, meaning "end of
 ** map", for the {@link Node#lkey} and {@link Node#rkey} fields. This is NOT
 ** an urgent priority to fix, but might be done in the future.
+**
+** TODO ConcurrentModificationException for the entrySet iterator
+** TODO better distribution algorithm for putAll
 **
 ** @author infinity0
 ** @see TreeMap
@@ -113,7 +159,14 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/**
-	** DOCUMENT
+	** A B-tree node, having the following structure:
+	**
+	** - Every entry in a non-leaf node has two adjacent subnodes, holding
+	**   entries which are all strictly greater and smaller than the entry.
+	** - Conversely, every subnode has two adjacent entries, which are strictly
+	**   greater and smaller than every entry in the subnode. (The edge nodes'
+	**   "adjacent" keys are not part of this node's entries, but inherited
+	**   from the relevant parent.)
 	**
 	** <pre>
 	**    ^                        Node                        ^
@@ -503,7 +556,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** merged node. If the parent is the {@link #root} and the merge makes it
 	** empty, point {@code root} to the new merged node.
 	**
-	** Note: This method assumes that both childs are an actual subnodes of the
+	** Note: This method assumes that both childs are actual subnodes of the
 	** parent, that they are adjacent in the parent, and that they are actually
 	** minimally full. It is up to the calling code to ensure that this holds.
 	**
@@ -568,9 +621,24 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/**
-	** Performs a rotate operation towards the smaller node.
+	** Performs a rotate operation towards the smaller node. A rotate operation
+	** is where:
+	** - an entry M from the parent node is moved to a subnode
+	** - an entry S from an adjacent subnode is moved to fill gap left by M
+	** - a subnode N associated with S is cut from M and attached to S
+	** with the operands chosen appropriately to maintain tree constraints.
 	**
-	** DOCUMENT
+	** Here, M is the key that separates {@code lnode} and {@code rnode}, S is
+	** the smallest key of {@code rnode}, and N its smallest subnode.
+	**
+	** Note: This method assumes that both childs are actual subnodes of the
+	** parent, that they are adjacent in the parent, and that the child losing
+	** an entry has more than {@link #ENT_MIN} entries. It is up to the calling
+	** code to ensure that this holds.
+	**
+	** @param parent The parent node of the children.
+	** @param lnode The smaller subnode, which accepts an entry from the parent
+	** @param rnode The greater subnode, which loses an entry to the parent
 	*/
 	private K rotateL(Node parent, Node lnode, Node rnode) {
 		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
@@ -601,9 +669,24 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/**
-	** Performs a rotate operation towards the greater node.
+	** Performs a rotate operation towards the greater node. A rotate operation
+	** is where:
+	** - an entry M from the parent node is moved to a subnode
+	** - an entry S from an adjacent subnode is moved to fill gap left by M
+	** - a subnode N associated with S is cut from M and attached to S
+	** with the operands chosen appropriately to maintain tree constraints.
 	**
-	** DOCUMENT
+	** Here, M is the key that separates {@code lnode} and {@code rnode}, S is
+	** the greatest key of {@code rnode}, and N its greatest subnode.
+	**
+	** Note: This method assumes that both childs are actual subnodes of the
+	** parent, that they are adjacent in the parent, and that the child losing
+	** an entry has more than {@link #ENT_MIN} entries. It is up to the calling
+	** code to ensure that this holds.
+	**
+	** @param parent The parent node of the children.
+	** @param lnode The smaller subnode, which loses an entry to the parent
+	** @param rnode The greater subnode, which accepts an entry from the parent
 	*/
 	private K rotateR(Node parent, Node lnode, Node rnode) {
 		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
@@ -883,8 +966,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** {@inheritDoc}
 	**
 	** This implementation has the following optimisation: if {@code this} map
-	** is empty, and the input map is a {@link SortedMap}, then it uses the
-	** BTree bulk-loading algorithm:
+	** is empty, and the input map is a non-empty {@link SortedMap}, then it
+	** uses the BTree bulk-loading algorithm:
 	**
 	** - distribute all the entries of the map across the least number of nodes
 	**   possible, excluding the entries that will act as separators between
@@ -894,10 +977,15 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** - repeat until there are no more entries on a level, at which point use
 	**   the (single) node from the previous level as the root
 	**
+	** (The optimisation is also used if the input map is {@code this}.)
+	**
 	** @param t mappings to be stored in this map
 	*/
 	@Override public void putAll(Map<? extends K, ? extends V> t) {
-		if (isEmpty() && !t.isEmpty() && t instanceof SortedMap) {
+		// t == this to support restructure()
+		if (t.isEmpty()) {
+			return;
+		} else if (t == this || isEmpty() && t instanceof SortedMap) {
 			SortedMap<K, V> map = (SortedMap<K, V>)t, nextmap;
 			Map<K, Node> lnodes = null, nextlnodes;
 
@@ -909,12 +997,12 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			while (map.size() > 0) {
 				// find the smallest k: k * ENT_MAX + (k-1) >= map.size()
 				// ie. k * NODE_MAX >= map.size() + 1
-				// this is the number of leaves
+				// this is the number of nodes at this level
 				int k = (map.size() + NODE_MAX) / NODE_MAX;
 
-				// number of entries in each leaf (or one less than this)
+				// number of entries in each node (or one less than this)
 				int n = map.size() / k;
-				// how many leaves will have n entries (as opposed to n-1)
+				// how many nodes will have n entries (as opposed to n-1)
 				int leftovers = map.size() % k;
 
 				// TODO find a better algorithm that distributes the weights
@@ -944,6 +1032,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 			assert(lnodes.size() == 1);
 			root = lnodes.get(null);
+			size = map.size();
 
 		} else {
 			super.putAll(t);
@@ -961,7 +1050,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	*/
 	private Map.Entry<K, V> makeNode(Iterator<Map.Entry<K, V>> it, int n, K prevkey, Map<K, Node> lnodes, Map<K, Node> nextlnodes) {
 		Node node;
-		if (lnodes == null) {
+		if (lnodes == null) { // create leaf nodes
 			node = new Node(true);
 			node.lkey = prevkey;
 			for (int i=0; i<n; ++i) {
@@ -1005,8 +1094,16 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		return next;
 	}
 
-	// maybe make this a WeakReference?
-	Set<Map.Entry<K, V>> entrySet = null;
+	/**
+	** Restructures the tree, distributing the entries evenly between the leaf
+	** nodes. This method merely calls {@link #putAll(Map)} with {@code this}.
+	*/
+	public void restructure() {
+		putAll(this);
+	}
+
+	// TODO maybe make this a WeakReference?
+	private Set<Map.Entry<K, V>> entrySet = null;
 	@Override public Set<Map.Entry<K, V>> entrySet() {
 		if (entrySet == null) {
 			entrySet = new AbstractSet<Map.Entry<K, V>>() {
