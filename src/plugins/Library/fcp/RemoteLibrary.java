@@ -1,4 +1,6 @@
-
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.fcp;
 
 import freenet.pluginmanager.FredPluginTalker;
@@ -8,6 +10,7 @@ import freenet.pluginmanager.PluginTalker;
 import freenet.support.Logger;
 import freenet.support.SimpleFieldSet;
 import freenet.support.api.Bucket;
+import java.lang.instrument.IllegalClassFormatException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -19,14 +22,24 @@ import java.util.concurrent.TimeoutException;
  */
 public class RemoteLibrary implements FredPluginTalker {
 	PluginRespirator pr;
-	private final HashMap<String, String> returnValues;
+	private final HashMap<String, Object> returnValues;
 
 	public RemoteLibrary(PluginRespirator pr){
 		this.pr = pr;
 		returnValues = new HashMap();
 	}
 
-	private String invokeRemoteMethod(String method, Object... params) throws PluginNotFoundException, TimeoutException{
+	/**
+	 * Call a remote method in the library
+	 * @param method name of method
+	 * @param returntype type of return value
+	 * @param params the parameters of this function
+	 * @return return value of remote function
+	 * @throws freenet.pluginmanager.PluginNotFoundException if Library plugin isn't loaded
+	 * @throws java.util.concurrent.TimeoutException if Library takes too long to respond
+	 * @throws java.lang.instrument.IllegalClassFormatException if the Library returns an invalid type
+	 */
+	private Object invokeRemoteMethod(String method, String returntype, Object... params) throws PluginNotFoundException, TimeoutException, IllegalClassFormatException{
 		String identifier = method+":"+Thread.currentThread().getName();
 		PluginTalker pt = pr.getPluginTalker(this, "plugins.Library.Library", identifier);
 		SimpleFieldSet plugparams = new SimpleFieldSet(true);
@@ -44,14 +57,25 @@ public class RemoteLibrary implements FredPluginTalker {
 		} catch (InterruptedException ex) {
 			Logger.error(this, "Wait interrupted", ex);
 		}
-		if(returnValues.get(identifier).equals(identifier))
+		Object returnval = returnValues.get(identifier);
+		if(returnval.equals(identifier))
 			throw new TimeoutException("Timeout waiting for response from call "+identifier);
-		return returnValues.get(identifier);
+		return ParameterTypes.convert(returntype, returnval);
 	}
 
+	/**
+	 * Receive a reply from the Library
+	 * @param pluginname
+	 * @param identifier for the related method call
+	 * @param params response
+	 * @param data
+	 */
 	public void onReply(String pluginname, String identifier, SimpleFieldSet params, Bucket data) {
 		if(params.get("return") != null){
-			String lock1 = returnValues.put(identifier, params.get("return"));
+			Object returnval = null;
+			if((returnval = params.subset("return")) == null)
+				returnval = params.get("return");
+			Object lock1 = returnValues.put(identifier, returnval);
 			synchronized(lock1){
 				lock1.notifyAll();
 			}
@@ -59,16 +83,20 @@ public class RemoteLibrary implements FredPluginTalker {
 			returnValues.put(identifier, params.get("exception"));	// Something is wrong
 		// Something is wrong
 	}
-
-
-
-
+	
+	
+	
+	////// The remote functions
+	////// To add, make sure the method is specified the same in FCPExposedMethods
+	////// invokeRemoteMethod will return either a string or 
+	
 	/**
 	 * @return the version number of Library
 	 * @throws freenet.pluginmanager.PluginNotFoundException if Library is not loaded
 	 */
-	public Integer getVersion() throws PluginNotFoundException, TimeoutException {
-		return Integer.valueOf(invokeRemoteMethod("getVersion"));
+	// TODO handle all the exceptions much better
+	public Integer getVersion() throws PluginNotFoundException, TimeoutException, IllegalClassFormatException {
+		return (Integer)invokeRemoteMethod("getVersion", "Integer");
 	}
 
 	/**
@@ -80,7 +108,7 @@ public class RemoteLibrary implements FredPluginTalker {
 	 * @throws freenet.pluginmanager.PluginNotFoundException if Library is not loaded
 	 */
 	public Integer findTerm(String indexid, String term) throws Exception, PluginNotFoundException {
-		return Integer.valueOf(invokeRemoteMethod("findTerm", indexid, term));
+		return (Integer)invokeRemoteMethod("findTerm", "Integer", indexid, term);
 	}
 
 	/**
@@ -90,7 +118,7 @@ public class RemoteLibrary implements FredPluginTalker {
 	 * @param meta key-value pairs of meta data about this page
 	 * @return id of page for modification
 	 */
-	public Integer addPage(String uri, String title, Map<String, String> meta) throws PluginNotFoundException, TimeoutException{
-		return Integer.valueOf(invokeRemoteMethod("addPage", uri, title, meta));
+	public Integer addPage(String uri, String title, Map<String, String> meta) throws PluginNotFoundException, TimeoutException, IllegalClassFormatException{
+		return (Integer)invokeRemoteMethod("addPage", "Integer", uri, title, meta);
 	}
 }

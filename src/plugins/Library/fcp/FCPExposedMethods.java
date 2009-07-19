@@ -1,4 +1,6 @@
-
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.fcp;
 
 import freenet.pluginmanager.PluginNotFoundException;
@@ -11,11 +13,11 @@ import plugins.Library.util.InvalidSearchException;
 import plugins.Library.util.Request;
 
 /**
- * The methods exposed by Library over FCP
+ * The methods exposed by Library over FCP, instructions for adding methods in the source
  *
  * @author MikeB
  */
-public class FCPExposedMethods{
+class FCPExposedMethods {
 	static HashMap<Integer, Request> requests = new HashMap();
 	
 	static private Integer requestnumber(Request req){
@@ -27,11 +29,10 @@ public class FCPExposedMethods{
 	}
 
 
+	//////// Exposed methods from here, only classes in ParameterTypes should be used for parameters and return types
+	//////// Other than that it should be ok, although exceptions wont be passed back properly
 
-
-
-	
-	//////// Exposed methods from here, only classes in FCPRequestHandler.ParameterTypes should be used for parameters and return types
+	//TODO if these methods weren't static we could use an interface to bind this to RemoteLibrary
 
 	/**
 	 * @return the version number of Library
@@ -65,6 +66,12 @@ public class FCPExposedMethods{
 		throw new UnsupportedOperationException("Not supported yet.");
 	}
 
+	/**
+	 * Return the results of this request
+	 * @param request
+	 * @return
+	 * @throws plugins.Library.util.InvalidSearchException
+	 */
 	static public Set getResults(Integer request) throws InvalidSearchException {
 		return requests.get(request).getResult();
 	}

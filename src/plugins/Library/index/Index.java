@@ -1,9 +1,11 @@
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
 
 import plugins.Library.util.InvalidSearchException;
 import plugins.Library.util.Request;
-import plugins.Library.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import freenet.pluginmanager.PluginRespirator;
@@ -12,8 +14,7 @@ import plugins.Library.index.xml.XMLIndex;
 
 /**
  * Index Class	<br />
- * Index's are identified {Index type}:{Index identifier} <br />
- * eg. index type 'xml' creates an XMLIndex
+ * Index's are all created by this class and are subclasses of this
  */
 public abstract class Index {
 	public enum FetchStatus{UNFETCHED, FETCHING, FETCHED, FAILED}
@@ -66,7 +67,8 @@ public abstract class Index {
 	/**
 	 * Returns an Index object for the uri specified,
 	 * gets an existing one if its there else makes a new one
-	 * 
+	 *
+	 * TODO : identify all index types so index doesn't need to refer to them directly
 	 * @param indexuri index specifier
 	 * @return Index object
 	 */

@@ -1,18 +1,16 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search;
 
 import plugins.Library.util.URIWrapper;
-import plugins.Library.*;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Set which makes sure all data in results being combined is retained
+ * TODO Set which makes sure all data in results being combined is retained
+ * FIXME get phrase search to work
  * @author MikeB
  */
 public class ResultSet extends TreeSet<URIWrapper>{

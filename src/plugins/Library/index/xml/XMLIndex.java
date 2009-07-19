@@ -1,3 +1,6 @@
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index.xml;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -154,6 +157,8 @@ public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 			return;
 		fetchStatus = FetchStatus.FETCHING;
 		String uri = indexuri + DEFAULT_FILE;
+
+		Logger.minor(this, "Fetching "+uri);
 
 		// try local file first
 		File file = new File(uri);
@@ -379,7 +384,7 @@ public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 							///}
 							is.close();
 						} catch (Throwable err) {
-							Logger.error(this, "Error parsing ", err);
+							Logger.error(this, "Error parsing "+filename, err);
 							throw new Exception("Could not parse XML: ", err);
 						}
 					}else

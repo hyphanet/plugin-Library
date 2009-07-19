@@ -1,3 +1,6 @@
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index.xml;
 
 import java.util.List;
@@ -7,7 +10,8 @@ import plugins.Library.util.Request;
 
 /**
  * A Request implementation for operations which aren't split into smaller parts,
- * eg a search for 1 term on 1 index
+ * eg a search for 1 term on 1 index. Only used for XMLIndex
+ * TODO some of this stuff could go in an AbstractRequest class as it's common
  * @author MikeB
  * @param <E> Return type
  */

@@ -1,3 +1,6 @@
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index.xml;
 
 import java.io.File;
@@ -10,8 +13,9 @@ import freenet.support.api.Bucket;
 import freenet.support.io.FileBucket;
 
 /**
- * Utility class
- * 
+ * Utility class.
+ * TODO get rid of this
+ * @deprecated move these classes out to somewhere else
  * @author  j16sdiz (1024D/75494252)
  */
 public class Util {
