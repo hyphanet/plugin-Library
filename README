@@ -1,4 +1,4 @@
-== Build ==
+== Dependencies ==
 
 Download and build SnakeYAML (the latest release has bugs in; you need the
 latest development version):
@@ -7,12 +7,27 @@ latest development version):
   $EXT/snakeyaml$ mvn package
   plugin-Interdex/lib$ ln -s $EXT/snakeyaml/target/SnakeYAML-1.3-SNAPSHOT.jar
 
-Download and the latest google collections (I will probably remove this at some
+Download the latest google-collections (I will probably remove this at some
 point since the only class that uses it is probably going to be unnecessary.):
 
   $EXT$ wget "http://google-collections.googlecode.com/files/google-collect-1.0-rc2.zip"
   $EXT$ unzip google-collect-1.0-rc2.zip
   plugin-Interdex/lib$ ln -s $EXT/google-collect-1.0-rc2/google-collect-1.0-rc2.jar
+
+Download and build bliki-doclet, which is a little something I cooked up to
+have mediawiki markup instead of ugly HTML in javadoc comments:
+
+  $EXT$ git clone http://infinity0.ath.cx/s/bliki-doclet/.git/
+  $EXT$ wget "http://gwtwiki.googlecode.com/files/bliki.3.0.12.zip"
+  $EXT$ unzip bliki.3.0.12.zip
+  $EXT/bliki-doclet/lib$ ln -s ../../info.bliki.wiki/bliki-core-3.0.12-SNAPSHOT.jar
+  $EXT/bliki-doclet$ ./mksrc.sh src.orig/openjdk-6-src-b16-24_apr_2009/ && ant
+  plugin-Interdex/lib$ ln -s $EXT/bliki-doclet/dist/bliki-doclet*.jar bliki-doclet.jar
+
+(If you don't care about generating pretty javadocs, you can comment out the
+line that starts "<doclet" in build.xml, to make the build process not fail.)
+
+== Build ==
 
 Build and generate javadocs:
 

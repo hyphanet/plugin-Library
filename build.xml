@@ -101,16 +101,17 @@
 				<attribute name="Plugin-Main-Class" value="plugins.Interdex.Interdex"/>
 			</manifest>
 			<fileset dir="src/" casesensitive="no">
-				<include name="*.txt"/>
+				<include name="**/*.txt"/>
 			</fileset>
 			<fileset dir="${build}/"/>
-			<zipgroupfileset dir="lib/" includes="*.jar"/>
+			<zipgroupfileset dir="lib/" includes="**/*.jar"/>
 		</jar>
 	</target>
 
 	<!-- ================================================== -->
 	<target name="javadoc" description="Generate javadocs for this package.">
 		<javadoc destdir="${javadoc}" author="true" version="true" use="true" private="true">
+			<doclet name="info.bliki.doclet.standard.Standard" path="lib/bliki-doclet.jar"/>
 			<fileset dir="src/" defaultexcludes="yes">
 				<include name="**/*.java"/>
 			</fileset>

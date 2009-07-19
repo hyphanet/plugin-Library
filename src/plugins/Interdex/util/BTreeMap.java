@@ -19,13 +19,14 @@ import java.util.ArrayList;
 import java.util.NoSuchElementException;
 
 /**
-** General purpose B-tree implementation.
+** General purpose B-tree implementation. '''This class is not a general-use
+** {@link SortedMap}'''; for that use {@link TreeMap}.
 **
-** From wikipedia: A B-tree is a tree data structure that keeps data sorted and
-** allows searches, insertions, and deletions in logarithmic amortized time.
-** Unlike self-balancing binary search trees, it is optimized for systems that
-** read and write large blocks of data. It is most commonly used in databases
-** and filesystems.
+** From [http://en.wikipedia.org/wiki/B-tree wikipedia]: A B-tree is a tree
+** data structure that keeps data sorted and allows searches, insertions, and
+** deletions in logarithmic amortized time. Unlike self-balancing binary search
+** trees, it is optimized for systems that read and write large blocks of data.
+** It is most commonly used in databases and filesystems.
 **
 ** In B-trees, internal (non-leaf) nodes can have a variable number of child
 ** nodes within some pre-defined range. When data is inserted or removed from a
@@ -43,10 +44,10 @@ import java.util.NoSuchElementException;
 ** A B-tree of order m (the maximum number of children for each node) is a tree
 ** which satisfies the following properties:
 **
-** - Every node has between m-1 and m/2-1 entries, except for the root node,
+** * Every node has between m-1 and m/2-1 entries, except for the root node,
 **   which has between 1 and m/2-1 entries.
-** - All leaves are the same distance from the root.
-** - Every non-leaf node with k entries has k+1 subnodes arranged in sorted
+** * All leaves are the same distance from the root.
+** * Every non-leaf node with k entries has k+1 subnodes arranged in sorted
 **   order between the entries (for details, see {@link Node}).
 **
 ** B-trees have substantial advantages over alternative implementations when
@@ -57,14 +58,13 @@ import java.util.NoSuchElementException;
 ** this value is set such that each node takes up a full disk block or an
 ** analogous size in secondary storage.
 **
-** This class is not meant as a general use {@link SortedMap}; for that use
-** {@link TreeMap}. When {@link #NODE_MIN} is {@link #BTreeMap(int) set to} 2,
-** the resulting tree is structurally and algorithmically equivalent to a 2-3-4
-** tree, which is itself equivalent to a red-black tree, which is the
-** implementation of {@link TreeMap} in the standard Java Class Library. This
-** B-tree implementation has additional overheads due to generalisation of the
-** structures and algorithms involved, and is therefore meant to be used to
-** represent a B-tree stored in secondary storage, as per the above paragraph.
+** When {@link #NODE_MIN} is {@link #BTreeMap(int) set to} 2, the resulting
+** tree is structurally and algorithmically equivalent to a 2-3-4 tree, which
+** is itself equivalent to a red-black tree, which is the implementation of
+** {@link TreeMap} in the standard Java Class Library. This class has extra
+** overheads due to the B-tree generalisation of the structures and algorithms
+** involved, and is therefore only meant to be used to represent a B-tree
+** stored in secondary storage, as the above paragraph describes.
 **
 ** NOTE: at the moment there is a slight bug in this implementation that causes
 ** indeterminate behaviour when used with a comparator that admits {@code null}
@@ -72,8 +72,8 @@ import java.util.NoSuchElementException;
 ** map", for the {@link Node#lkey} and {@link Node#rkey} fields. This is NOT
 ** an urgent priority to fix, but might be done in the future.
 **
-** TODO ConcurrentModificationException for the entrySet iterator
-** TODO better distribution algorithm for putAll
+** * '''TODO ConcurrentModificationException for the entrySet iterator'''
+** * '''TODO better distribution algorithm for putAll'''
 **
 ** @author infinity0
 ** @see TreeMap
@@ -89,17 +89,17 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	final protected int NODE_MIN;
 
 	/**
-	** Maximum number of children of each node. Equal to NODE_MAX.
+	** Maximum number of children of each node. Equal to {@code NODE_MIN * 2}.
 	*/
 	final protected int NODE_MAX;
 
 	/**
-	** Minimum number of entries in each node. Equal to NODE_MIN-1.
+	** Minimum number of entries in each node. Equal to {@code NODE_MIN - 1}.
 	*/
 	final protected int ENT_MIN;
 
 	/**
-	** Maximum number of entries in each node. Equal to NODE_MAX-1.
+	** Maximum number of entries in each node. Equal to {@code NODE_MAX - 1}.
 	*/
 	final protected int ENT_MAX;
 
@@ -159,28 +159,26 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/**
-	** A B-tree node, having the following structure:
+	** A B-tree node. It has the following structure:
 	**
-	** - Every entry in a non-leaf node has two adjacent subnodes, holding
+	** * Every entry in a non-leaf node has two adjacent subnodes, holding
 	**   entries which are all strictly greater and smaller than the entry.
-	** - Conversely, every subnode has two adjacent entries, which are strictly
-	**   greater and smaller than every entry in the subnode. (The edge nodes'
-	**   "adjacent" keys are not part of this node's entries, but inherited
-	**   from the relevant parent.)
+	** * Conversely, every subnode has two adjacent entries, which are strictly
+	**   greater and smaller than every entry in the subnode. Note: edge
+	**   subnodes' "adjacent" keys are not part of the node's entries, but
+	**   inherited from some ancestor parent.)
 	**
-	** <pre>
-	**    ^                        Node                        ^
-	**    |                                                    |
-	**    |    V1    V2    V3    V4    V5    V6    V7    V8    |
-	**    |    |     |     |     |     |     |     |     |     |
-	**   lkey  K1    K2    K3    K4    K5    K6    K7    K8  rkey
-	**     \  /  \  /  \  /  \  /  \  /  \  /  \  /  \  /  \  /
-	**     Node  Node  Node  Node  Node  Node  Node  Node  Node
+	**     ^                        Node                        ^
+	**     |                                                    |
+	**     |    V1    V2    V3    V4    V5    V6    V7    V8    |
+	**     |    |     |     |     |     |     |     |     |     |
+	**    lkey  K1    K2    K3    K4    K5    K6    K7    K8  rkey
+	**      \  /  \  /  \  /  \  /  \  /  \  /  \  /  \  /  \  /
+	**      Node  Node  Node  Node  Node  Node  Node  Node  Node
 	**
-	** | represents {@link #entries} mappings
-	** \ represents {@link #rnodes} mappings (and the subnode's {@link #lkey})
-	** / represents {@link #lnodes} mappings (and the subnode's {@link #rkey})
-	** </pre>
+	**    | - {@link #entries} mappings
+	**    \ - {@link #rnodes} mappings (and the subnode's {@link #lkey})
+	**    / - {@link #lnodes} mappings (and the subnode's {@link #rkey})
 	**
 	** @author infinity0
 	*/
@@ -349,12 +347,12 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** special meaning of {@code null} for the {@link Node#lkey lkey} and
 	** {@link Node#rkey rkey} fields.
 	**
-	** - If both keys are {@code null}, returns 0. Otherwise:
-	** - If {@code key1} is {@code null}, it is treated as an {@link Node#lkey
+	** * If both keys are {@code null}, returns 0. Otherwise:
+	** * If {@code key1} is {@code null}, it is treated as an {@link Node#lkey
 	**   lkey} value, ie. smaller than all other values (method returns -1).
-	** - If {@code key2} is {@code null}, it is treated as an {@link Node#rkey
+	** * If {@code key2} is {@code null}, it is treated as an {@link Node#rkey
 	**   rkey} value, ie. greater than all other values (method returns -1).
-	** - Otherwise, neither keys are {@code null}, and are compared normally.
+	** * Otherwise, neither keys are {@code null}, and are compared normally.
 	*/
 	protected int compare2(K key1, K key2) {
 		return (key1 == null)? ((key2 == null)? 0: -1):
@@ -374,23 +372,23 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	/**
 	** Package-private debugging method. This one checks node integrity:
 	**
-	** - lkey < firstkey, lastkey < rkey
+	** * lkey < firstkey, lastkey < rkey
 	**
 	** For non-leaf nodes:
 	**
-	** - for each pair of adjacent keys (including two null keys either side of
+	** * for each pair of adjacent keys (including two null keys either side of
 	**   the list of keys), it is possible to traverse between the keys, and
 	**   the single node between them, using the lnodes, rnodes maps and
 	**   the lkey, rkey pointers.
-	** - lnodes' and rnodes' size is 1 greater than that of entries. Ie. there
+	** * lnodes' and rnodes' size is 1 greater than that of entries. Ie. there
 	**   is nothing else in the node beyond what we visited in the previous
 	**   step.
 	**
 	** It also checks the BTree node constraints:
 	**
-	** - The node has at most ENT_MAX entries.
-	** - The node has at least ENT_MIN entries, except the root.
-	** - The root has at least 1 entry.
+	** * The node has at most ENT_MAX entries.
+	** * The node has at least ENT_MIN entries, except the root.
+	** * The root has at least 1 entry.
 	**
 	** @throws IllegalStateException if the constraints are not satisfied
 	*/
@@ -432,8 +430,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** Package-private debugging method. This one checks BTree constraints for
 	** the subtree rooted at a given node:
 	**
-	** - All nodes follow the node constraints, listed above.
-	** - All leaves appear in the same level
+	** * All nodes follow the node constraints, listed above.
+	** * All leaves appear in the same level
 	**
 	** @return depth of all leaves
 	** @throws IllegalStateException if the constraints are not satisfied
@@ -623,9 +621,11 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	/**
 	** Performs a rotate operation towards the smaller node. A rotate operation
 	** is where:
-	** - an entry M from the parent node is moved to a subnode
-	** - an entry S from an adjacent subnode is moved to fill gap left by M
-	** - a subnode N associated with S is cut from M and attached to S
+	**
+	** * an entry M from the parent node is moved to a subnode
+	** * an entry S from an adjacent subnode is moved to fill gap left by M
+	** * a subnode N associated with S is cut from M and attached to S
+	**
 	** with the operands chosen appropriately to maintain tree constraints.
 	**
 	** Here, M is the key that separates {@code lnode} and {@code rnode}, S is
@@ -671,9 +671,11 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	/**
 	** Performs a rotate operation towards the greater node. A rotate operation
 	** is where:
-	** - an entry M from the parent node is moved to a subnode
-	** - an entry S from an adjacent subnode is moved to fill gap left by M
-	** - a subnode N associated with S is cut from M and attached to S
+	**
+	** * an entry M from the parent node is moved to a subnode
+	** * an entry S from an adjacent subnode is moved to fill gap left by M
+	** * a subnode N associated with S is cut from M and attached to S
+	**
 	** with the operands chosen appropriately to maintain tree constraints.
 	**
 	** Here, M is the key that separates {@code lnode} and {@code rnode}, S is
@@ -807,7 +809,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** Start at the root node. At each stage of the algorithm, we restructure
 	** the tree so that the next node we reach has less than {@link #ENT_MAX}
-	** entries, so the insertion can occur without breaking constraints.
+	** entries, and the insertion can occur without breaking constraints.
 	**
 	** (*) If the number of entries is {@link #ENT_MAX}, then perform {@link
 	** #split(Node, Node) split} on the node. Both the newly created nodes now
@@ -866,17 +868,19 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** Start at the root node. At each stage of the algorithm, we restructure
 	** the tree so that the next node we reach has more than {@link #ENT_MIN}
-	** entries, so the deletion can occur withot breaking constraints.
+	** entries, and the deletion can occur withot breaking constraints.
 	**
 	** (*) If the node is not the root, and if the number of entries is equal
 	** to {@link #ENT_MIN}, select its two siblings (L and R). Perform one of
 	** the following operations (ties being broken arbitrarily):
-	** - {@link #merge(Node, Node, Node) merge} with X, if X also has {@link
+	**
+	** * {@link #merge(Node, Node, Node) merge} with X, if X also has {@link
 	**   #ENT_MIN} entries
-	** - {@link #rotateL(Node, Node, Node) rotateL} with R, if the R subnode
+	** * {@link #rotateL(Node, Node, Node) rotateL} with R, if the R subnode
 	**   has more entries than L (or equal)
-	** - {@link #rotateR(Node, Node, Node) rotateR} with L, if the L subnode
+	** * {@link #rotateR(Node, Node, Node) rotateR} with L, if the L subnode
 	**   has more entries than R (or equal)
+	**
 	** The selected node now has more than {@link #ENT_MIN} entries.
 	**
 	** If the node is a leaf, remove the value and stop. Otherwise, if the key
@@ -885,12 +889,14 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** Otherwise, select the two subnodes (L and R) that this key separates.
 	** Perform one of the following operations (ties being broken arbitrarily):
-	** - {@link #merge(Node, Node, Node) merge}, if both subnodes have {@link
+	**
+	** * {@link #merge(Node, Node, Node) merge}, if both subnodes have {@link
 	**   #ENT_MIN} entries.
-	** - {@link #rotateL(Node, Node, Node) rotateL}, if the R subnode has more
+	** * {@link #rotateL(Node, Node, Node) rotateL}, if the R subnode has more
 	**   entries than L (or equal)
-	** - {@link #rotateR(Node, Node, Node) rotateR}, if the L subnode has more
+	** * {@link #rotateR(Node, Node, Node) rotateR}, if the L subnode has more
 	**   entries than R (or equal)
+	**
 	** The node that the key ended up in now has more than {@link #ENT_MIN}
 	** entries (and will be selected for the next stage).
 	**
@@ -965,16 +971,17 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	/**
 	** {@inheritDoc}
 	**
-	** This implementation has the following optimisation: if {@code this} map
-	** is empty, and the input map is a non-empty {@link SortedMap}, then it
+	** This implementation iterates over the given map's {@code entrySet},
+	** adding each mapping in turn, except for when {@code this} map is empty,
+	** and the input map is a non-empty {@link SortedMap}. In this case, it
 	** uses the BTree bulk-loading algorithm:
 	**
-	** - distribute all the entries of the map across the least number of nodes
+	** * distribute all the entries of the map across the least number of nodes
 	**   possible, excluding the entries that will act as separators between
 	**   these nodes
-	** - repeat for the separator entries, and use them to join the nodes from
+	** * repeat for the separator entries, and use them to join the nodes from
 	**   the previous level appropriately to form a node at this level
-	** - repeat until there are no more entries on a level, at which point use
+	** * repeat until there are no more entries on a level, at which point use
 	**   the (single) node from the previous level as the root
 	**
 	** (The optimisation is also used if the input map is {@code this}.)
