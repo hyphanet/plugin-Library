@@ -50,7 +50,7 @@
 	
 	<target name="run" depends="dist">
 		<java
-			classname="${packagebase}.interfaces.TestInterface">
+			classname="${packagebase}.ui.TestInterface">
 			<classpath>
 				<pathelement location="../fred/lib/freenet-cvs-snapshot.jar"/>
 				<pathelement location="../fred/lib/freenet-ext.jar"/>

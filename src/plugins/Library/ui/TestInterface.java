@@ -21,6 +21,7 @@ public class TestInterface{
 			String command;
 			String param;
 			String line;
+			String index = "../../Freenet/myindex7";
 			
 			do{
 				line = br.readLine();
@@ -28,12 +29,12 @@ public class TestInterface{
 				param = line.substring(1);
 				
 				if("f".equals(command)){
-					requests.put(""+requestcount,Library.findTerm("index", param));
+					requests.put(""+requestcount,Library.findTerm(index, param));
 					System.out.println("Started request "+requestcount);
 					requestcount++;
 				}
 				if("s".equals(command)){
-					requests.put(""+requestcount,Search.startSearch(param, "index"));
+					requests.put(""+requestcount,Search.startSearch(param, index));
 					System.out.println("Started request "+requestcount);
 					requestcount++;
 				}
@@ -42,7 +43,7 @@ public class TestInterface{
 				if("r".equals(command))
 					System.out.println(requests.get(param).getResult());
 				if("i".equals(command))
-					System.out.println(Library.getIndex("index"));
+					System.out.println(Library.getIndex(index));
 				if("w".equals(command))
 					WebUI.resultNodeGrouped(requests.get(param), true, true);
 			}while(!"x".equals(command));
