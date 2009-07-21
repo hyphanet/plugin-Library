@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.ArrayList;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.TreeSet;
 import java.util.TreeMap;
@@ -53,7 +54,7 @@ import freenet.keys.FreenetURI;
 ** @author infinity0
 */
 public class IndexFileSerialiser
-implements Archiver<Index>,
+/*implements Archiver<Index>,
            Serialiser.Composite<Archiver<Map<String, Object>>>,
            Serialiser.Translate<Index, Map<String, Object>>/*,
            Serialiser.Trackable<Index>*/ {
@@ -66,23 +67,23 @@ implements Archiver<Index>,
 	// for the request/insert URIs
 
 	final protected Archiver<Map<String, Object>> subsrl;
-	final protected Translator<Index, Map<String, Object>> trans;
+	//final protected Translator<Index, Map<String, Object>> trans;
 
 	PrefixTreeMapSerialiser<Token, SortedSet<TokenEntry>> tksrl;
 	PrefixTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>> usrl;
 
 	public IndexFileSerialiser() {
 		subsrl = new YamlArchiver<Map<String, Object>>("index", "");
-		trans = new IndexTranslator();
+		//trans = new IndexTranslator();
 		tksrl = new PrefixTreeMapSerialiser<Token, SortedSet<TokenEntry>>(new TokenTranslator());
 		usrl = new PrefixTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKeyTranslator());
 	}
 
-	@Override public Archiver<Map<String, Object>> getChildSerialiser() {
+	/*@Override public Archiver<Map<String, Object>> getChildSerialiser() {
 		return subsrl;
 	}
 
-	@Override public Translator<Index, Map<String, Object>> getTranslator() {
+/*	@Override public Translator<Index, Map<String, Object>> getTranslator() {
 		return trans;
 	}
 
@@ -155,7 +156,7 @@ implements Archiver<Index>,
 		}
 
 	}
-
+*/
 
 
 	public static class TokenTranslator implements Translator<Token, String> {
@@ -232,7 +233,7 @@ implements Archiver<Index>,
 			}
 
 			@Override public Map<String, Object> app(SkeletonPrefixTreeMap<K, V> tree) {
-				Map<String, Object> map = new HashMap<String, Object>(16);
+				Map<String, Object> map = new LinkedHashMap<String, Object>(16);
 				Map<String, Object> lmap = new HashMap<String, Object>(tree.sizeLocal()<<1);
 				app(tree, map, lmap, null);
 				// SnakeYAML can't handle arrays of primitives

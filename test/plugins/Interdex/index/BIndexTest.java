@@ -15,18 +15,13 @@ import freenet.keys.FreenetURI;
 import java.util.*;
 
 /**
-** TEST DISABLED FOR NOW
-**
 ** @author infinity0
 */
-public class IndexTest extends TestCase {
-
-	final private static boolean testdisabled;
+public class BIndexTest extends TestCase {
 
 	static {
 		//plugins.Interdex.serl.YamlArchiver.setTestMode();
-		testdisabled = true;
-		System.out.println("Test temporarily disabled");
+		ProtoIndex.BTREE_NODE_MIN = 0x100; // DEBUG so we see tree splits
 	}
 
 	long time = 0;
@@ -37,13 +32,8 @@ public class IndexTest extends TestCase {
 		return time - oldtime;
 	}
 
-	IndexFileSerialiser.PrefixTreeMapSerialiser<Token, SortedSet<TokenEntry>> srl = new
-	IndexFileSerialiser.PrefixTreeMapSerialiser<Token, SortedSet<TokenEntry>>(new IndexFileSerialiser.TokenTranslator());
-
-	IndexFileSerialiser.TokenEntrySerialiser vsrl = new
-	IndexFileSerialiser.TokenEntrySerialiser();
-
-	SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>> test;
+	BIndexSerialiser srl = new BIndexSerialiser();
+	ProtoIndex idx;
 
 	Random rand = new Random();
 
@@ -61,8 +51,12 @@ public class IndexTest extends TestCase {
 	));
 
 	protected void newTestSkeleton() {
-		test = new SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>(new Token(), 512);
-		test.setSerialiser(srl, vsrl);
+		try {
+			idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test");
+		} catch (java.net.MalformedURLException e) {
+			// not gonna happen
+		}
+		srl.setSerialiserFor(idx);
 		timeDiff();
 	}
 
@@ -71,7 +65,7 @@ public class IndexTest extends TestCase {
 
 		int totalentries = 0;
 
-		for (int i=0; i<256; ++i) {
+		for (int i=0; i<1024; ++i) {
 			String key = Generators.rndKey();
 			SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
 			int n = rand.nextInt(16) + 16;
@@ -88,36 +82,36 @@ public class IndexTest extends TestCase {
 				throw new RuntimeException(e);
 			}
 
-			test.put(new Token(key), entries);
+			idx.tmtab.put(key, entries);
 		}
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
 
-		test.deflate();
-		assertTrue(test.isBare());
-		assertFalse(test.isLive());
-		PushTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>> task = new
-		PushTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>>(test);
-		srl.push(task);
-		System.out.print("deflated in " + timeDiff() + " ms, ");
+		idx.tmtab.deflate();
+		assertTrue(idx.tmtab.isBare());
+		assertFalse(idx.tmtab.isLive());
+		PushTask<ProtoIndex> task1 = new PushTask<ProtoIndex>(idx);
+		srl.push(task1);
 
-		PullTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>> tasq = new
-		PullTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>>(task.meta);
-		srl.pull(tasq);
-		test.inflate();
-		assertTrue(test.isLive());
-		assertFalse(test.isBare());
+		System.out.print("deflated in " + timeDiff() + " ms, root at " + task1.meta + ", ");
+
+		PullTask<ProtoIndex> task2 = new PullTask<ProtoIndex>(task1.meta);
+		srl.pull(task2);
+		idx = task2.data;
+
+		idx.tmtab.inflate();
+		assertTrue(idx.tmtab.isLive());
+		assertFalse(idx.tmtab.isBare());
 		System.out.println("inflated in " + timeDiff() + " ms");
 	}
 
 	public void testBasicMulti() {
-		if (testdisabled) { return; }
 		int n = 8;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
 			fullInflate();
 		}
 	}
-
+/*
 	public void partialInflate() {
 		newTestSkeleton();
 		int totalentries = 0;
@@ -168,7 +162,6 @@ public class IndexTest extends TestCase {
 	}
 
 	public void testPartialInflateMulti() {
-		if (testdisabled) { return; }
 		int n = 8;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
@@ -177,7 +170,6 @@ public class IndexTest extends TestCase {
 	}
 
 	public void testProgress() {
-		if (testdisabled) { return; }
 		newTestSkeleton();
 
 		int totalentries = 0;
@@ -260,5 +252,5 @@ public class IndexTest extends TestCase {
 			try { Thread.sleep(1000); } catch (InterruptedException x) { }
 		} while (!f || d != t);
 	}
-
+*/
 }

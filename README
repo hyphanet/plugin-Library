@@ -17,12 +17,8 @@ point since the only class that uses it is probably going to be unnecessary.):
 Download and build bliki-doclet, which is a little something I cooked up to
 have mediawiki markup instead of ugly HTML in javadoc comments:
 
-  $EXT$ git clone http://infinity0.ath.cx/s/bliki-doclet/.git/
-  $EXT$ wget "http://gwtwiki.googlecode.com/files/bliki.3.0.12.zip"
-  $EXT$ unzip bliki.3.0.12.zip
-  $EXT/bliki-doclet/lib$ ln -s ../../info.bliki.wiki/bliki-core-3.0.12-SNAPSHOT.jar
-  $EXT/bliki-doclet$ ./mksrc.sh src.orig/openjdk-6-src-b16-24_apr_2009/ && ant
-  plugin-Interdex/lib$ ln -s $EXT/bliki-doclet/dist/bliki-doclet*.jar bliki-doclet.jar
+  $EXT$ wget "http://cloud.github.com/downloads/infinity0/bliki-doclet/bliki-doclet_openjdk-6-src-b16-24_apr_2009.jar"
+  plugin-Interdex/lib$ ln -s $EXT/bliki-doclet*.jar bliki-doclet.jar
 
 (If you don't care about generating pretty javadocs, you can comment out the
 line that starts "<doclet" in build.xml, to make the build process not fail.)

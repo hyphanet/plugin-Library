@@ -61,13 +61,24 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 	** Prefix of filename
 	*/
 	protected final String prefix;
+
 	/**
 	** Suffix of filename
 	*/
 	protected final String suffix;
 
+	/**
+	** DEBUG: whether to generate random file names
+	*/
+	protected boolean random;
+
 	public YamlArchiver() {
 		suffix = prefix = "";
+	}
+
+	public YamlArchiver(boolean r) {
+		this();
+		random = r;
 	}
 
 	public YamlArchiver(String pre, String suf) {
@@ -91,7 +102,7 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 					m[1] = str.toString();
 				}
 			} else {
-				throw new IllegalArgumentException("YamlArchiver does not support such metadata: " + meta);
+				throw new IllegalArgumentException("YamlArchiver does not support such metadata: " + java.util.Arrays.deepToString(arr));
 			}
 		} else if (meta != null) {
 			throw new IllegalArgumentException("YamlArchiver does not support such metadata: " + meta);
@@ -128,6 +139,7 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 	}
 
 	@Override public void push(PushTask<T> t) {
+		if (random) { t.meta = java.util.UUID.randomUUID().toString(); }
 		String[] s = getFileParts(t.meta);
 		File file = new File(prefix + s[0] + suffix + s[1] + ".yml");
 		try {

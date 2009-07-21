@@ -33,9 +33,10 @@ import plugins.Interdex.util.DataNotLoadedException;
 **
 ** TODO parallelise the fetches
 **
+** @deprecated
 ** @author infinity0
 */
-public class Index {
+public class PrefixIndex  {
 
 	final public static int TKTAB_MAX = 4096;
 	final public static int UTAB_MAX = 4096;
@@ -91,7 +92,7 @@ public class Index {
 	*/
 	final private transient ReadWriteLock lock = new ReentrantReadWriteLock();
 
-	public Index(FreenetURI i, String n) {
+	public PrefixIndex(FreenetURI i, String n) {
 		id = i;
 		name = (n == null)? "": n;
 		writeable = true;
@@ -107,7 +108,7 @@ public class Index {
 	** This constructor is used by the {@link IndexFileSerialiser.IndexTranslator
 	** translator} to create a skeleton index.
 	*/
-	protected Index(FreenetURI i, String n, Date m, Map<String, Object> x,
+	protected PrefixIndex(FreenetURI i, String n, Date m, Map<String, Object> x,
 		SkeletonMap<URIKey, SortedMap<FreenetURI, URIEntry>> u,
 		SkeletonMap<Token, SortedSet<TokenEntry>> t/*,
 		SkeletonMap<Token, TokenFilter> f*/

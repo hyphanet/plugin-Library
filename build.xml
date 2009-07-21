@@ -8,7 +8,7 @@
 	<property name="source-version" value="1.5"/>
 	<property name="build" location="build/"/>
 	<property name="build-test" location="build-test/"/>
-	<property name="test-run" location="test-run/"/>
+	<property name="run-test" location="run-test/"/>
 	<property name="dist" location="dist/"/>
 	<property name="javadoc" location="javadoc/"/>
 	<property name="junit.location" value="/usr/share/java/junit.jar"/>
@@ -18,7 +18,7 @@
 	<target name="mkdir">
 		<mkdir dir="${build}"/>
 		<mkdir dir="${build-test}"/>
-		<mkdir dir="${test-run}"/>
+		<mkdir dir="${run-test}"/>
 		<mkdir dir="${dist}"/>
 		<echo message="Using ${freenet-cvs-snapshot.location} as freenet-cvs-snapshot.jar"/>
 		<echo message="Using ${freenet-ext.location} as freenet-ext.jar"/>
@@ -69,9 +69,9 @@
 	</target>
 
 	<target name="junit" depends="unit-build" if="junit.present" unless="skip_tests">
-		<delete dir="${test-run}"/>
-		<mkdir dir="${test-run}"/>
-		<junit printsummary="yes" fork="yes" haltonfailure="yes" dir="${test-run}" showoutput="yes">
+		<delete dir="${run-test}"/>
+		<mkdir dir="${run-test}"/>
+		<junit printsummary="yes" fork="yes" haltonfailure="yes" dir="${run-test}" showoutput="yes">
 			<classpath>
 				<pathelement path="${build}"/>
 				<pathelement path="${build-test}"/>
@@ -137,7 +137,7 @@
 		<delete dir="${build}"/>
 		<delete dir="${build-test}"/>
 		<delete dir="${dist}"/>
-		<delete dir="${test-run}"/>
+		<delete dir="${run-test}"/>
 		<delete dir="${javadoc}"/>
 	</target>
 

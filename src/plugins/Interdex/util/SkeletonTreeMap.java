@@ -6,6 +6,7 @@ package plugins.Interdex.util;
 import plugins.Interdex.serl.Serialiser.*;
 import plugins.Interdex.serl.Translator;
 import plugins.Interdex.serl.MapSerialiser;
+import plugins.Interdex.serl.DataFormatException;
 
 import java.util.Comparator;
 import java.util.Set;
@@ -211,6 +212,8 @@ implements SkeletonMap<K, V> {
 	** This implementation provides static methods to translate between this
 	** class and a map from ({@link String} forms of the key) to ({@link
 	** Task#meta metadata} of the values).
+	**
+	** TODO atm this can't handle custom comparators
 	*/
 	abstract public static class TreeMapTranslator<K, V>
 	implements Translator<SkeletonTreeMap<K, V>, Map<String, Object>> {
@@ -227,6 +230,9 @@ implements SkeletonMap<K, V> {
 			if (!map.isBare()) {
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
+			if (map.comparator() != null) {
+				throw new UnsupportedOperationException("Sorry, this translator does not (yet) support comparators");
+			}
 			// OPTIMISE maybe get rid of intm and just always use IdentityHashMap
 			if (ktr != null) {
 				for (Map.Entry<K, Object> en: map.loaded.entrySet()) {
@@ -241,7 +247,8 @@ implements SkeletonMap<K, V> {
 		}
 
 		/**
-		** Backward translation. The translator is mandatory here.
+		** Backward translation. If no translator is given, a direct cast will
+		** be attempted.
 		**
 		** @param intm The map of translated mappings to extract
 		** @param map The data structue to populate with metadata
@@ -249,10 +256,17 @@ implements SkeletonMap<K, V> {
 		*/
 		public static <K, V> SkeletonTreeMap<K, V> rev(Map<String, Object> intm, SkeletonTreeMap<K, V> map, Translator<K, String> ktr) {
 			if (ktr == null) {
-				throw new IllegalArgumentException("SkeletonTreeMap: Translator cannot be null for reverse translation.");
-			}
-			for (Map.Entry<String, Object> en: intm.entrySet()) {
-				map.putDummy(ktr.rev(en.getKey()), en.getValue());
+				try {
+					for (Map.Entry<String, Object> en: intm.entrySet()) {
+						map.putDummy((K)en.getKey(), en.getValue());
+					}
+				} catch (ClassCastException e) {
+					throw new DataFormatException("TreeMapTranslator: reverse translation failed. Try supplying a non-null key-translator.", e, null, null, null);
+				}
+			} else {
+				for (Map.Entry<String, Object> en: intm.entrySet()) {
+					map.putDummy(ktr.rev(en.getKey()), en.getValue());
+				}
 			}
 			return map;
 		}
@@ -267,6 +281,8 @@ implements SkeletonMap<K, V> {
 		super.clear();
 		loaded.clear();
 	}
+
+	@Override public int size() { return loaded.size(); }
 
 	@Override public Object clone() {
 		return new SkeletonTreeMap(this);
@@ -283,6 +299,49 @@ implements SkeletonMap<K, V> {
 		} else {
 			return super.containsValue(value);
 		}
+	}
+
+	@Override public V get(Object key) {
+		Object o = loaded.get(key);
+		if (o != null) {
+			throw new DataNotLoadedException("Data not loaded for key " + key + ": " + o, this, (K)key, o);
+		}
+		return super.get(key);
+	}
+
+	/**
+	** {@inheritDoc}
+	**
+	** NOTE: if the value for the key hasn't been loaded yet, then this method
+	** will return **null** instead of returning the actual previous value
+	** (that hasn't been loaded yet).
+	**
+	** TODO: could code a setStrictChecksMode() or something to have this
+	** method throw {@link DataNotLoadedException} in such circumstances, at
+	** the user's discretion.
+	*/
+	@Override public V put(K key, V value) {
+		Object o = loaded.put(key, null);
+		if (o != null) { --dummyCount; }
+		return super.put(key, value);
+	}
+
+	//public void putAll(Map<? extends K,? extends V> map);
+
+	/**
+	** {@inheritDoc}
+	**
+	** NOTE: if the value for the key hasn't been loaded yet, then this method
+	** will return **null** instead of returning the actual previous value
+	** (that hasn't been loaded yet).
+	**
+	** TODO: could code a setStrictChecksMode() or something to have this
+	** method throw {@link DataNotLoadedException} in such circumstances, at
+	** the user's discretion.
+	*/
+	@Override public V remove(Object key) {
+		loaded.remove(key);
+		return super.remove(key);
 	}
 
 	private Set<Map.Entry<K,V>> entries;
@@ -320,20 +379,6 @@ implements SkeletonMap<K, V> {
 		return entries;
 	}
 
-	@Override public K firstKey() { return loaded.firstKey(); }
-
-	@Override public V get(Object key) {
-		Object o = loaded.get(key);
-		if (o != null) {
-			throw new DataNotLoadedException("Data not loaded for key " + key + ": " + o, this, (K)key, o);
-		}
-		return super.get(key);
-	}
-
-	@Override public SortedMap<K,V> headMap(K toKey) {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
 	private Set<K> keys;
 	@Override public Set<K> keySet() {
 		if (keys == null) {
@@ -362,53 +407,6 @@ implements SkeletonMap<K, V> {
 		return keys;
 	}
 
-	@Override public K lastKey() { return loaded.lastKey(); }
-
-	/**
-	** {@inheritDoc}
-	**
-	** NOTE: if the value for the key hasn't been loaded yet, then this method
-	** will return **null** instead of returning the actual previous value
-	** (that hasn't been loaded yet).
-	**
-	** TODO: could code a setStrictChecksMode() or something to have this
-	** method throw {@link DataNotLoadedException} in such circumstances, at
-	** the user's discretion.
-	*/
-	@Override public V put(K key, V value) {
-		Object o = loaded.put(key, null);
-		if (o != null) { --dummyCount; }
-		return super.put(key, value);
-	}
-
-	//public void putAll(Map<? extends K,? extends V> map);
-
-	/**
-	** {@inheritDoc}
-	**
-	** NOTE: if the value for the key hasn't been loaded yet, then this method
-	** will return **null** instead of returning the actual previous value
-	** (that hasn't been loaded yet).
-	**
-	** TODO: could code a setStrictChecksMode() or something to have this
-	** method throw {@link DataNotLoadedException} in such circumstances, at
-	** the user's discretion.
-	*/
-	@Override public V remove(Object key) {
-		loaded.remove(key);
-		return super.remove(key);
-	}
-
-	@Override public int size() { return loaded.size(); }
-
-	@Override public SortedMap<K,V> subMap(K fromKey, K toKey) {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
-	@Override public SortedMap<K,V> tailMap(K fromKey) {
-		throw new UnsupportedOperationException("Not implemented.");
-	}
-
 	private Collection<V> values;
 	@Override public Collection<V> values() {
 		if (values == null) {
@@ -426,6 +424,25 @@ implements SkeletonMap<K, V> {
 		}
 		return values;
 	}
+
+	@Override public K firstKey() { return loaded.firstKey(); }
+
+	@Override public K lastKey() { return loaded.lastKey(); }
+
+	@Override public SortedMap<K,V> headMap(K toKey) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	@Override public SortedMap<K,V> subMap(K fromKey, K toKey) {
+		throw new UnsupportedOperationException("Not implemented.");
+	}
+
+	@Override public SortedMap<K,V> tailMap(K fromKey) {
+		return super.tailMap(fromKey);
+		// URGENT: this is ONLY here for SkeletonBTreeMap
+		//throw new UnsupportedOperationException("Not implemented.");
+	}
+
 
 	/*========================================================================
 	  public class AbstractMap

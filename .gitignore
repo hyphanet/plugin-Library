@@ -1,6 +1,6 @@
 build
 build-test
 dist
-lib
 javadoc
-test-run
+lib
+run-test

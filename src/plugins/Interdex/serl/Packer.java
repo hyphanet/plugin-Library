@@ -161,20 +161,20 @@ implements MapSerialiser<K, T>,
 	*/
 	protected void addBinToMeta(Map<String, Object> meta, T partition, int binindex) {
 		List<Integer> size = (List<Integer>)meta.get("size");
-		if (size == null) { size = new ArrayList<Integer>(); meta.put("size", size); }
+		if (size == null) { meta.put("size", size = new ArrayList<Integer>()); }
 		size.add(sizeOf(partition));
 
-		List<Integer> bins = (List<Integer>)meta.get("bins");
-		if (bins == null) { bins = new ArrayList<Integer>(); meta.put("bins", bins); }
-		bins.add(binindex);
+		List<Object> bins = (List<Object>)meta.get("bins");
+		if (bins == null) { meta.put("bins", bins = new ArrayList<Object>()); }
+		bins.add(new Integer(binindex));
 	}
 
 	/**
 	** Given a map of metadata, retrieve the list of bins that it describes.
 	*/
-	protected List<Integer> getBinsFromMeta(Map<String, Object> meta) {
+	protected List<Object> getBinsFromMeta(Map<String, Object> meta) {
 		Object list = meta.get("bins");
-		return (List<Integer>)list;
+		return (List<Object>)list;
 	}
 
 	/**
@@ -355,11 +355,15 @@ implements MapSerialiser<K, T>,
 	@Override public void pull(Map<K, PullTask<T>> tasks, Object meta) {
 		// tasks has form {K:(*,M)}
 		// put all the bins from each task into a list of new tasks for each bin
-		Map<Integer, PullTask<Map<K, T>>> bins = new HashMap<Integer, PullTask<Map<K, T>>>();
+		Map<Object, PullTask<Map<K, T>>> bins = new HashMap<Object, PullTask<Map<K, T>>>();
 		for (Map.Entry<K, PullTask<T>> en: tasks.entrySet()) {
-			for (Integer i: getBinsFromMeta((Map<String, Object>)en.getValue().meta)) {
-				if (!bins.containsKey(i)) {
-					bins.put(i, new PullTask<Map<K, T>>(new Object[]{meta, i}));
+			for (Object o: getBinsFromMeta((Map<String, Object>)en.getValue().meta)) {
+				if (!bins.containsKey(o)) {
+					if (o instanceof Integer) {
+						bins.put(o, new PullTask<Map<K, T>>(new Object[]{meta, (Integer)o}));
+					} else {
+						bins.put(o, new PullTask<Map<K, T>>(o));
+					}
 				}
 			}
 		}
@@ -375,8 +379,8 @@ implements MapSerialiser<K, T>,
 		for (Map.Entry<K, PullTask<T>> en: tasks.entrySet()) {
 			PullTask<T> task = en.getValue();
 			task.data = newElement();
-			for (Integer i: getBinsFromMeta((Map<String, Object>)task.meta)) {
-				PullTask<Map<K, T>> bintask = bins.get(i);
+			for (Object o: getBinsFromMeta((Map<String, Object>)task.meta)) {
+				PullTask<Map<K, T>> bintask = bins.get(o);
 				T partition;
 				if (bintask.data == null || (partition = bintask.data.remove(en.getKey())) == null) {
 					// TODO use DFEx
@@ -456,6 +460,16 @@ implements MapSerialiser<K, T>,
 
 		// bintasks has form [({K:T},[meta,I])]
 		subsrl.push(bintasks);
+		i=0;
+		for (PushTask<Map<K, T>> btask: bintasks) {
+			if (!(btask.meta instanceof Object[])) {
+				for (K key: btask.data.keySet()) {
+					List<Object> binlist = getBinsFromMeta((Map<String, Object>)tasks.get(key).meta);
+					binlist.set(binlist.indexOf(i), btask.meta);
+				}
+			}
+			++i;
+		}
 	}
 
 	/************************************************************************

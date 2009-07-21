@@ -4,8 +4,6 @@ index: "suggested tokens" - suggest what other people should tag this index as;
        they are free to ignore this suggestion
 
 
-- URGENT recode IdentityComparator or just get rid of it
-
 - TODO make build.xml output test results better... atm either it has two modes:
   - print test stdout output out in real time, but not stderr
   - print stdout and stderr in a single go after the test is over :/
@@ -54,48 +52,24 @@ data structure more after the rest is working.
 
 
 
-
-
 - have a Skeleton<K> interface with deflate(K) methods so that
 
 SkeletonMap<K, V> extends Skeleton<K>
 GhostTreeSet extends Skeleton<Integer> (or int[]?)
 
 
-- implement GhostTreeMap (for SortedMap<FreenetURI, URIEntry>)
-
-same as GhostTreeSet below, but with keys instead of indexes
-also, the map can be modified (since add/rem key does not change the keys
-of the other entries)
-
-
-- implement GhostTreeSet (for SortedSet<TokenEntry>):
-
-keeps two lists of the same length:
-int[] partitionIndex (start index of element in each partition)
-boolean[] partitionLoaded (whether the element has been loaded)
-
-iterator will go through these arrays and throw an exception when it
-encounters an unloaded element.
-
-the set cannot be modified or toArray()'d unless it is live
-
-with deflate(Index)
-
 
 
 == Schedule ==
 
- # implement deflate/inflate on STM/SPTM, 2-3 days
- # implement index push/pull 1 day
- # implement index methods including auto-fetching of not loaded data 2-3 days
- - implement a serialiser to send progress reports 5-7 days
- - implement Ghost* 3-5 days
+
+ - get the rest of the Index stuff sorted in the serialiser 3-6 days
+
  - implement freenet inflate/deflate 5-7 days
  - implement filters 2 days
- - implement fcp 3-5 days depending on how much mikeb gets through
 
- - implement interdex fcp with library 2-3 days
+ - implement fcp (mikeb is doing this part, he seems to be on top of it)
+
  - implement interdex algorithm 5-7 days
  - implement crawler...
 

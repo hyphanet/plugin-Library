@@ -18,6 +18,25 @@ deflate/inflate should be able to occur concurrently on different nodes/keys
 it should block put/remove operations, but not read operations
 
 
+tmtab: BTreeMap<String, BTreeSet<TokenEntry>>
+utab: BTreeMap<URIKey, BTreeMap<FreenetURI, URIEntry>>
+
+
+
+BTreeMap commit algorithm:
+
+have a "modCount" for each node. merge/split/rotate & put/remove update this
+
+WriteableIndex keeps a "node -> modCount" map
+at each commit, push all nodes that have a different modCount,
+and update the map.
+
+
+
+NOTE: stuff below tbhis section is out of data wrt the format of the indexes
+
+
+
 == Purpose ==
 
 Internal representation of an index.
