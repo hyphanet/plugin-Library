@@ -25,8 +25,8 @@ import java.util.ArrayList;
 */
 public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMap<K, V> {
 
-	public Archiver<SkeletonNode> nsrl;
-	public MapSerialiser<K, V> vsrl;
+	protected Archiver<SkeletonNode> nsrl;
+	protected MapSerialiser<K, V> vsrl;
 
 	// TODO maybe make this write-once
 	public void setSerialiser(Archiver<SkeletonNode> n, MapSerialiser<K, V> v) {

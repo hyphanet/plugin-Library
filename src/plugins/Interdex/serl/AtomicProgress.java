@@ -6,6 +6,8 @@ package plugins.Interdex.serl;
 /**
 ** A progress that has one single part. DOCUMENT
 **
+** TODO perhaps synchronize
+**
 ** @author infinity0
 */
 public class AtomicProgress implements Progress {
@@ -15,7 +17,6 @@ public class AtomicProgress implements Progress {
 	protected boolean done;
 
 	protected TaskAbortException abort = null;
-
 
 	public AtomicProgress() { }
 
@@ -39,6 +40,10 @@ public class AtomicProgress implements Progress {
 
 	@Override public String getName() {
 		return name;
+	}
+
+	@Override public String getStatus() {
+		return done? "1/1": "0/1";
 	}
 
 	@Override public int partsDone() {

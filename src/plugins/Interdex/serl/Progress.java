@@ -16,6 +16,11 @@ public interface Progress {
 	public String getName();
 
 	/**
+	** Returns the current completion status.
+	*/
+	public String getStatus();
+
+	/**
 	** Returns how many "parts" of the task is done.
 	*/
 	public int partsDone();

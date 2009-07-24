@@ -82,13 +82,13 @@ public class BIndexTest extends TestCase {
 				throw new RuntimeException(e);
 			}
 
-			idx.tmtab.put(key, entries);
+			idx.ttab.put(key, entries);
 		}
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
 
-		idx.tmtab.deflate();
-		assertTrue(idx.tmtab.isBare());
-		assertFalse(idx.tmtab.isLive());
+		idx.ttab.deflate();
+		assertTrue(idx.ttab.isBare());
+		assertFalse(idx.ttab.isLive());
 		PushTask<ProtoIndex> task1 = new PushTask<ProtoIndex>(idx);
 		srl.push(task1);
 
@@ -98,14 +98,14 @@ public class BIndexTest extends TestCase {
 		srl.pull(task2);
 		idx = task2.data;
 
-		idx.tmtab.inflate();
-		assertTrue(idx.tmtab.isLive());
-		assertFalse(idx.tmtab.isBare());
+		idx.ttab.inflate();
+		assertTrue(idx.ttab.isLive());
+		assertFalse(idx.ttab.isBare());
 		System.out.println("inflated in " + timeDiff() + " ms");
 	}
 
 	public void testBasicMulti() throws TaskAbortException {
-		int n = 1;//8;
+		int n = 0;//8;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
 			fullInflate();
@@ -174,7 +174,7 @@ public class BIndexTest extends TestCase {
 		newTestSkeleton();
 
 		int totalentries = 0;
-		int numterms = 1024;
+		int numterms = 16;
 		int save = rand.nextInt(numterms);
 		String sterm = null;
 
@@ -183,7 +183,7 @@ public class BIndexTest extends TestCase {
 			String key = Generators.rndStr().substring(0,8);
 			if (i == save) { sterm = key; }
 			SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
-			int n = rand.nextInt(16) + 48;
+			int n = rand.nextInt(512) + 512;
 			totalentries += n;
 
 			try {
@@ -197,13 +197,13 @@ public class BIndexTest extends TestCase {
 				throw new RuntimeException(e);
 			}
 
-			idx.tmtab.put(key, entries);
+			idx.ttab.put(key, entries);
 		}
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
 
-		idx.tmtab.deflate();
-		assertTrue(idx.tmtab.isBare());
-		assertFalse(idx.tmtab.isLive());
+		idx.ttab.deflate();
+		assertTrue(idx.ttab.isBare());
+		assertFalse(idx.ttab.isLive());
 
 		System.out.println("deflated in " + timeDiff() + " ms");
 		plugins.Interdex.serl.YamlArchiver.setTestMode();
@@ -217,7 +217,7 @@ public class BIndexTest extends TestCase {
 		assertTrue(rq3 == rq1);
 
 		while (rq1.getResult() == null) {
-			System.out.println(rq1.getCurrentStage());
+			System.out.println(rq1.getCurrentStage() + ": " + rq1.getCurrentStatus());
 			try { Thread.sleep(1000); } catch (InterruptedException x) { }
 		}
 

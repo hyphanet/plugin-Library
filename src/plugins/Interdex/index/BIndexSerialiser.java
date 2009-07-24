@@ -59,7 +59,7 @@ implements Archiver<ProtoIndex>,
 
 
 	/**
-	** Generic map translator, for both utab and tmtab
+	** Generic map translator, for both utab and ttab
 	*/
 	public static class TreeMapTranslator<K, V> implements Translator<SkeletonTreeMap<K, V>, Map<String, Object>> {
 
@@ -92,8 +92,11 @@ implements Archiver<ProtoIndex>,
 
 	public static ProtoIndex setSerialiserFor(ProtoIndex index) {
 		// TODO utab too
-		index.tmtab.setSerialiser(new BTreeNodeSerialiser<String, SortedSet<TokenEntry>>(index.tmtab, null),
-		                          new TermEntrySerialiser());
+		BTreeNodeSerialiser ttab_keys = new BTreeNodeSerialiser<String, SortedSet<TokenEntry>>(index.ttab, null);
+		TermEntrySerialiser ttab_data = new TermEntrySerialiser();
+		index.ttab.setSerialiser(ttab_keys, ttab_data);
+		index.trackables[ProtoIndex.TTAB_KEYS] = ttab_keys;
+		index.trackables[ProtoIndex.TTAB_DATA] = ttab_data;
 		return index;
 	}
 
@@ -134,7 +137,7 @@ implements Archiver<ProtoIndex>,
 		// URI-table translator too...
 
 		@Override public Map<String, Object> app(ProtoIndex idx) {
-			if (!idx.tmtab.isBare() /* || !idx.utab.isBare() */) {
+			if (!idx.ttab.isBare() /* || !idx.utab.isBare() */) {
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
@@ -145,7 +148,7 @@ implements Archiver<ProtoIndex>,
 			map.put("extra", idx.extra);
 			// these are meant to be removed by the parent Serialiser and pushed
 			//map.put("utab", idx.utab);
-			map.put("tmtab", tmtrans.app(idx.tmtab));
+			map.put("ttab", tmtrans.app(idx.ttab));
 			return map;
 		}
 
@@ -159,9 +162,9 @@ implements Archiver<ProtoIndex>,
 					Date modified = (Date)map.get("modified");
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
 					//SkeletonBTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>> utab = (SkeletonBTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>)map.get("utab");
-					SkeletonBTreeMap<String, SortedSet<TokenEntry>> tmtab = tmtrans.rev((Map<String, Object>)map.get("tmtab"));
+					SkeletonBTreeMap<String, SortedSet<TokenEntry>> ttab = tmtrans.rev((Map<String, Object>)map.get("ttab"));
 
-					return setSerialiserFor(new ProtoIndex(id, name, modified, extra, /*utab, */tmtab));
+					return setSerialiserFor(new ProtoIndex(id, name, modified, extra, /*utab, */ttab));
 
 				} catch (ClassCastException e) {
 					// TODO maybe find a way to pass the actual bad data to the exception
@@ -259,9 +262,10 @@ implements Archiver<ProtoIndex>,
 				mib.add(t.meta);
 			}
 
-			for (PullTask<SortedSet<TokenEntry>> t: tasks.values()) {
-				CompoundProgress p = tracker.addPullProgress(t.meta);
+			for (Map.Entry<String, PullTask<SortedSet<TokenEntry>>> en: tasks.entrySet()) {
+				CompoundProgress p = tracker.addPullProgress(en.getValue().meta);
 				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPull(mib)); }
+				p.setName("Pulling containers for " + en.getKey());
 			}
 		}
 
@@ -271,9 +275,10 @@ implements Archiver<ProtoIndex>,
 				dib.add(t.data);
 			}
 
-			for (PushTask<SortedSet<TokenEntry>> t: tasks.values()) {
-				CompoundProgress p = tracker.addPushProgress(t.data);
+			for (Map.Entry<String, PushTask<SortedSet<TokenEntry>>> en: tasks.entrySet()) {
+				CompoundProgress p = tracker.addPushProgress(en.getValue().data);
 				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPush(dib)); }
+				p.setName("Pushing containers for " + en.getKey());
 			}
 		}
 

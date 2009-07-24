@@ -6,9 +6,13 @@ package plugins.Interdex.serl;
 /**
 ** A progress that accumulates its data from the given group of progresses.
 **
+** TODO perhaps synchronize
+**
 ** @author infinity0
 */
 public class CompoundProgress implements Progress {
+
+	protected String name = "";
 
 	Iterable<? extends Progress> subprogress;
 
@@ -19,13 +23,45 @@ public class CompoundProgress implements Progress {
 		subprogress = subs;
 	}
 
+	public int[] getStageSummary() {
+		int[] counts = new int[3]; // total, inprogress, done
+		for (Progress p: subprogress) {
+			++counts[0];
+			if (p == null) { continue; }
+			++counts[1];
+			if (!p.isTotalFinal() || p.partsDone() != p.partsTotal()) { continue; }
+			++counts[2];
+		}
+		return counts;
+	}
+
+	public int[] getPartsSummary() {
+		int[] counts = new int[3]; // (isTotalFinal)? 0: -1, inprogress, done
+		for (Progress p: subprogress) {
+			if (p == null) { counts[0] = -1; continue; }
+			else if (!p.isTotalFinal()) { counts[0] = -1; }
+			counts[1] += p.partsTotal();
+			counts[2] += p.partsDone();
+		}
+		return counts;
+	}
+
+	public void setName(String n) {
+		name = n;
+	}
+
 	/*========================================================================
 	  public interface Progress
 	 ========================================================================*/
 
 	@Override public String getName() {
-		// PRIORITY
-		return "a collection of tasks";
+		return name;
+	}
+
+	@Override public String getStatus() {
+		int[] s = getStageSummary();
+		int[] p = getPartsSummary();
+		return s[2] + "/" + s[1] + "/" + s[0] + " (" + p[2] + "/" + p[1] + "/" + (p[0]<0? "???": p[1])+ ")";
 	}
 
 	@Override public int partsDone() {

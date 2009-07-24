@@ -14,8 +14,6 @@ public interface Request<E> {
 
 	public E getResult();
 
-	public String getCurrentProgress();
-
 	public String getCurrentStatus();
 
 	public String getCurrentStage();

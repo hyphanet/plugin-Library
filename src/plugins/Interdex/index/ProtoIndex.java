@@ -61,9 +61,14 @@ public class ProtoIndex {
 
 
 
+	final public static int TTAB_KEYS = 0;
+	final public static int TTAB_DATA = 1;
+	final public static int UTAB_KEYS = 2;
+	final public static int UTAB_DATA = 3;
+	final protected Serialiser.Trackable[] trackables = new Serialiser.Trackable[4];
 
 
-	final protected SkeletonBTreeMap<String, SortedSet<TokenEntry>> tmtab;
+	final protected SkeletonBTreeMap<String, SortedSet<TokenEntry>> ttab;
 	//final protected SkeletonMap<URIKey, SortedMap<FreenetURI, URIEntry>> utab;
 
 
@@ -74,7 +79,7 @@ public class ProtoIndex {
 		extra = new HashMap<String, Object>();
 
 		//utab = new SkeletonBTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKey(), UTAB_MAX);
-		tmtab = new SkeletonBTreeMap<String, SortedSet<TokenEntry>>(BTREE_NODE_MIN);
+		ttab = new SkeletonBTreeMap<String, SortedSet<TokenEntry>>(BTREE_NODE_MIN);
 		//filtab = new SkeletonPrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX);
 	}
 
@@ -89,7 +94,7 @@ public class ProtoIndex {
 		extra = x;
 
 		//filtab = f;
-		tmtab = t;
+		ttab = t;
 		//utab = u;
 	}
 
@@ -149,7 +154,7 @@ public class ProtoIndex {
 		public void run() {
 			for (;;) {
 				try {
-					result = tmtab.get(term);
+					result = ttab.get(term);
 					break;
 				} catch (DataNotLoadedException d) {
 					Skeleton p = d.getParent();
@@ -170,77 +175,41 @@ public class ProtoIndex {
 			return term;
 		}
 
-		public String getCurrentProgress() {
-			return null;
-		}
-
 		public String getCurrentStatus() {
-			return null;
+			if (objects.size() == 0) { return "nothing yet"; }
+			Progress p = selectProgress(objects.peek());
+			return (p == null)? "waiting for next stage to start": p.getStatus();
 		}
 
 		public String getCurrentStage() {
 			if (objects.size() == 0) { return "nothing yet"; }
-			Object o = objects.peek();
-			Progress p;
-
-			if (o instanceof SkeletonBTreeMap.GhostNode) {
-				p = ((Serialiser.Trackable)tmtab.nsrl).getTracker().getPullProgress(o);
-
-			} else {
-				p = ((Serialiser.Trackable)tmtab.vsrl).getTracker().getPullProgress(o);
-
-			}
-
+			Progress p = selectProgress(objects.peek());
 			return (p == null)? "waiting for next stage to start": p.getName();
 		}
 
+		protected Progress selectProgress(Object o) {
+			if (o instanceof SkeletonBTreeMap.GhostNode) {
+				return trackables[TTAB_KEYS].getTracker().getPullProgress(o);
+			} else {
+				return trackables[TTAB_DATA].getTracker().getPullProgress(o);
+			}
+			// return null;
+		}
 
 /*
-				final String s = sterm;
-				new Thread() {
-					public void run() {
-						test.inflate(Token.intern(s));
-					}
-				}.start();
-
-				for (;;) {
-					try {
-						test.get(Token.intern(sterm));
-						System.out.println("deflated term \"" + sterm + "\" in " + timeDiff() + "ms.");
-						break;
-					} catch (DataNotLoadedException e) {
-						Object meta = e.getValue();
-						Progress p;
-						if ((p = srl.getTracker().getPullProgress(meta)) != null) {
-							pollProgress(meta, p);
-						} else if ((p = vsrl.getTracker().getPullProgress(meta)) != null) {
-							pollProgress(meta, p);
-						} else {
-							System.out.println("lol wut no progress (" + meta + ")? trying again");
-							try { Thread.sleep(1000); } catch (InterruptedException x) { }
-						}
-						continue;
-					}
-				}
-
-			public void pollProgress(Object key, Progress p) {
-				int d; int t; boolean f;
-				do {
-					d = p.partsDone();
-					t = p.partsTotal();
-					f = p.isTotalFinal();
-					System.out.println(key + ": " + d + "/" + t + (f? "": "???"));
-					try { Thread.sleep(1000); } catch (InterruptedException x) { }
-				} while (!f || d != t);
-			}
+		public void pollProgress(Object key, Progress p) {
+			int d; int t; boolean f;
+			do {
+				d = p.partsDone();
+				t = p.partsTotal();
+				f = p.isTotalFinal();
+				System.out.println(key + ": " + d + "/" + t + (f? "": "???"));
+				try { Thread.sleep(1000); } catch (InterruptedException x) { }
+			} while (!f || d != t);
+		}
 */
 
 	}
-
-
-
-
-
 
 
 
