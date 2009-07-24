@@ -5,6 +5,7 @@ package plugins.Interdex.util;
 
 import plugins.Interdex.serl.Serialiser.*;
 import plugins.Interdex.serl.Serialiser;
+import plugins.Interdex.serl.TaskAbortException;
 
 import java.util.Map;
 
@@ -40,7 +41,7 @@ public interface SkeletonMap<K, V> extends Map<K, V>, Skeleton<K> {
 	**
 	** @param key The key for whose value to inflate.
 	*/
-	public void inflate(K key);
+	public void inflate(K key) throws TaskAbortException;
 
 	/**
 	** {@inheritDoc}
@@ -51,6 +52,6 @@ public interface SkeletonMap<K, V> extends Map<K, V>, Skeleton<K> {
 	**
 	** @param key The key for whose value to deflate.
 	*/
-	public void deflate(K key);
+	public void deflate(K key) throws TaskAbortException;
 
 }

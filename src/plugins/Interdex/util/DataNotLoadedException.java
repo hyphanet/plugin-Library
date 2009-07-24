@@ -6,7 +6,7 @@ package plugins.Interdex.util;
 /**
 ** Thrown when data hasn't been loaded yet, eg. when a {@link Skeleton} hasn't
 ** been fully loaded into memory. Exceptions should be constructed such that
-** a method call to {@link Skeleton#deflate()} on {@link #getParent()} with
+** a method call to {@link Skeleton#inflate()} on {@link #getParent()} with
 ** {@link #getKey()} as its argument will load the data and prevent an
 ** exception from being thrown the next time round the data is accessed.
 **

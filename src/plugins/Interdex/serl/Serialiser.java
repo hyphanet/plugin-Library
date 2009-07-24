@@ -94,9 +94,8 @@ public interface Serialiser<T> {
 	}
 
 	/**
-	** TODO find a better place to put this...
-	**
-	** DOCUMENT
+	** Represents a serialiser that exposes the progress status of its
+	** running operations via a {@link ProgressTracker}.
 	*/
 	public interface Trackable<T> extends Serialiser<T> {
 
@@ -105,6 +104,9 @@ public interface Serialiser<T> {
 	}
 
 	/**
+	** Represents a serialiser which uses a {@link Translator} to do much of
+	** its work. This can be used alongside a {@link Serialiser.Composite}.
+	**
 	** TODO rename this to something better...
 	*/
 	public interface Translate<T, I> extends Serialiser<T> {
@@ -114,9 +116,15 @@ public interface Serialiser<T> {
 	}
 
 	/**
-	** TODO find a tidy way to make this extend Serialiser<T>...
+	** Represents a serialisation process which is divided up into several
+	** parts. The basic premise is to convert the target object into another
+	** type of object, which can be handled by an already existing {@link
+	** Serialiser} (which may also be composite).
 	**
-	** DOCUMENT, copy from CompositeSerialiser
+	** The conversion can be handled by a {@link Translator}, in which case the
+	** class might also implement {@link Serialiser.Translate}.
+	**
+	** TODO find a tidy way to make this extend Serialiser<T>...
 	*/
 	public interface Composite<S extends Serialiser> /*extends Serialiser*/ {
 

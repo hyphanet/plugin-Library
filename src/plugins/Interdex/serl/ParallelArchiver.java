@@ -15,28 +15,24 @@ import java.util.concurrent.TimeUnit;
 ** An {@link IterableSerialiser} that uses threads to handle tasks given to it
 ** in parallel.
 **
-** This class expects the overrides of {@link #pull(Serialiser.PullTask)}
-** and {@link #push(Serialiser.PushTask)} to notify all threads blocking on
-** {@link Progress#join()}. If this does not occur, deadlock will result.
-** TODO get rid of this requirement...
-**
-** PRIORITY rename to ParallelSerialiser or ParallelTracker or something...
+** TODO making this ParallelSerialiser<T, P extends Progress> will probably make
+** things nicer...
 **
 ** @author infinity0
 */
-public abstract class ParallelArchiver<T>
+public abstract class ParallelSerialiser<T>
 implements IterableSerialiser<T>,
            Serialiser.Trackable<T> {
 
-	protected int maxThreads = 4;
+	protected int maxThreads = 0x10;
 	protected int numThreads = 0;
 	protected SynchronousQueue<Task<T>> queue = new SynchronousQueue<Task<T>>();
 
 	final protected ProgressTracker<T, ? extends Progress> tracker;
 
-	public ParallelArchiver(ProgressTracker<T, ? extends Progress> k) {
+	public ParallelSerialiser(ProgressTracker<T, ? extends Progress> k) {
 		if (k == null) {
-			throw new IllegalArgumentException("ParallelArchiver must have a progress tracker.");
+			throw new IllegalArgumentException("ParallelSerialiser must have a progress tracker.");
 		}
 		tracker = k;
 	}
@@ -76,16 +72,75 @@ implements IterableSerialiser<T>,
 		(new QueueHandler()).start();
 	}
 
+	/**
+	** Given a group of progresses, waits for them to all finish. Non-error
+	** aborts are caught and ignored; error aborts are re-thrown.
+	*/
+	protected void joinAll(Iterable<Progress> plist) throws InterruptedException, TaskAbortException {
+		Iterator<Progress> it = plist.iterator();
+		while (it.hasNext()) {
+			Progress p = it.next();
+			try {
+				p.join();
+			} catch (TaskAbortException e) {
+				if (e.isError()) {
+					throw e;
+				} else {
+					// TODO perhaps have a handleNonErrorAbort() that can be overridden
+					it.remove();
+				}
+			}
+		}
+	}
+
+	/**
+	** Executes a {@link PullTask} and update the progress associated with it.
+	**
+	** Implementations must also modify the state of the progress object such
+	** that after the operation completes, all threads blocked on {@link
+	** Progress#join()} will either return normally or throw the exact {@link
+	** TaskAbortException} that caused it to abort.
+	**
+	** '''If this does not occur, deadlock will result'''.
+	*/
+	abstract public void pullAndUpdateProgress(PullTask<T> task, Progress p);
+
+	/**
+	** Executes a {@link PushTask} and update the progress associated with it.
+	**
+	** Implementations must also modify the state of the progress object such
+	** that after the operation completes, all threads blocked on {@link
+	** Progress#join()} will either return normally or throw the exact {@link
+	** TaskAbortException} that caused it to abort.
+	**
+	** '''If this does not occur, deadlock will result'''.
+	*/
+	abstract public void pushAndUpdateProgress(PushTask<T> task, Progress p);
+
 	/*========================================================================
 	  public interface IterableSerialiser
 	 ========================================================================*/
+
+	@Override public void pull(PullTask<T> task) throws TaskAbortException {
+		List<PullTask<T>> thetask = new ArrayList<PullTask<T>>(1);
+		thetask.add(task);
+		pull(thetask);
+		if (thetask.isEmpty()) { throw new TaskCompleteException("Already done"); }
+	}
+
+	@Override public void push(PushTask<T> task) throws TaskAbortException {
+		List<PushTask<T>> thetask = new ArrayList<PushTask<T>>(1);
+		thetask.add(task);
+		push(thetask);
+		if (thetask.isEmpty()) { throw new TaskCompleteException("Already done"); }
+	}
 
 	/**
 	** {@inheritDoc}
 	**
 	** This implementation DOCUMENT
 	*/
-	@Override public void pull(Iterable<PullTask<T>> tasks) {
+	@Override public void pull(Iterable<PullTask<T>> tasks) throws TaskAbortException {
 		kickStart();
 		try {
 			List<Progress> plist = new ArrayList<Progress>();
@@ -93,13 +148,15 @@ implements IterableSerialiser<T>,
 			while (it.hasNext()) {
 				PullTask<T> t = it.next();
 				if (t.meta == null) {
-					throw new IllegalArgumentException("ParallelArchiver cannot handle pull tasks with null metadata");
+					throw new IllegalArgumentException("ParallelSerialiser cannot handle pull tasks with null metadata");
 				}
 
 				Progress p = tracker.addPullProgress(t.meta);
 				if (p == null) {
-					// if we are already pushing this then skip it
+					// if we are already pushing this, then erase it from the task iterable
+					// but we still want to wait for the task to finish, so add it to plist
 					it.remove();
+					plist.add(tracker.getPullProgress(t.meta));
 					continue;
 				}
 				plist.add(p);
@@ -107,12 +164,15 @@ implements IterableSerialiser<T>,
 				while (!queue.offer(t, 1, TimeUnit.SECONDS)) {
 					startHandler();
 				}
-				//System.out.println("pushed " + t);
 			}
-			for (Progress p: plist) { p.join(); }
+			// wait for all tasks to finish
+			joinAll(plist);
+
 		} catch (InterruptedException e) {
-			throw new TaskFailException("ParallelArchiver pull was interrupted", e);
+			throw new TaskAbortException("ParallelSerialiser pull was interrupted", e, true);
 		} finally {
+			// OPTIMISE make ProgressTracker use WeakIdentityHashMap instead
+			// then we'll skip removal for completed (not aborted) tasks
 			for (PullTask<T> t: tasks) { tracker.remPullProgress(t.data); }
 		}
 	}
@@ -122,7 +182,7 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	@Override public void push(Iterable<PushTask<T>> tasks) {
+	@Override public void push(Iterable<PushTask<T>> tasks) throws TaskAbortException {
 		kickStart();
 		try {
 			List<Progress> plist = new ArrayList<Progress>();
@@ -130,13 +190,15 @@ implements IterableSerialiser<T>,
 			while (it.hasNext()) {
 				PushTask<T> t = it.next();
 				if (t.data == null) {
-					throw new IllegalArgumentException("ParallelArchiver cannot handle pull tasks with null metadata");
+					throw new IllegalArgumentException("ParallelSerialiser cannot handle pull tasks with null metadata");
 				}
 
 				Progress p = tracker.addPushProgress(t.data);
 				if (p == null) {
-					// if we are already pushing this then skip it
+					// if we are already pushing this, then erase it from the task iterable
+					// but we still want to wait for the task to finish, so add it to plist
 					it.remove();
+					plist.add(tracker.getPushProgress(t.data));
 					continue;
 				}
 				plist.add(p);
@@ -144,12 +206,15 @@ implements IterableSerialiser<T>,
 				while (!queue.offer(t, 1, TimeUnit.SECONDS)) {
 					startHandler();
 				}
-				//System.out.println("pushed " + t);
 			}
-			for (Progress p: plist) { p.join(); }
+			// wait for all tasks to finish
+			joinAll(plist);
+
 		} catch (InterruptedException e) {
-			throw new TaskFailException("ParallelArchiver push was interrupted", e);
+			throw new TaskAbortException("ParallelSerialiser push was interrupted", e, true);
 		} finally {
+			// OPTIMISE make ProgressTracker use WeakIdentityHashMap instead
+			// then we'll skip removal for completed (not aborted) tasks
 			for (PushTask<T> t: tasks) { tracker.remPushProgress(t.data); }
 		}
 	}
@@ -159,20 +224,21 @@ implements IterableSerialiser<T>,
 			//System.out.println(Thread.currentThread() + " started");
 			try {
 				Task<T> t;
-				while ((t = queue.poll(1, TimeUnit.SECONDS)) != null) {
+				for (;;) {
+					try {
+						if ((t = queue.poll(1, TimeUnit.SECONDS)) == null) { break; }
+					} catch (InterruptedException e) {
+						continue; // can't interrupt this worker
+					}
 					//System.out.println(Thread.currentThread() + " popped " + t);
 					if (t instanceof PullTask) {
-						pull((PullTask<T>)t);
+						pullAndUpdateProgress((PullTask<T>)t, tracker.getPullProgress(t.meta));
 					} else {
-						push((PushTask<T>)t);
+						pushAndUpdateProgress((PushTask<T>)t, tracker.getPushProgress(t.data));
 					}
 				}
-			} catch (InterruptedException e) {
-				// TODO find some way to pass this exception onto the method which put the
-				// task onto the queue, instead of just throwing it...
-				throw new TaskFailException("ParallelArchiver was interrupted", e);
 			} finally {
-				synchronized (ParallelArchiver.this) {
+				synchronized (ParallelSerialiser.this) {
 					--numThreads;
 				}
 			}

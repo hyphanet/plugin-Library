@@ -10,6 +10,7 @@ import plugins.Interdex.serl.Serialiser;
 import plugins.Interdex.serl.Translator;
 import plugins.Interdex.serl.IterableSerialiser;
 import plugins.Interdex.serl.MapSerialiser;
+import plugins.Interdex.serl.TaskAbortException;
 
 import java.util.TreeMap;
 import java.util.Map;
@@ -280,7 +281,7 @@ implements SkeletonMap<K, V> {
 		meta = m;
 	}
 
-	@Override public void inflate() {
+	@Override public void inflate() throws TaskAbortException {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		if (!tmap.isLive()) { tmap.inflate(); }
@@ -302,7 +303,7 @@ implements SkeletonMap<K, V> {
 		assert(isLive());
 	}
 
-	@Override public void deflate() {
+	@Override public void deflate() throws TaskAbortException {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		java.util.List<PushTask<SkeletonPrefixTreeMap<K, V>>> tasks = new java.util.ArrayList<PushTask<SkeletonPrefixTreeMap<K, V>>>(subtrees);
@@ -323,7 +324,7 @@ implements SkeletonMap<K, V> {
 		assert(isBare());
 	}
 
-	@Override public void inflate(K key) {
+	@Override public void inflate(K key) throws TaskAbortException {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		int i = key.get(preflen);
@@ -341,7 +342,7 @@ implements SkeletonMap<K, V> {
 		}
 	}
 
-	@Override public void deflate(K key) {
+	@Override public void deflate(K key) throws TaskAbortException {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		int i = key.get(preflen);

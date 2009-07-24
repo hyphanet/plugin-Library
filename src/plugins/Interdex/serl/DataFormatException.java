@@ -34,7 +34,7 @@ public class DataFormatException extends RuntimeException {
 	}
 
 	public DataFormatException(Throwable t, Object v, Object p, Object k) {
-		this(null, t, v, p, k);
+		this(t==null? null: t.toString(), t, v, p, k);
 	}
 
 	public DataFormatException(String s, Object v, Object p, Object k) {

@@ -18,7 +18,7 @@ public interface IterableSerialiser<T> extends Archiver<T> {
 	**
 	** @param tasks The group of tasks to execute
 	*/
-	public void pull(Iterable<PullTask<T>> tasks);
+	public void pull(Iterable<PullTask<T>> tasks) throws TaskAbortException;
 
 	/**
 	** Execute everything in a group of {@link PushTask}s, returning only when
@@ -26,6 +26,6 @@ public interface IterableSerialiser<T> extends Archiver<T> {
 	**
 	** @param tasks The group of tasks to execute
 	*/
-	public void push(Iterable<PushTask<T>> tasks);
+	public void push(Iterable<PushTask<T>> tasks) throws TaskAbortException;
 
 }

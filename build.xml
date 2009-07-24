@@ -112,6 +112,7 @@
 	<target name="javadoc" description="Generate javadocs for this package.">
 		<javadoc destdir="${javadoc}" author="true" version="true" use="true" private="true">
 			<doclet name="info.bliki.doclet.standard.Standard" path="lib/bliki-doclet.jar"/>
+			<!--<doclet name="com.visural.doclets.markdown.standard.Standard" path="lib/MarkdownDoclet.jar"/>-->
 			<fileset dir="src/" defaultexcludes="yes">
 				<include name="**/*.java"/>
 			</fileset>
@@ -124,7 +125,7 @@
 			</classpath>
 			<link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
 			<link href="http://google-collections.googlecode.com/svn/trunk/javadoc"/>
-			<link href="http://snakeyamlrepo.appspot.com/releases/1.2/site/apidocs"/>
+			<link href="http://snakeyamlrepo.appspot.com/releases/1.3/site/apidocs"/>
 		</javadoc>
 	</target>
 

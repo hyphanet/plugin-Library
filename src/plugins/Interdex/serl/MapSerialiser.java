@@ -30,7 +30,7 @@ public interface MapSerialiser<K, T> extends Serialiser<T> {
 	** @param tasks The map of tasks to execute
 	** @param meta The map-wide metadata
 	*/
-	public void pull(Map<K, PullTask<T>> tasks, Object meta);
+	public void pull(Map<K, PullTask<T>> tasks, Object meta) throws TaskAbortException;
 
 	/**
 	** Execute everything in a map of {@link PushTask}s, returning only when
@@ -44,6 +44,6 @@ public interface MapSerialiser<K, T> extends Serialiser<T> {
 	** @param tasks The map of tasks to execute
 	** @param meta The map-wide metadata
 	*/
-	public void push(Map<K, PushTask<T>> tasks, Object meta);
+	public void push(Map<K, PushTask<T>> tasks, Object meta) throws TaskAbortException;
 
 }

@@ -352,7 +352,7 @@ implements MapSerialiser<K, T>,
 	** The child serialiser should process metadata of the form Array[{@link
 	** Object} metadata, {@link Integer} binindex].
 	*/
-	@Override public void pull(Map<K, PullTask<T>> tasks, Object meta) {
+	@Override public void pull(Map<K, PullTask<T>> tasks, Object meta) throws TaskAbortException {
 		// tasks has form {K:(*,M)}
 		// put all the bins from each task into a list of new tasks for each bin
 		Map<Object, PullTask<Map<K, T>>> bins = new HashMap<Object, PullTask<Map<K, T>>>();
@@ -383,8 +383,7 @@ implements MapSerialiser<K, T>,
 				PullTask<Map<K, T>> bintask = bins.get(o);
 				T partition;
 				if (bintask.data == null || (partition = bintask.data.remove(en.getKey())) == null) {
-					// TODO use DFEx
-					throw new IllegalArgumentException("Packer did not find the expected partition in the given bin. Either the data is corrupt, or the child serialiser is buggy.");
+					throw new TaskAbortException("Packer did not find the expected partition in the given bin. Either the data is corrupt, or the child serialiser is buggy.", null);
 				}
 				addPartitionTo(task.data, partition);
 			}
@@ -394,7 +393,7 @@ implements MapSerialiser<K, T>,
 		for (PullTask<Map<K, T>> bintask: bintasks) {
 			for (Map.Entry<K, T> en: bintask.data.entrySet()) {
 				if (tasks.containsKey(en.getKey())) {
-					throw new IllegalArgumentException("Packer found an extra unexpected partition for a bin. Either the data is corrupt, or the child serialiser is buggy.");
+					throw new TaskAbortException("Packer found an extra unexpected partition for a bin. Either the data is corrupt, or the child serialiser is buggy.", null);
 				}
 				PullTask<T> task = new PullTask<T>(new HashMap<String, Object>());
 				// set the metadata properly
@@ -421,7 +420,7 @@ implements MapSerialiser<K, T>,
 	** implementation of {@link #addBinToMeta}. By default, this is a map of
 	** (a list of bins) and (a list of bin sizes).
 	*/
-	@Override public void push(Map<K, PushTask<T>> tasks, Object meta) {
+	@Override public void push(Map<K, PushTask<T>> tasks, Object meta) throws TaskAbortException {
 		// PRIORITY make binPack() able to try to do bin-packing even when
 		// some of the data is already in a bin. for now just throw this
 		// exception

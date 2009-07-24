@@ -7,6 +7,7 @@ import junit.framework.TestCase;
 
 import plugins.Interdex.serl.Serialiser.*;
 import plugins.Interdex.serl.YamlArchiver;
+import plugins.Interdex.serl.TaskAbortException;
 
 import freenet.keys.FreenetURI;
 
@@ -23,7 +24,7 @@ import java.net.MalformedURLException;
 */
 public class TokenEntryTest extends TestCase {
 
-	public void testBasic() {
+	public void testBasic() throws TaskAbortException {
 		YamlArchiver<Map<String, Object>> ym = new YamlArchiver<Map<String, Object>>("test", null);
 
 		Map<String, Object> map = new HashMap<String, Object>();

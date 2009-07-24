@@ -4,6 +4,7 @@
 package plugins.Interdex.serl;
 
 import plugins.Interdex.serl.Serialiser.*;
+import plugins.Interdex.serl.TaskAbortException;
 
 import freenet.keys.FreenetURI;
 
@@ -115,7 +116,7 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 	  public interface Archiver
 	 ========================================================================*/
 
-	@Override public void pull(PullTask<T> t) {
+	@Override public void pull(PullTask<T> t) throws TaskAbortException {
 		String[] s = getFileParts(t.meta);
 		File file = new File(prefix + s[0] + suffix + s[1] + ".yml");
 		try {
@@ -134,11 +135,13 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 				try { is.close(); } catch (IOException f) { }
 			}
 		} catch (IOException e) {
-			throw new TaskFailException(e);
+			throw new TaskAbortException("YamlArchiver could not complete the task", e, true);
+		} catch (RuntimeException e) {
+			throw new TaskAbortException("YamlArchiver could not complete the task", e);
 		}
 	}
 
-	@Override public void push(PushTask<T> t) {
+	@Override public void push(PushTask<T> t) throws TaskAbortException {
 		if (random) { t.meta = java.util.UUID.randomUUID().toString(); }
 		String[] s = getFileParts(t.meta);
 		File file = new File(prefix + s[0] + suffix + s[1] + ".yml");
@@ -157,8 +160,10 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 			} finally {
 				try { os.close(); } catch (IOException f) { }
 			}
-		} catch (java.io.IOException e) {
-			throw new TaskFailException(e);
+		} catch (IOException e) {
+			throw new TaskAbortException("YamlArchiver could not complete the task", e, true);
+		} catch (RuntimeException e) {
+			throw new TaskAbortException("YamlArchiver could not complete the task", e);
 		}
 	}
 

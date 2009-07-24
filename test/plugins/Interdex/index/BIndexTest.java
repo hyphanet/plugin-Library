@@ -60,7 +60,7 @@ public class BIndexTest extends TestCase {
 		timeDiff();
 	}
 
-	public void fullInflate() {
+	public void fullInflate() throws TaskAbortException {
 		newTestSkeleton();
 
 		int totalentries = 0;
@@ -104,7 +104,7 @@ public class BIndexTest extends TestCase {
 		System.out.println("inflated in " + timeDiff() + " ms");
 	}
 
-	public void testBasicMulti() {
+	public void testBasicMulti() throws TaskAbortException {
 		int n = 8;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");

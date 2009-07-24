@@ -31,7 +31,7 @@ public interface Archiver<T> extends Serialiser<T> {
 	**
 	** @param task The task to execute
 	*/
-	public void pull(PullTask<T> task);
+	public void pull(PullTask<T> task) throws TaskAbortException;
 
 	/**
 	** Execute a {@link PushTask}, returning only when the task is done.
@@ -49,6 +49,6 @@ public interface Archiver<T> extends Serialiser<T> {
 	**
 	** @param task The task to execute
 	*/
-	public void push(PushTask<T> task);
+	public void push(PushTask<T> task) throws TaskAbortException;
 
 }

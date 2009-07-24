@@ -8,6 +8,8 @@ import plugins.Interdex.serl.Archiver;
 import plugins.Interdex.serl.MapSerialiser;
 import plugins.Interdex.serl.Translator;
 import plugins.Interdex.serl.DataFormatException;
+import plugins.Interdex.serl.TaskAbortException;
+import plugins.Interdex.serl.TaskCompleteException;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -57,6 +59,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 		}
 
+		public GhostNode makeGhost(Object meta) {
+			GhostNode ghost = new GhostNode(lkey, rkey);
+			ghost.setMeta(meta);
+			return ghost;
+		}
+
 		@Override public Object getMeta() { return null; }
 		@Override public void setMeta(Object m) { }
 
@@ -81,7 +89,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		// TODO make this parallel
-		@Override public void deflate() {
+		@Override public void deflate() throws TaskAbortException {
 			if (!isLeaf()) {
 				for (K k: lnodes.keySet()) {
 					((SkeletonNode)lnodes.get(k)).deflate();
@@ -92,7 +100,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			assert(isBare());
 		}
 
-		@Override public void inflate() {
+		@Override public void inflate() throws TaskAbortException {
 			((SkeletonTreeMap<K, V>)entries).inflate();
 			if (!isLeaf()) {
 				for (K k: lnodes.keySet()) {
@@ -103,7 +111,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			assert(isLive());
 		}
 
-		@Override public void deflate(K key) {
+		/**
+		** Expects metadata to be of type {@link GhostNode}.
+		*/
+		@Override public void deflate(K key) throws TaskAbortException {
 			if (isLeaf()) { return; }
 			Node node = lnodes.get(key);
 			if (node.entries == null) { return; } // ghost node
@@ -113,38 +124,53 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 
 			PushTask<SkeletonNode> task = new PushTask<SkeletonNode>((SkeletonNode)node);
-			nsrl.push(task);
+			try {
+				nsrl.push(task);
 
-			GhostNode ghost = new GhostNode(this, node.lkey, node.rkey);
-			ghost.setMeta(task.meta);
+				GhostNode ghost = (GhostNode)task.meta;// new GhostNode(this, node.lkey, node.rkey);
+				ghost.parent = this;
 
-			lnodes.put(ghost.rkey, ghost);
-			rnodes.put(ghost.lkey, ghost);
-			++ghosts;
+				lnodes.put(ghost.rkey, ghost);
+				rnodes.put(ghost.lkey, ghost);
+				++ghosts;
+
+			// TODO maybe just ignore all non-error abortions
+			} catch (TaskCompleteException e) {
+				assert(node.entries == null);
+			} catch (RuntimeException e) {
+				throw new TaskAbortException("Could not deflate BTreeMap Node " + node.lkey + "-" + node.rkey, e);
+			}
 		}
 
-		@Override public void inflate(K key) {
+		@Override public void inflate(K key) throws TaskAbortException {
 			if (isLeaf()) { return; }
 			Node node = lnodes.get(key);
 			if (node.entries != null) { return; } // skeleton node
 
-			PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(((GhostNode)node).getMeta());
-			nsrl.pull(task);
+			PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(node);
+			try {
+				nsrl.pull(task);
 
-			if (compare2(node.lkey, task.data.lkey) != 0 || compare2(node.rkey, task.data.rkey) != 0) {
-				throw new DataFormatException("BTreeMap Node lkey/rkey does not match", task.data);
+				if (compare2(node.lkey, task.data.lkey) != 0 || compare2(node.rkey, task.data.rkey) != 0) {
+					throw new DataFormatException("BTreeMap Node lkey/rkey does not match", task.data);
+				}
+
+				lnodes.put(task.data.rkey, task.data);
+				rnodes.put(task.data.lkey, task.data);
+				--ghosts;
+
+			} catch (TaskCompleteException e) {
+				assert(lnodes.get(key).entries != null);
+			} catch (RuntimeException e) {
+				throw new TaskAbortException("Could not inflate BTreeMap Node " + node.lkey + "-" + node.rkey, e);
 			}
-
-			lnodes.put(task.data.rkey, task.data);
-			rnodes.put(task.data.lkey, task.data);
-			--ghosts;
 		}
 
 	}
 
-	protected class GhostNode extends Node {
+	public class GhostNode extends Node {
 
-		final SkeletonNode parent;
+		SkeletonNode parent;
 		Object meta;
 
 		GhostNode(SkeletonNode p, K l, K r) {
@@ -152,6 +178,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			parent = p;
 			lkey = l;
 			rkey = r;
+		}
+
+		GhostNode(K l, K r) {
+			this(null, l, r);
 		}
 
 		public Object getMeta() {
@@ -223,19 +253,19 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		return ((SkeletonNode)root).isBare();
 	}
 
-	@Override public void deflate() {
+	@Override public void deflate() throws TaskAbortException {
 		((SkeletonNode)root).deflate();
 	}
 
-	@Override public void inflate() {
+	@Override public void inflate() throws TaskAbortException {
 		((SkeletonNode)root).inflate();
 	}
 
-	@Override public void deflate(K key) {
+	@Override public void deflate(K key) throws TaskAbortException {
 		// TODO
 	}
 
-	@Override public void inflate(K key) {
+	@Override public void inflate(K key) throws TaskAbortException {
 		try {
 			get(key);
 		} catch (DataNotLoadedException e) {

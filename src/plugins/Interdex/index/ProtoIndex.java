@@ -7,6 +7,7 @@ import plugins.Interdex.util.BTreeMap;
 import plugins.Interdex.util.SkeletonBTreeMap;
 import plugins.Interdex.util.SkeletonMap;
 import plugins.Interdex.util.DataNotLoadedException;
+import plugins.Interdex.serl.TaskAbortException;
 
 import freenet.keys.FreenetURI;
 
@@ -25,7 +26,7 @@ import java.util.Date;
 public class ProtoIndex {
 
 	// DEBUG make final again later
-	/*final*/ public static int BTREE_NODE_MIN = 0x1000; // 0x10000
+	/*final*/ public static int BTREE_NODE_MIN = 0x10000;
 
 	/**
 	** Magic number to guide serialisation.
@@ -100,21 +101,39 @@ public class ProtoIndex {
 
 
 
-
-
-
 	private Map<String, Request<Collection<TokenEntry>>> getTermEntriesProgress = new
 	HashMap<String, Request<Collection<TokenEntry>>>();
 
 	public Request<Collection<TokenEntry>> getTermEntries(String term) {
-		return null;
+		Request<Collection<TokenEntry>> request = getTermEntriesProgress.get(term);
+		if (request == null) {
+			request = new getTermEntriesHandler(term);
+			getTermEntriesProgress.put(term, request);
+			request.start();
+		}
+		return request;
 	}
 
+
+
+
+
+
 	public Request<URIEntry> getURIEntry(FreenetURI uri) { return null; }
+
+
+
+
+
+
+
+
 
 	public class getTermEntriesHandler extends Thread implements Request<Collection<TokenEntry>> {
 
 		String term;
+
+		String stages[];
 
 		protected getTermEntriesHandler(String t) {
 			term = t;
@@ -125,15 +144,80 @@ public class ProtoIndex {
 				try {
 					tmtab.get(term);
 					break;
-				} catch (DataNotLoadedException e) {
-					e.getParent().deflate((String)e.getKey());
-					// e.getValue();
-					// put this onto the "stageNames"
+				} catch (DataNotLoadedException d) {
+					try {
+						d.getParent().inflate((String)d.getKey());
+						// e.getValue();
+						// put this onto the "stageNames"
+					} catch (TaskAbortException e) {
+						// something
+						break;
+					}
 				}
 			}
 		}
 
+		public String getSubject() {
+			return term;
+		}
+
+		protected String getCurrentProgress() {
+			return null;
+		}
+
+		public String getCurrentStatus() {
+			return null;
+		}
+
+		public String getCurrentStage() {
+			return null;
+		}
+
+
+/*
+				final String s = sterm;
+				new Thread() {
+					public void run() {
+						test.inflate(Token.intern(s));
+					}
+				}.start();
+
+				for (;;) {
+					try {
+						test.get(Token.intern(sterm));
+						System.out.println("deflated term \"" + sterm + "\" in " + timeDiff() + "ms.");
+						break;
+					} catch (DataNotLoadedException e) {
+						Object meta = e.getValue();
+						Progress p;
+						if ((p = srl.getTracker().getPullProgress(meta)) != null) {
+							pollProgress(meta, p);
+						} else if ((p = vsrl.getTracker().getPullProgress(meta)) != null) {
+							pollProgress(meta, p);
+						} else {
+							System.out.println("lol wut no progress (" + meta + ")? trying again");
+							try { Thread.sleep(1000); } catch (InterruptedException x) { }
+						}
+						continue;
+					}
+				}
+
+			public void pollProgress(Object key, Progress p) {
+				int d; int t; boolean f;
+				do {
+					d = p.partsDone();
+					t = p.partsTotal();
+					f = p.isTotalFinal();
+					System.out.println(key + ": " + d + "/" + t + (f? "": "???"));
+					try { Thread.sleep(1000); } catch (InterruptedException x) { }
+				} while (!f || d != t);
+			}
+*/
+
 	}
+
+
+
 
 
 

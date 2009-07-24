@@ -5,6 +5,7 @@ package plugins.Interdex.util;
 
 import plugins.Interdex.serl.Serialiser.*;
 import plugins.Interdex.serl.Serialiser;
+import plugins.Interdex.serl.TaskAbortException;
 
 /**
 ** Defines an interface for an extension of a data structure which is only
@@ -41,13 +42,13 @@ public interface Skeleton<K> {
 	** Inflate the entire skeleton so that after the method call, {@link
 	** #isLive()} returns true.
 	*/
-	public void inflate();
+	public void inflate() throws TaskAbortException;
 
 	/**
 	** Deflate the entire skeleton so that after the method call, {@link
 	** #isBare()} returns true.
 	*/
-	public void deflate();
+	public void deflate() throws TaskAbortException;
 
 	/**
 	** Partially inflate the skeleton based on some parameter object. This
@@ -55,7 +56,7 @@ public interface Skeleton<K> {
 	**
 	** @param param The parameter for the partial inflate.
 	*/
-	public void inflate(K param);
+	public void inflate(K param) throws TaskAbortException;
 
 	/**
 	** Partially deflate the skeleton based on some parameter object. This
@@ -63,6 +64,6 @@ public interface Skeleton<K> {
 	**
 	** @param param The parameter for the partial deflate.
 	*/
-	public void deflate(K param);
+	public void deflate(K param) throws TaskAbortException;
 
 }

@@ -11,11 +11,17 @@ package plugins.Interdex.serl;
 public class AtomicProgress implements Progress {
 
 	protected boolean done;
+	protected TaskAbortException abort = null;
 
 	public AtomicProgress() { }
 
 	public synchronized void setDone() {
 		done = true;
+		notifyAll();
+	}
+
+	public synchronized void setAbort(TaskAbortException e) {
+		abort = e;
 		notifyAll();
 	}
 
@@ -35,8 +41,11 @@ public class AtomicProgress implements Progress {
 		return true;
 	}
 
-	@Override public synchronized void join() throws InterruptedException {
-		while (!done) { wait(); }
+	@Override public synchronized void join() throws InterruptedException, TaskAbortException {
+		while (!done && abort == null) { wait(); }
+		if (abort != null) {
+			throw abort;
+		}
 	}
 
 }

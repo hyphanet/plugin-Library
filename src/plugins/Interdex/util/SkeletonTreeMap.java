@@ -7,6 +7,7 @@ import plugins.Interdex.serl.Serialiser.*;
 import plugins.Interdex.serl.Translator;
 import plugins.Interdex.serl.MapSerialiser;
 import plugins.Interdex.serl.DataFormatException;
+import plugins.Interdex.serl.TaskAbortException;
 
 import java.util.Comparator;
 import java.util.Set;
@@ -114,7 +115,7 @@ implements SkeletonMap<K, V> {
 		mapmeta = m;
 	}
 
-	@Override public void inflate() {
+	@Override public void inflate() throws TaskAbortException {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		Map<K, PullTask<V>> tasks = new HashMap<K, PullTask<V>>(size()*2);
@@ -130,25 +131,25 @@ implements SkeletonMap<K, V> {
 		}
 	}
 
-	@Override public void deflate() {
+	@Override public void deflate() throws TaskAbortException {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		Map<K, PushTask<V>> tasks = new HashMap<K, PushTask<V>>(size()*2);
 		for (K k: keySet()) {
 			tasks.put(k, new PushTask<V>(get(k), loaded.get(k)));
 		}
-		try {
+		//try {
 			serialiser.push(tasks, mapmeta);
-		} catch (DataNotLoadedException e) {
-			throw new DataNotLoadedException("The deflate operation requires some extra data to be loaded first", this, (K)e.getKey(), e.getValue());
-		}
+		//} catch (DataNotLoadedException e) {
+		//	throw new DataNotLoadedException("The deflate operation requires some extra data to be loaded first", this, (K)e.getKey(), e.getValue());
+		//}
 
 		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
 			putDummy(en.getKey(), en.getValue().meta);
 		}
 	}
 
-	@Override public void inflate(K key) {
+	@Override public void inflate(K key) throws TaskAbortException {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		Object keymeta = loaded.get(key);
@@ -159,7 +160,7 @@ implements SkeletonMap<K, V> {
 		serialiser.pull(tasks, mapmeta);
 
 		put(key, tasks.remove(key).data);
-		if (tasks.isEmpty()) { /*System.out.println("exited inflate early");*/ return; }
+		if (tasks.isEmpty()) { return; }
 
 		for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
 			// other keys may also have been inflated, so add them if the metadata
@@ -169,18 +170,13 @@ implements SkeletonMap<K, V> {
 			K k = en.getKey();
 			PullTask<V> t = en.getValue();
 			Object m = loaded.get(k);
-			// System.out.print(t.meta + " " + m + ": ");
 			if (m.equals(t.meta)) {
-				// System.out.println("yes");
 				put(k, t.data);
-			} /*else {
-				System.out.println("NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO");
-			}*/
+			}
 		}
-		//System.out.println("exited inflate");
 	}
 
-	@Override public void deflate(K key) {
+	@Override public void deflate(K key) throws TaskAbortException {
 		// TODO: redesign this, or the bin packer
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
@@ -193,11 +189,11 @@ implements SkeletonMap<K, V> {
 			// also, at the moment, even the Packer does not support this
 			tasks.put(k, new PushTask<V>(k.equals(key)? get(k): null, loaded.get(k)));
 		}
-		try {
+		//try {
 			serialiser.push(tasks, mapmeta);
-		} catch (DataNotLoadedException e) {
-			throw new DataNotLoadedException("The deflate operation requires some extra data to be loaded first", this, (K)e.getKey(), e.getValue());
-		}
+		//} catch (DataNotLoadedException e) {
+		//	throw new DataNotLoadedException("The deflate operation requires some extra data to be loaded first", this, (K)e.getKey(), e.getValue());
+		//}
 
 		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
 			if (en.getValue().data != null) {

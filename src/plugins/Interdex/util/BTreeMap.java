@@ -224,10 +224,10 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		**
 		** Note: it is assumed that the input map is empty; it is up to the
 		** calling code to ensure that this holds, or if not, then at least put
-		** the node into a consistent state before releasing it to other code.
+		** the node into a consistent state before releasing it for use.
 		**
 		** @param leaf Whether to create a leaf node
-		** @param tree An empty {@link SortedMap} to use to store the entries
+		** @param map A {@link SortedMap} to use to store the entries
 		*/
 		Node(boolean leaf, SortedMap<K, V> map) {
 			isLeaf = leaf;

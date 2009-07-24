@@ -28,6 +28,6 @@ public interface Progress {
 	/**
 	** Wait for the progress to finish.
 	*/
-	public void join() throws InterruptedException;
+	public void join() throws InterruptedException, TaskAbortException;
 
 }
