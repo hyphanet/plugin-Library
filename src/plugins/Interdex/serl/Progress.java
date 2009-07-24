@@ -11,6 +11,11 @@ package plugins.Interdex.serl;
 public interface Progress {
 
 	/**
+	** Returns the name of the task, if any.
+	*/
+	public String getName();
+
+	/**
 	** Returns how many "parts" of the task is done.
 	*/
 	public int partsDone();

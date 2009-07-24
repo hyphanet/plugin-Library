@@ -99,7 +99,7 @@ public interface Serialiser<T> {
 	*/
 	public interface Trackable<T> extends Serialiser<T> {
 
-		public ProgressTracker<T, ?> getTracker();
+		public ProgressTracker<T, ? extends Progress> getTracker();
 
 	}
 

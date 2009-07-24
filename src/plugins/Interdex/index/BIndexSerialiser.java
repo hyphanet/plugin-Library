@@ -62,6 +62,7 @@ implements Archiver<ProtoIndex>,
 	** Generic map translator, for both utab and tmtab
 	*/
 	public static class TreeMapTranslator<K, V> implements Translator<SkeletonTreeMap<K, V>, Map<String, Object>> {
+
 		final protected Translator<K, String> ktr;
 
 		public TreeMapTranslator(Translator<K, String> k) {
@@ -180,20 +181,18 @@ implements Archiver<ProtoIndex>,
 
 
 	public static class BTreeNodeSerialiser<K, V>
-	extends ParallelSerialiser<SkeletonBTreeMap<K, V>.SkeletonNode>
+	extends ParallelSerialiser<SkeletonBTreeMap<K, V>.SkeletonNode, AtomicProgress>
 	implements Archiver<SkeletonBTreeMap<K, V>.SkeletonNode>,
 	           Serialiser.Translate<SkeletonBTreeMap<K, V>.SkeletonNode, Map<String, Object>>,
 	           Serialiser.Composite<Archiver<Map<String, Object>>> {
 
 		final protected Translator<SkeletonBTreeMap<K, V>.SkeletonNode, Map<String, Object>> trans;
 		final protected Archiver<Map<String, Object>> subsrl;
-		final protected ProgressTracker<SkeletonBTreeMap<K, V>.SkeletonNode, AtomicProgress> tracker;
 
 		public BTreeNodeSerialiser(SkeletonBTreeMap<K, V> btreemap, final Translator<K, String> ktr) {
 			super(new ProgressTracker<SkeletonBTreeMap<K, V>.SkeletonNode, AtomicProgress>(AtomicProgress.class));
 			subsrl = new YamlArchiver<Map<String, Object>>(true);
 			trans = btreemap.makeNodeTranslator(ktr, new TreeMapTranslator<K, V>(null));
-			tracker = (ProgressTracker<SkeletonBTreeMap<K, V>.SkeletonNode, AtomicProgress>)super.tracker;
 		}
 
 		@Override public Translator<SkeletonBTreeMap<K, V>.SkeletonNode, Map<String, Object>> getTranslator() {
@@ -204,27 +203,29 @@ implements Archiver<ProtoIndex>,
 			return subsrl;
 		}
 
-		@Override public void pullAndUpdateProgress(PullTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, Progress p) {
+		@Override public void pullAndUpdateProgress(PullTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, AtomicProgress p) {
 			SkeletonBTreeMap<K, V>.GhostNode ghost = (SkeletonBTreeMap.GhostNode)task.meta;
 			PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(ghost.getMeta());
+			p.setName("Pulling listings for " + ghost.getShortName());
 			try {
 				subsrl.pull(serialisable);
 				ghost.setMeta(serialisable.meta); task.data = trans.rev(serialisable.data);
-				((AtomicProgress)p).setDone();
+				p.setDone();
 			} catch (TaskAbortException e) {
-				((AtomicProgress)p).setAbort(e);
+				p.setAbort(e);
 			}
 		}
 
-		@Override public void pushAndUpdateProgress(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, Progress p) {
+		@Override public void pushAndUpdateProgress(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, AtomicProgress p) {
 			Map<String, Object> intermediate = trans.app(task.data);
 			PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(intermediate, task.meta);
+			p.setName("Pushing listings for " + task.data.getShortName());
 			try {
 				subsrl.push(serialisable);
 				task.meta = task.data.makeGhost(serialisable.meta);
-				((AtomicProgress)p).setDone();
+				p.setDone();
 			} catch (TaskAbortException e) {
-				((AtomicProgress)p).setAbort(e);
+				p.setAbort(e);
 			}
 		}
 
@@ -248,7 +249,7 @@ implements Archiver<ProtoIndex>,
 			tracker = new ProgressTracker<SortedSet<TokenEntry>, CompoundProgress>(CompoundProgress.class);
 		}
 
-		@Override public ProgressTracker<SortedSet<TokenEntry>, CompoundProgress> getTracker() {
+		@Override public ProgressTracker<SortedSet<TokenEntry>, ? extends Progress> getTracker() {
 			return tracker;
 		}
 
@@ -271,7 +272,7 @@ implements Archiver<ProtoIndex>,
 			}
 
 			for (PushTask<SortedSet<TokenEntry>> t: tasks.values()) {
-				CompoundProgress p = (CompoundProgress)tracker.addPushProgress(t.data);
+				CompoundProgress p = tracker.addPushProgress(t.data);
 				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPush(dib)); }
 			}
 		}
@@ -281,30 +282,29 @@ implements Archiver<ProtoIndex>,
 
 
 	public static class TermEntryGroupSerialiser
-	extends ParallelSerialiser<Map<String, SortedSet<TokenEntry>>>
+	extends ParallelSerialiser<Map<String, SortedSet<TokenEntry>>, AtomicProgress>
 	implements IterableSerialiser<Map<String, SortedSet<TokenEntry>>>,
 	           Serialiser.Composite<Archiver<Map<String, Object>>>,
 	           Serialiser.Trackable<Map<String, SortedSet<TokenEntry>>> {
 
-		final protected ProgressTracker<Map<String, SortedSet<TokenEntry>>, AtomicProgress> tracker;
 		final protected Archiver<Map<String, Object>> subsrl;
 
 		public TermEntryGroupSerialiser() {
 			super(new ProgressTracker<Map<String, SortedSet<TokenEntry>>, AtomicProgress>(AtomicProgress.class));
 			subsrl = new YamlArchiver<Map<String, Object>>(true);
-			tracker = (ProgressTracker<Map<String, SortedSet<TokenEntry>>, AtomicProgress>)super.tracker;
 		}
 
 		@Override public Archiver<Map<String, Object>> getChildSerialiser() {
 			return subsrl;
 		}
 
-		@Override public ProgressTracker<Map<String, SortedSet<TokenEntry>>, AtomicProgress> getTracker() {
+		@Override public ProgressTracker<Map<String, SortedSet<TokenEntry>>, ? extends Progress> getTracker() {
 			return tracker;
 		}
 
-		@Override public void pullAndUpdateProgress(PullTask<Map<String, SortedSet<TokenEntry>>> task, Progress p) {
+		@Override public void pullAndUpdateProgress(PullTask<Map<String, SortedSet<TokenEntry>>> task, AtomicProgress p) {
 			PullTask<Map<String, Object>> t = new PullTask<Map<String, Object>>(task.meta);
+			p.setName("Pulling container " + task.meta);
 			try {
 				subsrl.pull(t);
 
@@ -323,27 +323,28 @@ implements Archiver<ProtoIndex>,
 				}
 
 				task.data = map;
-				((AtomicProgress)p).setDone();
+				p.setDone();
 			} catch (TaskAbortException e) {
-				((AtomicProgress)p).setAbort(e);
+				p.setAbort(e);
 			} catch (RuntimeException e) {
-				((AtomicProgress)p).setAbort(new TaskAbortException("Could not retrieve data from bin " + t.data.keySet(), e));
+				p.setAbort(new TaskAbortException("Could not retrieve data from bin " + t.data.keySet(), e));
 			}
 		}
 
-		@Override public void pushAndUpdateProgress(PushTask<Map<String, SortedSet<TokenEntry>>> task, Progress p) {
+		@Override public void pushAndUpdateProgress(PushTask<Map<String, SortedSet<TokenEntry>>> task, AtomicProgress p) {
 			Map<String, Object> conv = new HashMap<String, Object>();
 			for (Map.Entry<String, SortedSet<TokenEntry>> mp: task.data.entrySet()) {
 				conv.put(mp.getKey(), new ArrayList(mp.getValue()));
 			}
 
 			PushTask<Map<String, Object>> t = new PushTask<Map<String, Object>>(conv, task.meta);
+			p.setName("Pushing container for keys " + task.data.keySet());
 			try {
 				subsrl.push(t);
 				task.meta = t.meta;
-				((AtomicProgress)p).setDone();
+				p.setDone();
 			} catch (TaskAbortException e) {
-				((AtomicProgress)p).setAbort(e);
+				p.setAbort(e);
 			}
 		}
 

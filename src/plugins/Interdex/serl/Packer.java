@@ -159,14 +159,14 @@ implements MapSerialiser<K, T>,
 	** keys mapping to to {@link List}<{@link Integer}>s, and adds the
 	** partition's size and the bin's index to these lists, respectively.
 	*/
-	protected void addBinToMeta(Map<String, Object> meta, T partition, int binindex) {
+	protected void addBinToMeta(Map<String, Object> meta, T partition, Object binindex) {
 		List<Integer> size = (List<Integer>)meta.get("size");
 		if (size == null) { meta.put("size", size = new ArrayList<Integer>()); }
 		size.add(sizeOf(partition));
 
 		List<Object> bins = (List<Object>)meta.get("bins");
 		if (bins == null) { meta.put("bins", bins = new ArrayList<Object>()); }
-		bins.add(new Integer(binindex));
+		bins.add(binindex);
 	}
 
 	/**
@@ -390,6 +390,7 @@ implements MapSerialiser<K, T>,
 		}
 
 		// if there is any leftover data in the bins, load them anyway
+		Map<K, PullTask<T>> leftovers = new HashMap<K, PullTask<T>>();
 		for (PullTask<Map<K, T>> bintask: bintasks) {
 			for (Map.Entry<K, T> en: bintask.data.entrySet()) {
 				if (tasks.containsKey(en.getKey())) {
@@ -397,12 +398,17 @@ implements MapSerialiser<K, T>,
 				}
 				PullTask<T> task = new PullTask<T>(new HashMap<String, Object>());
 				// set the metadata properly
-				addBinToMeta((Map<String, Object>)task.meta, en.getValue(), (Integer)((Object[])bintask.meta)[1]);
+				if (bintask.meta instanceof Object[]) {
+					addBinToMeta((Map<String, Object>)task.meta, en.getValue(), ((Object[])bintask.meta)[1]);
+				} else {
+					addBinToMeta((Map<String, Object>)task.meta, en.getValue(), bintask.meta);
+				}
 				task.data = newElement();
-				tasks.put(en.getKey(), task);
+				leftovers.put(en.getKey(), task);
 				addPartitionTo(task.data, en.getValue());
 			}
 		}
+		tasks.putAll(leftovers);
 
 	}
 
@@ -454,7 +460,7 @@ implements MapSerialiser<K, T>,
 			bintasks.add(new PushTask<Map<K, T>>(taskmap, new Object[]{meta, i}));
 			++i;
 		}
-		// tasks has form {K:(T,M)} where M is whatever setMetaAfterPack() returns
+		// tasks has form {K:(T,M)} where M is whatever addBinsToMeta() returns
 		preprocessPushBins(tasks, bintasks);
 
 		// bintasks has form [({K:T},[meta,I])]

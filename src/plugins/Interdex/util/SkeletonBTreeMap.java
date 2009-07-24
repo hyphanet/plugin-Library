@@ -193,11 +193,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		@Override int size() {
-			throw new DataNotLoadedException("BTreeMap Node not loaded", parent, rkey, meta);
+			throw new DataNotLoadedException("BTreeMap Node not loaded", parent, rkey, this);
 		}
 
 		@Override boolean isLeaf() {
-			throw new DataNotLoadedException("BTreeMap Node not loaded", parent, rkey, meta);
+			throw new DataNotLoadedException("BTreeMap Node not loaded", parent, rkey, this);
 		}
 
 		@Override Node nodeL(Node n) {

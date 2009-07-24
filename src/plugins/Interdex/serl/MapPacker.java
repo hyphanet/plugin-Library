@@ -68,7 +68,7 @@ implements MapSerialiser<K, T> {
 	**
 	** This implementation also keeps track of the first key of the element.
 	*/
-	@Override protected void addBinToMeta(Map<String, Object> meta, T partition, int binindex) {
+	@Override protected void addBinToMeta(Map<String, Object> meta, T partition, Object binindex) {
 		if (!meta.containsKey("keys")) { meta.put("keys", new ArrayList()); }
 		Iterator it = partition.keySet().iterator();
 		((List)meta.get("keys")).add(it.hasNext()? it.next(): null);

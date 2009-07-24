@@ -3,19 +3,25 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Interdex.index;
 
-import plugins.Interdex.util.BTreeMap;
-import plugins.Interdex.util.SkeletonBTreeMap;
+import plugins.Interdex.util.Skeleton;
 import plugins.Interdex.util.SkeletonMap;
+import plugins.Interdex.util.SkeletonTreeMap;
+import plugins.Interdex.util.SkeletonBTreeMap;
 import plugins.Interdex.util.DataNotLoadedException;
+import plugins.Interdex.serl.Serialiser;
 import plugins.Interdex.serl.TaskAbortException;
+import plugins.Interdex.serl.Progress;
 
 import freenet.keys.FreenetURI;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Stack;
 import java.util.Date;
 
 /**
@@ -124,29 +130,32 @@ public class ProtoIndex {
 
 
 
-
-
-
-
-
 	public class getTermEntriesHandler extends Thread implements Request<Collection<TokenEntry>> {
 
-		String term;
+		final String term;
 
-		String stages[];
+		final Stack<Object> objects = new Stack<Object>();
+
+		Collection<TokenEntry> result;
 
 		protected getTermEntriesHandler(String t) {
 			term = t;
 		}
 
+		public Collection<TokenEntry> getResult() {
+			return result;
+		}
+
 		public void run() {
 			for (;;) {
 				try {
-					tmtab.get(term);
+					result = tmtab.get(term);
 					break;
 				} catch (DataNotLoadedException d) {
+					Skeleton p = d.getParent();
+					objects.push(d.getValue());
 					try {
-						d.getParent().inflate((String)d.getKey());
+						p.inflate((String)d.getKey());
 						// e.getValue();
 						// put this onto the "stageNames"
 					} catch (TaskAbortException e) {
@@ -161,7 +170,7 @@ public class ProtoIndex {
 			return term;
 		}
 
-		protected String getCurrentProgress() {
+		public String getCurrentProgress() {
 			return null;
 		}
 
@@ -170,7 +179,19 @@ public class ProtoIndex {
 		}
 
 		public String getCurrentStage() {
-			return null;
+			if (objects.size() == 0) { return "nothing yet"; }
+			Object o = objects.peek();
+			Progress p;
+
+			if (o instanceof SkeletonBTreeMap.GhostNode) {
+				p = ((Serialiser.Trackable)tmtab.nsrl).getTracker().getPullProgress(o);
+
+			} else {
+				p = ((Serialiser.Trackable)tmtab.vsrl).getTracker().getPullProgress(o);
+
+			}
+
+			return (p == null)? "waiting for next stage to start": p.getName();
 		}
 
 

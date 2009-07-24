@@ -359,6 +359,14 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			return s.toString();
 		}
 
+		public String getName() {
+			return "BTreeMap node " + getShortName();
+		}
+
+		public String getShortName() {
+			return (lkey == null? "*": lkey) + "-" + (rkey == null? "*": rkey);
+		}
+
 	}
 
 	public String toTreeString() {

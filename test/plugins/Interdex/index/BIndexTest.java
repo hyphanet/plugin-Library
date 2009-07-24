@@ -105,7 +105,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	public void testBasicMulti() throws TaskAbortException {
-		int n = 8;
+		int n = 1;//8;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
 			fullInflate();
@@ -168,12 +168,13 @@ public class BIndexTest extends TestCase {
 			partialInflate();
 		}
 	}
+*/
 
-	public void testProgress() {
+	public void testProgress() throws TaskAbortException {
 		newTestSkeleton();
 
 		int totalentries = 0;
-		int numterms = 256;
+		int numterms = 1024;
 		int save = rand.nextInt(numterms);
 		String sterm = null;
 
@@ -182,7 +183,7 @@ public class BIndexTest extends TestCase {
 			String key = Generators.rndStr().substring(0,8);
 			if (i == save) { sterm = key; }
 			SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
-			int n = rand.nextInt(512) + 512;
+			int n = rand.nextInt(16) + 48;
 			totalentries += n;
 
 			try {
@@ -196,52 +197,33 @@ public class BIndexTest extends TestCase {
 				throw new RuntimeException(e);
 			}
 
-			test.put(new Token(key), entries);
+			idx.tmtab.put(key, entries);
 		}
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
 
-		test.deflate();
-		assertTrue(test.isBare());
-		assertFalse(test.isLive());
-		PushTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>> task = new
-		PushTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>>(test);
-		srl.push(task);
+		idx.tmtab.deflate();
+		assertTrue(idx.tmtab.isBare());
+		assertFalse(idx.tmtab.isLive());
+
 		System.out.println("deflated in " + timeDiff() + " ms");
-
 		plugins.Interdex.serl.YamlArchiver.setTestMode();
-		PullTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>> tasq = new
-		PullTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>>(task.meta);
-		srl.pull(tasq);
 
-		final String s = sterm;
-		new Thread() {
-			public void run() {
-				test.inflate(Token.intern(s));
-			}
-		}.start();
+		Request<Collection<TokenEntry>> rq1 = idx.getTermEntries(sterm);
+		Request<Collection<TokenEntry>> rq2 = idx.getTermEntries(sterm);
+		Request<Collection<TokenEntry>> rq3 = idx.getTermEntries(sterm);
 
-		for (;;) {
-			try {
-				test.get(Token.intern(sterm));
-				System.out.println("deflated term \"" + sterm + "\" in " + timeDiff() + "ms.");
-				break;
-			} catch (DataNotLoadedException e) {
-				Object meta = e.getValue();
-				Progress p;
-				if ((p = srl.getTracker().getPullProgress(meta)) != null) {
-					pollProgress(meta, p);
-				} else if ((p = vsrl.getTracker().getPullProgress(meta)) != null) {
-					pollProgress(meta, p);
-				} else {
-					System.out.println("lol wut no progress (" + meta + ")? trying again");
-					try { Thread.sleep(1000); } catch (InterruptedException x) { }
-				}
-				continue;
-			}
+		assertTrue(rq1 == rq2);
+		assertTrue(rq2 == rq3);
+		assertTrue(rq3 == rq1);
+
+		while (rq1.getResult() == null) {
+			System.out.println(rq1.getCurrentStage());
+			try { Thread.sleep(1000); } catch (InterruptedException x) { }
 		}
 
 	}
 
+/*
 	public void pollProgress(Object key, Progress p) {
 		int d; int t; boolean f;
 		do {
@@ -253,4 +235,5 @@ public class BIndexTest extends TestCase {
 		} while (!f || d != t);
 	}
 */
+
 }

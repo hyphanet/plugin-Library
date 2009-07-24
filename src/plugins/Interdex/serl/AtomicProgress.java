@@ -4,14 +4,18 @@
 package plugins.Interdex.serl;
 
 /**
-** A progress that has one single part.
+** A progress that has one single part. DOCUMENT
 **
 ** @author infinity0
 */
 public class AtomicProgress implements Progress {
 
+	protected String name = "";
+
 	protected boolean done;
+
 	protected TaskAbortException abort = null;
+
 
 	public AtomicProgress() { }
 
@@ -25,9 +29,17 @@ public class AtomicProgress implements Progress {
 		notifyAll();
 	}
 
+	public void setName(String n) {
+		name = n;
+	}
+
 	/*========================================================================
 	  public interface Progress
 	 ========================================================================*/
+
+	@Override public String getName() {
+		return name;
+	}
 
 	@Override public int partsDone() {
 		return (done)? 1: 0;

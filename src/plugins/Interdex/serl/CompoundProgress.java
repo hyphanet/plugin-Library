@@ -23,6 +23,11 @@ public class CompoundProgress implements Progress {
 	  public interface Progress
 	 ========================================================================*/
 
+	@Override public String getName() {
+		// PRIORITY
+		return "a collection of tasks";
+	}
+
 	@Override public int partsDone() {
 		int d = 0;
 		for (Progress p: subprogress) {

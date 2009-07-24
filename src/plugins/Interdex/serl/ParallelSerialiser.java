@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 **
 ** @author infinity0
 */
-public abstract class ParallelSerialiser<T>
+public abstract class ParallelSerialiser<T, P extends Progress>
 implements IterableSerialiser<T>,
            Serialiser.Trackable<T> {
 
@@ -28,15 +28,16 @@ implements IterableSerialiser<T>,
 	protected int numThreads = 0;
 	protected SynchronousQueue<Task<T>> queue = new SynchronousQueue<Task<T>>();
 
-	final protected ProgressTracker<T, ? extends Progress> tracker;
+	final protected ProgressTracker<T, P> tracker;
 
-	public ParallelSerialiser(ProgressTracker<T, ? extends Progress> k) {
+	public ParallelSerialiser(ProgressTracker<T, P> k) {
 		if (k == null) {
 			throw new IllegalArgumentException("ParallelSerialiser must have a progress tracker.");
 		}
 		tracker = k;
 	}
 
+	// return ? so as to hide the implementation details of Progress
 	@Override public ProgressTracker<T, ? extends Progress> getTracker() {
 		return tracker;
 	}
@@ -76,10 +77,10 @@ implements IterableSerialiser<T>,
 	** Given a group of progresses, waits for them to all finish. Non-error
 	** aborts are caught and ignored; error aborts are re-thrown.
 	*/
-	protected void joinAll(Iterable<Progress> plist) throws InterruptedException, TaskAbortException {
-		Iterator<Progress> it = plist.iterator();
+	protected void joinAll(Iterable<P> plist) throws InterruptedException, TaskAbortException {
+		Iterator<P> it = plist.iterator();
 		while (it.hasNext()) {
-			Progress p = it.next();
+			P p = it.next();
 			try {
 				p.join();
 			} catch (TaskAbortException e) {
@@ -103,7 +104,7 @@ implements IterableSerialiser<T>,
 	**
 	** '''If this does not occur, deadlock will result'''.
 	*/
-	abstract public void pullAndUpdateProgress(PullTask<T> task, Progress p);
+	abstract public void pullAndUpdateProgress(PullTask<T> task, P p);
 
 	/**
 	** Executes a {@link PushTask} and update the progress associated with it.
@@ -115,7 +116,7 @@ implements IterableSerialiser<T>,
 	**
 	** '''If this does not occur, deadlock will result'''.
 	*/
-	abstract public void pushAndUpdateProgress(PushTask<T> task, Progress p);
+	abstract public void pushAndUpdateProgress(PushTask<T> task, P p);
 
 	/*========================================================================
 	  public interface IterableSerialiser
@@ -143,7 +144,7 @@ implements IterableSerialiser<T>,
 	@Override public void pull(Iterable<PullTask<T>> tasks) throws TaskAbortException {
 		kickStart();
 		try {
-			List<Progress> plist = new ArrayList<Progress>();
+			List<P> plist = new ArrayList<P>();
 			Iterator<PullTask<T>> it = tasks.iterator();
 			while (it.hasNext()) {
 				PullTask<T> t = it.next();
@@ -151,7 +152,7 @@ implements IterableSerialiser<T>,
 					throw new IllegalArgumentException("ParallelSerialiser cannot handle pull tasks with null metadata");
 				}
 
-				Progress p = tracker.addPullProgress(t.meta);
+				P p = tracker.addPullProgress(t.meta);
 				if (p == null) {
 					// if we are already pushing this, then erase it from the task iterable
 					// but we still want to wait for the task to finish, so add it to plist
@@ -185,7 +186,7 @@ implements IterableSerialiser<T>,
 	@Override public void push(Iterable<PushTask<T>> tasks) throws TaskAbortException {
 		kickStart();
 		try {
-			List<Progress> plist = new ArrayList<Progress>();
+			List<P> plist = new ArrayList<P>();
 			Iterator<PushTask<T>> it = tasks.iterator();
 			while (it.hasNext()) {
 				PushTask<T> t = it.next();
@@ -193,7 +194,7 @@ implements IterableSerialiser<T>,
 					throw new IllegalArgumentException("ParallelSerialiser cannot handle pull tasks with null metadata");
 				}
 
-				Progress p = tracker.addPushProgress(t.data);
+				P p = tracker.addPushProgress(t.data);
 				if (p == null) {
 					// if we are already pushing this, then erase it from the task iterable
 					// but we still want to wait for the task to finish, so add it to plist

@@ -4,20 +4,13 @@
 package plugins.Interdex.index;
 
 /**
-** Dummy interface so my code compiles; pending merge to plugin-Library
+** Represents a virtual index that gets its data from another plugin.
 **
 ** @author infinity0
 */
-public interface Request<E> {
+public interface VirtualIndex extends Index {
 
-	public void start();
 
-	public E getResult();
 
-	public String getCurrentProgress();
-
-	public String getCurrentStatus();
-
-	public String getCurrentStage();
 
 }
