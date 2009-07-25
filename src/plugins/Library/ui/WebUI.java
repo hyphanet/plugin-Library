@@ -179,7 +179,7 @@ public class WebUI {
 		// Loop to separate results into SSK groups
 		HTMLNode resultsNode = new HTMLNode("div", "id", "results");
 		HashMap<String, SortedMap<Long, Set<URIWrapper>>> groupmap = new HashMap();
-		Iterator<URIWrapper> it = request.getResult().iterator();
+		Iterator<URIWrapper> it = ((Iterable)request.getResult()).iterator();
 		while(it.hasNext()){
 			URIWrapper o = it.next();
 			// Get the key and name

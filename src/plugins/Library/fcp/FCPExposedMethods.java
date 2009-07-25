@@ -73,6 +73,6 @@ class FCPExposedMethods {
 	 * @throws plugins.Library.util.InvalidSearchException
 	 */
 	static public Set getResults(Integer request) throws InvalidSearchException {
-		return requests.get(request).getResult();
+		return (Set)requests.get(request).getResult();
 	}
 }
