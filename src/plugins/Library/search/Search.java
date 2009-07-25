@@ -21,7 +21,7 @@ import plugins.Library.Library;
  * Performs asynchronous searches over many index or with many terms and search logic
  * @author MikeB
  */
-public class Search implements Request<URIWrapper> {
+public class Search implements Request<Set<URIWrapper>> {
 
 	/**
 	 * What should be done with the results of subsearches\n
@@ -280,16 +280,6 @@ public class Search implements Request<URIWrapper> {
 		return subsearches;
 	}
 
-	/**
-	 * @return true if progress has been read since it was last updated
-	 */
-	public boolean progressAccessed(){
-		for(Request r : subsearches)
-			if(!r.progressAccessed())
-				return false;
-		return true;
-	}
-
 
 	/**
 	 * @return true if all are Finished, false otherwise
@@ -420,12 +410,12 @@ public class Search implements Request<URIWrapper> {
 		ResultSet result = new ResultSet();
 		switch(resultOperation){
 			case UNION:
-				for(Request<URIWrapper> r : subsearches)
+				for(Request<Set<URIWrapper>> r : subsearches)
 					result.addAll(r.getResult());
 				break;
 			case INTERSECTION:
 				Iterator<Request> it = subsearches.iterator();
-				Request r = it.next();
+				Request<Set<URIWrapper>> r = it.next();
 				result.addAll(r.getResult());
 				while (it.hasNext()) {
 					r = it.next();
@@ -433,8 +423,8 @@ public class Search implements Request<URIWrapper> {
 				}
 				break;
 			case REMOVE:
-				result.addAll(subsearches.get(0).getResult());
-				result.removeAll(subsearches.get(1).getResult());
+				result.addAll((Set<URIWrapper>)subsearches.get(0).getResult());
+				result.removeAll((Set<URIWrapper>)subsearches.get(1).getResult());
 				break;
 			case PHRASE:
 				Logger.minor(this, "Getting results for phrase");

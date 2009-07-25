@@ -5,7 +5,6 @@
 package plugins.Library.util;
 
 import java.util.List;
-import java.util.Set;
 
 /**
  * Interface for a request being handled asynchronously from the threads which
@@ -73,7 +72,7 @@ public interface Request<E> {
 	/**
 	 * @return result of this request
 	 */
-	public Set<E> getResult() throws InvalidSearchException;
+	public E getResult() throws InvalidSearchException;
 	/**
 	 * @return true if RequestStatus is PARTIALRESULT or FINISHED
 	 */
@@ -91,7 +90,5 @@ public interface Request<E> {
 	 * If not implemented, return false
 	 * @return true if progress hasn't changed since it was last read
 	 */
-	public boolean progressAccessed();
-
-	public int compareTo(Request right);
+	//public boolean progressAccessed();
 }

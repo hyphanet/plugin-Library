@@ -4,7 +4,7 @@
 package plugins.Library.index.xml;
 
 import java.util.List;
-import java.util.Set;
+import plugins.Library.util.AbstractRequest;
 import plugins.Library.util.Request;
 
 
@@ -15,10 +15,7 @@ import plugins.Library.util.Request;
  * @author MikeB
  * @param <E> Return type
  */
-public class FindRequest<E> implements Comparable<Request>, Request<E>{
-	protected String subject;
-	
-	protected RequestStatus status;
+public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Request>, Request<E> {
 	protected int stage=0;
 	protected final String[] stageNames = new String[]{
 		"Nothing",
@@ -30,9 +27,7 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	private long blocksTotal;
 	private boolean blocksfinalized;
 	private int expectedsize;
-	protected Exception err;
-	private String eventDescription;
-	Set<E> result;
+	E result;
 	
 	
 	/**
@@ -40,28 +35,9 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	 * @param subject
 	 */
 	public FindRequest(String subject){
-		status = RequestStatus.UNSTARTED;
-		this.subject = subject;
+		super(subject);
 	}
 
-	/**
-	 * @return  UNSTARTED, INPROGRESS, PARTIALRESULT, FINISHED, ERROR
-	 */
-	public RequestStatus getRequestStatus(){
-		return status;
-	}
-	/**
-	 * @return true if RequestStatus is FINISHED or ERROR
-	 */
-	public boolean isFinished(){
-		return status==RequestStatus.FINISHED || status == RequestStatus.ERROR;
-	}
-	/**
-	 * @return an error found in this operation
-	 */
-	public Exception getError(){
-		return err;
-	}
 
 	/**
 	 * @return SubStage number between 1 and SubStageCount, for when overall operation length is not known but number of stages is
@@ -111,14 +87,8 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	/**
 	 * @return result of this request
 	 */
-	public Set<E> getResult(){
+	public E getResult(){
 		return result;
-	}
-	/**
-	 * @return true if RequestStatus is PARTIALRESULT or FINISHED
-	 */
-	public boolean hasResult(){
-		return status==RequestStatus.FINISHED||status==RequestStatus.PARTIALRESULT;
 	}
 	
 	/**
@@ -151,14 +121,9 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	 * Stores a result and marks requestStatus as PARTIALRESULT, call setFinished to mark FINISHED
 	 * @param result
 	 */
-	public void setResult(Set<E> result){
+	public void setResult(E result){
 		status = RequestStatus.PARTIALRESULT;
 		this.result = result;
-	}
-
-	public void addResult(E entry){
-		status = RequestStatus.PARTIALRESULT;
-		result.add(entry);
 	}
 	
 	/**
@@ -175,7 +140,7 @@ public class FindRequest<E> implements Comparable<Request>, Request<E>{
 	
 	@Override
 	public String toString(){
-		return "Request subject="+subject+" status="+status.toString()+" event="+eventDescription+" stage="+stage+" progress="+blocksCompleted;
+		return "Request subject="+subject+" status="+status.toString()+" stage="+stage+" progress="+blocksCompleted;
 	}
 
 

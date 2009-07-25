@@ -16,6 +16,8 @@ import freenet.support.Logger;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
+import plugins.Library.util.Request.RequestStatus;
 import plugins.Library.util.URIWrapper;
 
 /**
@@ -114,8 +116,12 @@ public class LibrarianHandler extends DefaultHandler {
 						else
 							uri.descr = "not available";
 						//Logger.minor(this, "adding to all in "+wordMatches);
-						for(FindRequest<URIWrapper> match : wordMatches){
-							match.addResult(uri);
+						for(FindRequest<Set<URIWrapper>> match : wordMatches){
+							Set<URIWrapper> result = match.getResult();
+							if (result == null)
+								match.setResult(result = new HashSet<URIWrapper>());
+							result.add(uri);
+							match.setStage(RequestStatus.PARTIALRESULT, 3);
 							// removed these as they use lots of memory and are only used for phrase search which doesnt work
 							//inFile = uri;
 							//characters = new StringBuilder();

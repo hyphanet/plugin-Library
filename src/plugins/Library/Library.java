@@ -5,7 +5,6 @@
 package plugins.Library;
 
 import plugins.Library.index.*;
-import freenet.support.Executor;
 import freenet.pluginmanager.PluginRespirator;
 import plugins.Library.util.Request;
 import plugins.Library.util.InvalidSearchException;
@@ -25,6 +24,11 @@ public class Library {
 
 	public static final String DEFAULT_INDEX_SITE = "bookmark:freenetindex";
 	private static int version = 1;
+
+
+	private static final Class[] indexTypes = new Class[]{
+		plugins.Library.index.xml.XMLIndex.class,
+	};
 
 
 	/**
@@ -115,8 +119,22 @@ public class Library {
 		if (rtab.containsKey(indexuri))
 			return rtab.get(indexuri);
 
+		Index index;
+		// Look for this index type in the indexTypes array
+		if(indexuri.contains(":"))
+			for (int i = 0; i < indexTypes.length; i++) {
+				Class class1 = indexTypes[i];
+				try {
+					String id = ((String)class1.getMethod("getID").invoke(null));
+					if (indexuri.split(":")[0].equalsIgnoreCase(id))
+						index = (Index) class1.getConstructor(indexuri.getClass(), pr.getClass()).newInstance(indexuri, pr);
+				} catch (Exception ex) {
+					Logger.normal(class1, indexuri, ex);
+				}
+			}
+
 		//if(indexuri.startsWith("xml:")){
-			Index index = new XMLIndex(indexuri, pr);
+			index = new XMLIndex(indexuri, pr);
 			rtab.put(indexuri, index);
 			return index;
 		//}
