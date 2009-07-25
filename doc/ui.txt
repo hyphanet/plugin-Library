@@ -1,0 +1,16 @@
+= UI =
+
+== Purpose ==
+
+Interface for users to interact with the distrbuted index
+
+
+* Search tokens
+  * displays index in rank order
+  * +|- for a result adjusts ranking in own ID's index
+  * +|- for an ID adjusts trust in WoT
+  * link to "view"
+
+* View index
+  * +|- for an ID adjusts trust in WoT
+
