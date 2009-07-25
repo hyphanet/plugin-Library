@@ -1,6 +1,7 @@
 package plugins.Library.ui;
 
 
+import plugins.Library.Library;
 import plugins.Library.util.Request;
 import plugins.Library.search.Search;
 import plugins.Library.*;

@@ -6,7 +6,6 @@ package plugins.Library.search;
 import plugins.Library.util.Request;
 import plugins.Library.util.URIWrapper;
 import plugins.Library.util.InvalidSearchException;
-import plugins.Library.index.Index;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -15,6 +14,7 @@ import freenet.support.Logger;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
+import plugins.Library.Library;
 
 
 /**
@@ -137,7 +137,7 @@ public class Search implements Request<URIWrapper> {
 	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException{
 		if(query.matches("\\A\\w*\\Z"))
 			// single search term
-			return new Search(query, indexuri, Index.getIndex(indexuri).find(query));
+			return new Search(query, indexuri, Library.getIndex(indexuri).getTermEntries(query));
 		
 		// Make phrase search
 		if(query.matches("\\A\".*\"\\Z")){

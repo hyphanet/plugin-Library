@@ -32,7 +32,7 @@ class FCPExposedMethods {
 	//////// Exposed methods from here, only classes in ParameterTypes should be used for parameters and return types
 	//////// Other than that it should be ok, although exceptions wont be passed back properly
 
-	//TODO if these methods weren't static we could use an interface to bind this to RemoteLibrary
+	//TODO minor : if these methods weren't static we could use an interface to bind this to RemoteLibrary
 
 	/**
 	 * @return the version number of Library

@@ -102,7 +102,7 @@
 		<jar jarfile="${dist}/Library.jar" duplicate="fail">
 			<manifest>
 				<attribute name="Main-Class" value="${packagebase}.ui.TestInterface"/>
-				<attribute name="Plugin-Main-Class" value="${packagebase}.Library"/>
+				<attribute name="Plugin-Main-Class" value="${packagebase}.Main"/>
 			</manifest>
 			<fileset dir="src/" casesensitive="no">
 				<include name="*.txt"/>

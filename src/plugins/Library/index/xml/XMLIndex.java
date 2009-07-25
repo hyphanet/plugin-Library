@@ -25,6 +25,8 @@ import freenet.node.RequestStarter;
 import freenet.node.RequestClient;
 import freenet.keys.FreenetURI;
 
+import freenet.pluginmanager.PluginRespirator;
+import freenet.support.Executor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.File;
@@ -36,6 +38,7 @@ import java.util.TreeMap;
 import java.util.SortedMap;
 import java.net.MalformedURLException;
 
+import java.util.HashMap;
 import plugins.Library.Library;
 import plugins.Library.index.Index;
 import plugins.Library.util.InvalidSearchException;
@@ -46,8 +49,14 @@ import plugins.Library.util.Request;
  * The xml index format
  * @author MikeB
  */
-public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
+public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	static final String DEFAULT_FILE = "index.xml";
+	private PluginRespirator pr;
+	private Executor executor;
+	public enum FetchStatus{UNFETCHED, FETCHING, FETCHED, FAILED}
+	protected FetchStatus fetchStatus = FetchStatus.UNFETCHED;
+	protected HashMap<String, String> indexMeta  = new HashMap<String, String>();
+	protected String indexuri;
 
 	private HighLevelSimpleClient hlsc;
 
@@ -69,8 +78,11 @@ public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 	 * @param baseURI
 	 *            Base URI of the index (exclude the <tt>index.xml</tt> part)
 	 */
-	public XMLIndex(String baseURI) throws InvalidSearchException {
-		super();
+	public XMLIndex(String baseURI, PluginRespirator pr) throws InvalidSearchException {
+		this.pr = pr;
+		if (pr!=null)
+			executor = pr.getNode().executor;
+		
 		if (!baseURI.endsWith("/"))
 			baseURI += "/";
 		indexuri = baseURI;
@@ -244,8 +256,7 @@ public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 	/**
 	 * Find the term in this Index
 	 */
-	@Override
-	public synchronized Request find(String term){
+	public synchronized Request getTermEntries(String term){
 		try {
 			FindRequest request = new FindRequest(term);
 			setdependencies(request);
@@ -258,6 +269,10 @@ public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 			Logger.error(this, "Trying to find " + term, ex);
 			return null;
 		}
+	}
+
+	public Request getURIEntry(FreenetURI uri){
+		throw new UnsupportedOperationException("getURIEntry not Implemented in XMLIndex");
 	}
 
 	/**
@@ -287,9 +302,8 @@ public class XMLIndex extends Index implements ClientGetCallback, RequestClient{
 	/**
 	 * @return the uri of this index prefixed with "xml:" to show what type it is
 	 */
-	@Override
 	public String getIndexURI(){
-		return "xml:"+super.getIndexURI();
+		return indexuri;
 	}
 	
 	private class SubIndex implements Runnable {

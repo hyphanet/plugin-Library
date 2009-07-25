@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import plugins.Library.Main;
 import plugins.Library.index.Index;
 import plugins.Library.Library;
 import plugins.Library.util.Request;
@@ -33,8 +34,9 @@ import plugins.Library.util.URIWrapper;
  *
  * @author MikeB
  */
-public class WebUI{
+public class WebUI {
 	static String plugName;
+	static String httpPath = "/plugins/"+ Main.class.getName();
 	
 	public static void setup(String plugName){
 		WebUI.plugName = plugName;
@@ -322,7 +324,7 @@ public class WebUI{
 	 */
 	private static HTMLNode searchBox(String search, String indexuri, boolean js, boolean showold){
 		HTMLNode searchDiv = new HTMLNode("div", "id", "searchbar");
-		HTMLNode searchForm = searchDiv.addChild("form", new String[]{"name", "method", "action"}, new String[]{"searchform", "GET", "plugins.Library.Library"});
+		HTMLNode searchForm = searchDiv.addChild("form", new String[]{"name", "method", "action"}, new String[]{"searchform", "GET", httpPath});
 			HTMLNode searchTable = searchForm.addChild("table", "width", "100%");
 				HTMLNode searchTop = searchTable.addChild("tr");
 					HTMLNode titleCell = searchTop.addChild("td", new String[]{"rowspan","width"},new String[]{"3","120"});
@@ -345,7 +347,7 @@ public class WebUI{
 	private static String debugpage() {
 		HTMLNode debugpage = new HTMLNode("HTML");
 		HTMLNode bodynode = debugpage.addChild("body");
-		for(Index i : Index.getAllIndices()){
+		for(Index i : Library.getAllIndices()){
 			HTMLNode indexnode = bodynode.addChild("p");
 			indexnode.addChild("#",i.toString());
 		}
@@ -465,7 +467,7 @@ public class WebUI{
 					"	window.location=loc+'?js';\n"
 				:
 					"\n" +
-					"var url = '/plugins/plugins.Library.Library/xml?search=" +searchquery+"&index="+indexuri+"&showold="+(showold?"on":"off")+"';\n" +
+					"var url = '"+httpPath+"/xml?search=" +searchquery+"&index="+indexuri+"&showold="+(showold?"on":"off")+"';\n" +
 					"var xmlhttp;\n" +
 					"\n" +
 					"function getProgress(){\n" +

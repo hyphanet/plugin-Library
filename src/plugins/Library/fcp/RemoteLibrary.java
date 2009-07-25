@@ -14,6 +14,7 @@ import java.lang.instrument.IllegalClassFormatException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import plugins.Library.Main;
 
 /**
  * This is the remote FCP interface for Library, these methods call synonomous methods in {@link plugins.Library.fcp.FCPExposedMethods}
@@ -41,7 +42,7 @@ public class RemoteLibrary implements FredPluginTalker {
 	 */
 	private Object invokeRemoteMethod(String method, String returntype, Object... params) throws PluginNotFoundException, TimeoutException, IllegalClassFormatException{
 		String identifier = method+":"+Thread.currentThread().getName();
-		PluginTalker pt = pr.getPluginTalker(this, "plugins.Library.Library", identifier);
+		PluginTalker pt = pr.getPluginTalker(this, Main.class.getName(), identifier);
 		SimpleFieldSet plugparams = new SimpleFieldSet(true);
 		plugparams.putOverwrite("method", method);
 		for (Object object : params) {

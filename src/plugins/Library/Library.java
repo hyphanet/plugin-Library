@@ -4,104 +4,135 @@
 
 package plugins.Library;
 
-import plugins.Library.fcp.FCPRequestHandler;
-import freenet.pluginmanager.PluginReplySender;
-import freenet.support.SimpleFieldSet;
-import freenet.support.api.Bucket;
+import plugins.Library.index.*;
+import freenet.support.Executor;
+import freenet.pluginmanager.PluginRespirator;
 import plugins.Library.util.Request;
 import plugins.Library.util.InvalidSearchException;
-import plugins.Library.search.Search;
-import plugins.Library.index.Index;
-import freenet.pluginmanager.FredPlugin;
-import freenet.pluginmanager.FredPluginFCP;
-import freenet.pluginmanager.FredPluginHTTP;
-import freenet.pluginmanager.FredPluginRealVersioned;
-import freenet.pluginmanager.FredPluginThreadless;
-import freenet.pluginmanager.FredPluginVersioned;
-import freenet.pluginmanager.PluginHTTPException;
-import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Logger;
-import freenet.support.api.HTTPRequest;
 import java.security.MessageDigest;
-import plugins.Library.ui.WebUI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import plugins.Library.index.xml.XMLIndex;
 
 
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces
  * @author MikeB
  */
-public class Library implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
-		FredPluginRealVersioned, FredPluginThreadless, FredPluginFCP {
-	// Library functions
+public class Library {
+
+	public static final String DEFAULT_INDEX_SITE = "bookmark:freenetindex";
+	private static int version = 1;
 
 
+	/**
+	** Holds all the read-indexes.
+	*/
+	private static Map<String, Index> rtab = new HashMap<String, Index>();
+
+	/**
+	** Holds all the writeable indexes.
+	*/
+	private static Map<String, WriteableIndex> wtab = new HashMap<String, WriteableIndex>();
+
+	/**
+	** Holds all the bookmarks (aliases into the rtab).
+	*/
+	private static Map<String, String> bookmarks = new HashMap<String, String>();
+	private static PluginRespirator pr;
+
+	public static long getVersion() {
+		return version;
+	}
+
+	
 	/**
 	 * Find the specified index and start a find request on it for the specified term
 	 */
 	public static Request findTerm(String indexid, String term) throws Exception{
 		Index index = getIndex(indexid);
 		Logger.minor(Library.class, "Finding term: "+term);
-		Request request = index.find(term);
+		Request request = index.getTermEntries(term);
 		return request;
 	}
 	
-	
+
+
+
+
+
+	/**
+	 * Returns a set of Index objects one for each of the uri's specified
+	 * gets an existing one if its there else makes a new one
+	 *
+	 * @param indexuris list of index specifiers separated by spaces
+	 * @return Set of Index objects
+	 */
+	public static final ArrayList<Index> getIndices(String indexuris) throws InvalidSearchException{
+		String[] uris = indexuris.split("[ ;]");
+		ArrayList<Index> indices = new ArrayList<Index>(uris.length);
+
+		for ( String uri : uris){
+			indices.add(getIndex(uri));
+		}
+		return indices;
+	}
+
+	/**
+	 * Static method to get all of the instatiated Indexes
+	 */
+	public static final Iterable<Index> getAllIndices() {
+		return rtab.values();
+	}
+
 	/**
 	 * Gets an index using its id in the form {type}:{uri} <br />
 	 * known types are xml, bookmark
 	 * @param indexid
 	 * @return Index object
-	 * @throws plugins.XMLLibrarian.InvalidSearchException
+	 * @throws plugins.Library.util.InvalidSearchException
 	 */
-	public static Index getIndex(String indexid) throws InvalidSearchException{
-		Logger.minor(Library.class, "Getting Index: "+indexid);
-		return Index.getIndex(indexid);
-	}
-
-
-
-
-	public static final String DEFAULT_INDEX_SITE = "bookmark:freenetindex";
-	private static int version = 1;
-	private static final String plugName = "(Library " + version+")";
-	private PluginRespirator pr;
-
-
-	// FredPluginVersioned
-	public String getVersion() {
-		return version + " r" + Version.getSvnRevision();
-	}
-
-	// FredPluginRealVersioned
-	public long getRealVersion() {
-		return version;
-	}
-
-
-
-	// FredPluginHTTP
-	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
-		try{
-			return WebUI.handleHTTPGet(request);
-		}catch(Exception e){
-			return WebUI.searchpage(null, null, false, request.isParameterSet("js"), false, e);
+	/**
+	 * Returns an Index object for the uri specified,
+	 * gets an existing one if its there else makes a new one
+	 *
+	 * TODO : identify all index types so index doesn't need to refer to them directly
+	 * @param indexuri index specifier
+	 * @return Index object
+	 */
+	public static final Index getIndex(String indexuri) throws InvalidSearchException{
+		if (indexuri.startsWith("bookmark:")){
+			if (bookmarks.containsKey(indexuri.substring(9)))
+				return getIndex(bookmarks.get(indexuri.substring(9)));
+			else
+				throw new InvalidSearchException("Index bookmark '"+indexuri.substring(9)+" does not exist");
 		}
+
+		if (!indexuri.endsWith("/"))
+			indexuri += "/";
+		if (rtab.containsKey(indexuri))
+			return rtab.get(indexuri);
+
+		//if(indexuri.startsWith("xml:")){
+			Index index = new XMLIndex(indexuri, pr);
+			rtab.put(indexuri, index);
+			return index;
+		//}
+		//throw new UnsupportedOperationException("Unrecognised index type, id format is <type>:<key> {"+indexuri+"}");
 	}
 
-	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException{
-        return WebUI.handleHTTPPost(request);
-    }
 
-
-	// FredPlugin
-	public void runPlugin(PluginRespirator pr) {
-		this.pr = pr;
-        Search.setup();
-		WebUI.setup(plugName);
-		Index.setup(pr);
-	}
-
-	public void terminate() {
+	/**
+	 * Static method to setup Index class so it has access to PluginRespirator, and load bookmarks
+	 * TODO pull bookmarks from disk
+	 */
+	public static final void setup(PluginRespirator pr){
+		Library.pr = pr;
+		bookmarks.put("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/");
+		bookmarks.put("wanna19", "SSK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search-19/");
+		bookmarks.put("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/");
 	}
 
 
@@ -133,10 +164,5 @@ public class Library implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	// FredPluginFCP
-	public void handle(PluginReplySender replysender, SimpleFieldSet params, Bucket data, int accesstype) {
-		FCPRequestHandler.handle(replysender, params, data, accesstype);
 	}
 }
