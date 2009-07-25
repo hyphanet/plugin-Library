@@ -13,11 +13,12 @@ import plugins.Interdex.serl.ProgressTracker;
 import plugins.Interdex.serl.Archiver;
 import plugins.Interdex.serl.IterableSerialiser;
 import plugins.Interdex.serl.MapSerialiser;
+import plugins.Interdex.serl.LiveArchiver;
 import plugins.Interdex.serl.ParallelSerialiser;
 import plugins.Interdex.serl.CollectionPacker;
 import plugins.Interdex.serl.MapPacker;
 import plugins.Interdex.serl.Progress;
-import plugins.Interdex.serl.AtomicProgress;
+import plugins.Interdex.serl.SimpleProgress;
 import plugins.Interdex.serl.CompoundProgress;
 import plugins.Interdex.serl.YamlArchiver;
 import plugins.Interdex.serl.DataFormatException;
@@ -184,16 +185,16 @@ implements Archiver<ProtoIndex>,
 
 
 	public static class BTreeNodeSerialiser<K, V>
-	extends ParallelSerialiser<SkeletonBTreeMap<K, V>.SkeletonNode, AtomicProgress>
+	extends ParallelSerialiser<SkeletonBTreeMap<K, V>.SkeletonNode, SimpleProgress>
 	implements Archiver<SkeletonBTreeMap<K, V>.SkeletonNode>,
 	           Serialiser.Translate<SkeletonBTreeMap<K, V>.SkeletonNode, Map<String, Object>>,
-	           Serialiser.Composite<Archiver<Map<String, Object>>> {
+	           Serialiser.Composite<LiveArchiver<Map<String, Object>, SimpleProgress>> {
 
 		final protected Translator<SkeletonBTreeMap<K, V>.SkeletonNode, Map<String, Object>> trans;
-		final protected Archiver<Map<String, Object>> subsrl;
+		final protected LiveArchiver<Map<String, Object>, SimpleProgress> subsrl;
 
 		public BTreeNodeSerialiser(SkeletonBTreeMap<K, V> btreemap, final Translator<K, String> ktr) {
-			super(new ProgressTracker<SkeletonBTreeMap<K, V>.SkeletonNode, AtomicProgress>(AtomicProgress.class));
+			super(new ProgressTracker<SkeletonBTreeMap<K, V>.SkeletonNode, SimpleProgress>(SimpleProgress.class));
 			subsrl = new YamlArchiver<Map<String, Object>>(true);
 			trans = btreemap.makeNodeTranslator(ktr, new TreeMapTranslator<K, V>(null));
 		}
@@ -202,34 +203,28 @@ implements Archiver<ProtoIndex>,
 			return trans;
 		}
 
-		@Override public Archiver<Map<String, Object>> getChildSerialiser() {
+		@Override public LiveArchiver<Map<String, Object>, SimpleProgress> getChildSerialiser() {
 			return subsrl;
 		}
 
-		@Override public void pullAndUpdateProgress(PullTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, AtomicProgress p) {
+		@Override public void pullLive(PullTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) {
 			SkeletonBTreeMap<K, V>.GhostNode ghost = (SkeletonBTreeMap.GhostNode)task.meta;
 			PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(ghost.getMeta());
 			p.setName("Pulling listings for " + ghost.getShortName());
-			try {
-				subsrl.pull(serialisable);
-				ghost.setMeta(serialisable.meta); task.data = trans.rev(serialisable.data);
-				p.setDone();
-			} catch (TaskAbortException e) {
-				p.setAbort(e);
-			}
+			p.addTotal(1, false);
+			subsrl.pullLive(serialisable, p);
+			ghost.setMeta(serialisable.meta); task.data = trans.rev(serialisable.data);
+			p.addPartDone();
 		}
 
-		@Override public void pushAndUpdateProgress(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, AtomicProgress p) {
+		@Override public void pushLive(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) {
 			Map<String, Object> intermediate = trans.app(task.data);
 			PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(intermediate, task.meta);
 			p.setName("Pushing listings for " + task.data.getShortName());
-			try {
-				subsrl.push(serialisable);
-				task.meta = task.data.makeGhost(serialisable.meta);
-				p.setDone();
-			} catch (TaskAbortException e) {
-				p.setAbort(e);
-			}
+			p.addTotal(1, false);
+			subsrl.pushLive(serialisable, p);
+			task.meta = task.data.makeGhost(serialisable.meta);
+			p.addPartDone();
 		}
 
 	}
@@ -287,31 +282,27 @@ implements Archiver<ProtoIndex>,
 
 
 	public static class TermEntryGroupSerialiser
-	extends ParallelSerialiser<Map<String, SortedSet<TokenEntry>>, AtomicProgress>
+	extends ParallelSerialiser<Map<String, SortedSet<TokenEntry>>, SimpleProgress>
 	implements IterableSerialiser<Map<String, SortedSet<TokenEntry>>>,
-	           Serialiser.Composite<Archiver<Map<String, Object>>>,
-	           Serialiser.Trackable<Map<String, SortedSet<TokenEntry>>> {
+	           Serialiser.Composite<LiveArchiver<Map<String, Object>, SimpleProgress>> {
 
-		final protected Archiver<Map<String, Object>> subsrl;
+		final protected LiveArchiver<Map<String, Object>, SimpleProgress> subsrl;
 
 		public TermEntryGroupSerialiser() {
-			super(new ProgressTracker<Map<String, SortedSet<TokenEntry>>, AtomicProgress>(AtomicProgress.class));
+			super(new ProgressTracker<Map<String, SortedSet<TokenEntry>>, SimpleProgress>(SimpleProgress.class));
 			subsrl = new YamlArchiver<Map<String, Object>>(true);
 		}
 
-		@Override public Archiver<Map<String, Object>> getChildSerialiser() {
+		@Override public LiveArchiver<Map<String, Object>, SimpleProgress> getChildSerialiser() {
 			return subsrl;
 		}
 
-		@Override public ProgressTracker<Map<String, SortedSet<TokenEntry>>, ? extends Progress> getTracker() {
-			return tracker;
-		}
-
-		@Override public void pullAndUpdateProgress(PullTask<Map<String, SortedSet<TokenEntry>>> task, AtomicProgress p) {
+		@Override public void pullLive(PullTask<Map<String, SortedSet<TokenEntry>>> task, SimpleProgress p) {
 			PullTask<Map<String, Object>> t = new PullTask<Map<String, Object>>(task.meta);
 			p.setName("Pulling container " + task.meta);
+			p.addTotal(1, false);
 			try {
-				subsrl.pull(t);
+				subsrl.pullLive(t, p);
 
 				Map<String, SortedSet<TokenEntry>> map = new HashMap<String, SortedSet<TokenEntry>>(t.data.size()<<1);
 				try {
@@ -328,15 +319,13 @@ implements Archiver<ProtoIndex>,
 				}
 
 				task.data = map;
-				p.setDone();
-			} catch (TaskAbortException e) {
-				p.setAbort(e);
+				p.addPartDone();
 			} catch (RuntimeException e) {
 				p.setAbort(new TaskAbortException("Could not retrieve data from bin " + t.data.keySet(), e));
 			}
 		}
 
-		@Override public void pushAndUpdateProgress(PushTask<Map<String, SortedSet<TokenEntry>>> task, AtomicProgress p) {
+		@Override public void pushLive(PushTask<Map<String, SortedSet<TokenEntry>>> task, SimpleProgress p) {
 			Map<String, Object> conv = new HashMap<String, Object>();
 			for (Map.Entry<String, SortedSet<TokenEntry>> mp: task.data.entrySet()) {
 				conv.put(mp.getKey(), new ArrayList(mp.getValue()));
@@ -344,13 +333,10 @@ implements Archiver<ProtoIndex>,
 
 			PushTask<Map<String, Object>> t = new PushTask<Map<String, Object>>(conv, task.meta);
 			p.setName("Pushing container for keys " + task.data.keySet());
-			try {
-				subsrl.push(t);
-				task.meta = t.meta;
-				p.setDone();
-			} catch (TaskAbortException e) {
-				p.setAbort(e);
-			}
+			p.addTotal(1, false);
+			subsrl.pushLive(t, p);
+			task.meta = t.meta;
+			p.addPartDone();
 		}
 
 	}

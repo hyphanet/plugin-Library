@@ -39,7 +39,9 @@ import java.nio.channels.FileLock;
 **
 ** @author infinity0
 */
-public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> {
+public class YamlArchiver<T extends Map<String, Object>>
+implements Archiver<T>,
+           LiveArchiver<T, SimpleProgress> {
 
 	/**
 	** Thread local yaml processor.
@@ -56,7 +58,19 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 	// DEBUG
 	private static boolean testmode = false;
 	public static void setTestMode() { System.out.println("YamlArchiver will now randomly pause 5-10s for each task, to simulate network speeds"); testmode = true; }
-	public static void randomWait() { try { Thread.sleep((long)(Math.random()*5+5)*1000); } catch (InterruptedException e) { } }
+	public static void randomWait(SimpleProgress p) {
+		int t = (int)(Math.random()*5+5);
+		p.addTotal(t, true);
+		for (int i=0; i<t; ++i) {
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				// nothing
+			} finally {
+				p.addPartDone();
+			}
+		}
+	}
 
 	/**
 	** Prefix of filename
@@ -113,7 +127,7 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 	}
 
 	/*========================================================================
-	  public interface Archiver
+	  public interface LiveArchiver
 	 ========================================================================*/
 
 	@Override public void pull(PullTask<T> t) throws TaskAbortException {
@@ -122,7 +136,6 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 		try {
 			FileInputStream is = new FileInputStream(file);
 			try {
-				if (testmode) { randomWait(); }
 				FileLock lock = is.getChannel().lock(0L, Long.MAX_VALUE, true); // shared lock for reading
 				try {
 					t.data = (T)yaml.get().load(new InputStreamReader(is));
@@ -148,7 +161,6 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 		try {
 			FileOutputStream os = new FileOutputStream(file);
 			try {
-				if (testmode) { randomWait(); }
 				FileLock lock = os.getChannel().lock();
 				try {
 					yaml.get().dump(t.data, new OutputStreamWriter(os));
@@ -167,6 +179,29 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 		}
 	}
 
+	@Override public void pullLive(PullTask<T> t, SimpleProgress p) {
+		try {
+			pull(t);
+			if (testmode) { randomWait(p); }
+			else { p.addTotal(0, true); }
+		} catch (TaskAbortException e) {
+			p.setAbort(e);
+		}
+	}
+
+	@Override public void pushLive(PushTask<T> t, SimpleProgress p) {
+		try {
+			push(t);
+			if (testmode) { randomWait(p); }
+			else { p.addTotal(0, true); }
+		} catch (TaskAbortException e) {
+			p.setAbort(e);
+		}
+	}
+
+	/************************************************************************
+	** DOCUMENT
+	*/
 	public static class FreenetURIRepresenter extends Representer {
 		public FreenetURIRepresenter() {
 			this.representers.put(FreenetURI.class, new RepresentFreenetURI());
@@ -179,6 +214,9 @@ public class YamlArchiver<T extends Map<String, Object>> implements Archiver<T> 
 		}
 	}
 
+	/************************************************************************
+	** DOCUMENT
+	*/
 	public static class FreenetURIConstructor extends Constructor {
 		public FreenetURIConstructor() {
 			this.yamlConstructors.put("!FreenetURI", new ConstructFreenetURI());

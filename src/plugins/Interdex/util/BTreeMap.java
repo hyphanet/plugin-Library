@@ -1199,8 +1199,6 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 									cnode = nodestack.pop();
 									centit = itstack.pop();
 								}
-								Map.Entry<K, V> next = centit.next(); lastkey = next.getKey();
-								return next;
 							} else {
 								while (!cnode.isLeaf()) {
 									nodestack.push(cnode);
@@ -1210,9 +1208,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 									cnode = cnode.rnodes.get(lastkey);
 									centit = cnode.entries.entrySet().iterator();
 								}
-								Map.Entry<K, V> next = centit.next(); lastkey = next.getKey();
-								return next;
 							}
+							Map.Entry<K, V> next = centit.next(); lastkey = next.getKey();
+							return next;
 						}
 
 						@Override public void remove() {

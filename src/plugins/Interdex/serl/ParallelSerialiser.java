@@ -13,15 +13,17 @@ import java.util.concurrent.TimeUnit;
 
 /**
 ** An {@link IterableSerialiser} that uses threads to handle tasks given to it
-** in parallel.
+** in parallel, and keeps track of task progress.
 **
-** TODO making this ParallelSerialiser<T, P extends Progress> will probably make
-** things nicer...
+** To implement this class, the programmer must implement the {@link
+** LiveArchiver#pullLive(Serialiser.PullTask, Progress)} and {@link
+** LiveArchiver#pushLive(Serialiser.PushTask, Progress)} methods.
 **
 ** @author infinity0
 */
 public abstract class ParallelSerialiser<T, P extends Progress>
 implements IterableSerialiser<T>,
+           LiveArchiver<T, P>,
            Serialiser.Trackable<T> {
 
 	protected int maxThreads = 0x10;
@@ -37,7 +39,7 @@ implements IterableSerialiser<T>,
 		tracker = k;
 	}
 
-	// return ? so as to hide the implementation details of Progress
+	// return ? extends Progress so as to hide the implementation details of P
 	@Override public ProgressTracker<T, ? extends Progress> getTracker() {
 		return tracker;
 	}
@@ -75,7 +77,11 @@ implements IterableSerialiser<T>,
 
 	/**
 	** Given a group of progresses, waits for them to all finish. Non-error
-	** aborts are caught and ignored; error aborts are re-thrown.
+	** aborts are caught and ignored (and the task removed from the group);
+	** error aborts are re-thrown.
+	**
+	** Note: the iterator for the group must support the {@link
+	** Iterator#remove()} method.
 	*/
 	protected void joinAll(Iterable<P> plist) throws InterruptedException, TaskAbortException {
 		Iterator<P> it = plist.iterator();
@@ -93,30 +99,6 @@ implements IterableSerialiser<T>,
 			}
 		}
 	}
-
-	/**
-	** Executes a {@link PullTask} and update the progress associated with it.
-	**
-	** Implementations must also modify the state of the progress object such
-	** that after the operation completes, all threads blocked on {@link
-	** Progress#join()} will either return normally or throw the exact {@link
-	** TaskAbortException} that caused it to abort.
-	**
-	** '''If this does not occur, deadlock will result'''.
-	*/
-	abstract public void pullAndUpdateProgress(PullTask<T> task, P p);
-
-	/**
-	** Executes a {@link PushTask} and update the progress associated with it.
-	**
-	** Implementations must also modify the state of the progress object such
-	** that after the operation completes, all threads blocked on {@link
-	** Progress#join()} will either return normally or throw the exact {@link
-	** TaskAbortException} that caused it to abort.
-	**
-	** '''If this does not occur, deadlock will result'''.
-	*/
-	abstract public void pushAndUpdateProgress(PushTask<T> task, P p);
 
 	/*========================================================================
 	  public interface IterableSerialiser
@@ -233,9 +215,9 @@ implements IterableSerialiser<T>,
 					}
 					//System.out.println(Thread.currentThread() + " popped " + t);
 					if (t instanceof PullTask) {
-						pullAndUpdateProgress((PullTask<T>)t, tracker.getPullProgress(t.meta));
+						pullLive((PullTask<T>)t, tracker.getPullProgress(t.meta));
 					} else {
-						pushAndUpdateProgress((PushTask<T>)t, tracker.getPushProgress(t.data));
+						pushLive((PushTask<T>)t, tracker.getPushProgress(t.data));
 					}
 				}
 			} finally {

@@ -8,6 +8,17 @@ index: "suggested tokens" - suggest what other people should tag this index as;
 - not yet - MarkdownJ has bugs relating to parsing of uppercase HTML tags,
   which SJD generates, unfortunately :/
 
+
+- TODO probably should synchronize AtomicProgress, SimpleProgress, and
+  CompoundProgress... although maybe unnecessary since these should all be
+  single-writer multi-reader (and the reads are not critical)?
+
+
+- TODO YamlArchiver implements LiveArchiver
+
+
+
+
 - TODO work out TaskAbortException handling for SkeletonTreeMap
 - TODO maybe have deflate/inflate throw a different checked exception from
   TaskAbortException, forcing them to handle the TaskAbortException thrown by

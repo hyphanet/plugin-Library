@@ -161,11 +161,11 @@ public class ProtoIndex {
 					objects.push(d.getValue());
 					try {
 						p.inflate((String)d.getKey());
-						// e.getValue();
-						// put this onto the "stageNames"
 					} catch (TaskAbortException e) {
-						// something
-						break;
+						// DEBUG
+						throw new RuntimeException(e);
+						// TODO setError() or something...
+						//break;
 					}
 				}
 			}
@@ -193,21 +193,7 @@ public class ProtoIndex {
 			} else {
 				return trackables[TTAB_DATA].getTracker().getPullProgress(o);
 			}
-			// return null;
 		}
-
-/*
-		public void pollProgress(Object key, Progress p) {
-			int d; int t; boolean f;
-			do {
-				d = p.partsDone();
-				t = p.partsTotal();
-				f = p.isTotalFinal();
-				System.out.println(key + ": " + d + "/" + t + (f? "": "???"));
-				try { Thread.sleep(1000); } catch (InterruptedException x) { }
-			} while (!f || d != t);
-		}
-*/
 
 	}
 

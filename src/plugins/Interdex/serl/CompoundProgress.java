@@ -87,7 +87,7 @@ public class CompoundProgress implements Progress {
 		return true;
 	}
 
-	@Override public void join() throws InterruptedException {
+	@Override public void join() throws InterruptedException, TaskAbortException {
 		throw new UnsupportedOperationException("not implemented");
 		/*for (Progress p: subprogress) {
 			// PRIORITY join()

@@ -13,7 +13,7 @@ import java.util.IdentityHashMap;
 ** data. For this to function properly, the data/metadata for push/pull tasks
 ** (respectively) MUST NOT be null, and MUST NOT be internally modified by the
 ** parent {@link Serialiser} and (in the case of {@link Serialiser.Composite},
-** its child serialisers. This is because they are used as keys into {@link
+** its child serialisers). This is because they are used as keys into {@link
 ** IdentityHashMap}s.
 **
 ** (Can't think of reason for the 2nd condition, now... maybe I was confused)
@@ -145,8 +145,8 @@ public class ProgressTracker<T, P extends Progress> {
 	}
 
 	/************************************************************************
-	** An {@link Iterator} view over the {@link Progress} corresponding to
-	** the given group of metadata.
+	** An {@link Iterator} view over the {@link Progress} objects corresponding
+	** to the given group of metadata.
 	*/
 	public class PullProgressIterable implements Iterable<P> {
 		final private Iterable<Object> ib;
@@ -178,8 +178,8 @@ public class ProgressTracker<T, P extends Progress> {
 	}
 
 	/************************************************************************
-	** An {@link Iterator} view over the {@link Progress} corresponding to
-	** the given group of data.
+	** An {@link Iterator} view over the {@link Progress} objects corresponding
+	** to the given group of data.
 	*/
 	public class PushProgressIterable implements Iterable<P> {
 		final private Iterable<T> ib;
