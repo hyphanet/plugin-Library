@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
 import freenet.support.Logger;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
@@ -21,7 +22,8 @@ import plugins.Library.Library;
  * Performs asynchronous searches over many index or with many terms and search logic
  * @author MikeB
  */
-public class Search implements Request<Set<URIWrapper>> {
+public class Search implements Request<Collection<URIWrapper>> {
+	private static Library library;
 
 	/**
 	 * What should be done with the results of subsearches\n
@@ -137,7 +139,7 @@ public class Search implements Request<Set<URIWrapper>> {
 	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException{
 		if(query.matches("\\A\\w*\\Z"))
 			// single search term
-			return new Search(query, indexuri, Library.getIndex(indexuri).getTermEntries(query));
+			return new Search(query, indexuri, library.getIndex(indexuri).getTermEntries(query));
 		
 		// Make phrase search
 		if(query.matches("\\A\".*\"\\Z")){
@@ -216,7 +218,8 @@ public class Search implements Request<Set<URIWrapper>> {
 	/**
 	 * Sets the parent plugin to be used for logging & plugin api
 	 */
-	public static void setup(){
+	public static void setup(Library library){
+		Search.library = library;
 		Search.allsearches = new HashMap<String, Search>();
 	}
 	
@@ -403,7 +406,7 @@ public class Search implements Request<Set<URIWrapper>> {
 	 * Perform an intersection on results of all subsearches and return <br />
 	 * @return Set of URIWrappers
 	 */
-	public Set<URIWrapper> getResult() throws InvalidSearchException{
+	public Collection<URIWrapper> getResult() throws InvalidSearchException{
 		if(getRequestStatus() != Request.RequestStatus.FINISHED)
 			return null;
 

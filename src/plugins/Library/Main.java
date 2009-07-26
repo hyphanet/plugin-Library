@@ -4,15 +4,10 @@
 
 package plugins.Library;
 
-import plugins.Library.Library;
-import plugins.Library.fcp.FCPRequestHandler;
-import freenet.pluginmanager.PluginReplySender;
-import freenet.support.SimpleFieldSet;
-import freenet.support.api.Bucket;
 import plugins.Library.search.Search;
 import freenet.pluginmanager.FredPlugin;
-import freenet.pluginmanager.FredPluginFCP;
 import freenet.pluginmanager.FredPluginHTTP;
+import freenet.pluginmanager.FredPluginAPI;
 import freenet.pluginmanager.FredPluginRealVersioned;
 import freenet.pluginmanager.FredPluginThreadless;
 import freenet.pluginmanager.FredPluginVersioned;
@@ -28,19 +23,19 @@ import plugins.Library.ui.WebUI;
  * @author MikeB
  */
 public class Main implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
-		FredPluginRealVersioned, FredPluginThreadless, FredPluginFCP {
+		FredPluginRealVersioned, FredPluginThreadless, FredPluginAPI {
 	private static PluginRespirator pr;
-	private String plugName = "Library " + Library.getVersion();
+	private Library library;
 
 
 	// FredPluginVersioned
 	public String getVersion() {
-		return Library.getVersion() + " r" + Version.getSvnRevision();
+		return library.getVersion() + " r" + Version.getSvnRevision();
 	}
 
 	// FredPluginRealVersioned
 	public long getRealVersion() {
-		return Library.getVersion();
+		return library.getVersion();
 	}
 
 
@@ -61,10 +56,10 @@ public class Main implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
 
 	// FredPlugin
 	public void runPlugin(PluginRespirator pr) {
+		library = new Library(pr);
 		Main.pr = pr;
-        Search.setup();
-		WebUI.setup(plugName);
-		Library.setup(pr);
+        Search.setup(library);
+		WebUI.setup(library);
 	}
 
 	public void terminate() {
@@ -101,8 +96,10 @@ public class Main implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
 		}
 	}
 
-	// FredPluginFCP
-	public void handle(PluginReplySender replysender, SimpleFieldSet params, Bucket data, int accesstype) {
-		FCPRequestHandler.handle(replysender, params, data, accesstype);
+	/**
+	 * @return the Library API for other plugins
+	 */
+	public Object getPluginAPI() {
+		return library;
 	}
 }

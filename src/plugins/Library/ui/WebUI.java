@@ -13,6 +13,7 @@ import freenet.l10n.L10n;
 
 import freenet.support.Logger;
 import java.net.MalformedURLException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -37,9 +38,11 @@ import plugins.Library.util.URIWrapper;
 public class WebUI {
 	static String plugName;
 	static String httpPath = "/plugins/"+ Main.class.getName();
+	static Library library;
 	
-	public static void setup(String plugName){
-		WebUI.plugName = plugName;
+	public static void setup(Library library){
+		WebUI.library = library;
+		WebUI.plugName = library.getPlugName();
 	}
 
 
@@ -173,13 +176,13 @@ public class WebUI {
 	 * @param showold whether to display results from older SSK versions
 	 * @param js whether js can be used to display results
 	 */
-	public static HTMLNode resultNodeGrouped(Request request, boolean showold, boolean js) throws Exception{
+	public static HTMLNode resultNodeGrouped(Request<Collection<URIWrapper>> request, boolean showold, boolean js) throws Exception{
 		// Output results
 		int results = 0;
 		// Loop to separate results into SSK groups
 		HTMLNode resultsNode = new HTMLNode("div", "id", "results");
 		HashMap<String, SortedMap<Long, Set<URIWrapper>>> groupmap = new HashMap();
-		Iterator<URIWrapper> it = ((Iterable)request.getResult()).iterator();
+		Iterator<URIWrapper> it = request.getResult().iterator();
 		while(it.hasNext()){
 			URIWrapper o = it.next();
 			// Get the key and name
@@ -347,7 +350,7 @@ public class WebUI {
 	private static String debugpage() {
 		HTMLNode debugpage = new HTMLNode("HTML");
 		HTMLNode bodynode = debugpage.addChild("body");
-		for(Index i : Library.getAllIndices()){
+		for(Index i : library.getAllIndices()){
 			HTMLNode indexnode = bodynode.addChild("p");
 			indexnode.addChild("#",i.toString());
 		}

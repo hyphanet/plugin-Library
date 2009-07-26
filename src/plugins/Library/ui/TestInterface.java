@@ -1,7 +1,6 @@
 package plugins.Library.ui;
 
 
-import plugins.Library.Library;
 import plugins.Library.util.Request;
 import plugins.Library.search.Search;
 import plugins.Library.*;
@@ -23,6 +22,7 @@ public class TestInterface{
 			String param;
 			String line;
 			String index = "../../Freenet/myindex7";
+			Library library = new Library(null);
 			
 			do{
 				line = br.readLine();
@@ -30,7 +30,7 @@ public class TestInterface{
 				param = line.substring(1);
 				
 				if("f".equals(command)){
-					requests.put(""+requestcount,Library.findTerm(index, param));
+					requests.put(""+requestcount,library.findTerm(index, param));
 					System.out.println("Started request "+requestcount);
 					requestcount++;
 				}
@@ -44,7 +44,7 @@ public class TestInterface{
 				if("r".equals(command))
 					System.out.println(requests.get(param).getResult());
 				if("i".equals(command))
-					System.out.println(Library.getIndex(index));
+					System.out.println(library.getIndex(index));
 				if("w".equals(command))
 					WebUI.resultNodeGrouped(requests.get(param), true, true);
 			}while(!"x".equals(command));
