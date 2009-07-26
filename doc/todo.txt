@@ -6,7 +6,8 @@ index: "suggested tokens" - suggest what other people should tag this index as;
 
 - PRIORITY merge URIWrapper with TokenURIEntry
 
-
+- PRIORITY do we want to merge the library/ and index/ subpackages? or shuffle
+things around?
 
 
 - TODO use markdown-doclet instead of bliki-doclet

@@ -130,7 +130,9 @@ public class ProtoIndex {
 
 
 
-	public Request<URIEntry> getURIEntry(FreenetURI uri) { return null; }
+	public Request<URIEntry> getURIEntry(FreenetURI uri) {
+		throw new UnsupportedOperationException("not implemented");
+	}
 
 
 
