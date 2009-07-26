@@ -27,6 +27,7 @@ public class Library {
 
 	public static final String DEFAULT_INDEX_SITE = "bookmark:freenetindex";
 	private static int version = 1;
+	private String plugName = "Library " + getVersion();
 
 
 	private static final Class[] indexTypes = new Class[]{
@@ -37,20 +38,24 @@ public class Library {
 	/**
 	** Holds all the read-indexes.
 	*/
-	private static Map<String, Index> rtab = new HashMap<String, Index>();
+	private Map<String, Index> rtab = new HashMap<String, Index>();
 
 	/**
 	** Holds all the writeable indexes.
 	*/
-	private static Map<String, WriteableIndex> wtab = new HashMap<String, WriteableIndex>();
+	private Map<String, WriteableIndex> wtab = new HashMap<String, WriteableIndex>();
 
 	/**
 	** Holds all the bookmarks (aliases into the rtab).
 	*/
-	private static Map<String, String> bookmarks = new HashMap<String, String>();
-	private static PluginRespirator pr;
+	private Map<String, String> bookmarks = new HashMap<String, String>();
+	private PluginRespirator pr;
 
-	public static long getVersion() {
+	public String getPlugName() {
+		return plugName;
+	}
+
+	public long getVersion() {
 		return version;
 	}
 
@@ -58,7 +63,7 @@ public class Library {
 	/**
 	 * Find the specified index and start a find request on it for the specified term
 	 */
-	public static Request findTerm(String indexid, String term) throws Exception{
+	public Request findTerm(String indexid, String term) throws Exception{
 		Index index = getIndex(indexid);
 		Logger.minor(Library.class, "Finding term: "+term);
 		Request request = index.getTermEntries(term);
@@ -77,7 +82,7 @@ public class Library {
 	 * @param indexuris list of index specifiers separated by spaces
 	 * @return Set of Index objects
 	 */
-	public static final ArrayList<Index> getIndices(String indexuris) throws InvalidSearchException{
+	public final ArrayList<Index> getIndices(String indexuris) throws InvalidSearchException{
 		String[] uris = indexuris.split("[ ;]");
 		ArrayList<Index> indices = new ArrayList<Index>(uris.length);
 
@@ -88,9 +93,9 @@ public class Library {
 	}
 
 	/**
-	 * Static method to get all of the instatiated Indexes
+	 * Method to get all of the instatiated Indexes
 	 */
-	public static final Iterable<Index> getAllIndices() {
+	public final Iterable<Index> getAllIndices() {
 		return rtab.values();
 	}
 
@@ -109,7 +114,7 @@ public class Library {
 	 * @param indexuri index specifier
 	 * @return Index object
 	 */
-	public static final Index getIndex(String indexuri) throws InvalidSearchException{
+	public final Index getIndex(String indexuri) throws InvalidSearchException{
 		if (indexuri.startsWith("bookmark:")){
 			if (bookmarks.containsKey(indexuri.substring(9)))
 				return getIndex(bookmarks.get(indexuri.substring(9)));
@@ -146,11 +151,11 @@ public class Library {
 
 
 	/**
-	 * Static method to setup Index class so it has access to PluginRespirator, and load bookmarks
+	 * Method to setup Index class so it has access to PluginRespirator, and load bookmarks
 	 * TODO pull bookmarks from disk
 	 */
-	public static final void setup(PluginRespirator pr){
-		Library.pr = pr;
+	public Library(PluginRespirator pr){
+		this.pr = pr;
 		bookmarks.put("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/");
 		bookmarks.put("wanna19", "SSK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search-19/");
 		bookmarks.put("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/");

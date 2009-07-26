@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
@@ -25,8 +26,10 @@ import java.util.Map;
  * Performs asynchronous searches over many index or with many terms and search logic
  * @author MikeB
  */
-public class Search extends AbstractRequest<Set<URIWrapper>>
-implements Request<Set<URIWrapper>> {
+public class Search extends AbstractRequest<Collection<URIWrapper>>
+implements Request<Collection<URIWrapper>> {
+
+	private static Library library;
 
 	/**
 	 * What should be done with the results of subsearches\n
@@ -138,7 +141,7 @@ implements Request<Set<URIWrapper>> {
 	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException{
 		if(query.matches("\\A\\w*\\Z"))
 			// single search term
-			return new Search(query, indexuri, Library.getIndex(indexuri).getTermEntries(query));
+			return new Search(query, indexuri, library.getIndex(indexuri).getTermEntries(query));
 
 		// Make phrase search
 		if(query.matches("\\A\".*\"\\Z")){
@@ -217,7 +220,8 @@ implements Request<Set<URIWrapper>> {
 	/**
 	 * Sets the parent plugin to be used for logging & plugin api
 	 */
-	public static void setup(){
+	public static void setup(Library library){
+		Search.library = library;
 		Search.allsearches = new HashMap<String, Search>();
 	}
 
@@ -408,7 +412,7 @@ implements Request<Set<URIWrapper>> {
 	 * Perform an intersection on results of all subsearches and return <br />
 	 * @return Set of URIWrappers
 	 */
-	@Override public Set<URIWrapper> getResult() throws TaskAbortException {
+	@Override public Collection<URIWrapper> getResult() throws TaskAbortException {
 		if(getState() != Request.RequestState.FINISHED)
 			return null;
 
