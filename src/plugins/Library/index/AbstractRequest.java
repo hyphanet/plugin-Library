@@ -14,6 +14,23 @@ import java.util.Date;
 ** A partial implementation of {@link Request}, defining some higher-level
 ** functionality in terms of lower-level ones.
 **
+** To implement {@link Request} fully from this class, the programmer needs to
+** implement the following methods:
+**
+** * {@link Request#getCurrentStage()}
+** * {@link Request#getCurrentStatus()}
+** * {@link Request#partsDone()}
+** * {@link Request#partsTotal()}
+** * {@link Request#isTotalFinal()}
+**
+** and make sure the {@link #state}, {@link #error}, and {@link #result} fields
+** are set appropriately.
+**
+** The programmer might also wish to override the following:
+**
+** * {@link #finalTotalEstimate()}
+** * {@link #join()}
+**
 ** @author MikeB
 ** @author infinity0
 */
@@ -22,14 +39,29 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	final protected String subject;
 	final protected Date start;
 
-	protected RequestState status = RequestState.UNSTARTED;
-	protected Exception err;
+	/**
+	** Holds the state of the operation. Returned by {@link #getState()}.
+	*/
+	protected RequestState state = RequestState.UNSTARTED;
+
+	/**
+	** Holds the error that caused the operation to abort, if any. Returned by
+	** {@link #getError()}.
+	*/
+	protected Exception error;
+
+	/**
+	** Holds the result of the operation once it completes. Returned by {@link
+	** #getResult()}.
+	*/
 	protected T result;
 
 	/**
-	 * Create Request of stated type & subject
-	 * @param subject
-	 */
+	** Create Request of the given subject, with the start time set to the
+	** current time.
+	**
+	** @param subject
+	*/
 	public AbstractRequest(String subject){
 		this.subject = subject;
 		this.start = new Date();
@@ -75,27 +107,47 @@ public abstract class AbstractRequest<T> implements Request<T> {
 		return subject;
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation returns {@link #result}.
+	*/
 	@Override public T getResult() throws TaskAbortException {
 		return result;
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation returns {@link #state}.
+	*/
 	@Override public RequestState getState() {
-		return status;
+		return state;
 	}
 
 	/**
-	 * {@inheritDoc}
-	 *
-	 * This implementation returns true if RequestState is FINISHED or ERROR
-	 */
+	** {@inheritDoc}
+	**
+	** This implementation returns true if RequestState is FINISHED or ERROR
+	*/
 	@Override public boolean isDone() {
-		return status==RequestState.FINISHED || status == RequestState.ERROR;
+		return state==RequestState.FINISHED || state == RequestState.ERROR;
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation returns {@link #error}.
+	*/
 	@Override public Exception getError() {
-		return err;
+		return error;
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation returns {@code null}.
+	*/
 	@Override public List<Request> getSubRequests() {
 		return null;
 	}

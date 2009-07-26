@@ -26,7 +26,7 @@ public interface Progress {
 	public int partsDone();
 
 	/**
-	** Returns how many "parts" of the task are known to exists.
+	** Returns how many "parts" of the task are known to exist.
 	*/
 	public int partsTotal();
 

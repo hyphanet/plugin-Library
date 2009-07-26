@@ -25,7 +25,7 @@
 		<echo message="Using ${freenet-cvs-snapshot.location} as freenet-cvs-snapshot.jar"/>
 		<echo message="Using ${freenet-ext.location} as freenet-ext.jar"/>
 	</target>
-	
+
 	<target name="setver" if="version.present">
 		<!-- Update the Version file -->
 		<replace file="src/plugins/Library/Version.java">
@@ -51,7 +51,7 @@
 			<include name="**/*.java"/>
 		</javac>
 	</target>
-	
+
 	<target name="run" depends="dist">
 		<java
 			classname="${packagebase}.ui.TestInterface">

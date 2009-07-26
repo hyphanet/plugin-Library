@@ -42,12 +42,10 @@ implements Request<Set<URIWrapper>> {
 	private String query;
 	private String indexURI;
 
-	protected RequestState status;
 	protected int stage=0;
 	protected int stageCount;
 	private int blocksCompleted;
 	private int blocksTotal;
-	protected Exception err;
 
 	private static HashMap<String, Search> allsearches = new HashMap<String, Search>();
 
@@ -93,7 +91,7 @@ implements Request<Set<URIWrapper>> {
 	 * @param resultOperation Which set operation to do on the results of the subrequests
 	 * @throws InvalidSearchException if the search is invalid
 	 **/
-	private Search(String query, String indexURI, List<Request> requests, ResultOperation resultoperation)
+	private Search(String query, String indexURI, List<Request> requests, ResultOperation resultOperation)
 	throws InvalidSearchException{
 		super(makeString(query, indexURI));
 		if(resultOperation==ResultOperation.REMOVE && requests.size()!=2)
@@ -105,7 +103,7 @@ implements Request<Set<URIWrapper>> {
 
 		this.query = query;
 		this.indexURI = indexURI;
-		this.resultOperation = resultoperation;
+		this.resultOperation = resultOperation;
 
 		allsearches.put(subject, this);
 		Logger.minor(this, "Created Search object for with subRequests :"+subsearches);

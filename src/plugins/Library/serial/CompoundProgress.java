@@ -10,6 +10,8 @@ package plugins.Library.serial;
 **
 ** PRIORITY incorporate finalTotalEstimate into the status
 **
+** DOCUMENT
+**
 ** @author infinity0
 */
 public class CompoundProgress implements Progress {
@@ -104,7 +106,7 @@ public class CompoundProgress implements Progress {
 	@Override public void join() throws InterruptedException, TaskAbortException {
 		throw new UnsupportedOperationException("not implemented");
 		/*for (Progress p: subprogress) {
-			// PRIORITY join()
+			// URGENT join()
 		}*/
 	}
 

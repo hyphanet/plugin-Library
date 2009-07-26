@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
 ** Interface for a request being handled asynchronously from the threads which
-** need to know it's status and results.
+** need to know its status and results.
 **
 ** ;RequestState : what is happening currently with this request
 ** ;Stage : non-parallel sequence of subevents that comprise the whole

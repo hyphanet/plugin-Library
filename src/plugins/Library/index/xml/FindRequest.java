@@ -82,17 +82,17 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	 * Log Exception for this request, marks status as ERROR
 	 */
 	public void setError(Exception e) {
-		err = e;
-		status = RequestState.ERROR;
+		error = e;
+		state = RequestState.ERROR;
 	}
 
 	/**
 	 * Sets the current status to a particular RequestState and stage number
-	 * @param status
+	 * @param state
 	 * @param stage
 	 */
-	public void setStage(RequestState status, int stage){
-		this.status = status;
+	public void setStage(RequestState state, int stage){
+		this.state = state;
 		this.stage = stage;
 	}
 
@@ -101,7 +101,7 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	 * @param result
 	 */
 	public void setResult(E result){
-		status = RequestState.PARTIALRESULT;
+		state = RequestState.PARTIALRESULT;
 		this.result = result;
 	}
 
@@ -109,7 +109,7 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	 * Mark Request as FINISHED
 	 */
 	public void setFinished(){
-		status=RequestState.FINISHED;
+		state = RequestState.FINISHED;
 	}
 
 
@@ -119,7 +119,7 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 
 	@Override
 	public String toString(){
-		return "Request subject="+subject+" status="+status.toString()+" stage="+stage+" progress="+blocksCompleted;
+		return "Request subject="+subject+" status="+state.toString()+" stage="+stage+" progress="+blocksCompleted;
 	}
 
 
