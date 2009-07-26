@@ -4,14 +4,22 @@
 
 package plugins.Library.ui;
 
+import plugins.Library.Main;
+import plugins.Library.library.Index;
+import plugins.Library.Library;
+import plugins.Library.index.Request;
+import plugins.Library.index.Request.RequestState;
+import plugins.Library.search.Search;
+import plugins.Library.index.URIWrapper;
+
 import freenet.keys.FreenetURI;
 import freenet.pluginmanager.PluginHTTPException;
 import freenet.support.HTMLNode;
 import freenet.support.api.HTTPRequest;
 import freenet.support.HTMLEncoder;
 import freenet.l10n.L10n;
-
 import freenet.support.Logger;
+
 import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -19,13 +27,6 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import plugins.Library.Main;
-import plugins.Library.library.Index;
-import plugins.Library.Library;
-import plugins.Library.search.Request;
-import plugins.Library.search.Search;
-import plugins.Library.util.URIWrapper;
-
 
 /**
  * Provides the HTML generation for the search page
@@ -110,7 +111,7 @@ public class WebUI {
      **/
     public static String searchpage(Search request, String indexuri, boolean refresh, boolean js, boolean showold, Exception e){
 		// Don't refresh if there is no request option, if it is finished or there is an error to show
-		if(request==null || "".equals(request.getQuery()) || request.isFinished() || e!=null)
+		if(request==null || "".equals(request.getQuery()) || request.isDone() || e!=null)
 			refresh = false;
 
 
@@ -119,7 +120,7 @@ public class WebUI {
         if (e != null){
             addError(errorDiv, e);
 		}
-		if (request != null && request.getRequestStatus() == Request.RequestStatus.ERROR)
+		if (request != null && request.getState() == RequestState.ERROR)
 			addError(errorDiv, request.getError());
 
 		// encode parameters
@@ -152,7 +153,7 @@ public class WebUI {
 			bodyNode.addChild("p");
 
             // If search is complete show results
-            if (request.getRequestStatus()==Request.RequestStatus.FINISHED)
+            if (request.getState()==RequestState.FINISHED)
 				try{
 					bodyNode.addChild(resultNodeGrouped(request, showold, js));
 				}catch(Exception ex){
@@ -397,18 +398,16 @@ public class WebUI {
 			bar.addChild("td", request.getSubject());
 			// search stage
 			bar.addChild("td",
-					(request.getRequestStatus()==Request.RequestStatus.INPROGRESS||request.getRequestStatus()==Request.RequestStatus.PARTIALRESULT)
-						?(request.stageNames()==null)
-							?"Stage: "+request.getSubStage()+"/"+request.getSubStageCount()
-							:request.stageNames()[request.getSubStage()]
-						:request.getRequestStatus().toString());
+				(request.getState()==RequestState.INPROGRESS ||
+				 request.getState()==RequestState.PARTIALRESULT) ? request.getCurrentStage()
+				                                                          : request.getState().toString());
 			// show fetch progress if fetching something
-			if(request.isFinished() || request.getNumBlocksTotal()==0){
+			if(request.isDone() || request.partsTotal()==0){
 				bar.addChild("td", ""); bar.addChild("td");
 			}else{
-				int percentage = (int)(100*request.getNumBlocksCompleted()/request.getNumBlocksTotal());
-				boolean fetchFinalized = request.isNumBlocksCompletedFinal();
-				bar//.addChild("#", request.getSubStage()+"/"+request.getSubStageCount())
+				int percentage = (int)(100*request.partsDone()/request.partsTotal());
+				boolean fetchFinalized = request.isTotalFinal();
+				bar
 					.addChild("td", new String[]{"class"}, new String[]{"progress-bar-outline"})
 					.addChild("div", new String[]{"class", "style"}, new String[]{fetchFinalized?"progress-bar-inner-final":"progress-bar-inner-nonfinal", "z-index : -1; width:"+percentage+"%;"});
 				bar.addChild("td", fetchFinalized?percentage+"%":"Fetch length unknown");
@@ -483,10 +482,10 @@ public class WebUI {
 					"		var resp = parser.parseFromString(xmlhttp.responseText, 'application/xml').documentElement;\n" +
 					"		document.getElementById('librarian-search-status').innerHTML=" +
 								"resp.getElementsByTagName('progress')[0].textContent;\n" +
-					"		if(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('requeststatus').value=='FINISHED')\n" +
+					"		if(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('RequestState').value=='FINISHED')\n" +
 					"			document.getElementById('results').innerHTML=" +
 									"resp.getElementsByTagName('result')[0].textContent;\n" +
-					"		else if(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('requeststatus').value=='ERROR')\n" +
+					"		else if(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('RequestState').value=='ERROR')\n" +
 					"			document.getElementById('errors').innerHTML+=" +
 									"resp.getElementsByTagName('error')[0].textContent;\n" +
 					"		else\n" +
@@ -524,15 +523,15 @@ public class WebUI {
 			}else
 				progress = "No search for this, something went wrong";
 			// If it's finished, return it's results
-			if(search != null && search.getRequestStatus()==Request.RequestStatus.FINISHED){
+			if(search != null && search.getState()==RequestState.FINISHED){
 				resp.addChild("result", WebUI.resultNodeGrouped(Search.getSearch(searchquery, indexuri), showold, true).generate());
-				resp.addChild("progress", "requeststatus",  "FINISHED", "Search complete");
+				resp.addChild("progress", "RequestState",  "FINISHED", "Search complete");
 			}
-			resp.addChild("progress", "requeststatus",  (search==null)?"":search.getRequestStatus().toString(), progress);
-			if(search != null && search.getRequestStatus()==Request.RequestStatus.ERROR)
-				addError(resp.addChild("error", "requeststatus",  "ERROR"), search.getError());
+			resp.addChild("progress", "RequestState",  (search==null)?"":search.getState().toString(), progress);
+			if(search != null && search.getState()==RequestState.ERROR)
+				addError(resp.addChild("error", "RequestState",  "ERROR"), search.getError());
 		}catch(Exception e){
-			addError(resp.addChild("error", "requeststatus",  "ERROR"), e);
+			addError(resp.addChild("error", "RequestState",  "ERROR"), e);
 		}
 		return "<?xml version='1.0' encoding='ISO-8859-1'?>\n"+resp.generate();
 	}

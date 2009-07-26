@@ -120,7 +120,7 @@ public class ProtoIndex {
 		if (request == null) {
 			request = new getTermEntriesHandler(term);
 			getTermEntriesProgress.put(term, request);
-			request.start();
+			(new Thread((Runnable)request)).start();
 		}
 		return request;
 	}
@@ -135,26 +135,56 @@ public class ProtoIndex {
 
 
 
-	public class getTermEntriesHandler extends Thread implements Request<Collection<TokenEntry>> {
-
-		final String term;
+	public class getTermEntriesHandler extends AbstractRequest<Collection<TokenEntry>> implements Runnable {
 
 		final Stack<Object> objects = new Stack<Object>();
 
 		Collection<TokenEntry> result;
 
 		protected getTermEntriesHandler(String t) {
-			term = t;
+			super(t);
 		}
 
-		public Collection<TokenEntry> getResult() {
-			return result;
+		protected Progress selectProgress(Object o) {
+			if (o instanceof SkeletonBTreeMap.GhostNode) {
+				return trackables[TTAB_KEYS].getTracker().getPullProgress(o);
+			} else {
+				return trackables[TTAB_DATA].getTracker().getPullProgress(o);
+			}
 		}
 
-		public void run() {
+		@Override public int partsDone() {
+			throw new UnsupportedOperationException("not implemented");
+		}
+
+		@Override public int partsTotal() {
+			throw new UnsupportedOperationException("not implemented");
+		}
+
+		@Override public int finalTotalEstimate() {
+			throw new UnsupportedOperationException("not implemented");
+		}
+
+		@Override public boolean isTotalFinal() {
+			throw new UnsupportedOperationException("not implemented");
+		}
+
+		@Override public String getCurrentStatus() {
+			if (objects.size() == 0) { return "nothing yet"; }
+			Progress p = selectProgress(objects.peek());
+			return (p == null)? "waiting for next stage to start": p.getStatus();
+		}
+
+		@Override public String getCurrentStage() {
+			if (objects.size() == 0) { return "nothing yet"; }
+			Progress p = selectProgress(objects.peek());
+			return (p == null)? "waiting for next stage to start": p.getName();
+		}
+
+		@Override public void run() {
 			for (;;) {
 				try {
-					result = ttab.get(term);
+					result = ttab.get(subject);
 					break;
 				} catch (DataNotLoadedException d) {
 					Skeleton p = d.getParent();
@@ -168,30 +198,6 @@ public class ProtoIndex {
 						//break;
 					}
 				}
-			}
-		}
-
-		public String getSubject() {
-			return term;
-		}
-
-		public String getCurrentStatus() {
-			if (objects.size() == 0) { return "nothing yet"; }
-			Progress p = selectProgress(objects.peek());
-			return (p == null)? "waiting for next stage to start": p.getStatus();
-		}
-
-		public String getCurrentStage() {
-			if (objects.size() == 0) { return "nothing yet"; }
-			Progress p = selectProgress(objects.peek());
-			return (p == null)? "waiting for next stage to start": p.getName();
-		}
-
-		protected Progress selectProgress(Object o) {
-			if (o instanceof SkeletonBTreeMap.GhostNode) {
-				return trackables[TTAB_KEYS].getTracker().getPullProgress(o);
-			} else {
-				return trackables[TTAB_DATA].getTracker().getPullProgress(o);
 			}
 		}
 

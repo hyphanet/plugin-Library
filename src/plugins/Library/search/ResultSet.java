@@ -3,7 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search;
 
-import plugins.Library.util.URIWrapper;
+import plugins.Library.index.URIWrapper;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;

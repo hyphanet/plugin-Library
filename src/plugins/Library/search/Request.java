@@ -1,94 +1,106 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
+package plugins.Library.index;
 
-package plugins.Library.search;
+import plugins.Library.serial.TaskAbortException;
+import plugins.Library.serial.Progress;
 
+import java.util.Date;
 import java.util.List;
 
 /**
- * Interface for a request being handled asynchronously from the threads which
- * need to know it's status and results.
- * <p />
- * RequestStatus - what is happening currently with this request <br />
- * SubStage -	progress of nonparallel events which need to occur for this Request,
- *					eg. loading the base of an index before loading needed parts<br />
- * Blocks -		smaller elements of a stage, eg. the progress of a fetch
- *
- * @param <E> Class of elements of result of Request
- *
- * @author MikeB
- */
-public interface Request<E> {
-	/**
-	 * UNSTARTED : Request initialised but not begun<br />
-	 * INPROGRESS : Request started<br />
-	 * PARTIALRESULT : Some result is availiable but not all<br />
-	 * FINISHED : Complete result availiable<br />
-	 * ERROR : Use getError() to retrieve the exception which stopped this request
-	 */
-	public enum RequestStatus { UNSTARTED, INPROGRESS, PARTIALRESULT, FINISHED, ERROR };
+** Interface for a request being handled asynchronously from the threads which
+** need to know it's status and results.
+**
+** ;RequestState : what is happening currently with this request
+** ;Stage : non-parallel sequence of subevents that comprise the whole
+** operation, eg. loading the base of an index before loading needed parts
+**
+** TODO maybe have {@code Request<K, V>} and {@code K getSubject()} and {@code
+** V getResult()}.
+**
+** TODO rename this to Operation?
+**
+** @param <T> Type of result of the operation
+** @author MikeB
+** @author infinity0
+*/
+public interface Request<T> extends Progress {
 
 	/**
-	 * Returns a RequestStatus for this Request
-	 * @see RequestStatus
-	 */
-	public RequestStatus getRequestStatus();
-	/**
-	 * @return true if RequestStatus is FINISHED or ERROR
-	 */
-	public boolean isFinished();
-
-	public Exception getError();
+	** Returns the Date object representing the time at which this request was
+	** started.
+	*/
+	public Date getStartDate();
 
 	/**
-	 * SubStage number between 1 and SubStageCount, for when overall operation
-	 * length is not known but number of stages is
-	 */
-	public int getSubStage();
-	public int getSubStageCount();
+	** Get the number of milliseconds elapsed since the request was started.
+	*/
+	public long getTimeElapsed();
 
 	/**
-	 * Array of names of stages, length should be equal to the result of getSubStageCount()
-	 * @return null if not used
-	 */
-	public String[] stageNames();
-
-	/**
-	 * @return blocks completed in SubStage
-	 */
-	public long getNumBlocksCompleted();
-	public long getNumBlocksTotal();
-	/**
-	 * @return true if NumBlocksTotal is known to be final
-	 */
-	public boolean isNumBlocksCompletedFinal();
-
-	/**
-	 * @return subject of this request
-	 */
+	** Returns the subject of this operation.
+	*/
 	public String getSubject();
 
 	/**
-	 * @return result of this request
-	 */
-	public E getResult() throws InvalidSearchException;
-	/**
-	 * @return true if RequestStatus is PARTIALRESULT or FINISHED
-	 */
-	public boolean hasResult();
+	** Gets the result of this operation.
+	*/
+	public T getResult() throws TaskAbortException;
 
 	/**
-	 * To be overridden by subclasses which depend on subrequests
-	 * @return List of Requests, or null
-	 */
+	** Gets the error that caused the operation to abort.
+	**
+	** PRIORITY: infinity0: I've been using getResult() to throw exceptions,
+	** instead of detecting them explicitly with an error status enum - we'll
+	** have to decide which approach to keep. For now, i've kept both.
+	*/
+	public Exception getError();
+
+	/**
+	** Whether the operation has completed.
+	**
+	** TODO perhaps make this part of Progress
+	*/
+	public boolean isDone();
+
+	/**
+	** Returns a RequestState describing the status of the operation.
+	**
+	** @see RequestState
+	*/
+	public RequestState getState();
+
+	/**
+	** Returns a {@link String} describing the status of the current stage.
+	*/
+	public String getCurrentStatus();
+
+	/**
+	** Returns the current stage of the operation.
+	*/
+	public String getCurrentStage();
+
+	/**
+	** To be overridden by subclasses which depend on subrequests.
+	**
+	** TODO: infinity0: I wasn't sure how to remove this functionality from
+	** your other classes (FindRequest, Search) - can you do this part?
+	**
+	** @deprecated
+	** @return List of Requests, or null
+	*/
 	public List<Request> getSubRequests();
 
 	/**
-	 * Progress accessed flag<br />
-	 * Should return true if the status of this request hasnt changed since it was last read, otherwise false.<br />
-	 * If not implemented, return false
-	 * @return true if progress hasn't changed since it was last read
-	 */
-	//public boolean progressAccessed();
+	** ;UNSTARTED : Request initialised but not begun
+	** ;INPROGRESS : Request started
+	** ;PARTIALRESULT : Some result is availiable but not all
+	** ;FINISHED : Complete result availiable
+	** ;ERROR : Use {@link getError()} to retrieve the exception which stopped
+	** this request
+	*/
+	public enum RequestState { UNSTARTED, INPROGRESS, PARTIALRESULT, FINISHED, ERROR };
+
 }

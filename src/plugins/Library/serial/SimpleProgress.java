@@ -103,6 +103,15 @@ public class SimpleProgress implements Progress {
 		return totalfinal;
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation does not give an estimate.
+	*/
+	@Override public int finalTotalEstimate() {
+		return -1;
+	}
+
 	@Override public synchronized void join() throws InterruptedException, TaskAbortException {
 		while (inprogress) { wait(); }
 		if (abort != null) {

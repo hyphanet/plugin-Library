@@ -2,7 +2,7 @@ package plugins.Library.ui;
 
 
 import plugins.Library.Library;
-import plugins.Library.search.Request;
+import plugins.Library.index.Request;
 import plugins.Library.search.Search;
 import plugins.Library.*;
 import freenet.support.Logger;

@@ -2,7 +2,7 @@
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
 
-package plugins.Library.util;
+package plugins.Library.index;
 
 import freenet.support.Logger;
 import java.util.ArrayList;
@@ -30,7 +30,7 @@ public class URIWrapper implements Comparable<URIWrapper> {
 	public int compareTo(URIWrapper o) {
 		return URI.compareTo(o.URI);
 	}
-	
+
 	/**
 	 * Returns new URIWrapper if at least one position in this URIWrapper is directly followed by a position in o,
 	 * a new URIWrapper is returned containing the postion of the second terms of matching phrases.

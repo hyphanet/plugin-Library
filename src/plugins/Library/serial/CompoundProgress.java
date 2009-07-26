@@ -8,6 +8,8 @@ package plugins.Library.serial;
 **
 ** TODO perhaps synchronize
 **
+** PRIORITY incorporate finalTotalEstimate into the status
+**
 ** @author infinity0
 */
 public class CompoundProgress implements Progress {
@@ -85,6 +87,18 @@ public class CompoundProgress implements Progress {
 			if (p == null || !p.isTotalFinal()) { return false; }
 		}
 		return true;
+	}
+
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation extrapolates the number of parts the remaining tasks
+	** will require from the combined number of parts of the in-progress tasks.
+	*/
+	@Override public int finalTotalEstimate() {
+		int[] s = getStageSummary();
+		int[] p = getPartsSummary();
+		return p[1] / s[1] * p[0];
 	}
 
 	@Override public void join() throws InterruptedException, TaskAbortException {

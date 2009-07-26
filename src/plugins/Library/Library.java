@@ -7,7 +7,7 @@ package plugins.Library;
 import plugins.Library.library.*;
 import plugins.Library.index.*;
 import plugins.Library.index.xml.XMLIndex;
-import plugins.Library.search.Request;
+import plugins.Library.index.Request;
 import plugins.Library.search.InvalidSearchException;
 
 import freenet.pluginmanager.PluginRespirator;

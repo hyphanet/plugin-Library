@@ -42,7 +42,7 @@ import java.util.HashMap;
 import plugins.Library.Library;
 import plugins.Library.library.Index;
 import plugins.Library.search.InvalidSearchException;
-import plugins.Library.search.Request;
+import plugins.Library.index.Request;
 
 
 /**
@@ -285,7 +285,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	private synchronized void setdependencies(FindRequest request) throws FetchException, MalformedURLException{
 		if (fetchStatus!=FetchStatus.FETCHED){
 			waitingOnMainIndex.add(request);
-			request.setStage(FindRequest.RequestStatus.INPROGRESS,1);
+			request.setStage(FindRequest.RequestState.INPROGRESS,1);
 			startFetch();
 		}else{
 			SubIndex subindex = getSubIndex(request.getSubject());
@@ -353,9 +353,9 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		 */
 		void addRequest(FindRequest request){
 			if(fetchStatus==FetchStatus.FETCHED)
-				request.setStage(Request.RequestStatus.INPROGRESS, 3);
+				request.setStage(Request.RequestState.INPROGRESS, 3);
 			else
-				request.setStage(Request.RequestStatus.INPROGRESS, 2);
+				request.setStage(Request.RequestState.INPROGRESS, 2);
 			synchronized(waitingOnSubindex){
 				waitingOnSubindex.add(request);
 			}
@@ -383,7 +383,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 						}
 					}else if(fetchStatus==FetchStatus.FETCHED){
 						for(FindRequest r : waitingOnSubindex)
-							r.setStage(Request.RequestStatus.INPROGRESS, 3);
+							r.setStage(Request.RequestState.INPROGRESS, 3);
 						SAXParserFactory factory = SAXParserFactory.newInstance();
 						try {
 							factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);

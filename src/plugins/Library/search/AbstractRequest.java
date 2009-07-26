@@ -1,18 +1,28 @@
 
-package plugins.Library.search;
+package plugins.Library.index;
+
+import plugins.Library.index.Request;
+import plugins.Library.index.Request.RequestState;
+import plugins.Library.serial.TaskAbortException;
 
 import java.util.List;
+import java.util.Date;
 
 /**
- *
- * @author MikeB
- */
+** A partial implementation of {@link Request}, defining some higher-level
+** functionality in terms of lower-level ones.
+**
+** @author MikeB
+** @author infinity0
+*/
 public abstract class AbstractRequest<E> implements Request<E> {
-	protected RequestStatus status = RequestStatus.UNSTARTED;
+
+	final protected String subject;
+	final protected Date start;
+
+	protected RequestState status = RequestState.UNSTARTED;
 	protected Exception err;
-	protected String subject;
-
-
+	protected E result;
 
 	/**
 	 * Create Request of stated type & subject
@@ -20,38 +30,76 @@ public abstract class AbstractRequest<E> implements Request<E> {
 	 */
 	public AbstractRequest(String subject){
 		this.subject = subject;
+		this.start = new Date();
+	}
+
+	/*========================================================================
+	  public interface Progress
+	 ========================================================================*/
+
+	@Override public String getName() {
+		return "Requesting " + getSubject();
+	}
+
+
+	@Override public String getStatus() {
+		String s = partsDone() + "/" + partsTotal();
+		if (!isTotalFinal()) { s += "???"; }
+		return s;
 	}
 
 	/**
-	 * @return  UNSTARTED, INPROGRESS, PARTIALRESULT, FINISHED, ERROR
-	 */
-	public RequestStatus getRequestStatus(){
+	** {@inheritDoc}
+	**
+	** This implementation does not give an estimate.
+	*/
+	@Override public int finalTotalEstimate() {
+		return -1;
+	}
+
+	/*========================================================================
+	  public interface Request
+	 ========================================================================*/
+
+	@Override public Date getStartDate() {
+		return start;
+	}
+
+	@Override public long getTimeElapsed() {
+		return (new Date()).getTime() - start.getTime();
+	}
+
+	@Override public String getSubject() {
+		return subject;
+	}
+
+	@Override public E getResult() throws TaskAbortException {
+		return result;
+	}
+
+	@Override public RequestState getState() {
 		return status;
 	}
 
 	/**
-	 * @return true if RequestStatus is FINISHED or ERROR
+	 * {@inheritDoc}
+	 *
+	 * This implementation returns true if RequestState is FINISHED or ERROR
 	 */
-	public boolean isFinished(){
-		return status==RequestStatus.FINISHED || status == RequestStatus.ERROR;
+	@Override public boolean isDone() {
+		return status==RequestState.FINISHED || status == RequestState.ERROR;
 	}
 
-	/**
-	 * @return an error found in this operation
-	 */
-	public Exception getError(){
+	@Override public Exception getError() {
 		return err;
 	}
 
-	/**
-	 * @return true if RequestStatus is PARTIALRESULT or FINISHED
-	 */
-	public boolean hasResult(){
-		return status==RequestStatus.FINISHED||status==RequestStatus.PARTIALRESULT;
+	@Override public List<Request> getSubRequests() {
+		return null;
 	}
 
-	public List getSubRequests() {
-		return null;
+	@Override public void join() {
+		throw new UnsupportedOperationException("not implemented");
 	}
 
 }

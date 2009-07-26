@@ -3,25 +3,30 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search;
 
-import plugins.Library.search.Request;
-import plugins.Library.util.URIWrapper;
+import plugins.Library.Library;
+import plugins.Library.index.Request.RequestState;
+import plugins.Library.index.Request;
+import plugins.Library.index.AbstractRequest;
+import plugins.Library.index.URIWrapper;
 import plugins.Library.search.InvalidSearchException;
+import plugins.Library.serial.TaskAbortException;
+
+import freenet.support.Logger;
+
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Set;
-import freenet.support.Logger;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
-import plugins.Library.Library;
-
 
 /**
  * Performs asynchronous searches over many index or with many terms and search logic
  * @author MikeB
  */
-public class Search implements Request<Set<URIWrapper>> {
+public class Search extends AbstractRequest<Set<URIWrapper>>
+implements Request<Set<URIWrapper>> {
 
 	/**
 	 * What should be done with the results of subsearches\n
@@ -34,19 +39,17 @@ public class Search implements Request<Set<URIWrapper>> {
 
 	private ArrayList<Request> subsearches;
 
-	private String subject;
 	private String query;
 	private String indexURI;
 
-	protected RequestStatus status;
+	protected RequestState status;
 	protected int stage=0;
 	protected int stageCount;
-	private long blocksCompleted;
-	private long blocksTotal;
+	private int blocksCompleted;
+	private int blocksTotal;
 	protected Exception err;
 
 	private static HashMap<String, Search> allsearches = new HashMap<String, Search>();
-
 
 	/**
 	 * Creates a search for any number of indices, starts and returns the associated Request object
@@ -81,7 +84,6 @@ public class Search implements Request<Set<URIWrapper>> {
 	}
 
 
-
 	/**
 	 * Creates Search instance depending on the given requests
 	 *
@@ -91,7 +93,9 @@ public class Search implements Request<Set<URIWrapper>> {
 	 * @param resultOperation Which set operation to do on the results of the subrequests
 	 * @throws InvalidSearchException if the search is invalid
 	 **/
-	private Search(String query, String indexURI, List<Request> requests, ResultOperation resultoperation) throws InvalidSearchException{
+	private Search(String query, String indexURI, List<Request> requests, ResultOperation resultoperation)
+	throws InvalidSearchException{
+		super(makeString(query, indexURI));
 		if(resultOperation==ResultOperation.REMOVE && requests.size()!=2)
 			throw new InvalidSearchException("Negative operations can only have 2 parameters");
 		if(resultOperation==ResultOperation.PHRASE && requests.size()<=2)
@@ -101,7 +105,6 @@ public class Search implements Request<Set<URIWrapper>> {
 
 		this.query = query;
 		this.indexURI = indexURI;
-		this.subject = makeString(query, indexURI);
 		this.resultOperation = resultoperation;
 
 		allsearches.put(subject, this);
@@ -116,13 +119,13 @@ public class Search implements Request<Set<URIWrapper>> {
 	 * @param request Request to encapsulate
 	 */
 	private Search(String query, String indexURI, Request request){
+		super(makeString(query, indexURI));
 		query = query.toLowerCase(Locale.US).trim();
 		subsearches = new ArrayList();
 		subsearches.add(request);
 
 		this.query = query;
 		this.indexURI = indexURI;
-		this.subject = makeString(query, indexURI);
 		this.resultOperation = ResultOperation.UNION;
 		allsearches.put(subject, this);
 	}
@@ -276,7 +279,7 @@ public class Search implements Request<Set<URIWrapper>> {
 	/**
 	 * @return List of Requests this search depends on
 	 */
-	public List<Request> getSubRequests(){
+	@Override public List<Request> getSubRequests(){
 		return subsearches;
 	}
 
@@ -284,50 +287,55 @@ public class Search implements Request<Set<URIWrapper>> {
 	/**
 	 * @return true if all are Finished, false otherwise
 	 */
-	public boolean isFinished(){
+	@Override public boolean isDone(){
 		for(Request r : subsearches)
-			if(!r.isFinished())
+			if(!r.isDone())
 				return false;
 		return true;
 	}
 	/**
 	 * @return true if any have result, false otherwise
 	 */
-	public boolean hasResult(){
-		for(Request r : subsearches)
-			if(r.hasResult())
+	protected boolean hasResult(){
+		for(Request r : subsearches) {
+			switch (r.getState()) {
+			case FINISHED:
+			case PARTIALRESULT:
 				return true;
+			default:
+			}
+		}
 		return false;
 	}
+
 	/**
-	 * @return a RequestStatus based on all subsearches in the following order
+	 * @return a RequestState based on all subsearches in the following order
 	 * ERROR if any have an ERROR<br />
 	 * FINISHED if all are finished<br />
 	 * PARTIALRESULT if any have result or partialresult<br />
 	 * INPROGRESS otherwise
 	 */
-	public RequestStatus getRequestStatus(){
-		if(getError()!=null)
-			return RequestStatus.ERROR;
-		else if(isFinished())
-			return RequestStatus.FINISHED;
-		else if(hasResult())
-			return RequestStatus.PARTIALRESULT;
+	@Override public RequestState getState(){
+		if (getError()!=null)
+			return RequestState.ERROR;
+		else if (isDone())
+			return RequestState.FINISHED;
+		else if (hasResult())
+			return RequestState.PARTIALRESULT;
 		else
-			return RequestStatus.INPROGRESS;
+			return RequestState.INPROGRESS;
 	}
 
-	public Exception getError() {
+	@Override public Exception getError() {
 		for(Request r : subsearches)
 			if(r.getError()!=null)
 				return r.getError();
 		return null;
 	}
 
-	/**
-	 * @return sum of SubStages
-	 */
-	public int getSubStage(){
+/*
+	PRIORITY temporarily disabled for now
+	protected int getSubStage(){
 //		if(progressAccessed())
 //			return stage;
 		stage=0;
@@ -336,10 +344,7 @@ public class Search implements Request<Set<URIWrapper>> {
 		return stage;
 	}
 
-	/**
-	 * @return sum of SubStageCount
-	 */
-	public int getSubStageCount() {
+	protected int getSubStageCount() {
 //		if(progressAccessed())
 //			return stageCount;
 		stageCount=0;
@@ -347,24 +352,30 @@ public class Search implements Request<Set<URIWrapper>> {
 			stageCount+=r.getSubStageCount();
 		return stageCount;
 	}
+*/
 
 	/**
 	 * Array of names of stages, length should be equal to the result of getSubStageCount()
 	 * @return null if not used
 	 */
-	public String[] stageNames(){
-		return null;
+	@Override public String getCurrentStage(){
+		//return "Stage: "+request.getSubStage()+"/"+request.getSubStageCount();
+		return "Stage: ???/???";
+	}
+
+	@Override public String getCurrentStatus() {
+		throw new UnsupportedOperationException("not implemented");
 	}
 
 	/**
 	 * @return sum of NumBlocksCompleted
 	 */
-	public long getNumBlocksCompleted() {
+	@Override public int partsDone() {
 //		if(progressAccessed())
 //			return blocksCompleted;
 		blocksCompleted=0;
 		for(Request r : subsearches)
-			blocksCompleted+=r.getNumBlocksCompleted();
+			blocksCompleted+=r.partsDone();
 		return blocksCompleted;
 	}
 
@@ -372,39 +383,35 @@ public class Search implements Request<Set<URIWrapper>> {
 	 * @return sum of NumBlocksTotal
 	 * TODO record all these progress things to speed up
 	 */
-	public long getNumBlocksTotal() {
+	@Override public int partsTotal() {
 //		if(progressAccessed())
 //			return blocksTotal;
 		blocksTotal=0;
 		for(Request r : subsearches)
-			blocksTotal+=r.getNumBlocksTotal();
+			blocksTotal+=r.partsTotal();
 		return blocksTotal;
 	}
 
 	/**
 	 * @return true if all subsearches numblocks are final
 	 */
-	public boolean isNumBlocksCompletedFinal() {
+	@Override public boolean isTotalFinal() {
 		for(Request r : subsearches)
-			if(!r.isNumBlocksCompletedFinal())
+			if(!r.isTotalFinal())
 				return false;
 		return true;
 	}
 
-	public String getSubject() {
-		return subject;
-	}
-
 	public int compareTo(Request right) {
-		return this.getSubject().compareTo(right.getSubject());
+		return getSubject().compareTo(right.getSubject());
 	}
 
 	/**
 	 * Perform an intersection on results of all subsearches and return <br />
 	 * @return Set of URIWrappers
 	 */
-	public Set<URIWrapper> getResult() throws InvalidSearchException{
-		if(getRequestStatus() != Request.RequestStatus.FINISHED)
+	@Override public Set<URIWrapper> getResult() throws TaskAbortException {
+		if(getState() != Request.RequestState.FINISHED)
 			return null;
 
 		ResultSet result = new ResultSet();
@@ -436,7 +443,8 @@ public class Search implements Request<Set<URIWrapper>> {
 					try {
 						result.retainFollowed(r.getResult());
 					} catch (Exception ex) {
-						throw new InvalidSearchException("Unable to determine term positions on these requests and thus unable to determine Phrase matches", ex);
+						throw new TaskAbortException("All the data was fetched, but the query could not be completed.",
+						      new InvalidSearchException("Unable to determine term positions on these requests and thus unable to determine Phrase matches", ex));
 					}
 				}
 				break;

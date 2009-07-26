@@ -4,8 +4,9 @@
 package plugins.Library.index.xml;
 
 import java.util.List;
-import plugins.Library.search.AbstractRequest;
-import plugins.Library.search.Request;
+import plugins.Library.index.AbstractRequest;
+import plugins.Library.index.Request.RequestState;
+import plugins.Library.index.Request;
 
 
 /**
@@ -23,12 +24,10 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 		"Fetching Subindex",
 		"Parsing Subindex"
 	};
-	private long blocksCompleted;
-	private long blocksTotal;
+	private int blocksCompleted;
+	private int blocksTotal;
 	private boolean blocksfinalized;
 	private int expectedsize;
-	E result;
-
 
 	/**
 	 * Create Request of stated type & subject
@@ -40,63 +39,43 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 
 
 	/**
-	 * @return SubStage number between 1 and SubStageCount, for when overall operation length is not known but number of stages is
-	 */
-	public int getSubStage(){
-		return stage;
-	}
-	/**
-	 * @return the number of substages expected in this request
-	 */
-	public int getSubStageCount(){
-		return stageNames.length;
-	}
-
-	/**
-	 * Array of names of stages, length should be equal to the result of getSubStageCount()
-	 * @return null if not used
-	 */
-	public String[] stageNames(){
-		return stageNames;
-	}
-
-	/**
 	 * @return blocks completed in SubStage
 	 */
-	public long getNumBlocksCompleted(){
+	@Override public int partsDone(){
 		return blocksCompleted;
 	}
-	public long getNumBlocksTotal(){
+
+	@Override public int partsTotal(){
 		return blocksTotal;
 	}
+
 	/**
 	 * TODO set finalized flag from eventDescription
 	 * @return true if NumBlocksTotal is known to be final
 	 */
-	public boolean isNumBlocksCompletedFinal(){
+	@Override public boolean isTotalFinal(){
 		return blocksfinalized;
 	}
 
-	/**
-	 * @return subject of this request
-	 */
-	public String getSubject(){
-		return subject;
+
+
+	@Override public String getCurrentStage() {
+		return stageNames[stage];
+	}
+
+	@Override public String getCurrentStatus() {
+		// PRIORITY
+		// not sure if this is what it's supposed to do...
+		// getStatus is supposed to be the progress of the whole operation
+		// getCurrentStatus is supposed to be the progress of the current stage
+		return getStatus();
 	}
 
 	/**
-	 * @return result of this request
+	 * @return null, FindRequest is atomic
 	 */
-	public E getResult(){
-		return result;
-	}
-
-	/**
-	 * @return true if progress hasn't changed since it was last read
-	 * TODO implement access reporting properly
-	 */
-	public boolean progressAccessed(){
-		return false;
+	@Override public List<Request> getSubRequests() {
+		return null;
 	}
 
 	/**
@@ -104,25 +83,25 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	 */
 	public void setError(Exception e) {
 		err = e;
-		status = RequestStatus.ERROR;
+		status = RequestState.ERROR;
 	}
 
 	/**
-	 * Sets the current status to a particular RequestStatus and stage number
+	 * Sets the current status to a particular RequestState and stage number
 	 * @param status
 	 * @param stage
 	 */
-	public void setStage(RequestStatus status, int stage){
+	public void setStage(RequestState status, int stage){
 		this.status = status;
 		this.stage = stage;
 	}
 
 	/**
-	 * Stores a result and marks requestStatus as PARTIALRESULT, call setFinished to mark FINISHED
+	 * Stores a result and marks RequestState as PARTIALRESULT, call setFinished to mark FINISHED
 	 * @param result
 	 */
 	public void setResult(E result){
-		status = RequestStatus.PARTIALRESULT;
+		status = RequestState.PARTIALRESULT;
 		this.result = result;
 	}
 
@@ -130,7 +109,7 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	 * Mark Request as FINISHED
 	 */
 	public void setFinished(){
-		status=RequestStatus.FINISHED;
+		status=RequestState.FINISHED;
 	}
 
 
@@ -149,7 +128,7 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	 * @param downloadProgress
 	 * @param downloadSize
 	 */
-	private void updateWithEvent(long downloadProgress, long downloadSize, boolean finalized) {
+	private void updateWithEvent(int downloadProgress, int downloadSize, boolean finalized) {
 		blocksCompleted = downloadProgress;
 		blocksTotal = downloadSize;
 		blocksfinalized = finalized;
@@ -173,17 +152,11 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 		}
 
 		String download = eventDescription.split(" ")[2];
-		long downloadProgress = Integer.parseInt(download.split("/")[0]);
-		long downloadSize = Integer.parseInt(download.split("/")[1]);
+		int downloadProgress = Integer.parseInt(download.split("/")[0]);
+		int downloadSize = Integer.parseInt(download.split("/")[1]);
 		boolean finalized = eventDescription.contains("(finalized total)");
 		for (FindRequest request : requests)
 			request.updateWithEvent(downloadProgress, downloadSize, finalized);
 	}
 
-	/**
-	 * @return null, FindRequest is atomic
-	 */
-	public List<Request> getSubRequests() {
-		return null;
-	}
 }

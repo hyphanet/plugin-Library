@@ -17,8 +17,8 @@ import freenet.support.Logger;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import plugins.Library.search.Request.RequestStatus;
-import plugins.Library.util.URIWrapper;
+import plugins.Library.index.Request.RequestState;
+import plugins.Library.index.URIWrapper;
 
 /**
  * Required for using SAX parser on XML indices
@@ -121,7 +121,7 @@ public class LibrarianHandler extends DefaultHandler {
 							if (result == null)
 								match.setResult(result = new HashSet<URIWrapper>());
 							result.add(uri);
-							match.setStage(RequestStatus.PARTIALRESULT, 3);
+							match.setStage(RequestState.PARTIALRESULT, 3);
 							// removed these as they use lots of memory and are only used for phrase search which doesnt work
 							//inFile = uri;
 							//characters = new StringBuilder();

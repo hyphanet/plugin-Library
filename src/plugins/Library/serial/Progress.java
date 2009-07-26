@@ -36,6 +36,14 @@ public interface Progress {
 	public boolean isTotalFinal();
 
 	/**
+	** An estimate of the final total. If {@link #isTotalFinal()} is {@code
+	** true}, this must be equal to {@link #partsTotal()}.
+	**
+	** Implementations should return -1 if they cannot make an estimate.
+	*/
+	public int finalTotalEstimate();
+
+	/**
 	** Wait for the progress to finish.
 	*/
 	public void join() throws InterruptedException, TaskAbortException;

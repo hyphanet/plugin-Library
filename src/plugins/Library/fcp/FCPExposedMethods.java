@@ -3,14 +3,17 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.fcp;
 
+import plugins.Library.Library;
+import plugins.Library.search.InvalidSearchException;
+import plugins.Library.serial.TaskAbortException;
+import plugins.Library.index.Request;
+
 import freenet.pluginmanager.PluginNotFoundException;
 import freenet.support.Logger;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import plugins.Library.Library;
-import plugins.Library.search.InvalidSearchException;
-import plugins.Library.search.Request;
 
 /**
  * The methods exposed by Library over FCP, instructions for adding methods in the source
@@ -71,8 +74,9 @@ class FCPExposedMethods {
 	 * @param request
 	 * @return
 	 * @throws plugins.Library.search.InvalidSearchException
+	 * @throws plugins.Library.serial.TaskAbortException
 	 */
-	static public Set getResults(Integer request) throws InvalidSearchException {
+	static public Set getResults(Integer request) throws InvalidSearchException, TaskAbortException {
 		return (Set)requests.get(request).getResult();
 	}
 }

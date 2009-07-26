@@ -1,0 +1,11 @@
+= TODO =
+
+for general items, see doc/todo.txt
+
+apart from that, dotted throughout the source code are the following:
+
+- DOCUMENT
+- URGENT bugs will likely crop up until this issue is fixed
+- PRIORITY major things, that other things depend on
+- TODO
+- OPTIMISE

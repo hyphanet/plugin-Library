@@ -58,6 +58,10 @@ public class AtomicProgress implements Progress {
 		return true;
 	}
 
+	@Override public int finalTotalEstimate() {
+		return 1;
+	}
+
 	@Override public synchronized void join() throws InterruptedException, TaskAbortException {
 		while (!done && abort == null) { wait(); }
 		if (abort != null) {
