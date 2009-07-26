@@ -40,9 +40,9 @@ import java.net.MalformedURLException;
 
 import java.util.HashMap;
 import plugins.Library.Library;
-import plugins.Library.index.Index;
-import plugins.Library.util.InvalidSearchException;
-import plugins.Library.util.Request;
+import plugins.Library.library.Index;
+import plugins.Library.search.InvalidSearchException;
+import plugins.Library.search.Request;
 
 
 /**
@@ -82,16 +82,16 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		this.pr = pr;
 		if (pr!=null)
 			executor = pr.getNode().executor;
-		
+
 		if (!baseURI.endsWith("/"))
 			baseURI += "/";
 		indexuri = baseURI;
-			
+
 		// check if index is valid file or URI
 		if(!Util.isValid(baseURI))
 			throw new InvalidSearchException(baseURI + " is neither a valid file nor valid Freenet URI");
 
-		
+
 		if(pr!=null){
 			hlsc = pr.getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 			hlsc.addEventHook(mainIndexListener);
@@ -118,7 +118,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			bucket.free();
 		}
 	}
-	
+
 	/**
 	 * Listener to receive events when fetching the main index
 	 */
@@ -233,7 +233,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			throw new SAXException(e);
 		}
 	}
-	
+
 	@Override
 	public String toString(){
 		String output = "Index : "+indexuri+" "+fetchStatus+" "+waitingOnMainIndex+"\n\t"+subIndice;
@@ -297,15 +297,15 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				(new Thread(subindex, "Subindex:"+subindex.getFileName())).start();
 		}
 	}
-	
-	
+
+
 	/**
 	 * @return the uri of this index prefixed with "xml:" to show what type it is
 	 */
 	public String getIndexURI(){
 		return indexuri;
 	}
-	
+
 	private class SubIndex implements Runnable {
 		String indexuri, filename;
 		private final ArrayList<FindRequest> waitingOnSubindex=new ArrayList<FindRequest>();
@@ -328,21 +328,21 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				throw new UnsupportedOperationException();
 			}
 		};
-		
+
 		SubIndex(String indexuri, String filename){
 			this.indexuri = indexuri;
 			this.filename = filename;
-			
+
 			if(pr!=null){
 				hlsc = pr.getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 				hlsc.addEventHook(subIndexListener);
 			}
 		}
-		
+
 		String getFileName(){
 			return filename;
 		}
-		
+
 		FetchStatus getFetchStatus(){
 			return fetchStatus;
 		}
@@ -360,7 +360,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				waitingOnSubindex.add(request);
 			}
 		}
-		
+
 		@Override
 		public String toString(){
 			return filename+" "+fetchStatus+" "+waitingOnSubindex;
@@ -376,7 +376,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 							// TODO tidy the fetch stuff
 							bucket = Util.fetchBucket(indexuri + filename, hlsc);
 							fetchStatus = FetchStatus.FETCHED;
-							
+
 						} catch (Exception e) {
 							Logger.error(this, indexuri + filename + " could not be opened: " + e.toString(), e);
 							throw e;

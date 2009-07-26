@@ -20,9 +20,9 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import plugins.Library.Main;
-import plugins.Library.index.Index;
+import plugins.Library.library.Index;
 import plugins.Library.Library;
-import plugins.Library.util.Request;
+import plugins.Library.search.Request;
 import plugins.Library.search.Search;
 import plugins.Library.util.URIWrapper;
 
@@ -37,7 +37,7 @@ import plugins.Library.util.URIWrapper;
 public class WebUI {
 	static String plugName;
 	static String httpPath = "/plugins/"+ Main.class.getName();
-	
+
 	public static void setup(String plugName){
 		WebUI.plugName = plugName;
 	}
@@ -52,23 +52,23 @@ public class WebUI {
 	public static String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
 		String searchstring = request.getParam("search");
 		String indexuri = request.isParameterSet("index") ? request.getParam("index") : Library.DEFAULT_INDEX_SITE;
-		
+
 		// update of progress and results in xml for ajax update
 		if(request.getPath().endsWith("xml"))
 				return progressxml(searchstring,indexuri, "on".equals(request.getParam("showold")));
-		
+
 		// displays all indexes for debugging them
 		if(request.getPath().endsWith("debug")){
 			return WebUI.debugpage();
 		}
 		if(request.getPath().endsWith("listSearches"))
 			return WebUI.listSearches();
-		
+
 		// If no search is specified show the default page
 		if(searchstring == null || searchstring.equals("")){
 			return WebUI.searchpage(indexuri, request.isParameterSet("js"));
 		// Full main searchpage
-		}else{  
+		}else{
 			Search searchobject = null;
 			try{
 				//get Search object
@@ -82,7 +82,7 @@ public class WebUI {
 			}
 		}
 	}
-    
+
 	public static String handleHTTPPost(HTTPRequest request) throws PluginHTTPException{
         return searchpage(null, false);
     }
@@ -97,8 +97,8 @@ public class WebUI {
 	public static String searchpage(String indexuri, boolean js){
 		return searchpage(null, indexuri, false, js, false, null);
 	}
-	
-	
+
+
     /**
      * Build a search page for search in it's current state
 	 * @param request the request this page should be built to show the progress of
@@ -112,8 +112,8 @@ public class WebUI {
 		// Don't refresh if there is no request option, if it is finished or there is an error to show
 		if(request==null || "".equals(request.getQuery()) || request.isFinished() || e!=null)
 			refresh = false;
-			
-		
+
+
         // Show any errors
 		HTMLNode errorDiv = new HTMLNode("div", "id", "errors");
         if (e != null){
@@ -121,7 +121,7 @@ public class WebUI {
 		}
 		if (request != null && request.getRequestStatus() == Request.RequestStatus.ERROR)
 			addError(errorDiv, request.getError());
-		
+
 		// encode parameters
 		String search = "";
 		try{
@@ -131,12 +131,12 @@ public class WebUI {
 		}catch(Exception exe){
 			addError(errorDiv, exe);
 		}
-		
+
 		// Start of page
 		HTMLNode pageNode = new HTMLNode.HTMLDoctype("html", "-//W3C//DTD XHTML 1.1//EN");
 		HTMLNode htmlNode = pageNode.addChild("html", "xml:lang", L10n.getSelectedLanguage().isoCode);
 			htmlNode.addChild(searchHead(plugName, search, refresh && !js));
-		
+
 		HTMLNode bodyNode = htmlNode.addChild("body");
 
         // Start of body
@@ -161,13 +161,13 @@ public class WebUI {
 			else
 				bodyNode.addChild("div", "id", "results").addChild("#");
         }
-		
+
 		// Add scripts, TODO put in separate file
 		bodyNode.addChild("script", "type", "text/javascript").addChild("%", script(refresh,js, search, indexuri, showold));
 
 		return pageNode.generate();
     }
-	
+
 	/**
 	 * Return a HTMLNode for this result
 	 * @param showold whether to display results from older SSK versions
@@ -313,13 +313,13 @@ public class WebUI {
 				);
 		return headNode;
 	}
-	
+
 	/**
 	 * Create search form
 	 * @param search already started
 	 * @param indexuri
 	 * @param js whether js has been detected
-	 * @param showold 
+	 * @param showold
 	 * @return
 	 */
 	private static HTMLNode searchBox(String search, String indexuri, boolean js, boolean showold){
@@ -343,7 +343,7 @@ public class WebUI {
 						.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", showold?"checked":"1"});
 		return searchDiv;
 	}
-	
+
 	private static String debugpage() {
 		HTMLNode debugpage = new HTMLNode("HTML");
 		HTMLNode bodynode = debugpage.addChild("body");
@@ -353,7 +353,7 @@ public class WebUI {
 		}
 		return debugpage.generate();
 	}
-	
+
 	/**
 	 * Draw progress box with bars
 	 * @param search
@@ -412,7 +412,7 @@ public class WebUI {
 					.addChild("td", new String[]{"class"}, new String[]{"progress-bar-outline"})
 					.addChild("div", new String[]{"class", "style"}, new String[]{fetchFinalized?"progress-bar-inner-final":"progress-bar-inner-nonfinal", "z-index : -1; width:"+percentage+"%;"});
 				bar.addChild("td", fetchFinalized?percentage+"%":"Fetch length unknown");
-				
+
 			}
 		// if request separates indexes, show their names
 		}else if(request.getSubject().matches(".+%.+[ ;].+")){

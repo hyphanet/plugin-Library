@@ -9,8 +9,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import plugins.Library.Library;
-import plugins.Library.util.InvalidSearchException;
-import plugins.Library.util.Request;
+import plugins.Library.search.InvalidSearchException;
+import plugins.Library.search.Request;
 
 /**
  * The methods exposed by Library over FCP, instructions for adding methods in the source
@@ -19,7 +19,7 @@ import plugins.Library.util.Request;
  */
 class FCPExposedMethods {
 	static HashMap<Integer, Request> requests = new HashMap();
-	
+
 	static private Integer requestnumber(Request req){
 		int n = 0;
 		while(requests.get(n)!=null)
@@ -70,7 +70,7 @@ class FCPExposedMethods {
 	 * Return the results of this request
 	 * @param request
 	 * @return
-	 * @throws plugins.Library.util.InvalidSearchException
+	 * @throws plugins.Library.search.InvalidSearchException
 	 */
 	static public Set getResults(Integer request) throws InvalidSearchException {
 		return (Set)requests.get(request).getResult();

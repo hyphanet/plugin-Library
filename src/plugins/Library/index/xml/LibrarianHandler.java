@@ -17,14 +17,14 @@ import freenet.support.Logger;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import plugins.Library.util.Request.RequestStatus;
+import plugins.Library.search.Request.RequestStatus;
 import plugins.Library.util.URIWrapper;
 
 /**
  * Required for using SAX parser on XML indices
- * 
+ *
  * @author swati
- * 
+ *
  */
 public class LibrarianHandler extends DefaultHandler {
 	private boolean processingWord;
@@ -157,7 +157,7 @@ public class LibrarianHandler extends DefaultHandler {
 			}
 		}
 	}
-	
+
 	public void characters(char[] ch, int start, int length) {
 		if(characters!=null){
 			characters.append(ch, start, length);

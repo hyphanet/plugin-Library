@@ -4,8 +4,8 @@
 package plugins.Library.index.xml;
 
 import java.util.List;
-import plugins.Library.util.AbstractRequest;
-import plugins.Library.util.Request;
+import plugins.Library.search.AbstractRequest;
+import plugins.Library.search.Request;
 
 
 /**
@@ -28,8 +28,8 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	private boolean blocksfinalized;
 	private int expectedsize;
 	E result;
-	
-	
+
+
 	/**
 	 * Create Request of stated type & subject
 	 * @param subject
@@ -90,7 +90,7 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	public E getResult(){
 		return result;
 	}
-	
+
 	/**
 	 * @return true if progress hasn't changed since it was last read
 	 * TODO implement access reporting properly
@@ -106,7 +106,7 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 		err = e;
 		status = RequestStatus.ERROR;
 	}
-	
+
 	/**
 	 * Sets the current status to a particular RequestStatus and stage number
 	 * @param status
@@ -125,19 +125,19 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 		status = RequestStatus.PARTIALRESULT;
 		this.result = result;
 	}
-	
+
 	/**
 	 * Mark Request as FINISHED
 	 */
 	public void setFinished(){
 		status=RequestStatus.FINISHED;
 	}
-	
-	
+
+
 	public int compareTo(Request right){
 		return subject.compareTo(right.getSubject());
 	}
-	
+
 	@Override
 	public String toString(){
 		return "Request subject="+subject+" status="+status.toString()+" stage="+stage+" progress="+blocksCompleted;

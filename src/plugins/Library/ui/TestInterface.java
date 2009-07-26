@@ -2,7 +2,7 @@ package plugins.Library.ui;
 
 
 import plugins.Library.Library;
-import plugins.Library.util.Request;
+import plugins.Library.search.Request;
 import plugins.Library.search.Search;
 import plugins.Library.*;
 import freenet.support.Logger;
@@ -14,7 +14,7 @@ import java.io.InputStreamReader;
 public class TestInterface{
 	static HashMap<String,Request> requests = new HashMap<String,Request>();
 	static int requestcount =0;
-	
+
 	public static void main(String[] args){
 		try{
 			Logger.setupStdoutLogging(Logger.MINOR, "Strarting logging");
@@ -23,12 +23,12 @@ public class TestInterface{
 			String param;
 			String line;
 			String index = "../../Freenet/myindex7";
-			
+
 			do{
 				line = br.readLine();
 				command = line.substring(0, 1);
 				param = line.substring(1);
-				
+
 				if("f".equals(command)){
 					requests.put(""+requestcount,Library.findTerm(index, param));
 					System.out.println("Started request "+requestcount);

@@ -6,10 +6,10 @@ package plugins.Library;
 
 import plugins.Library.Library;
 import plugins.Library.fcp.FCPRequestHandler;
-import freenet.pluginmanager.PluginReplySender;
-import freenet.support.SimpleFieldSet;
-import freenet.support.api.Bucket;
 import plugins.Library.search.Search;
+import plugins.Library.ui.WebUI;
+
+import freenet.pluginmanager.PluginReplySender;
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginFCP;
 import freenet.pluginmanager.FredPluginHTTP;
@@ -19,8 +19,10 @@ import freenet.pluginmanager.FredPluginVersioned;
 import freenet.pluginmanager.PluginHTTPException;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.api.HTTPRequest;
+import freenet.support.SimpleFieldSet;
+import freenet.support.api.Bucket;
+
 import java.security.MessageDigest;
-import plugins.Library.ui.WebUI;
 
 
 /**

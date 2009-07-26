@@ -3,9 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search;
 
-import plugins.Library.util.Request;
+import plugins.Library.search.Request;
 import plugins.Library.util.URIWrapper;
-import plugins.Library.util.InvalidSearchException;
+import plugins.Library.search.InvalidSearchException;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,7 +31,7 @@ public class Search implements Request<Set<URIWrapper>> {
 	 */
 	public enum ResultOperation{INTERSECTION, UNION, REMOVE, PHRASE};
 	private ResultOperation resultOperation;
-	
+
 	private ArrayList<Request> subsearches;
 
 	private String subject;
@@ -98,12 +98,12 @@ public class Search implements Request<Set<URIWrapper>> {
 			throw new InvalidSearchException("Phrase operations need more than one term");
 		query = query.toLowerCase(Locale.US).trim();
 		subsearches = new ArrayList(requests);
-		
+
 		this.query = query;
 		this.indexURI = indexURI;
 		this.subject = makeString(query, indexURI);
 		this.resultOperation = resultoperation;
-		
+
 		allsearches.put(subject, this);
 		Logger.minor(this, "Created Search object for with subRequests :"+subsearches);
 	}
@@ -126,8 +126,8 @@ public class Search implements Request<Set<URIWrapper>> {
 		this.resultOperation = ResultOperation.UNION;
 		allsearches.put(subject, this);
 	}
-	
-	
+
+
 	/**
 	 * Splits query into multiple searches, will be used for advanced queries
 	 * @param query search query, can use various different search conventions
@@ -138,7 +138,7 @@ public class Search implements Request<Set<URIWrapper>> {
 		if(query.matches("\\A\\w*\\Z"))
 			// single search term
 			return new Search(query, indexuri, Library.getIndex(indexuri).getTermEntries(query));
-		
+
 		// Make phrase search
 		if(query.matches("\\A\".*\"\\Z")){
 			ArrayList<Request> phrasesearches = new ArrayList();
@@ -148,7 +148,7 @@ public class Search implements Request<Set<URIWrapper>> {
 				phrasesearches.add(splitQuery(subquery, indexuri));
 			return new Search(query, indexuri, phrasesearches, ResultOperation.PHRASE);
 		}
-		
+
 		Logger.minor(Search.class, "Splitting " + query);
 		String formattedquery="";
 		// Remove phrases, place them in arraylist and replace tem with references to the arraylist
@@ -219,7 +219,7 @@ public class Search implements Request<Set<URIWrapper>> {
 	public static void setup(){
 		Search.allsearches = new HashMap<String, Search>();
 	}
-	
+
 	/**
 	 * Gets a Search from the Map
 	 * @param search
@@ -228,7 +228,7 @@ public class Search implements Request<Set<URIWrapper>> {
 	 */
 	public static Search getSearch(String search, String indexuri){
 		search = search.toLowerCase(Locale.US).trim();
-        
+
 		// See if the same search exists
 		if (hasSearch(search, indexuri))
 			return allsearches.get(makeString(search, indexuri));
@@ -441,7 +441,7 @@ public class Search implements Request<Set<URIWrapper>> {
 				}
 				break;
 		}
-		
+
 		allsearches.remove(subject);
 		return result;
 	}

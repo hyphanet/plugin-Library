@@ -4,16 +4,19 @@
 
 package plugins.Library;
 
+import plugins.Library.library.*;
 import plugins.Library.index.*;
+import plugins.Library.index.xml.XMLIndex;
+import plugins.Library.search.Request;
+import plugins.Library.search.InvalidSearchException;
+
 import freenet.pluginmanager.PluginRespirator;
-import plugins.Library.util.Request;
-import plugins.Library.util.InvalidSearchException;
 import freenet.support.Logger;
+
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import plugins.Library.index.xml.XMLIndex;
 
 
 /**
@@ -51,7 +54,7 @@ public class Library {
 		return version;
 	}
 
-	
+
 	/**
 	 * Find the specified index and start a find request on it for the specified term
 	 */
@@ -61,7 +64,7 @@ public class Library {
 		Request request = index.getTermEntries(term);
 		return request;
 	}
-	
+
 
 
 
