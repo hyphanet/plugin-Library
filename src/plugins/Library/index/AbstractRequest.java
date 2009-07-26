@@ -24,7 +24,7 @@ import java.util.Date;
 ** * {@link Request#isTotalFinal()}
 **
 ** and make sure the {@link #state}, {@link #error}, and {@link #result} fields
-** are set appropriately.
+** are set appropriately during the course of the operation.
 **
 ** The programmer might also wish to override the following:
 **
@@ -91,6 +91,15 @@ public abstract class AbstractRequest<T> implements Request<T> {
 		return -1;
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation throws {@link UnsupportedOperationException}.
+	*/
+	@Override public void join() throws InterruptedException, TaskAbortException {
+		throw new UnsupportedOperationException("not implemented");
+	}
+
 	/*========================================================================
 	  public interface Request
 	 ========================================================================*/
@@ -150,10 +159,6 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	*/
 	@Override public List<Request> getSubRequests() {
 		return null;
-	}
-
-	@Override public void join() {
-		throw new UnsupportedOperationException("not implemented");
 	}
 
 }
