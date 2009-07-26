@@ -1,13 +1,13 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Interdex.serl;
+package plugins.Library.serial;
 
 import junit.framework.TestCase;
 
-import plugins.Interdex.util.Generators;
-import plugins.Interdex.serl.Packer.Bin;
-import plugins.Interdex.serl.Serialiser.*;
+import plugins.Library.util.Generators;
+import plugins.Library.serial.Packer.Bin;
+import plugins.Library.serial.Serialiser.*;
 
 import java.util.Map;
 import java.util.List;

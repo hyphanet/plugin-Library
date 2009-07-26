@@ -1,13 +1,13 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Interdex.index;
+package plugins.Library.index;
 
 import junit.framework.TestCase;
 
-import plugins.Interdex.serl.Serialiser.*;
-import plugins.Interdex.serl.YamlArchiver;
-import plugins.Interdex.serl.TaskAbortException;
+import plugins.Library.serial.Serialiser.*;
+import plugins.Library.serial.YamlArchiver;
+import plugins.Library.serial.TaskAbortException;
 
 import freenet.keys.FreenetURI;
 

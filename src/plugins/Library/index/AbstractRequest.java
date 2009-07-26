@@ -15,14 +15,14 @@ import java.util.Date;
 ** @author MikeB
 ** @author infinity0
 */
-public abstract class AbstractRequest<E> implements Request<E> {
+public abstract class AbstractRequest<T> implements Request<T> {
 
 	final protected String subject;
 	final protected Date start;
 
 	protected RequestState status = RequestState.UNSTARTED;
 	protected Exception err;
-	protected E result;
+	protected T result;
 
 	/**
 	 * Create Request of stated type & subject
@@ -73,7 +73,7 @@ public abstract class AbstractRequest<E> implements Request<E> {
 		return subject;
 	}
 
-	@Override public E getResult() throws TaskAbortException {
+	@Override public T getResult() throws TaskAbortException {
 		return result;
 	}
 

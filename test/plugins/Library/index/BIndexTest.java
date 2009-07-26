@@ -1,14 +1,14 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Interdex.index;
+package plugins.Library.index;
 
 import junit.framework.TestCase;
 
-import plugins.Interdex.util.*;
-import plugins.Interdex.serl.*;
-import plugins.Interdex.serl.Serialiser.*;
-import plugins.Interdex.index.*;
+import plugins.Library.util.*;
+import plugins.Library.serial.*;
+import plugins.Library.serial.Serialiser.*;
+import plugins.Library.index.*;
 
 import freenet.keys.FreenetURI;
 
@@ -20,7 +20,7 @@ import java.util.*;
 public class BIndexTest extends TestCase {
 
 	static {
-		//plugins.Interdex.serl.YamlArchiver.setTestMode();
+		//plugins.Library.serial.YamlArchiver.setTestMode();
 		ProtoIndex.BTREE_NODE_MIN = 0x100; // DEBUG so we see tree splits
 	}
 
@@ -206,7 +206,7 @@ public class BIndexTest extends TestCase {
 		assertFalse(idx.ttab.isLive());
 
 		System.out.println("deflated in " + timeDiff() + " ms");
-		plugins.Interdex.serl.YamlArchiver.setTestMode();
+		plugins.Library.serial.YamlArchiver.setTestMode();
 
 		Request<Collection<TokenEntry>> rq1 = idx.getTermEntries(sterm);
 		Request<Collection<TokenEntry>> rq2 = idx.getTermEntries(sterm);

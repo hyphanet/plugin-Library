@@ -94,12 +94,14 @@ public interface Request<T> extends Progress {
 	public List<Request> getSubRequests();
 
 	/**
+	** Records the general state of the operation.
+	**
 	** ;UNSTARTED : Request initialised but not begun
 	** ;INPROGRESS : Request started
 	** ;PARTIALRESULT : Some result is availiable but not all
 	** ;FINISHED : Complete result availiable
-	** ;ERROR : Use {@link getError()} to retrieve the exception which stopped
-	** this request
+	** ;ERROR : Use {@link #getError()} to retrieve the exception which aborted
+	** this operation
 	*/
 	public enum RequestState { UNSTARTED, INPROGRESS, PARTIALRESULT, FINISHED, ERROR };
 

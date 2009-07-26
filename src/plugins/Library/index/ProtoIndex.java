@@ -139,8 +139,6 @@ public class ProtoIndex {
 
 		final Stack<Object> objects = new Stack<Object>();
 
-		Collection<TokenEntry> result;
-
 		protected getTermEntriesHandler(String t) {
 			super(t);
 		}
