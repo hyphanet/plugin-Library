@@ -4,10 +4,10 @@
 
 package plugins.Library;
 
+import freenet.keys.FreenetURI;
+import java.net.MalformedURLException;
 import plugins.Library.library.*;
-import plugins.Library.index.*;
 import plugins.Library.index.xml.XMLIndex;
-import plugins.Library.index.Request;
 import plugins.Library.search.InvalidSearchException;
 
 import freenet.pluginmanager.PluginRespirator;
@@ -25,14 +25,11 @@ import java.util.Map;
  */
 public class Library {
 
-	public static final String DEFAULT_INDEX_SITE = "bookmark:freenetindex";
+	public static final String DEFAULT_INDEX_SITE = "~freenetindex";
 	private static int version = 1;
 	private String plugName = "Library " + getVersion();
 
 
-	private static final Class[] indexTypes = new Class[]{
-		plugins.Library.index.xml.XMLIndex.class,
-	};
 
 
 	/**
@@ -59,21 +56,18 @@ public class Library {
 		return version;
 	}
 
-
 	/**
-	 * Find the specified index and start a find request on it for the specified term
+	 * Add a new bookmark,
+	 * TODO there should be a separate version for untrusted adds from freesites which throws some Security Exception
+	 * @param name of new bookmark
+	 * @param uri of new bookmark, must be FrenetURI
+	 * @return reference of new bookmark
+	 * @throws java.net.MalformedURLException if uri is not a FreenetURI
 	 */
-	public Request findTerm(String indexid, String term) throws Exception{
-		Index index = getIndex(indexid);
-		Logger.minor(Library.class, "Finding term: "+term);
-		Request request = index.getTermEntries(term);
-		return request;
+	public String addBookmark(String name, String uri) throws MalformedURLException {
+		bookmarks.put(name, ( new FreenetURI(uri) ).toString());
+		return name;
 	}
-
-
-
-
-
 
 	/**
 	 * Returns a set of Index objects one for each of the uri's specified
@@ -115,11 +109,20 @@ public class Library {
 	 * @return Index object
 	 */
 	public final Index getIndex(String indexuri) throws InvalidSearchException{
-		if (indexuri.startsWith("bookmark:")){
-			if (bookmarks.containsKey(indexuri.substring(9)))
-				return getIndex(bookmarks.get(indexuri.substring(9)));
+		Logger.normal(this, "Getting index "+indexuri);
+		indexuri = indexuri.trim();
+		if (indexuri.startsWith("~")){
+			indexuri = indexuri.substring(1);
+			if(indexuri.matches(".+\\(.+\\)"))
+				try {
+					indexuri = addBookmark(indexuri.split("[()]")[0], indexuri.split("[()]")[1]);
+				} catch (MalformedURLException ex) {
+					throw new InvalidSearchException("Bookmark target is not a valid Freenet URI", ex);
+				}
+			if (bookmarks.containsKey(indexuri))
+				return getIndex(bookmarks.get(indexuri));
 			else
-				throw new InvalidSearchException("Index bookmark '"+indexuri.substring(9)+" does not exist");
+				throw new InvalidSearchException("Index bookmark '"+indexuri+" does not exist");
 		}
 
 		if (!indexuri.endsWith("/"))
@@ -128,18 +131,6 @@ public class Library {
 			return rtab.get(indexuri);
 
 		Index index;
-		// Look for this index type in the indexTypes array
-		if(indexuri.contains(":"))
-			for (int i = 0; i < indexTypes.length; i++) {
-				Class class1 = indexTypes[i];
-				try {
-					String id = ((String)class1.getMethod("getID").invoke(null));
-					if (indexuri.split(":")[0].equalsIgnoreCase(id))
-						index = (Index) class1.getConstructor(indexuri.getClass(), pr.getClass()).newInstance(indexuri, pr);
-				} catch (Exception ex) {
-					Logger.normal(class1, indexuri, ex);
-				}
-			}
 
 		//if(indexuri.startsWith("xml:")){
 			index = new XMLIndex(indexuri, pr);
@@ -156,9 +147,13 @@ public class Library {
 	 */
 	public Library(PluginRespirator pr){
 		this.pr = pr;
-		bookmarks.put("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/");
-		bookmarks.put("wanna19", "SSK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search-19/");
-		bookmarks.put("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/");
+		try {
+			addBookmark("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/");
+			addBookmark("wanna19", "SSK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search-19/");
+			addBookmark("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/");
+		} catch (MalformedURLException ex) {
+			Logger.error(this, "Error putting bookmarks", ex);
+		}
 	}
 
 
