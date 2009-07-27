@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import plugins.Library.search.InvalidSearchException;
 import plugins.Library.serial.TaskAbortException;
 
 /**
@@ -81,7 +82,10 @@ public class WebUI {
 
 				// generate HTML for search object and set it to refresh
 				return searchpage(searchobject, indexuri, true, request.isParameterSet("js"), "on".equals(request.getParam("showold")), null);
-			}catch(Exception e){
+			}catch(InvalidSearchException e){
+				// Show page with exception
+				return searchpage(searchobject, indexuri, false, false, false, e);
+			}catch(RuntimeException e){
 				// Show page with exception
 				return searchpage(searchobject, indexuri, false, false, false, e);
 			}
@@ -131,7 +135,7 @@ public class WebUI {
 			search = request !=null ? request.getQuery() : "";
 			if(indexuri == null || indexuri.equals(""))
 				indexuri = request !=null  ? HTMLEncoder.encode(request.getIndexURI()) : Library.DEFAULT_INDEX_SITE;
-		}catch(Exception exe){
+		}catch(RuntimeException exe){
 			addError(errorDiv, exe);
 		}
 
@@ -532,6 +536,8 @@ public class WebUI {
 				resp.addChild("progress", "RequestState", "FINISHED", "Search complete");
 			} catch (TaskAbortException ex) {
 				addError(resp.addChild("error", "RequestState",  "ERROR"), ex.getCause());
+			} catch (RuntimeException ex) {
+				addError(resp.addChild("error", "RequestState",  "ERROR"), ex);
 			}
 		else
 			resp.addChild("progress", "RequestState",  (search==null)?"":search.getState().toString(), progress);
