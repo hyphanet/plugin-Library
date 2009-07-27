@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import plugins.Library.serial.TaskAbortException;
 
 /**
  * Provides the HTML generation for the search page
@@ -123,8 +124,6 @@ public class WebUI {
         if (e != null){
             addError(errorDiv, e);
 		}
-		if (request != null && request.getState() == RequestState.ERROR)
-			addError(errorDiv, request.getError());
 
 		// encode parameters
 		String search = "";
@@ -159,7 +158,9 @@ public class WebUI {
             if (request.getState()==RequestState.FINISHED)
 				try{
 					bodyNode.addChild(resultNodeGrouped(request, showold, js));
-				}catch(Exception ex){
+				}catch(TaskAbortException ex){
+					addError(errorDiv, ex);
+				}catch(RuntimeException ex){
 					addError(errorDiv, ex);
 				}
 			else
@@ -177,7 +178,7 @@ public class WebUI {
 	 * @param showold whether to display results from older SSK versions
 	 * @param js whether js can be used to display results
 	 */
-	public static HTMLNode resultNodeGrouped(Request<Collection<URIWrapper>> request, boolean showold, boolean js) throws Exception{
+	public static HTMLNode resultNodeGrouped(Request<Collection<URIWrapper>> request, boolean showold, boolean js) throws TaskAbortException {
 		// Output results
 		int results = 0;
 		// Loop to separate results into SSK groups
@@ -256,29 +257,29 @@ public class WebUI {
 				// loop over each result in this version
 				Iterator<URIWrapper> it4 = siteMap.get(version).iterator();
 				while(it4.hasNext()){
-					URIWrapper u = it4.next();
-					FreenetURI uri = new FreenetURI(u.URI);
-					String showtitle = u.descr;
-					String showurl = uri.toShortString();
-					if (showtitle.trim().length() == 0 || showtitle.equals("not available"))
-						showtitle = showurl;
-					String realurl = "/"+uri.toString();
-					HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-title", ""});
-					pageNode.addChild("a",
-							new String[]{"href",	"class",		"style",										"title"},
-							new String[]{realurl,	"result-title", "color: "+(newestVersion?"Blue":"LightBlue"),	u.URI}, showtitle);
-					// create usk url
-					if(uri.isSSKForUSK()){
-						String realuskurl = "/"+uri.uskForSSK().toString();
-						pageNode.addChild("a",
-								new String[]{"href",	"class"},
-								new String[]{realuskurl,"result-uskbutton"}, "[ USK ]");
+					try {
+						URIWrapper u = it4.next();
+						FreenetURI uri = new FreenetURI(u.URI);
+						String showtitle = u.descr;
+						String showurl = uri.toShortString();
+						if (showtitle.trim().length() == 0 || showtitle.equals("not available")) {
+							showtitle = showurl;
+						}
+						String realurl = "/" + uri.toString();
+						HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-title", ""});
+						pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: " + (newestVersion ? "Blue" : "LightBlue"), u.URI}, showtitle);
+						// create usk url
+						if (uri.isSSKForUSK()) {
+							String realuskurl = "/" + uri.uskForSSK().toString();
+							pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "result-uskbutton"}, "[ USK ]");
+						}
+						pageNode.addChild("br");
+						pageNode.addChild("a", new String[]{"href", "class", "style"}, new String[]{realurl, "result-url", "color: " + (newestVersion ? "Green" : "LightGreen")}, showurl);
+						results++;
+					} catch (MalformedURLException ex) {
+						// Invalid URL in result, maybe should display?
+						Logger.normal(WebUI.class, "Invalid URL in result "+ex.toString());
 					}
-					pageNode.addChild("br");
-					pageNode.addChild("a",
-							new String[]{"href",	"class",		"style"},
-							new String[]{realurl,	"result-url",	"color: "+(newestVersion?"Green":"LightGreen")}, showurl);
-					results++;
 				}
 			}
 		}
@@ -515,27 +516,25 @@ public class WebUI {
 	 */
 	static String progressxml(String searchquery, String indexuri, boolean showold) {
 		HTMLNode resp = new HTMLNode("pagecontent");
-		try{
-			String progress;
-			Search search = Search.getSearch(searchquery, indexuri);
-			// If search is happening, return it's progress
-			if(search!=null){
-				HTMLNode progresstable = new HTMLNode("table", new String[]{"id", "class"}, new String[]{"progress-table", "progress-table"});
-					progresstable.addChild(progressBar(search));
-				progress = progresstable.generate();
-			}else
-				progress = "No search for this, something went wrong";
-			// If it's finished, return it's results
-			if(search != null && search.getState()==RequestState.FINISHED){
+		String progress;
+		Search search = Search.getSearch(searchquery, indexuri);
+		// If search is happening, return it's progress
+		if(search!=null){
+			HTMLNode progresstable = new HTMLNode("table", new String[]{"id", "class"}, new String[]{"progress-table", "progress-table"});
+				progresstable.addChild(progressBar(search));
+			progress = progresstable.generate();
+		}else
+			progress = "No search for this, something went wrong";
+		// If it's finished, return it's results
+		if(search != null && search.getState()==RequestState.FINISHED)
+			try {
 				resp.addChild("result", WebUI.resultNodeGrouped(Search.getSearch(searchquery, indexuri), showold, true).generate());
-				resp.addChild("progress", "RequestState",  "FINISHED", "Search complete");
+				resp.addChild("progress", "RequestState", "FINISHED", "Search complete");
+			} catch (TaskAbortException ex) {
+				addError(resp.addChild("error", "RequestState",  "ERROR"), ex.getCause());
 			}
+		else
 			resp.addChild("progress", "RequestState",  (search==null)?"":search.getState().toString(), progress);
-			if(search != null && search.getState()==RequestState.ERROR)
-				addError(resp.addChild("error", "RequestState",  "ERROR"), search.getError());
-		}catch(Exception e){
-			addError(resp.addChild("error", "RequestState",  "ERROR"), e);
-		}
 		return "<?xml version='1.0' encoding='ISO-8859-1'?>\n"+resp.generate();
 	}
 

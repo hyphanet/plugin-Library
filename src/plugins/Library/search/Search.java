@@ -8,7 +8,6 @@ import plugins.Library.index.Request.RequestState;
 import plugins.Library.index.Request;
 import plugins.Library.index.AbstractRequest;
 import plugins.Library.index.URIWrapper;
-import plugins.Library.search.InvalidSearchException;
 import plugins.Library.serial.TaskAbortException;
 
 import freenet.support.Logger;
@@ -318,21 +317,12 @@ implements Request<Collection<URIWrapper>> {
 	 * INPROGRESS otherwise
 	 */
 	@Override public RequestState getState(){
-		if (getError()!=null)
-			return RequestState.ERROR;
-		else if (isDone())
+		if (isDone())
 			return RequestState.FINISHED;
 		else if (hasResult())
 			return RequestState.PARTIALRESULT;
 		else
 			return RequestState.INPROGRESS;
-	}
-
-	@Override public TaskAbortException getError() {
-		for(Request r : subsearches)
-			if(r.getError()!=null)
-				return r.getError();
-		return null;
 	}
 
 /*

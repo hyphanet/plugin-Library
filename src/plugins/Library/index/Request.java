@@ -49,12 +49,6 @@ public interface Request<T> extends Progress {
 	*/
 	public T getResult() throws TaskAbortException;
 
-	/**
-	** Gets the error that caused the operation to abort.
-	**
-	** @deprecated Use try { getResult(); } catch { }
-	*/
-	public TaskAbortException getError();
 
 	/**
 	** Whether the operation has completed.
@@ -101,6 +95,6 @@ public interface Request<T> extends Progress {
 	** ;ERROR : Use {@link #getError()} to retrieve the exception which aborted
 	** this operation
 	*/
-	public enum RequestState { UNSTARTED, INPROGRESS, PARTIALRESULT, FINISHED, ERROR };
+	public enum RequestState { UNSTARTED, INPROGRESS, PARTIALRESULT, FINISHED };
 
 }

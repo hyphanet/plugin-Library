@@ -84,7 +84,6 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	 */
 	public void setError(TaskAbortException e) {
 		error = e;
-		state = RequestState.ERROR;
 	}
 
 	/**

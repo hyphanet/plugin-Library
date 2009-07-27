@@ -3,7 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.index.Request;
 import plugins.Library.index.Request.RequestState;
 import plugins.Library.serial.TaskAbortException;
 
@@ -142,22 +141,13 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	/**
 	** {@inheritDoc}
 	**
-	** This implementation returns true if RequestState is FINISHED or ERROR
+	** This implementation returns true if RequestState is FINISHED
+	 * @deprecated now ERROR is gone this seems pointless
 	*/
 	@Override public boolean isDone() {
-		return state==RequestState.FINISHED || state == RequestState.ERROR;
+		return state==RequestState.FINISHED;
 	}
 
-	/**
-	** {@inheritDoc}
-	**
-	** This implementation returns {@link #error}.
-	**
-	** @deprecated Use try { getResult(); } catch { }
-	*/
-	@Override public TaskAbortException getError() {
-		return error;
-	}
 
 	/**
 	** {@inheritDoc}
