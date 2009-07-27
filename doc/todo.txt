@@ -4,15 +4,29 @@ index: "suggested tokens" - suggest what other people should tag this index as;
        they are free to ignore this suggestion
 
 
+- TODO - find a data structure other than SortedSet to store the tokens in.
+- it must be able to sort by relevance, but have same-relevance items in as long as they don't equals().
+- there should be only one entry per URI per Token (enforce this in the code at some point)
+
+- URGENT for now, make URIKey use pkHash + docName for SSKs (until we find something better)
+
+
 - PRIORITY merge URIWrapper with TokenURIEntry
 
 - PRIORITY do we want to merge the library/ and index/ subpackages? or shuffle
 things around?
 
 
-- TODO use markdown-doclet instead of bliki-doclet
-- not yet - MarkdownJ has bugs relating to parsing of uppercase HTML tags,
-  which SJD generates, unfortunately :/
+
+- TODO use try { getResult() } catch { }, and get rid of getError()
+
+- make a CompoundRequest that extends CompoundProgress (and make CompondProgress better and more standard)
+- and it will have "getSubRequests" should go
+
+- how to implement getSubStage* in Search, and how to put it back into
+FindRequest
+- implement nice version of finalTotalEstimate() in FindRequest and Search
+
 
 
 - TODO probably should synchronize AtomicProgress, SimpleProgress, and
@@ -20,29 +34,20 @@ things around?
   single-writer multi-reader (and the reads are not critical)?
 
 
-
 - TODO work out TaskAbortException handling for SkeletonTreeMap
 - TODO maybe have deflate/inflate throw a different checked exception from
   TaskAbortException, forcing them to handle the TaskAbortException thrown by
   pull/push?
 
+
+
 - TODO setSerialiser only when data structure isLive()
-
-
-
-
-
+- TODO use markdown-doclet instead of bliki-doclet
+  - not yet - MarkdownJ has bugs relating to parsing of uppercase HTML tags,
+    which SJD generates, unfortunately :/
 - TODO make build.xml output test results better... atm either it has two modes:
   - print test stdout output out in real time, but not stderr
   - print stdout and stderr in a single go after the test is over :/
-
-
-
-- TODO - find a data structure other than SortedSet to store the tokens in.
-- it must be able to sort by relevance, but have same-relevance items in as long as they don't equals().
-- there should be only one entry per URI per Token (enforce this in the code at some point)
-
-- URGENT for now, make URIKey use pkHash + docName for SSKs (until we find something better)
 
 
 

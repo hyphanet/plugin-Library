@@ -52,11 +52,9 @@ public interface Request<T> extends Progress {
 	/**
 	** Gets the error that caused the operation to abort.
 	**
-	** PRIORITY: infinity0: I've been using getResult() to throw exceptions,
-	** instead of detecting them explicitly with an error status enum - we'll
-	** have to decide which approach to keep. For now, i've kept both.
+	** @deprecated Use try { getResult(); } catch { }
 	*/
-	public Exception getError();
+	public TaskAbortException getError();
 
 	/**
 	** Whether the operation has completed.

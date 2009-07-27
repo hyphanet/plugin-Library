@@ -30,19 +30,20 @@ import freenet.support.Executor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.File;
+import java.net.MalformedURLException;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.SortedMap;
-import java.net.MalformedURLException;
-
 import java.util.HashMap;
+
 import plugins.Library.Library;
 import plugins.Library.library.Index;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.index.Request;
+import plugins.Library.serial.TaskAbortException;
 
 
 /**
@@ -378,8 +379,11 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 							fetchStatus = FetchStatus.FETCHED;
 
 						} catch (Exception e) {
-							Logger.error(this, indexuri + filename + " could not be opened: " + e.toString(), e);
-							throw e;
+							//java.net.MalformedURLException
+							//freenet.client.FetchException
+							String msg = indexuri + filename + " could not be opened: " + e.toString();
+							Logger.error(this, msg, e);
+							throw new TaskAbortException(msg, e);
 						}
 					}else if(fetchStatus==FetchStatus.FETCHED){
 						for(FindRequest r : waitingOnSubindex)
@@ -397,14 +401,18 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 								waitingOnSubindex.clear();
 							///}
 							is.close();
-						} catch (Throwable err) {
+						} catch (Exception err) {
+							//javax.xml.parsers.ParserConfigurationException
+							//java.io.IOException
+							//org.xml.sax.SAXException
 							Logger.error(this, "Error parsing "+filename, err);
-							throw new Exception("Could not parse XML: ", err);
+							throw new TaskAbortException("Could not parse XML: ", err);
 						}
-					}else
+					} else {
 						break;
+					}
 				}
-			}catch(Exception e){
+			} catch (TaskAbortException e) {
 				fetchStatus = FetchStatus.FAILED;
 				this.error = e;
 				Logger.error(this, "Dropping from subindex run loop", e);

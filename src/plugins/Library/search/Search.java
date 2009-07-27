@@ -328,7 +328,7 @@ implements Request<Collection<URIWrapper>> {
 			return RequestState.INPROGRESS;
 	}
 
-	@Override public Exception getError() {
+	@Override public TaskAbortException getError() {
 		for(Request r : subsearches)
 			if(r.getError()!=null)
 				return r.getError();

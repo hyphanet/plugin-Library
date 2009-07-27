@@ -7,6 +7,7 @@ import java.util.List;
 import plugins.Library.index.AbstractRequest;
 import plugins.Library.index.Request.RequestState;
 import plugins.Library.index.Request;
+import plugins.Library.serial.TaskAbortException;
 
 
 /**
@@ -81,7 +82,7 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	/**
 	 * Log Exception for this request, marks status as ERROR
 	 */
-	public void setError(Exception e) {
+	public void setError(TaskAbortException e) {
 		error = e;
 		state = RequestState.ERROR;
 	}

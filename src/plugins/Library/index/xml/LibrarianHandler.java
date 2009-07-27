@@ -44,9 +44,9 @@ public class LibrarianHandler extends DefaultHandler {
 	 * @param requests the requests wanting to be resolved by this LibrarianHandler, results are written back to them
 	 * @throws java.lang.Exception
 	 */
-	public LibrarianHandler(List<FindRequest> requests) throws Exception {
+	public LibrarianHandler(List<FindRequest> requests) {
 		this.requests = new ArrayList(requests);
-		for(FindRequest r : requests)
+		for (FindRequest r : requests)
 			r.setResult(new HashSet<URIWrapper>());
 	}
 

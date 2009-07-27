@@ -48,7 +48,7 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	** Holds the error that caused the operation to abort, if any. Returned by
 	** {@link #getError()}.
 	*/
-	protected Exception error;
+	protected TaskAbortException error;
 
 	/**
 	** Holds the result of the operation once it completes. Returned by {@link
@@ -119,10 +119,15 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	/**
 	** {@inheritDoc}
 	**
-	** This implementation returns {@link #result}.
+	** This implementation returns {@link #result} if {@link #error} is {@code
+	** null}, otherwise it throws it.
 	*/
 	@Override public T getResult() throws TaskAbortException {
-		return result;
+		if (error != null) {
+			throw error;
+		} else {
+			return result;
+		}
 	}
 
 	/**
@@ -147,8 +152,10 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	** {@inheritDoc}
 	**
 	** This implementation returns {@link #error}.
+	**
+	** @deprecated Use try { getResult(); } catch { }
 	*/
-	@Override public Exception getError() {
+	@Override public TaskAbortException getError() {
 		return error;
 	}
 
