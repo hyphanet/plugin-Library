@@ -359,7 +359,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("node_min", tree.NODE_MIN);
 			map.put("size", tree.size);
-			map.put("root", tree.makeNodeTranslator(ktr, mtr).app((SkeletonBTreeMap.SkeletonNode)tree.root));
+			Map<String, Object> rmap = tree.makeNodeTranslator(ktr, mtr).app((SkeletonBTreeMap.SkeletonNode)tree.root);
+			map.put("entries", rmap.get("entries"));
+			map.put("subnodes", rmap.get("subnodes"));
 			return map;
 		}
 
@@ -367,8 +369,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			try {
 				SkeletonBTreeMap<K, V> tree = new SkeletonBTreeMap<K, V>((Integer)map.get("node_min"));
 				tree.size = (Integer)map.get("size"); // TODO have some way of verifying this
-				// make this not do the "size" check for root
-				tree.root = tree.makeNodeTranslator(ktr, mtr).rev((Map<String, Object>)map.get("root"));
+				// map.put("lkey", null); // NULLNOTICE: get() gives null which matches
+				// map.put("rkey", null); // NULLNOTICE: get() gives null which matches
+				tree.root = tree.makeNodeTranslator(ktr, mtr).rev(map);
 				return tree;
 			} catch (ClassCastException e) {
 				throw new DataFormatException("Could not build SkeletonBTreeMap from data", e, null, null, null);

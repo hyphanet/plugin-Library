@@ -8,6 +8,9 @@ index: "suggested tokens" - suggest what other people should tag this index as;
 - it must be able to sort by relevance, but have same-relevance items in as long as they don't equals().
 - there should be only one entry per URI per Token (enforce this in the code at some point)
 
+
+- TODO make TokenEntries immutable, and make Yaml stuff to create/uncreate these...
+
 - URGENT for now, make URIKey use pkHash + docName for SSKs (until we find something better)
 
 

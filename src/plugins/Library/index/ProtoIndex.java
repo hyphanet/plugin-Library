@@ -14,6 +14,7 @@ import plugins.Library.serial.Progress;
 
 import freenet.keys.FreenetURI;
 
+import java.util.Collections;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -167,6 +168,20 @@ public class ProtoIndex {
 
 		@Override public boolean isTotalFinal() {
 			throw new UnsupportedOperationException("not implemented");
+		}
+
+		protected Collection<TokenEntry> resultreturn;
+		/**
+		** {@inheritDoc}
+		**
+		** This implementation returns an immutable collection backed by the
+		** data stored in the Library.
+		*/
+		@Override public Collection<TokenEntry> getResult() {
+			if (result != null && resultreturn == null) {
+				resultreturn = Collections.unmodifiableCollection(result);
+			}
+			return resultreturn;
 		}
 
 		@Override public String getCurrentStatus() {
