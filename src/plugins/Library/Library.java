@@ -17,6 +17,7 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -25,7 +26,8 @@ import java.util.Map;
  */
 public class Library {
 
-	public static final String DEFAULT_INDEX_SITE = "~freenetindex";
+	public static final String BOOKMARK_PREFIX = "bookmark:";
+	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "freenetindex";
 	private static int version = 1;
 	private String plugName = "Library " + getVersion();
 
@@ -67,6 +69,9 @@ public class Library {
 	public String addBookmark(String name, String uri) throws MalformedURLException {
 		bookmarks.put(name, ( new FreenetURI(uri) ).toString());
 		return name;
+	}
+	public Set<String> bookmarkKeys() {
+		return bookmarks.keySet();
 	}
 
 	/**
@@ -111,8 +116,8 @@ public class Library {
 	public final Index getIndex(String indexuri) throws InvalidSearchException{
 		Logger.normal(this, "Getting index "+indexuri);
 		indexuri = indexuri.trim();
-		if (indexuri.startsWith("~")){
-			indexuri = indexuri.substring(1);
+		if (indexuri.startsWith(BOOKMARK_PREFIX)){
+			indexuri = indexuri.substring(BOOKMARK_PREFIX.length());
 			if(indexuri.matches(".+\\(.+\\)"))
 				try {
 					indexuri = addBookmark(indexuri.split("[()]")[0], indexuri.split("[()]")[1]);

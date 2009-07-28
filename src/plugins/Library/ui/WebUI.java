@@ -5,7 +5,6 @@
 package plugins.Library.ui;
 
 import plugins.Library.Main;
-import plugins.Library.library.Index;
 import plugins.Library.Library;
 import plugins.Library.index.Request;
 import plugins.Library.index.Request.RequestState;
@@ -21,6 +20,7 @@ import freenet.l10n.L10n;
 import freenet.support.Logger;
 
 import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import plugins.Library.library.Index;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.serial.TaskAbortException;
 
@@ -35,6 +36,7 @@ import plugins.Library.serial.TaskAbortException;
  * Provides the HTML generation for the search page
  *
  * TODO tidy this huge mess
+ * TODO password so embedded search has different access
  *
  * @author MikeB
  */
@@ -51,13 +53,23 @@ public class WebUI {
 
 	/**
 	 * Decide what to do depending on the request
+	 * FIXME needs form password to secure from freesites
+	 * 
 	 * @param request
 	 * @return String of generated HTML to be sent to browser
 	 * @throws freenet.pluginmanager.PluginHTTPException
 	 */
 	public static String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
 		String searchstring = request.getParam("search");
-		String indexuri = request.isParameterSet("index") ? request.getParam("index") : Library.DEFAULT_INDEX_SITE;
+		String indexuri = "";
+		if(request.isParameterSet("index")){
+			// Get all indexes supplied
+			String[] indexes = request.getMultipleParam("index");
+			for (String string : indexes)
+				indexuri += string + " ";
+		}else
+			 indexuri = Library.DEFAULT_INDEX_SITE;
+		indexuri = indexuri.trim();
 
 		// update of progress and results in xml for ajax update
 		if(request.getPath().endsWith("xml"))
@@ -309,8 +321,9 @@ public class WebUI {
 		headNode.addChild("meta", new String[] { "http-equiv", "content" }, new String[] { "Content-Type", "text/html; charset=utf-8" });
 		headNode.addChild("title", title);
 		// Stylesheet
+		headNode.addChild("link", new String[]{"title", "rel", "type", "href"}, new String[]{"clean-dropdown", "stylesheet", "text/css", "/static/themes/clean-dropdown/theme.css"});
 		headNode.addChild("style").addChild("%",
-				"body {font-family:sans-serif}\n" +
+				"body {font-family:sans-serif;\nbackground:white;}\n" +
 				".result-sitename {color:black; font-weight:bold}\n" +
 				".result-table { border-spacing : 5px; }\n" +
 				".result-url {color:green; font-size:small; padding-left:15px}\n" +
@@ -318,7 +331,15 @@ public class WebUI {
 				".progress-table {border-spacing:10px 0px;}\n" +
 				".progress-bar-outline { width:300px; border:1px solid grey; height : 20px;}\n" +
 				".progress-bar-inner-final { background-color: red; height:15px; z-index:-1}\n" +
-				".progress-bar-inner-nonfinal { background-color: pink; height:15px; z-index:-1}\n"
+				".progress-bar-inner-nonfinal { background-color: pink; height:15px; z-index:-1}\n" +
+				"div#navbar { background-color: white; border : none; } \n" +
+				"div#navbar ul { text-align : left; }\n" +
+				"th, td { border: none; padding: 0; }\n" +
+				"div#navbar ul li:hover ul, div#navbar ul li ul:hover { top: 1.1em; border: 1px solid #666633; background-color: #CCFFBB; }\n" +
+				"h1, h2 { font-size: xx-large; font-weight: bold; }\n" +
+				"input.index { font-size: 0.63em; size: 25; }\n" +
+				"li.index {  }\n" +
+				""
 				);
 		return headNode;
 	}
@@ -332,6 +353,21 @@ public class WebUI {
 	 * @return
 	 */
 	private static HTMLNode searchBox(String search, String indexuri, boolean js, boolean showold){
+		// Put all bookmarked indexes being used into a list and leave others in a string
+		String[] indexes = indexuri.split("[ ;]");
+		Set<String> allbookmarks = library.bookmarkKeys();
+		ArrayList<String> usedbookmarks = new ArrayList();
+		indexuri = "";
+		for (String string : indexes) {
+			if(string.startsWith(Library.BOOKMARK_PREFIX)
+					&& allbookmarks.contains(string.substring(Library.BOOKMARK_PREFIX.length())))
+				usedbookmarks.add(string);
+			else
+				indexuri += string + " ";
+		}
+		indexuri.trim();
+
+
 		HTMLNode searchDiv = new HTMLNode("div", "id", "searchbar");
 		HTMLNode searchForm = searchDiv.addChild("form", new String[]{"name", "method", "action"}, new String[]{"searchform", "GET", httpPath});
 			HTMLNode searchTable = searchForm.addChild("table", "width", "100%");
@@ -344,12 +380,41 @@ public class WebUI {
 						if(js)
 							searchcell.addChild("input", new String[]{"type","name"}, new String[]{"hidden","js"});
 
-				searchTable.addChild("tr")
+				HTMLNode navList = searchTable.addChild("tr")
+					.addChild("td")
+					.addChild("div", "id", "navbar")
+						.addChild("ul", "id", "navlist");
+							HTMLNode newIndexInput = navList.addChild("li", new String[]{"class", "style"}, new String[]{"index", "display: inline-table;"});
+								newIndexInput.addChild("input", new String[]{"type", "class"}, new String[]{"text", "index"});
+								newIndexInput.addChild("br");
+								newIndexInput.addChild("input", new String[]{"name", "type", "value", "class"}, new String[]{"index", "text", indexuri, "index"});
+							HTMLNode subnavoptions = navList.addChild("li", "style", "display: inline-block; top: 10px; position: relative;", "Options")
+								.addChild("ul", "class", "subnavlist");
+									subnavoptions.addChild("li")
+										.addChild("input", new String[]{"type"}, new String[]{"hidden"}, "Group SSK Editions");
+									subnavoptions.addChild("li")
+										.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", "1"}, "Show older editions");
+									subnavoptions.addChild("li")
+										.addChild("input", new String[]{"type"}, new String[]{"hidden"}, "Sort by relevence");
+							HTMLNode entryindexes = navList.addChild("li", "style", "display: inline-block; top: 10px; position: relative;");
+								entryindexes.addChild("input", "type", "submit");
+								// SHows the list of bookmarked indexes TODO show descriptions on mouseover ??
+								HTMLNode subnavindexes = entryindexes.addChild("ul", "class", "subnavlist", "Select indexes");
+								for (String bm : library.bookmarkKeys()){
+									searchDiv.addChild("%", "<!-- Checking for bm="+bm+" in \""+indexuri+"\" -->");
+									subnavindexes.addChild("li")
+										.addChild("input", new String[]{"type", "name", "value", (usedbookmarks.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"checkbox", "index", Library.BOOKMARK_PREFIX+bm, "1" } , bm);
+								}
+
+									
+									
+						/*
 					.addChild("td", L10nString.getString("Index"))
 						.addChild("input", new String[]{"name", "type", "value", "size"}, new String[]{"index", "text", indexuri, "40"});
 				searchTable.addChild("tr")
 					.addChild("td", L10nString.getString("ShowOldVersions"))
 						.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", showold?"checked":"1"});
+						 * */
 		return searchDiv;
 	}
 
@@ -528,7 +593,7 @@ public class WebUI {
 				progresstable.addChild(progressBar(search));
 			progress = progresstable.generate();
 		}else
-			progress = "No search for this, something went wrong";
+			progress = "No search for this, something went wrong";		// FIXME this came up again ??
 		// If it's finished, return it's results
 		if(search != null && search.getState()==RequestState.FINISHED)
 			try {
