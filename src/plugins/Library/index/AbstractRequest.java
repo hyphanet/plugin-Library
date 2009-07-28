@@ -44,14 +44,14 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	protected RequestState state = RequestState.UNSTARTED;
 
 	/**
-	** Holds the error that caused the operation to abort, if any. Returned by
-	** {@link #getError()}.
+	** Holds the error that caused the operation to abort, if any. If not
+	** {@code null}, then thrown by {@link #getResult()}.
 	*/
 	protected TaskAbortException error;
 
 	/**
-	** Holds the result of the operation once it completes. Returned by {@link
-	** #getResult()}.
+	** Holds the result of the operation once it completes. If {@link #error}
+	** is {@code null}, then returned by {@link #getResult()}.
 	*/
 	protected T result;
 

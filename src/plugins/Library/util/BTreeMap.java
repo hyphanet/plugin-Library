@@ -70,7 +70,9 @@ import java.util.NoSuchElementException;
 ** indeterminate behaviour when used with a comparator that admits {@code null}
 ** keys. This is due to {@code null} having special semantics, meaning "end of
 ** map", for the {@link Node#lkey} and {@link Node#rkey} fields. This is NOT
-** an urgent priority to fix, but might be done in the future.
+** an urgent priority to fix, but might be done in the future. NULLNOTICE marks
+** the places in the code which are affected by this logic, as well as all
+** occurences of /\.[lr]key == null/.
 **
 ** * '''TODO ConcurrentModificationException for the entrySet iterator'''
 ** * '''TODO better distribution algorithm for putAll'''
@@ -465,7 +467,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		}
 
 		verify(node.size() <= ENT_MAX);
-		// don't test node == root since it might be a newly-created detached node
+		// NULLNOTICE don't test node == root since it might be a newly-created
+		// detached node
 		verify(node.lkey == null && node.rkey == null && node.size() >= 1
 		                    || node.size() >= ENT_MIN);
 	}
@@ -1071,7 +1074,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				nextmap = new TreeMap<K, V>();
 
 				Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
-				K prevkey = null;
+				K prevkey = null; // NULLNOTICE
 				int i=0;
 				for (; i<=leftovers; ++i) {
 					// put n entries into a new leaf
@@ -1203,8 +1206,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 								while (!cnode.isLeaf()) {
 									nodestack.push(cnode);
 									itstack.push(centit);
-									// lastkey initialised to null, so this will get the right node even at the
-									// smaller edge of the map
+									// NULLNOTICE lastkey initialised to null, so this will get the right node
+									// even at the smaller edge of the map
 									cnode = cnode.rnodes.get(lastkey);
 									centit = cnode.entries.entrySet().iterator();
 								}
@@ -1218,9 +1221,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 							// we need to find our position in the tree again, since there may have
 							// been structural modifications to it.
 
-							// OPTIMISE have a "structual modifications counter" that
-							// split, merge, rotateL, rotateR increment, and do this only if it
-							// changes
+							// OPTIMISE have a "structual modifications counter" that is incremented by
+							// split, merge, rotateL, rotateR, and do the below only if it changes
 							nodestack.clear();
 							itstack.clear();
 							cnode = BTreeMap.this.root;
@@ -1231,8 +1233,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 								stopkey = findstopkey(stopkey);
 								nodestack.push(cnode);
 								itstack.push(centit);
-								// stopkey initialised to null, so this will get the right node even at the
-								// smaller edge of the map
+								// NULLNOTICE stopkey initialised to null, so this will get the right node
+								// even at the smaller edge of the map
 								cnode = cnode.rnodes.get(stopkey);
 								centit = cnode.entries.entrySet().iterator();
 							}

@@ -20,15 +20,16 @@ index: "suggested tokens" - suggest what other people should tag this index as;
 things around?
 
 
-
-- TODO use try { getResult() } catch { }, and get rid of getError()
-
-- make a CompoundRequest that extends CompoundProgress (and make CompondProgress better and more standard)
+- PRIORITY make a CompoundRequest that extends CompoundProgress (and make CompondProgress better and more standard)
 - and it will have "getSubRequests" should go
 
 - how to implement getSubStage* in Search, and how to put it back into
 FindRequest
 - implement nice version of finalTotalEstimate() in FindRequest and Search
+
+
+
+------------
 
 
 
