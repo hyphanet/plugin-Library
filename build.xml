@@ -10,10 +10,17 @@
 	<property name="build" location="build/"/>
 	<property name="build-test" location="build-test/"/>
 	<property name="run-test" location="run-test/"/>
+	<property name="tmp" location="tmp/"/>
 	<property name="dist" location="dist/"/>
 	<property name="javadoc" location="javadoc/"/>
 	<property name="junit.location" value="/usr/share/java/junit.jar"/>
 	<property name="packagebase" value="plugins.Library" />
+
+	<property name="SnakeYAML.mirror" value="http://snakeyaml.googlecode.com/files/SnakeYAML-all-1.3.zip" />
+	<property name="SnakeYAML.md5" value="c7cc57854c70a39533877f475ca1954d" />
+	<property name="SnakeYAML.sha" value="10996d5ed81185bd87a558531397e53aebe06594" />
+	<property name="SnakeYAML-jar" location="lib/SnakeYAML-1.3.jar"/>
+
 	<available file="src/plugins/Library/Version.java" property="version.present"/>
 	<available file="${junit.location}" property="junit.present"/>
 
@@ -22,6 +29,8 @@
 		<mkdir dir="${build-test}"/>
 		<mkdir dir="${run-test}"/>
 		<mkdir dir="${dist}"/>
+		<mkdir dir="${tmp}"/>
+		<mkdir dir="lib/"/>
 		<echo message="Using ${freenet-cvs-snapshot.location} as freenet-cvs-snapshot.jar"/>
 		<echo message="Using ${freenet-ext.location} as freenet-ext.jar"/>
 	</target>
@@ -33,8 +42,30 @@
 		</replace>
 	</target>
 
+
+  <available property="SnakeYAML.exist" file="${SnakeYAML-jar}" />
+  <target name="SnakeYAML-get" unless="SnakeYAML.exist" depends="mkdir">
+     <get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/SnakeYAML.zip" />
+       <checksum file="${tmp}/SnakeYAML.zip" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
+       <checksum file="${tmp}/SnakeYAML.zip" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
+       <fail message="SnakeYAML.zip checksum mismatch">
+       <condition>
+         <or>
+           <equals arg1="${SnakeYAMLMD5ok}" arg2="false" />
+           <equals arg1="${SnakeYAMLSHAok}" arg2="false" />
+         </or>
+       </condition>
+     </fail>
+     <unzip src="${tmp}/SnakeYAML.zip" dest="lib/">
+       <patternset>
+         <include name="**/*.jar"/>
+       </patternset>
+       <mapper type="flatten"/>
+     </unzip>
+  </target>
+
 	<!-- ================================================== -->
-	<target name="compile" depends="mkdir,setver" >
+	<target name="compile" depends="mkdir,SnakeYAML-get,setver" >
 		<!-- Create the time stamp -->
 		<tstamp/>
 		<!-- Create the build directory structure used by compile -->
