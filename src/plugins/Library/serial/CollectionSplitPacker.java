@@ -16,6 +16,7 @@ import java.util.ArrayList;
 /**
 ** A {@link SplitPacker} of {@link Collection}s.
 **
+** @deprecated {@link SplitPacker} is deprecated
 ** @author infinity0
 */
 public class CollectionSplitPacker<K, T extends Collection>

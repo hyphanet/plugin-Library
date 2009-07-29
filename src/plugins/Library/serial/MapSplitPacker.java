@@ -16,6 +16,7 @@ import java.util.ArrayList;
 ** A {@link SplitPacker} of {@link Map}s. It keeps track of the first keys of each
 ** partition. (TODO maybe explicitly make this use SortedMap and firstKey()?)
 **
+** @deprecated {@link SplitPacker} is deprecated
 ** @author infinity0
 */
 public class MapSplitPacker<K, T extends Map>

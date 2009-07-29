@@ -21,10 +21,22 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
-** {@link MapSerialiser} that packs a map into an array of fixed-capacity bins,
-** with at most one bin half full or less.
+** {@link MapSerialiser} that packs a map of weighable elements (eg. elements
+** with "size") into a group of fixed-capacity bins, with at most one bin half
+** full or less. If any elements are heavier than the capacity of one bin, it
+** is split across the minimum number of bins needed to hold it.
 **
+** This class is deprecated because:
+** * The Bin implementation is not brilliant.
+** * The metadata handling system is a mess.
+** * The splitting overcomplicates things and is not scalable nor randomaccess.
+**
+** Use {@link Packer} to pack the roots of {@link SkeletonBTreeMap}s instead of
+** using this class to pack arbitrary-sized elements.
+**
+** @deprecated
 ** @author infinity0
+** @see Packer
 */
 abstract public class SplitPacker<K, T>
 implements MapSerialiser<K, T>,
