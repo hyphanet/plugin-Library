@@ -105,7 +105,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	public void testBasicMulti() throws TaskAbortException {
-		int n = 2;
+		int n = 0;//8;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
 			fullInflate();
@@ -170,6 +170,7 @@ public class BIndexTest extends TestCase {
 	}
 */
 
+/*
 	public void testProgress() throws TaskAbortException {
 		newTestSkeleton();
 
@@ -221,18 +222,6 @@ public class BIndexTest extends TestCase {
 			try { Thread.sleep(1000); } catch (InterruptedException x) { }
 		}
 
-	}
-
-/*
-	public void pollProgress(Object key, Progress p) {
-		int d; int t; boolean f;
-		do {
-			d = p.partsDone();
-			t = p.partsTotal();
-			f = p.isTotalFinal();
-			System.out.println(key + ": " + d + "/" + t + (f? "": "???"));
-			try { Thread.sleep(1000); } catch (InterruptedException x) { }
-		} while (!f || d != t);
 	}
 */
 

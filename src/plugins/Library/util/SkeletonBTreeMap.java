@@ -262,7 +262,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	}
 
 	@Override public void deflate(K key) throws TaskAbortException {
-		// TODO
+		// TODO code this, deflate(K)
 	}
 
 	@Override public void inflate(K key) throws TaskAbortException {

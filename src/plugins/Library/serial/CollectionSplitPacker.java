@@ -14,12 +14,13 @@ import java.util.Comparator;
 import java.util.ArrayList;
 
 /**
-** A {@link Packer} of {@link Collection}s.
+** A {@link SplitPacker} of {@link Collection}s.
 **
+** @deprecated {@link SplitPacker} is deprecated
 ** @author infinity0
 */
-public class CollectionPacker<K, T extends Collection>
-extends Packer<K, T>
+public class CollectionSplitPacker<K, T extends Collection>
+extends SplitPacker<K, T>
 implements MapSerialiser<K, T> {
 
 	final protected static Comparator<Collection> BinElementComparator = new IdentityComparator<Collection>() {
@@ -31,12 +32,12 @@ implements MapSerialiser<K, T> {
 		}
 	};
 
-	public CollectionPacker(IterableSerialiser<Map<K, T>> s, int c, Class<? extends T> cc) {
+	public CollectionSplitPacker(IterableSerialiser<Map<K, T>> s, int c, Class<? extends T> cc) {
 		super(s, c, BinElementComparator, cc);
 	}
 
 	/*========================================================================
-	  abstract public class Packer
+	  abstract public class SplitPacker
 	 ========================================================================*/
 
 	@Override protected T newPartitionOf(Iterator it, int max) {

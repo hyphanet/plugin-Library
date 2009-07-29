@@ -6,23 +6,56 @@ package plugins.Library.serial;
 import plugins.Library.serial.Serialiser.*;
 import plugins.Library.util.IdentityComparator;
 
+import java.util.Collections;
 import java.util.Collection;
+import java.util.Iterator;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
-import java.util.Iterator;
-import java.util.Comparator;
 import java.util.SortedSet;
-import java.util.SortedMap;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
-** {@link MapSerialiser} that packs a map into an array of fixed-capacity bins,
-** with at most one bin half full or less.
+** {@link MapSerialiser} that packs a map of weighable elements (eg. elements
+** with "size") into a group of fixed-capacity bins. There are two main modes
+** of operation:
+**
+** ; {@link #no_tiny} is {@code false} :
+**   Uses the Best-Fit Decreasing bin-packing algorithm, plus an additional
+**   redistribution algorithm that "evens out" the bins. Each bin will weigh
+**   between BIN_CAP / 2 and BIN_CAP inclusive, except for at most one bin.
+** ; {@link #no_tiny} is {@code true} :
+**   Same as above, but if the exceptional bin exists, it will be merged with
+**   the next-smallest bin, if that exists. As before, each bin will weigh
+**   between BIN_CAP / 2 and BIN_CAP inclusive, except for the merged element
+**   (if it exists), which will weigh between BIN_CAP and BIN_CAP * 3/2
+**   exclusive.
+**
+** In addition to this, there is an {@link #aggression} attribute that affects
+** the speed vs. optimality of the packing.
+**
+** The class requires that the weights of each element is never greater than
+** BIN_CAP, so that an element can always totally fit into an additional bin;
+** {@link IllegalArgumentException} will be thrown when elements that violate
+** this are encountered.
+**
+** This class is useful for packing together a collection of root B-tree nodes.
+**
+** To implement this class, the programmer needs to implement:
+**
+** * {@link #newScale(Map)}
+** * {@link Scale} (by implementing {@link Scale#weigh(Object)})
+**
+** The programmer might also wish to override the following:
+**
+** * {@link #makeBinMeta(Object, Object)}
+** * {@link #readBinMetaID(Object)}
+**
+** depending on the format of the metadata that the child serialiser expects.
 **
 ** @author infinity0
 */
@@ -30,25 +63,20 @@ abstract public class Packer<K, T>
 implements MapSerialiser<K, T>,
            Serialiser.Composite<IterableSerialiser<Map<K, T>>> {
 
-	/**
-	** The maximum load a bin can hold.
-	*/
-	final protected int capacity;
+	final protected int BIN_CAP;
+	final protected int BIN_CAPHF;
+	final protected boolean no_tiny;
 
 	/**
-	** Half of the capacity.
+	** How aggressive the bin-packing algorithm is. Eg. will it load bins that
+	** are not already loaded, to perform better optimisation?
+	**
+	** ;0 : discount all unloaded bins (unrecommended)
+	** ;1 (default) : discount all unchanged bins after the BFD step
+	** ;2 : discount all unchaged bins after the redistribution step
+	** ;3 : load all bins before doing any packing (ie. re-pack from scratch)
 	*/
-	final protected int caphalf;
-
-	/**
-	** An element class which is used to instantiate new elements.
-	*/
-	final protected Class<? extends T> elementClass;
-
-	/**
-	** Descending comparator for bin elements.
-	*/
-	final protected Comparator<? super T> binElementComparator;
+	private Integer aggression = 1;
 
 	/**
 	** DOCUMENT
@@ -57,512 +85,685 @@ implements MapSerialiser<K, T>,
 	public IterableSerialiser<Map<K, T>> getChildSerialiser() { return subsrl; }
 
 	/**
-	** DOCUMENT
+	** Constructs a Packer with the given parameters
 	**
-	** @param cc A class with a nullary constructor that is used to instantiate
-	**           new elements of bins. This argument may be null if a subclass
-	**           overrides {@link #newElement()}.
+	** @param s The child serialiser
+	** @param c The maximum weight of a bin
+	** @param n Whether to merge or overlook the "tiny" element
 	*/
-	public Packer(IterableSerialiser<Map<K, T>> s, int c, Comparator<? super T> binElemComp, Class<? extends T> cc) {
+	public Packer(IterableSerialiser<Map<K, T>> s, int c, boolean n) {
 		if (s == null) {
 			throw new IllegalArgumentException("Can't have a null child serialiser");
 		}
 		if (c <= 0) {
 			throw new IllegalArgumentException("Capacity must be greater than zero.");
 		}
-		try {
-			if (cc != null) { cc.newInstance(); }
-		} catch (InstantiationException e) {
-			throw new IllegalArgumentException("Cannot instantiate class. Make sure it has a nullary constructor.", e);
-		} catch (IllegalAccessException e) {
-			throw new IllegalArgumentException("Cannot instantiate class. Make sure you have access to it.", e);
-		}
 		subsrl = s;
-		capacity = c;
-		caphalf = c>>1;
-		elementClass = cc;
-		binElementComparator = binElemComp;
+		BIN_CAP = c;
+		BIN_CAPHF = c>>1;
+		no_tiny = n;
 	}
 
 	/**
-	** Creates a new bin with the appropriate settings for this packer.
+	** Constructs a Packer with the given parameters and {@link #no_tiny}
+	** set to {@code true}.
 	*/
-	protected Bin newBin(int index) {
-		return new Bin(capacity, index, this);
+	public Packer(IterableSerialiser<Map<K, T>> s, int c) {
+		this(s, c, true);
 	}
 
 	/**
-	** Creates a new bin element from the class passed into the constructor.
+	** Atomically set the {@link #aggression}.
 	*/
-	protected T newElement() {
-		if (elementClass == null) {
-			throw new IllegalStateException("Packer cannot create element: No class was given to the constructor, but newElement() was not overriden.");
-		}
-		try {
-			return elementClass.newInstance();
-		} catch (InstantiationException e) {
-			return null; // constructor should prevent this from ever happening, but the compiler bitches.
-		} catch (IllegalAccessException e) {
-			return null; // constructor should prevent this from ever happening, but the compiler bitches.
+	public void setAggression(int i) {
+		synchronized (aggression) {
+			aggression = i;
 		}
 	}
 
 	/**
-	** Creates a new partition a bin element, given an iterator through the
-	** element and the number of items to add to the partition.
-	**
-	** @param i An iterator through the items of the element
-	** @param num Number of items in the partition
-	** @return The partition
+	** Atomically get the {@link #aggression}.
 	*/
-	abstract protected T newPartitionOf(Iterator i, int num);
-
-	/**
-	** Adds the items of a partition of an element to the object representing
-	** the whole element.
-	**
-	** @param element The parent element
-	** @param partition The partition containing the items to add
-	*/
-	abstract protected void addPartitionTo(T element, T partition);
-
-	/**
-	** Returns an iterator over a bin element, that can be passed to {@link
-	** #newPartitionOf(Iterator, int)}.
-	*/
-	abstract protected Iterable iterableOf(T element);
-
-	/**
-	** Returns the size of a bin element.
-	*/
-	abstract protected int sizeOf(T element);
-
-	/**
-	** Any tasks that need to be done after the bin tasks have been formed,
-	** but before they have been passed to the child serialiser. The default
-	** implementation does nothing.
-	*/
-	protected void preprocessPullBins(Map<K, PullTask<T>> tasks, Collection<PullTask<Map<K, T>>> bintasks) { }
-
-	/**
-	** Any tasks that need to be done after the bin tasks have been formed,
-	** but before they have been passed to the child serialiser. The default
-	** implementation does nothing.
-	*/
-	protected void preprocessPushBins(Map<K, PushTask<T>> tasks, Collection<PushTask<Map<K, T>>> bintasks) { }
-
-	/**
-	** Given partition and its containing bin, register its details with the
-	** given metadata.
-	**
-	** This implementation assumes the metadata map contains "size" and "bins"
-	** keys mapping to to {@link List}<{@link Integer}>s, and adds the
-	** partition's size and the bin's index to these lists, respectively.
-	*/
-	protected void addBinToMeta(Map<String, Object> meta, T partition, Object binindex) {
-		List<Integer> size = (List<Integer>)meta.get("size");
-		if (size == null) { meta.put("size", size = new ArrayList<Integer>()); }
-		size.add(sizeOf(partition));
-
-		List<Object> bins = (List<Object>)meta.get("bins");
-		if (bins == null) { meta.put("bins", bins = new ArrayList<Object>()); }
-		bins.add(binindex);
+	public int getAggression() {
+		synchronized (aggression) {
+			return aggression;
+		}
 	}
 
 	/**
-	** Given a map of metadata, retrieve the list of bins that it describes.
+	** Constructs a {@link Scale} that measures the given map of elements.
 	*/
-	protected List<Object> getBinsFromMeta(Map<String, Object> meta) {
-		Object list = meta.get("bins");
-		return (List<Object>)list;
+	abstract public Scale<K, T> newScale(Map<K, ? extends Task<T>> elems);
+
+	/**
+	** Constructs the metadata for a bin, from the bin ID and the map-wide
+	** metadata.
+	*/
+	public Object makeBinMeta(Object mapmeta, Object binid) {
+		return new Object[]{mapmeta, binid};
 	}
 
 	/**
-	** Given a map of {@link PushTask}s, pack the task data into a set of bins,
-	** partitioning each task data (element) if it it is too big to fit into
-	** a single bin. Each element in each bin is associated with the key of the
-	** original task from which the element was taken. The resulting group of
-	** bins will include at most one bin which is half full or less.
-	**
-	** @param tasks The tasks to pack
-	** @return The bins containing the task data
+	** Read the bin ID from the given bin's metadata.
 	*/
-	public Bin<T, K>[] binPack(Map<K, PushTask<T>> tasks) {
-		///System.out.println("-----");
-		// bin packing algorithm for M-sized bins
-		SortedSet<Bin<T, K>> bins = new TreeSet<Bin<T, K>>();
+	public Object readBinMetaID(Object binmeta) {
+		return ((Object[])binmeta)[1];
+	}
 
-		// placeholder "bin" to put tasks that are caphalf big or less
-		TreeMap<T, K> halftasks = new TreeMap<T, K>(binElementComparator);
+	/**
+	** Creates a new {@link IDGenerator}.
+	*/
+	public IDGenerator generator() {
+		return new IDGenerator();
+	}
 
-		// we have an index for each bin so that we can preserve the ordering of an
-		// element that is split into multiple bins.
-		int binindex = 0;
+	/**
+	** Looks through {@code elems} for {@link PushTask}s with null data and
+	** reads its metadata to determine which bin to add it to.
+	*/
+	protected SortedSet<Bin<K>> initialiseBinSet(SortedSet<Bin<K>> bins, Map<K, PushTask<T>> elems, Scale<K, T> sc, IDGenerator gen) {
 
-		// allocate new bins for all tasks greater than caphalf
-		// the index of bins allocated will preserve the overall ordering of the
-		// components within each element, if an order exists
-		for (Map.Entry<K, PushTask<T>> en: tasks.entrySet()) {
-			// for each task X:
+		Map<Object, Set<K>> binincubator = new HashMap<Object, Set<K>>();
+
+		for (Map.Entry<K, PushTask<T>> en: elems.entrySet()) {
 			PushTask<T> task = en.getValue();
-			if (task.data == null) { task.data = newElement(); }
-			int size = sizeOf(task.data);
-
-			if (size > caphalf) {
-				// if X's size is strictly greater than M/2, then put X into ceil(X/M) bins
-				// in integer division this is (X-1)/M + 1
-				int num = (size-1)/capacity + 1;
-
-				// each bin will have floor(X/num) elements, or 1 more than this
-				int max = size/num;
-				int left = size - num*max;
-				int i=0;
-				Iterator it = iterableOf(task.data).iterator();
-
-				// iterate on the groups with size max+1
-				++max;
-				for (; i<left; ++i) {
-					Bin<T, K> bin = newBin(binindex++);
-					T el = newPartitionOf(it, max);
-					bin.put(el, en.getKey());
-					bins.add(bin);
+			if (task.data == null) {
+				if (task.meta != null) {
+					throw new IllegalArgumentException("Packer error: null data and null meta for key" + en.getKey());
 				}
-				// iterate on the groups with size max
-				--max;
-				for (; i<num; ++i) {
-					Bin<T, K> bin = newBin(binindex++);
-					T el = newPartitionOf(it, max);
-					bin.put(el, en.getKey());
-					bins.add(bin);
-				}
+				Object binID = sc.readMetaID(task.meta);
 
-			} else {
-				// keep track of the other tasks
-				halftasks.put(task.data, en.getKey());
+				Set<K> binegg = binincubator.get(binID);
+				if (binegg == null) {
+					binegg = new HashSet<K>();
+					binincubator.put(binID, binegg);
+				}
+				binegg.add(en.getKey());
 			}
 		}
 
-		// go through the halftasks in descending order and try to fit them
-		// into the bins allocated in the previous stage
-		for (Map.Entry<T, K> en: halftasks.entrySet()) {
-			T el = en.getKey();
-			int size = sizeOf(el);
+		for (Map.Entry<Object, Set<K>> en: binincubator.entrySet()) {
+			bins.add(new Bin(BIN_CAP, sc, gen.registerID(en.getKey()), en.getValue()));
+		}
 
-			// get all bins that can fit task.data, by passing TreeSet.tailSet()
-			// a dummy bin that makes TreeSet generate the correct subset.
-			// TreeSet's implementation of tailSet() should do this efficiently
-			SortedSet<Bin<T, K>> subbins = bins.tailSet(new DummyBin(capacity, capacity - size, this));
+		return bins;
+	}
+
+	/**
+	** Looks through {@code elems} for {@link PushTask}s with non-null data and
+	** packs it into the given collection of bins.
+	**
+	** NOTE: this method assumes the conditions described in the description
+	** for this class. It is up to the calling code to ensure that they hold.
+	*/
+	protected void packBestFitDecreasing(SortedSet<Bin<K>> bins, Map<K, PushTask<T>> elems, Scale<K, T> sc, IDGenerator gen) {
+
+		if (no_tiny && !bins.isEmpty()) {
+			// locate the single bin heavier than BIN_CAP (if it exists), and keep
+			// moving the heaviest element from that bin into another bin, until that
+			// bin weighs more than BIN_CAP / 2 (and both bins will weigh between
+			// BIN_CAP / 2 and BIN_CAP
+
+			// proof that this always succeeds:
+			//
+			// - since we are visiting elements in descending order of weights, we will
+			//   never reach an element that takes the total weight of the second bin
+			//   from strictly less than BIN_CAP / 2 to strictly more than BIN_CAP
+			// - in other words, we will always "hit" our target weight range of
+			//   BIN_CAP / 2 and BIN_CAP, and the other bin will be in this zone too
+			//   (since the single bin would weight between BIN_CAP and BIN_CAP * 3/2
+			//
+			Bin<K> heaviest = bins.first();
+			if (heaviest.filled() > BIN_CAP) {
+				Bin<K> second = new Bin(BIN_CAP, sc, gen.nextID(), null);
+				bins.remove(heaviest);
+				while (second.filled() < BIN_CAPHF) {
+					K key = heaviest.last();
+					heaviest.remove(key);
+					second.add(key);
+				}
+				bins.add(heaviest);
+				bins.add(second);
+			}
+		}
+
+		// heaviest bin is <= BIN_CAP
+		assert(bins.isEmpty() || bins.first().filled() <= BIN_CAP);
+		// 2nd-lightest bin is >= BIN_CAP / 2
+		assert(bins.size() < 2 || bins.headSet(bins.last()).last().filled() >= BIN_CAPHF);
+
+		// sort keys in descending weight order of their elements
+		SortedSet<K> sorted = new TreeSet<K>(Collections.reverseOrder(sc));
+		for (Map.Entry<K, PushTask<T>> en: elems.entrySet()) {
+			if (en.getValue().data != null) {
+				sorted.add(en.getKey());
+			}
+		}
+
+		// go through the sorted set and try to fit the keys into the bins
+		for (K key: sorted) {
+			int weight = sc.getWeight(key);
+
+			// get all bins that can fit the key; tailSet() should do this efficiently
+			SortedSet<Bin<K>> subbins = bins.tailSet(new DummyBin(BIN_CAP, BIN_CAP - weight));
 
 			if (subbins.isEmpty()) {
 				// if no bin can fit it, then start a new bin
-				Bin<T, K> bin = newBin(binindex++);
-				bin.put(el, en.getValue());
-				// TODO perhaps we should clone the data, to be consistent with the above
+				Bin<K> bin = new Bin(BIN_CAP, sc, gen.nextID(), null);
+				bin.add(key);
 				bins.add(bin);
 
 			} else {
-				// find the fullest bin that can fit X
-				Bin<T, K> lowest = subbins.first();
+				// get the fullest bin that can fit the key
+				Bin<K> lowest = subbins.first();
 				// TreeSet assumes its elements are immutable.
 				bins.remove(lowest);
-				lowest.put(el, en.getValue());
+				lowest.add(key);
 				bins.add(lowest);
 			}
 		}
 
-		///for (Bin<T, K> bin: bins) {
-		///	System.out.println(bin.filled());
-		///}
+		// heaviest bin is <= BIN_CAP
+		assert(bins.isEmpty() || bins.first().filled() <= BIN_CAP);
+		// 2nd-lightest bin is >= BIN_CAP / 2
+		assert(bins.size() < 2 || bins.headSet(bins.last()).last().filled() >= BIN_CAPHF);
 
-		// at this point, there should be a maximum of one bin which is half-full
-		// or less (if there were two then one of them would have been put into the
-		// other one by the loop, contradiction).
+		if (no_tiny && bins.size() > 1) {
+			// locate the single bin lighter than BIN_CAP / 2 (if it exists), and
+			// combine it with the next smallest bin
+			Bin<K> lightest = bins.last();
+			if (lightest.filled() < BIN_CAPHF) {
+				bins.remove(lightest);
+				Bin<K> second = bins.last();
+				bins.remove(second);
+				for (K k: lightest) {
+					second.add(k);
+				}
+				bins.add(second);
+			}
+		}
+	}
+
+	/**
+	** Given a group of bins, attempts to redistribute the items already
+	** contained within them to make the weights more even.
+	*/
+	protected void redistributeWeights(SortedSet<Bin<K>> bins, Scale<K, T> sc) {
 
 		// keep track of bins we have finalised
-		//List<Bin<T, K>> binsFinal = new ArrayList<Bin<T, K>>(bins.size());
-		Bin<T, K>[] binsFinal = (Bin<T, K>[])new Bin[bins.size()];
+		List<Bin<K>> binsFinal = new ArrayList<Bin<K>>(bins.size());
 
-		// special case
-		if (bins.size() == 0) { return binsFinal; }
+		// special cases
+		if (bins.size() < 2) { return; }
 
-		// let S point to the most empty bin
-		Bin<T, K> smallest = bins.last();
-		bins.remove(smallest);
+		// proof that the algorithm halts:
+		//
+		// - let D be the weight difference between the heaviest and lightest bins
+		// - let N be the set containing all maximum and minimum bins
+		// - at each stage of the algorithm, |N| strictly decreases, since the
+		//   selected bin pair is either strictly "evened out", or its heavier
+		//   member is discarded
+		// - when |N| decreases to 0, D strictly decreases, and we get a new N
+		// - D is bounded-below by 0
+		// - hence the algorithm terminates
+		//
+		Bin<K> lightest = bins.last();
+		while (!bins.isEmpty()) {
+			// we don't need to find the lightest bin every time
+			Bin<K> heaviest = bins.first();
+			bins.remove(heaviest);
+			int weightdiff = heaviest.filled() - lightest.filled();
 
-		// TODO maybe only do the below loop if smallest.filled() <= caphalf
-		int i = 0;
-		int maxsteps = tasks.size() * bins.size();
-		// stop when the queue is empty, or when the loop has run for more than
-		// (number of elements * number of bins) iterations. (I cba working out
-		// whether the algorithm halts or not, but each step of the loop serves to
-		// "even out" the bins more than the last step, so the algorithm tends to
-		// an optimal solution.)
-		while (!bins.isEmpty() && i++ < maxsteps) {
-			// pop the fullest bin, call this F
-			Bin<T, K> fullest = bins.first();
-			bins.remove(fullest);
+			// get the lightest element
+			K feather = heaviest.first();
+			if (sc.getWeight(feather) < weightdiff) {
+				// can be strictly "evened out"
 
-			// get the smallest element
-			T sm = fullest.lastKey();
+				bins.remove(lightest);
 
-			if (sizeOf(sm) < fullest.filled() - smallest.filled()) {
-				// if its size is smaller than the difference between the size of F and S
-				// remove it and put it in S
+				heaviest.remove(feather);
+				lightest.add(feather);
+				bins.add(heaviest);
+				bins.add(lightest);
 
-					smallest.put(sm, fullest.remove(sm));
-
-					if (fullest.filled() < smallest.filled()) {
-						// if this makes F become smaller than S, then push S's referent back onto
-						// the queue, and point S to this bin
-						bins.add(smallest);
-						smallest = fullest;
-
-					} else {
-						// if F is bigger than S, push F back onto the queue
-						bins.add(fullest);
-					}
+				lightest = bins.last();
 
 			} else {
-				// if there does not exist such an element, then this bin will never take
-				// part in any further activities even if it were to be put back into the
-				// queue (think about it) so leave it off the queue, and mark it as final.
+				// if there does not exist such an element, then it is impossible for the
+				// heaviest bin to be evened out any further, since the loop does not
+				// decrease the load of the lightest bin. so, remove it from the bins set.
 
-				binsFinal[fullest.getIndex()] = fullest;
+				binsFinal.add(heaviest);
 			}
+
+			// TODO some tighter assertions than this
+			assert(bins.isEmpty() || bins.first().filled() - bins.last().filled() <= weightdiff);
 		}
 
-		binsFinal[smallest.getIndex()] = smallest;
-		for (Bin<T, K> bin: bins) {
-			binsFinal[bin.getIndex()] = bin;
+		for (Bin<K> bin: binsFinal) {
+			bins.add(bin);
 		}
 
-		return binsFinal;
 	}
 
-	/*========================================================================
-	  public interface MapSerialiser
-	 ========================================================================*/
+	/**
+	** Dicards all the bins which remain unchanged from what they were
+	** initialised to contain. This means that we don't re-push something that
+	** is already pushed.
+	*/
+	protected void discardUnchangedBins(SortedSet<Bin<K>> bins, Map<K, PushTask<T>> elems) {
+		Iterator<Bin<K>> it = bins.iterator();
+		while (it.hasNext()) {
+			Bin<K> bin = it.next();
+			if (bin.unchanged()) {
+				it.remove();
+				for (K key: bin) {
+					elems.remove(key);
+				}
+			}
+		}
+	}
+
+	/**
+	** Pulls all PushTasks with null data. This is used when we need to push a
+	** bin that has been assigned to hold the (unloaded) data of these tasks.
+	*/
+	protected void pullUnloaded(Map<K, PushTask<T>> tasks, Object meta) throws TaskAbortException {
+		Map<K, PullTask<T>> newtasks = new HashMap<K, PullTask<T>>(tasks.size()<<1);
+		for (Map.Entry<K, PushTask<T>> en: tasks.entrySet()) {
+			PushTask<T> task = en.getValue();
+			if (task.data == null) {
+				newtasks.put(en.getKey(), new PullTask<T>(task.meta));
+			}
+		}
+		pull(newtasks, meta);
+		for (Map.Entry<K, PushTask<T>> en: tasks.entrySet()) {
+			PushTask<T> task = en.getValue();
+			PullTask<T> newtask = newtasks.get(en.getKey());
+			if (task.data != null) { continue; }
+			if (newtask == null) {
+				// URGENT bug here... :(
+				// if the data is already being pulled there is no way to retrieve it...
+				// argh... dunno how to fix...
+				throw new TaskAbortException("This will be fixed ASAP...", null);
+			} else if (newtask.data == null) {
+				throw new IllegalStateException("Packer did not get the expected data while pulling unloaded bins; the pull method is buggy.");
+			}
+			task.data = newtask.data;
+			task.meta = newtask.meta;
+		}
+	}
 
 	/**
 	** {@inheritDoc}
 	**
-	** This implementation will pull data for each task in the map with
-	** non-null metadata.
-	**
-	** The child serialiser should process metadata of the form Array[{@link
-	** Object} metadata, {@link Integer} binindex].
+	** This implementation loads all the data for each bin referred to in the
+	** task map, and will add extra tasks to the map if those pulling those
+	** bins result in extra data being loaded.
 	*/
-	@Override public void pull(Map<K, PullTask<T>> tasks, Object meta) throws TaskAbortException {
-		// tasks has form {K:(*,M)}
-		// put all the bins from each task into a list of new tasks for each bin
-		Map<Object, PullTask<Map<K, T>>> bins = new HashMap<Object, PullTask<Map<K, T>>>();
-		for (Map.Entry<K, PullTask<T>> en: tasks.entrySet()) {
-			for (Object o: getBinsFromMeta((Map<String, Object>)en.getValue().meta)) {
-				if (!bins.containsKey(o)) {
-					if (o instanceof Integer) {
-						bins.put(o, new PullTask<Map<K, T>>(new Object[]{meta, (Integer)o}));
-					} else {
-						bins.put(o, new PullTask<Map<K, T>>(o));
+	@Override public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) throws TaskAbortException {
+
+		try {
+			Scale<K, T> sc = newScale(tasks);
+			Map<Object, PullTask<Map<K, T>>> bintasks = new HashMap<Object, PullTask<Map<K, T>>>();
+
+			// put all the bins from each task into a list of new tasks for each bin
+			for (Map.Entry<K, PullTask<T>> en: tasks.entrySet()) {
+				Object binid = sc.readMetaID(en.getValue().meta);
+				if (!bintasks.containsKey(binid)) {
+					bintasks.put(binid, new PullTask<Map<K, T>>(makeBinMeta(mapmeta, binid)));
+				}
+			}
+
+			// pull each bin
+			subsrl.pull(bintasks.values());
+
+			// for each task, grab and remove its element from its bin
+			for (Map.Entry<K, PullTask<T>> en: tasks.entrySet()) {
+				PullTask<T> task = en.getValue();
+				PullTask<Map<K, T>> bintask = bintasks.get(sc.readMetaID(task.meta));
+				if (bintask == null) {
+					// task was marked as redundant by child serialiser
+					tasks.remove(en.getKey());
+				} else if (bintask.data == null || (task.data = bintask.data.remove(en.getKey())) == null) {
+					throw new TaskAbortException("Packer did not find the element (" + en.getKey() + ") in the expected bin (" + sc.readMetaID(task.meta) + "). Either the data is corrupt, or the child serialiser is buggy.", null);
+				}
+			}
+
+			// if there is any leftover data in the bins, load them anyway
+			Map<K, PullTask<T>> leftovers = new HashMap<K, PullTask<T>>();
+			for (Map.Entry<Object, PullTask<Map<K, T>>> en: bintasks.entrySet()) {
+				PullTask<Map<K, T>> bintask = en.getValue();
+				for (Map.Entry<K, T> el: bintask.data.entrySet()) {
+					if (tasks.containsKey(el.getKey())) {
+						throw new TaskAbortException("Packer found an extra unexpected element (" + el.getKey() + ") inside a bin (" + en.getKey() + "). Either the data is corrupt, or the child serialiser is buggy.", null);
+					}
+					PullTask<T> task = new PullTask<T>(sc.makeMeta(en.getKey(), sc.weigh(el.getValue())));
+					task.data = el.getValue();
+					leftovers.put(el.getKey(), task);
+				}
+			}
+			tasks.putAll(leftovers);
+
+		} catch (RuntimeException e) {
+			throw new TaskAbortException("Could not complete the pull operation", e);
+		}
+
+	}
+
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation uses the algorithm described in the... DOCUMENT
+	**
+	** The default generator '''requires''' all keys of the backing map to be
+	** present in the input task map, since the default {@link IDGenerator}
+	** does not have any other way of knowing what bin IDs were handed out in
+	** previous push operations, and it must avoid giving out duplicate IDs.
+	**
+	** You can bypass this requirement by extending {@link IDGenerator} so that
+	** it can work out that information (eg. using an algorithm that generates
+	** a UUID), and overriding {@link #generator()}. (ID generation based on
+	** bin ''content'' is ''not'' supported, and is not a priority at present.)
+	*/
+	@Override public void push(Map<K, PushTask<T>> tasks, Object mapmeta) throws TaskAbortException {
+
+		try {
+			// read local copy of aggression
+			int agg = getAggression();
+
+			IDGenerator gen = generator();
+			Scale<K, T> sc = newScale(tasks);
+			SortedSet<Bin<K>> bins = new TreeSet<Bin<K>>();
+
+			// initialise the binset based on the aggression setting
+			if (agg <= 0) {
+				// discard all tasks with null data
+				Iterator<PushTask<T>> it = tasks.values().iterator();
+				while (it.hasNext()) {
+					PushTask<T> task = it.next();
+					if (task.data == null) {
+						it.remove();
 					}
 				}
+			} else if (agg <= 2) {
+				// initialise already-allocated bins from tasks with null data
+				initialiseBinSet(bins, tasks, sc, gen);
+			} else {
+				// pull all tasks with null data
+				pullUnloaded(tasks, mapmeta);
 			}
-		}
-		Collection<PullTask<Map<K, T>>> bintasks = bins.values();
-		preprocessPullBins(tasks, bintasks);
 
-		// bintasks has form [(*,[meta,I])]
-		// pull each bin
-		subsrl.pull(bintasks);
-		// bintasks has form [({K:T},[meta,I])]
-
-		// for each task, grab and remove its partitions from its bins
-		for (Map.Entry<K, PullTask<T>> en: tasks.entrySet()) {
-			PullTask<T> task = en.getValue();
-			task.data = newElement();
-			for (Object o: getBinsFromMeta((Map<String, Object>)task.meta)) {
-				PullTask<Map<K, T>> bintask = bins.get(o);
-				T partition;
-				if (bintask.data == null || (partition = bintask.data.remove(en.getKey())) == null) {
-					throw new TaskAbortException("Packer did not find the expected partition in the given bin. Either the data is corrupt, or the child serialiser is buggy.", null);
-				}
-				addPartitionTo(task.data, partition);
+			// pack elements into bins
+			packBestFitDecreasing(bins, tasks, sc, gen);
+			if (agg <= 1) {
+				// discard all bins not affected by the pack operation
+				discardUnchangedBins(bins, tasks);
 			}
-		}
 
-		// if there is any leftover data in the bins, load them anyway
-		Map<K, PullTask<T>> leftovers = new HashMap<K, PullTask<T>>();
-		for (PullTask<Map<K, T>> bintask: bintasks) {
-			for (Map.Entry<K, T> en: bintask.data.entrySet()) {
-				if (tasks.containsKey(en.getKey())) {
-					throw new TaskAbortException("Packer found an extra unexpected partition for a bin. Either the data is corrupt, or the child serialiser is buggy.", null);
-				}
-				PullTask<T> task = new PullTask<T>(new HashMap<String, Object>());
-				// set the metadata properly
-				if (bintask.meta instanceof Object[]) {
-					addBinToMeta((Map<String, Object>)task.meta, en.getValue(), ((Object[])bintask.meta)[1]);
-				} else {
-					addBinToMeta((Map<String, Object>)task.meta, en.getValue(), bintask.meta);
-				}
-				task.data = newElement();
-				leftovers.put(en.getKey(), task);
-				addPartitionTo(task.data, en.getValue());
+			// redistribute weights between bins
+			redistributeWeights(bins, sc);
+			if (agg <= 2) {
+				// discard all bins not affected by the redistribution operation
+				discardUnchangedBins(bins, tasks);
+				// pull all data that is as yet unloaded
+				pullUnloaded(tasks, mapmeta);
 			}
+
+			// push all the bins
+			List<PushTask<Map<K, T>>> bintasks = new ArrayList<PushTask<Map<K, T>>>(bins.size());
+			for (Bin<K> bin: bins) {
+				Map<K, T> data = new HashMap<K, T>(bin.size()<<1);
+				for (K k: bin) {
+					data.put(k, tasks.get(k).data);
+				}
+				bintasks.add(new PushTask<Map<K, T>>(data, makeBinMeta(mapmeta, bin.id)));
+			}
+			subsrl.push(bintasks);
+
+			// set the metadata for all the pushed bins
+			for (PushTask<Map<K, T>> bintask: bintasks) {
+				for (K k: bintask.data.keySet()) {
+					tasks.get(k).meta = sc.makeMeta(readBinMetaID(bintask.meta), sc.getWeight(k));
+				}
+			}
+
+		} catch (RuntimeException e) {
+			throw new TaskAbortException("Could not complete the push operation", e);
 		}
-		tasks.putAll(leftovers);
 
 	}
 
-	/**
-	** {@inheritDoc}
-	**
-	** This implementation requires all keys of the subgroup to be present in
-	** the map. It will push data for each task with null metadata. (TODO at
-	** the moment it also requires each task to have null metadata.)
-	**
-	** The child serialiser should process metadata of the form Array[{@link
-	** Object} metadata, {@link Integer} binindex].
-	**
-	** The metadata passed back to the caller is determined by the
-	** implementation of {@link #addBinToMeta}. By default, this is a map of
-	** (a list of bins) and (a list of bin sizes).
-	*/
-	@Override public void push(Map<K, PushTask<T>> tasks, Object meta) throws TaskAbortException {
-		// PRIORITY make binPack() able to try to do bin-packing even when
-		// some of the data is already in a bin. for now just throw this
-		// exception
-		for (Map.Entry<K, PushTask<T>> en: tasks.entrySet()) {
-			if (en.getValue().meta != null) {
-				throw new UnsupportedOperationException("Cannot perform packing when some of the bins are not loaded.");
-			}
-		}
-
-		// tasks has form {K:(T,*)}
-		Bin<T, K>[] bins = binPack(tasks);
-
-		// prepare each task's meta data to hold information about the bins
-		for (PushTask<T> task: tasks.values()) {
-			task.meta = new HashMap<String, Object>();
-		}
-
-		// push the index of each element to its task
-		// at the same time, make a new list of tasks to pass to the next stage
-		Integer i=0;
-		List<PushTask<Map<K, T>>> bintasks = new ArrayList<PushTask<Map<K, T>>>(bins.length);
-		for (Bin<T, K> bin: bins) {
-			assert(bin.getIndex() == i);
-			Map<K, T> taskmap = new HashMap<K, T>(bin.size()<<1);
-
-			for (Map.Entry<T, K> en: bin.entrySet()) {
-				addBinToMeta((Map)tasks.get(en.getValue()).meta, en.getKey(), i);
-				taskmap.put(en.getValue(), en.getKey());
-			}
-
-			bintasks.add(new PushTask<Map<K, T>>(taskmap, new Object[]{meta, i}));
-			++i;
-		}
-		// tasks has form {K:(T,M)} where M is whatever addBinsToMeta() returns
-		preprocessPushBins(tasks, bintasks);
-
-		// bintasks has form [({K:T},[meta,I])]
-		subsrl.push(bintasks);
-		i=0;
-		for (PushTask<Map<K, T>> btask: bintasks) {
-			if (!(btask.meta instanceof Object[])) {
-				for (K key: btask.data.keySet()) {
-					List<Object> binlist = getBinsFromMeta((Map<String, Object>)tasks.get(key).meta);
-					binlist.set(binlist.indexOf(i), btask.meta);
-				}
-			}
-			++i;
-		}
-	}
 
 	/************************************************************************
 	** A class that represents a bin with a certain capacity.
 	**
-	** NOTE: this implementation is incomplete, since we do not override the
-	** remove() methods of the collections and iterators returned by {@link
-	** Map#entrySet()} etc. to also modify the weight, but these are never used
-	** here so it's OK.
+	** NOTE: this implementation is incomplete, since we don't override the
+	** remove() methods of the sets and iterators returned by the subset and
+	** iterator methods, to also recalculate the weight, but these are never
+	** used so it's OK.
 	*/
-	protected static class Bin<T, K> extends TreeMap<T, K> implements Comparable<Bin> {
+	protected static class Bin<K> extends TreeSet<K> implements Comparable<Bin<K>> {
 
+		final protected Object id;
+		final protected Scale<K, ?> scale;
+		final protected Set<K> orig;
 		final protected int capacity;
-		final protected int index;
 
-		// we do this instead of having a non-static class because otherwise
-		// we can't create a new Bin[] in binPack() ("generic array creation")
-		// ideally, Collection and Map should both extend a Sizeable interface
-		// but oh well, java sucks.
-		final protected Packer packer;
+		int weight = 0;
 
-		protected int load;
-
-		public Bin(int c, int i, Packer p) {
-			super(p.binElementComparator);
-			capacity = c;
-			index = i;
-			packer = p;
+		public Bin(int cap, Scale<K, ?> sc, Object i, Set<K> o) {
+			super(sc);
+			capacity = cap;
+			scale = sc;
+			id = i;
+			orig = o;
 		}
 
-		public int getIndex() {
-			return index;
+		public boolean unchanged() {
+			// proper implementations of equals() should not throw NullPointerException
+			// but check null anyway, just in case...
+			return orig != null && equals(orig);
 		}
 
 		public int filled() {
-			return load;
+			return weight;
 		}
 
 		public int remainder() {
-			return capacity - load;
+			return capacity - weight;
 		}
 
-		@Override public K put(T c, K k) {
-			if (!containsKey(c)) { load += packer.sizeOf(c); }
-			return super.put(c, k);
+		@Override public boolean add(K c) {
+			if (super.add(c)) { weight += scale.getWeight(c); return true; }
+			return false;
 		}
 
-		@Override public K remove(Object c) {
-			if (containsKey(c)) { load -= packer.sizeOf((T)c); }
-			return super.remove(c);
+		@Override public boolean remove(Object c) {
+			if (super.remove(c)) { weight -= scale.getWeight((K)c); return true; }
+			return false;
 		}
 
 		/**
-		** Descending comparator for total bin load. Ie. ascending comparator
-		** for total space left.
+		** Descending comparator for total bin load, ie. ascending comparator
+		** for remainding weight capacity. {@link DummyBin}s are treated as the
+		** "heaviest", or "least empty" bin for its weight.
 		*/
-		@Override public int compareTo(Bin bin) {
+		@Override public int compareTo(Bin<K> bin) {
 			if (this == bin) { return 0; }
-			int f1 = filled();
-			int f2 = bin.filled();
+			int f1 = filled(), f2 = bin.filled();
 			if (f1 != f2) { return (f2 > f1)? 1: -1; }
-			return IdentityComparator.comparator.compare(this, bin);
+			return (bin instanceof DummyBin)? -1: IdentityComparator.comparator.compare(this, bin);
 		}
 
 	}
+
 
 	/************************************************************************
-	** A class that pretends to be a bin with a certain capacity and load.
+	** A class that pretends to be a bin with a certain capacity and weight.
 	** This is used when we want a such a bin for some purpose (eg. as an
 	** argument to a comparator) but we don't want to have to populate a real
-	** bin to get the desired load (which might be massive).
+	** bin to get the desired weight (which might be massive).
 	*/
-	protected static class DummyBin<T, K> extends Bin<T, K> {
+	public static class DummyBin<K> extends Bin<K> {
 
-		public DummyBin(int c, int l, Packer p) {
-			super(c, -1, p);
-			load = l;
+		public DummyBin(int cap, int w) {
+			super(cap, null, null, null);
+			weight = w;
 		}
 
-		@Override public K put(T c, K k) {
+		@Override public boolean add(K k) {
 			throw new UnsupportedOperationException("Dummy bins cannot be modified");
 		}
 
-		@Override public K remove(Object c) {
+		@Override public boolean remove(Object c) {
 			throw new UnsupportedOperationException("Dummy bins cannot be modified");
+		}
+
+		/**
+		** {@inheritDoc}
+		*/
+		@Override public int compareTo(Bin<K> bin) {
+			if (this == bin) { return 0; }
+			int f1 = filled(), f2 = bin.filled();
+			if (f1 != f2) { return (f2 > f1)? 1: -1; }
+			return (bin instanceof DummyBin)? IdentityComparator.comparator.compare(this, bin): 1;
+		}
+	}
+
+
+	/************************************************************************
+	** A class that provides a "weight" assignment for each key in a given map,
+	** by reading either the data or the metadata of its associated task.
+	*/
+	abstract public static class Scale<K, T> extends IdentityComparator<K> {
+
+		final protected Map<K, Integer> weights = new HashMap<K, Integer>();
+		final protected Map<K, ? extends Task<T>> elements;
+		final protected int BIN_CAP;
+
+		// TODO maybe ? extends T, or something
+		protected Scale(Map<K, ? extends Task<T>> elem, int cap) {
+			elements = elem;
+			BIN_CAP = cap;
+		}
+
+		/**
+		** Return the weight of the given element.
+		*/
+		abstract public int weigh(T element);
+
+		/**
+		** Read the bin ID from the given metadata.
+		*/
+		public Object readMetaID(Object meta) {
+			return ((Object[])meta)[0];
+		}
+
+		/**
+		** Read the bin weight from the given metadata.
+		*/
+		public int readMetaWeight(Object meta) {
+			return (Integer)((Object[])meta)[1];
+		}
+
+		/**
+		** Construct the metadata for the given bin ID and weight.
+		*/
+		public Object makeMeta(Object id, int weight) {
+			return new Object[]{id, new Integer(weight)};
+		}
+
+		/**
+		** Get the weight assignment for a given key.
+		*/
+		public int getWeight(K key) {
+			Integer i = weights.get(key);
+			if (i == null) {
+				Task<T> task = elements.get(key);
+				if (task == null) {
+					throw new IllegalArgumentException("This scale does not have a weight for " + key);
+				} else if (task.data == null) {
+					i = readMetaWeight(task.meta);
+				} else {
+					i = weigh(task.data);
+				}
+				if (i > BIN_CAP) {
+					throw new IllegalArgumentException("Element greater than the capacity allowed: " + key);
+				}
+				weights.put(key, i);
+			}
+			return i;
+		}
+
+		/**
+		** Compare keys by the weights of the element it maps to. The {@code
+		** null} key is treated as the "lightest" key for its weight.
+		*/
+		public int compare(K k1, K k2) {
+			if (k1 == k2) { return 0; }
+			int a = getWeight(k1), b = getWeight(k2);
+			if (a != b) { return (a < b)? -1: 1; }
+			// treat the null key as the "least" element for its weight
+			return (k1 == null)? -1: (k2 == null)? 1: super.compare(k1, k2);
+		}
+
+		/**
+		** Set the weight for the {@code null} key. This is useful for when
+		** you want to obtain a subset using tailSet() or headSet(), but don't
+		** have a key with the desired weight at hand.
+		*/
+		public K makeDummyObject(int weight) {
+			weights.put(null, weight);
+			return null;
 		}
 
 	}
 
+
+	/************************************************************************
+	** Generates unique IDs for the bins. This generator assigns {@link Long}s
+	** in sequence; registering any type of integer object reference will cause
+	** future automatically-assigned IDs to be greater than that integer.
+	**
+	** This implementation cannot ensure uniqueness of IDs generated (with
+	** respect to ones generated in a previous session), unless they are
+	** explicitly registered using {@link #registerID(Object)}.
+	*/
+	public static class IDGenerator {
+
+		protected long nextID;
+
+		/**
+		** Register an ID that was assigned in a previous session, so the
+		** generator doesn't output that ID again.
+		*/
+		public Object registerID(Object o) {
+			long id;
+			if (o instanceof Integer) {
+				id = (Integer)o;
+			} else if (o instanceof Long) {
+				id = (Long)o;
+			} else if (o instanceof Short) {
+				id = (Short)o;
+			} else if (o instanceof Byte) {
+				id = (Byte)o;
+			} else {
+				return o;
+			}
+			if (id > nextID) {
+				nextID = id+1;
+			}
+			return o;
+		}
+
+		/**
+		** Generate another ID.
+		*/
+		public Long nextID() {
+			return nextID++;
+		}
+
+	}
 
 }

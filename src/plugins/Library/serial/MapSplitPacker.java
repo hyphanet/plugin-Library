@@ -13,13 +13,14 @@ import java.util.Comparator;
 import java.util.ArrayList;
 
 /**
-** A {@link Packer} of {@link Map}s. It keeps track of the first keys of each
+** A {@link SplitPacker} of {@link Map}s. It keeps track of the first keys of each
 ** partition. (TODO maybe explicitly make this use SortedMap and firstKey()?)
 **
+** @deprecated {@link SplitPacker} is deprecated
 ** @author infinity0
 */
-public class MapPacker<K, T extends Map>
-extends Packer<K, T>
+public class MapSplitPacker<K, T extends Map>
+extends SplitPacker<K, T>
 implements MapSerialiser<K, T> {
 
 	final protected static Comparator<Map> BinElementComparator = new IdentityComparator<Map>() {
@@ -31,12 +32,12 @@ implements MapSerialiser<K, T> {
 		}
 	};
 
-	public MapPacker(IterableSerialiser<Map<K, T>> s, int c, Class<? extends T> cc) {
+	public MapSplitPacker(IterableSerialiser<Map<K, T>> s, int c, Class<? extends T> cc) {
 		super(s, c, BinElementComparator, cc);
 	}
 
 	/*========================================================================
-	  abstract public class Packer
+	  abstract public class SplitPacker
 	 ========================================================================*/
 
 	@Override protected T newPartitionOf(Iterator it, int max) {
