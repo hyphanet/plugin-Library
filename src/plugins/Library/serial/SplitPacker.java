@@ -5,6 +5,7 @@ package plugins.Library.serial;
 
 import plugins.Library.serial.Serialiser.*;
 import plugins.Library.util.IdentityComparator;
+import plugins.Library.util.SkeletonBTreeMap;
 
 import java.util.Collection;
 import java.util.List;
@@ -27,9 +28,13 @@ import java.util.TreeSet;
 ** is split across the minimum number of bins needed to hold it.
 **
 ** This class is deprecated because:
+**
 ** * The Bin implementation is not brilliant.
 ** * The metadata handling system is a mess.
 ** * The splitting overcomplicates things and is not scalable nor randomaccess.
+**
+** (The first two could in theory be fixed by copying the relevant code from
+** {@link Packer} but the third point is an inherent flaw of this class.)
 **
 ** Use {@link Packer} to pack the roots of {@link SkeletonBTreeMap}s instead of
 ** using this class to pack arbitrary-sized elements.

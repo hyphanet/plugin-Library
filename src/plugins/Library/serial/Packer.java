@@ -30,9 +30,10 @@ import java.util.TreeSet;
 **   between BIN_CAP / 2 and BIN_CAP inclusive, except for at most one bin.
 ** ; {@link #no_tiny} is {@code true} :
 **   Same as above, but if the exceptional bin exists, it will be merged with
-**   the next-smallest bin. As before, each bin will weigh between BIN_CAP / 2
-**   and BIN_CAP inclusive, except for the merged element (if it exists), which
-**   will weigh between BIN_CAP and BIN_CAP * 3/2 exclusive.
+**   the next-smallest bin, if that exists. As before, each bin will weigh
+**   between BIN_CAP / 2 and BIN_CAP inclusive, except for the merged element
+**   (if it exists), which will weigh between BIN_CAP and BIN_CAP * 3/2
+**   exclusive.
 **
 ** In addition to this, there is an {@link #aggression} attribute that affects
 ** the speed vs. optimality of the packing.
@@ -44,12 +45,17 @@ import java.util.TreeSet;
 **
 ** This class is useful for packing together a collection of root B-tree nodes.
 **
-** To implement this class, the programmer must implement:
+** To implement this class, the programmer needs to implement:
 **
 ** * {@link #newScale(Map)}
 ** * {@link Scale} (by implementing {@link Scale#weigh(Object)})
+**
+** The programmer might also wish to override the following:
+**
 ** * {@link #makeBinMeta(Object, Object)}
 ** * {@link #readBinMetaID(Object)}
+**
+** depending on the format of the metadata that the child serialiser expects.
 **
 ** @author infinity0
 */
@@ -57,14 +63,13 @@ abstract public class Packer<K, T>
 implements MapSerialiser<K, T>,
            Serialiser.Composite<IterableSerialiser<Map<K, T>>> {
 
-
 	final protected int BIN_CAP;
 	final protected int BIN_CAPHF;
 	final protected boolean no_tiny;
 
 	/**
 	** How aggressive the bin-packing algorithm is. Eg. will it load bins that
-	** are not loaded, to perform better optimisation?
+	** are not already loaded, to perform better optimisation?
 	**
 	** ;0 : discount all unloaded bins (unrecommended)
 	** ;1 (default) : discount all unchanged bins after the BFD step
@@ -93,13 +98,6 @@ implements MapSerialiser<K, T>,
 		if (c <= 0) {
 			throw new IllegalArgumentException("Capacity must be greater than zero.");
 		}
-		/*try {
-			if (cc != null) { cc.newInstance(); }
-		} catch (InstantiationException e) {
-			throw new IllegalArgumentException("Cannot instantiate class. Make sure it has a nullary constructor.", e);
-		} catch (IllegalAccessException e) {
-			throw new IllegalArgumentException("Cannot instantiate class. Make sure you have access to it.", e);
-		}*/
 		subsrl = s;
 		BIN_CAP = c;
 		BIN_CAPHF = c>>1;
@@ -141,12 +139,16 @@ implements MapSerialiser<K, T>,
 	** Constructs the metadata for a bin, from the bin ID and the map-wide
 	** metadata.
 	*/
-	abstract public Object makeBinMeta(Object mapmeta, Object binid);
+	public Object makeBinMeta(Object mapmeta, Object binid) {
+		return new Object[]{mapmeta, binid};
+	}
 
 	/**
 	** Read the bin ID from the given bin's metadata.
 	*/
-	abstract public Object readBinMetaID(Object binmeta);
+	public Object readBinMetaID(Object binmeta) {
+		return ((Object[])binmeta)[1];
+	}
 
 	/**
 	** Creates a new {@link IDGenerator}.
@@ -196,7 +198,7 @@ implements MapSerialiser<K, T>,
 	*/
 	protected void packBestFitDecreasing(SortedSet<Bin<K>> bins, Map<K, PushTask<T>> elems, Scale<K, T> sc, IDGenerator gen) {
 
-		if (no_tiny) {
+		if (no_tiny && !bins.isEmpty()) {
 			// locate the single bin heavier than BIN_CAP (if it exists), and keep
 			// moving the heaviest element from that bin into another bin, until that
 			// bin weighs more than BIN_CAP / 2 (and both bins will weigh between
@@ -226,9 +228,9 @@ implements MapSerialiser<K, T>,
 		}
 
 		// heaviest bin is <= BIN_CAP
-		assert(bins.first().filled() <= BIN_CAP);
+		assert(bins.isEmpty() || bins.first().filled() <= BIN_CAP);
 		// 2nd-lightest bin is >= BIN_CAP / 2
-		assert(bins.headSet(bins.last()).last().filled() >= BIN_CAPHF);
+		assert(bins.size() < 2 || bins.headSet(bins.last()).last().filled() >= BIN_CAPHF);
 
 		// sort keys in descending weight order of their elements
 		SortedSet<K> sorted = new TreeSet<K>(Collections.reverseOrder(sc));
@@ -262,11 +264,11 @@ implements MapSerialiser<K, T>,
 		}
 
 		// heaviest bin is <= BIN_CAP
-		assert(bins.first().filled() <= BIN_CAP);
+		assert(bins.isEmpty() || bins.first().filled() <= BIN_CAP);
 		// 2nd-lightest bin is >= BIN_CAP / 2
-		assert(bins.headSet(bins.last()).last().filled() >= BIN_CAPHF);
+		assert(bins.size() < 2 || bins.headSet(bins.last()).last().filled() >= BIN_CAPHF);
 
-		if (no_tiny) {
+		if (no_tiny && bins.size() > 1) {
 			// locate the single bin lighter than BIN_CAP / 2 (if it exists), and
 			// combine it with the next smallest bin
 			Bin<K> lightest = bins.last();
@@ -335,7 +337,7 @@ implements MapSerialiser<K, T>,
 			}
 
 			// TODO some tighter assertions than this
-			assert(bins.first().filled() - bins.last().filled() <= weightdiff);
+			assert(bins.isEmpty() || bins.first().filled() - bins.last().filled() <= weightdiff);
 		}
 
 		for (Bin<K> bin: binsFinal) {
@@ -378,8 +380,14 @@ implements MapSerialiser<K, T>,
 		for (Map.Entry<K, PushTask<T>> en: tasks.entrySet()) {
 			PushTask<T> task = en.getValue();
 			PullTask<T> newtask = newtasks.get(en.getKey());
+			if (task.data != null) { continue; }
 			if (newtask == null) {
-				throw new IllegalStateException("Packer got unexpected data when pulling unloaded bins; the pull method is buggy.");
+				// URGENT bug here... :(
+				// if the data is already being pulled there is no way to retrieve it...
+				// argh... dunno how to fix...
+				throw new TaskAbortException("This will be fixed ASAP...", null);
+			} else if (newtask.data == null) {
+				throw new IllegalStateException("Packer did not get the expected data while pulling unloaded bins; the pull method is buggy.");
 			}
 			task.data = newtask.data;
 			task.meta = newtask.meta;
