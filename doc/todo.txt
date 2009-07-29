@@ -100,7 +100,6 @@ SkeletonMap<K, V> extends Skeleton<K>
 
 == Schedule ==
 
- - Progress code for Index 1 day
  - Packer for BTreeMap root 1-2 days
  - URI map, 2-3 days
 
@@ -115,7 +114,6 @@ SkeletonMap<K, V> extends Skeleton<K>
 
  - implement WriteableIndex and commit algorithms 4-6 days
  - implement crawler...
-
 
 
 

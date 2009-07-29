@@ -15,8 +15,8 @@ import plugins.Library.serial.IterableSerialiser;
 import plugins.Library.serial.MapSerialiser;
 import plugins.Library.serial.LiveArchiver;
 import plugins.Library.serial.ParallelSerialiser;
-import plugins.Library.serial.CollectionPacker;
-import plugins.Library.serial.MapPacker;
+import plugins.Library.serial.CollectionSplitPacker;
+import plugins.Library.serial.MapSplitPacker;
 import plugins.Library.serial.Progress;
 import plugins.Library.serial.SimpleProgress;
 import plugins.Library.serial.CompoundProgress;
@@ -234,7 +234,7 @@ implements Archiver<ProtoIndex>,
 
 
 	public static class TermEntrySerialiser
-	extends CollectionPacker<String, SortedSet<TokenEntry>>
+	extends CollectionSplitPacker<String, SortedSet<TokenEntry>>
 	implements MapSerialiser<String, SortedSet<TokenEntry>>,
 	           Serialiser.Trackable<SortedSet<TokenEntry>> {
 

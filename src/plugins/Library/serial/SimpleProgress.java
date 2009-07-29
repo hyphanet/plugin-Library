@@ -19,7 +19,20 @@ package plugins.Library.serial;
 ** addPartDone()} after it.''' Otherwise, if the child serialiser triggers the
 ** aforementioned condition, it will cause other threads blocked on {@code
 ** join()} to unblock and think the task has been completed, before the
-** aforementioned additional processing has occured.
+** aforementioned additional processing has occured. ie:
+**
+** * Parent: [progress is at 8/8, not final]
+** * Parent: subsrl.pullLive(task, progress)
+** * Child: addTotal(8, true); [progress is at 8/16, final]
+** * Child: addPartDone() * 8; [progress is at 16/16, final]
+** * '''all threads blocked on {@link #join()} will unblock'''
+** * Parent: yay, child has done its stuff, now I need to do some extra stuff
+**   to actually complete the task
+** * other threads: "wtf? data's changing randomly!?"
+**
+** (We don't wait for the child serialiser to finish to finalise the total,
+** because we want the total to be finalised as soon as possible. Generally, we
+** let the leaf serialiser finalise the total.)
 **
 ** TODO perhaps synchronize
 **
@@ -56,7 +69,7 @@ public class SimpleProgress implements Progress {
 				total += parts;
 				totalfinal = true;
 			} else {
-				throw new IllegalStateException("Total already finalised");
+				throw new IllegalArgumentException("Total already finalised");
 			}
 		} else {
 			if (!totalfinal) {

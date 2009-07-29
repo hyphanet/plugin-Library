@@ -26,7 +26,7 @@ import java.util.TreeSet;
 **
 ** @author infinity0
 */
-abstract public class Packer<K, T>
+abstract public class SplitPacker<K, T>
 implements MapSerialiser<K, T>,
            Serialiser.Composite<IterableSerialiser<Map<K, T>>> {
 
@@ -63,7 +63,7 @@ implements MapSerialiser<K, T>,
 	**           new elements of bins. This argument may be null if a subclass
 	**           overrides {@link #newElement()}.
 	*/
-	public Packer(IterableSerialiser<Map<K, T>> s, int c, Comparator<? super T> binElemComp, Class<? extends T> cc) {
+	public SplitPacker(IterableSerialiser<Map<K, T>> s, int c, Comparator<? super T> binElemComp, Class<? extends T> cc) {
 		if (s == null) {
 			throw new IllegalArgumentException("Can't have a null child serialiser");
 		}
@@ -85,7 +85,7 @@ implements MapSerialiser<K, T>,
 	}
 
 	/**
-	** Creates a new bin with the appropriate settings for this packer.
+	** Creates a new bin with the appropriate settings for this SplitPacker.
 	*/
 	protected Bin newBin(int index) {
 		return new Bin(capacity, index, this);
@@ -96,7 +96,7 @@ implements MapSerialiser<K, T>,
 	*/
 	protected T newElement() {
 		if (elementClass == null) {
-			throw new IllegalStateException("Packer cannot create element: No class was given to the constructor, but newElement() was not overriden.");
+			throw new IllegalStateException("SplitPacker cannot create element: No class was given to the constructor, but newElement() was not overriden.");
 		}
 		try {
 			return elementClass.newInstance();
@@ -383,7 +383,7 @@ implements MapSerialiser<K, T>,
 				PullTask<Map<K, T>> bintask = bins.get(o);
 				T partition;
 				if (bintask.data == null || (partition = bintask.data.remove(en.getKey())) == null) {
-					throw new TaskAbortException("Packer did not find the expected partition in the given bin. Either the data is corrupt, or the child serialiser is buggy.", null);
+					throw new TaskAbortException("SplitPacker did not find the expected partition in the given bin. Either the data is corrupt, or the child serialiser is buggy.", null);
 				}
 				addPartitionTo(task.data, partition);
 			}
@@ -394,7 +394,7 @@ implements MapSerialiser<K, T>,
 		for (PullTask<Map<K, T>> bintask: bintasks) {
 			for (Map.Entry<K, T> en: bintask.data.entrySet()) {
 				if (tasks.containsKey(en.getKey())) {
-					throw new TaskAbortException("Packer found an extra unexpected partition for a bin. Either the data is corrupt, or the child serialiser is buggy.", null);
+					throw new TaskAbortException("SplitPacker found an extra unexpected partition for a bin. Either the data is corrupt, or the child serialiser is buggy.", null);
 				}
 				PullTask<T> task = new PullTask<T>(new HashMap<String, Object>());
 				// set the metadata properly
@@ -494,11 +494,11 @@ implements MapSerialiser<K, T>,
 		// we can't create a new Bin[] in binPack() ("generic array creation")
 		// ideally, Collection and Map should both extend a Sizeable interface
 		// but oh well, java sucks.
-		final protected Packer packer;
+		final protected SplitPacker packer;
 
 		protected int load;
 
-		public Bin(int c, int i, Packer p) {
+		public Bin(int c, int i, SplitPacker p) {
 			super(p.binElementComparator);
 			capacity = c;
 			index = i;
@@ -549,7 +549,7 @@ implements MapSerialiser<K, T>,
 	*/
 	protected static class DummyBin<T, K> extends Bin<T, K> {
 
-		public DummyBin(int c, int l, Packer p) {
+		public DummyBin(int c, int l, SplitPacker p) {
 			super(c, -1, p);
 			load = l;
 		}

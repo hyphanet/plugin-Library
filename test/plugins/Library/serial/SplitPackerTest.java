@@ -6,7 +6,7 @@ package plugins.Library.serial;
 import junit.framework.TestCase;
 
 import plugins.Library.util.Generators;
-import plugins.Library.serial.Packer.Bin;
+import plugins.Library.serial.SplitPacker.Bin;
 import plugins.Library.serial.Serialiser.*;
 
 import java.util.Map;
@@ -22,10 +22,10 @@ import java.util.HashMap;
 **
 ** @author infinity0
 */
-public class PackerTest extends TestCase {
+public class SplitPackerTest extends TestCase {
 
-	final public static CollectionPacker<String, HashSet> srl = new
-	CollectionPacker<String, HashSet>(new IterableSerialiser<Map<String, HashSet>>() {
+	final public static CollectionSplitPacker<String, HashSet> srl = new
+	CollectionSplitPacker<String, HashSet>(new IterableSerialiser<Map<String, HashSet>>() {
 		public void pull(Iterable<PullTask<Map<String, HashSet>>> t) {}
 		public void push(Iterable<PushTask<Map<String, HashSet>>> t) {}
 		public void pull(PullTask<Map<String, HashSet>> t) {}
