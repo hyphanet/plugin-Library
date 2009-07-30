@@ -277,7 +277,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	/**
 	** This is necessary because Node is a non-static class.
 	*/
-	public <Q, R> NodeTranslator<Q, R> makeNodeTranslator(Translator<K, Q> ktr, Translator<SkeletonTreeMap<K, V>, Map<String, Object>> mtr) {
+	public <Q, R> NodeTranslator<Q, R> makeNodeTranslator(Translator<K, Q> ktr, Translator<SkeletonTreeMap<K, V>, R> mtr) {
 		return new NodeTranslator(ktr, mtr);
 	}
 
@@ -289,7 +289,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	*/
 	public class NodeTranslator<Q, R> implements Translator<SkeletonNode, Map<String, Object>> {
 
+		/**
+		** An optional translator for the keys.
+		*/
 		final Translator<K, Q> ktr;
+
+		/**
+		** An optional translator for the entries map.
+		*/
 		final Translator<SkeletonTreeMap<K, V>, R> mtr;
 
 		public NodeTranslator(Translator<K, Q> k, Translator<SkeletonTreeMap<K, V>, R> m) {
@@ -304,7 +311,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("lkey", (ktr == null)? node.lkey: ktr.app(node.lkey));
 			map.put("rkey", (ktr == null)? node.rkey: ktr.app(node.rkey));
-			map.put("entries", mtr.app((SkeletonTreeMap<K, V>)node.entries));
+			map.put("entries", (mtr == null)? node.entries: mtr.app((SkeletonTreeMap<K, V>)node.entries));
 
 			if (!node.isLeaf()) {
 				List<Object> subnodes = new ArrayList<Object>();
@@ -321,7 +328,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		@Override public SkeletonNode rev(Map<String, Object> map) {
 			try {
-				SkeletonNode node = new SkeletonNode(!map.containsKey("subnodes"), mtr.rev((R)map.get("entries")));
+				SkeletonNode node = new SkeletonNode(!map.containsKey("subnodes"),
+				                                     (mtr == null)? (SkeletonTreeMap<K, V>)map.get("entries")
+				                                                  : mtr.rev((R)map.get("entries")));
 				node.lkey = (ktr == null)? (K)map.get("lkey"): ktr.rev((Q)map.get("lkey"));
 				node.rkey = (ktr == null)? (K)map.get("rkey"): ktr.rev((Q)map.get("rkey"));
 				if (!node.isLeaf()) {
@@ -350,10 +359,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	public static class TreeTranslator<K, V> implements Translator<SkeletonBTreeMap<K, V>, Map<String, Object>> {
 
-		final Translator<K, String> ktr;
-		final Translator<SkeletonTreeMap<K, V>, Map<String, Object>> mtr;
+		final Translator<K, ?> ktr;
+		final Translator<SkeletonTreeMap<K, V>, ?> mtr;
 
-		public TreeTranslator(Translator<K, String> k, Translator<SkeletonTreeMap<K, V>, Map<String, Object>> m) {
+		public TreeTranslator(Translator<K, ?> k, Translator<SkeletonTreeMap<K, V>, ?> m) {
 			ktr = k;
 			mtr = m;
 		}

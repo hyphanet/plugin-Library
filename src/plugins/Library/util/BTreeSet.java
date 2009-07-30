@@ -54,7 +54,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	}
 
 	/**
-	** Protected constructor for use by the {@link SkeletonTreeSet}
+	** Protected constructor for use by the {@link SkeletonBTreeSet}
 	** constructors.
 	*/
 	protected BTreeSet(BTreeMap<E, E> m) {
