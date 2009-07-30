@@ -4,7 +4,6 @@ package plugins.Library.ui;
 import freenet.clients.http.ToadletContext;
 import freenet.keys.FreenetURI;
 import freenet.pluginmanager.PluginRespirator;
-import freenet.support.HTMLEncoder;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;
 import freenet.support.MultiValueTable;
@@ -83,10 +82,10 @@ class MainPage implements WebPage {
 		for (String bm : library.bookmarkKeys()){
 			String bmid = Library.BOOKMARK_PREFIX + bm;
 			if(request.isPartSet(bmid))
-				indexuri += bmid + " ";
+				indexuri += bmid.trim() + " ";
 		}
 		if (request.isPartSet("index"))
-			indexuri += request.getPartAsString("index", 256);
+			indexuri += request.getPartAsString("index", 256).trim();
 		indexuri = indexuri.trim();
 
 		if("".equals(indexuri))
@@ -96,10 +95,10 @@ class MainPage implements WebPage {
 		// get search query
 		if (request.isPartSet("search")){
 			// Start or continue a search
-			query = HTMLEncoder.encode(request.getPartAsString("search", 256));
+			query = request.getPartAsString("search", 256);
 			
 			try {
-				search = library.startSearch(query, indexuri);
+				search = Search.startSearch(query, indexuri);
 			} catch (InvalidSearchException ex) {
 				exceptions.add(ex);
 			} catch (RuntimeException ex){
@@ -124,8 +123,8 @@ class MainPage implements WebPage {
 		// Don't refresh if there is no request option, if it is finished or there is an error to show
 		if(search!=null && !"".equals(search.getQuery()) && !search.isDone() && exceptions.size()<=0){
 			// refresh will GET so use a request id
-			headers.put("Refresh", "1;url="+path()+"?request="+search.hashCode()+ (js ? "&js=on":"") + (showold?"&showold=on":""));
-			contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + (js ? "script.js" : "detect.js")}).addChild("%", "");
+			headers.put("Refresh", "2;url="+path()+"?request="+search.hashCode()+ (js ? "&js=on":"") + (showold?"&showold=on":""));
+			contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + (js ? "script.js" : "detect.js")}).addChild("%", "var url = '"+path()+"/xml?search=" +query+"&index="+indexuri+"&showold="+(showold?"on":"off")+"';\n");
 		}
 		
         // Start of body
@@ -200,43 +199,39 @@ class MainPage implements WebPage {
 		indexuri.trim();
 
 
-		HTMLNode searchDiv = new HTMLNode("div", "id", "searchbar");
+		HTMLNode searchDiv = new HTMLNode("div", new String[]{"id", "style"}, new String[]{"searchbar", "text-align: center;"});
 		HTMLNode searchForm = pr.addFormChild(searchDiv, path(), "searchform");
-			HTMLNode searchTable = searchForm.addChild("table", "width", "100%");
-				HTMLNode searchTop = searchTable.addChild("tr");
-					HTMLNode titleCell = searchTop.addChild("td", new String[]{"rowspan","width"},new String[]{"3","120"});
-						titleCell.addChild("H1", library.plugName);
-					HTMLNode searchcell = searchTop.addChild("td", "width", "400");
-						searchcell.addChild("input", new String[]{"name", "size", "type", "value"}, new String[]{"search", "40", "text", search});
-						searchcell.addChild("input", new String[]{"name", "type", "value", "tabindex"}, new String[]{"find", "submit", "Find!", "1"});
-						if(js)
-							searchcell.addChild("input", new String[]{"type","name"}, new String[]{"hidden","js"});
+			HTMLNode searchBox = searchForm.addChild("div", "style", "display: inline-table; text-align: left; margin: 20px 20px 20px 0px;");
+				searchBox.addChild("#", "Search query:");
+				searchBox.addChild("br");
+				searchBox.addChild("input", new String[]{"name", "size", "type", "value"}, new String[]{"search", "40", "text", search});
+				searchBox.addChild("input", new String[]{"name", "type", "value", "tabindex"}, new String[]{"find", "submit", "Find!", "1"});
+				if(js)
+					searchBox.addChild("input", new String[]{"type","name"}, new String[]{"hidden","js"});
+				// Shows the list of bookmarked indexes TODO show descriptions on mouseover ??
+				HTMLNode indexeslist = searchBox.addChild("ul", "Select indexes");
+				for (String bm : library.bookmarkKeys()){
+					//searchDiv.addChild("%", "<!-- Checking for bm="+bm+" in \""+indexuri+"\" -->");
+					indexeslist.addChild("li")
+						.addChild("input", new String[]{"type", "name", "value", (usedbookmarks.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"checkbox", Library.BOOKMARK_PREFIX+bm, Library.BOOKMARK_PREFIX+bm, "1" } , bm);
+				}
 
-				HTMLNode navList = searchTable.addChild("tr")
-					.addChild("td")
-					.addChild("div", "id", "navbar")
-						.addChild("ul", "id", "navlist");
-							HTMLNode newIndexInput = navList.addChild("li", new String[]{"class", "style"}, new String[]{"index", "display: inline-table;"});
-								newIndexInput.addChild("input", new String[]{"type", "class"}, new String[]{"text", "index"});
-								newIndexInput.addChild("br");
-								newIndexInput.addChild("input", new String[]{"name", "type", "value", "class"}, new String[]{"index", "text", indexuri, "index"});
-							HTMLNode subnavoptions = navList.addChild("li", "style", "display: inline-block; top: 10px; position: relative;", "Options")
-								.addChild("ul", "class", "subnavlist");
-									subnavoptions.addChild("li")
-										.addChild("input", new String[]{"type"}, new String[]{"hidden"}, "Group SSK Editions");
-									subnavoptions.addChild("li")
-										.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", "1"}, "Show older editions");
-									subnavoptions.addChild("li")
-										.addChild("input", new String[]{"type"}, new String[]{"hidden"}, "Sort by relevence");
-							HTMLNode entryindexes = navList.addChild("li", "style", "display: inline-block; top: 10px; position: relative;");
-								entryindexes.addChild("input", "type", "submit");
-								// SHows the list of bookmarked indexes TODO show descriptions on mouseover ??
-								HTMLNode subnavindexes = entryindexes.addChild("ul", "class", "subnavlist", "Select indexes");
-								for (String bm : library.bookmarkKeys()){
-									searchDiv.addChild("%", "<!-- Checking for bm="+bm+" in \""+indexuri+"\" -->");
-									subnavindexes.addChild("li")
-										.addChild("input", new String[]{"type", "name", "value", (usedbookmarks.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"checkbox", Library.BOOKMARK_PREFIX+bm, Library.BOOKMARK_PREFIX+bm, "1" } , bm);
-								}
+			HTMLNode optionsBox = searchForm.addChild("div", "style", "margin: 20px 0px 20px 20px; display: inline-table; text-align: left;", "Options");
+				HTMLNode optionsList = optionsBox.addChild("ul", "class", "subnavlist");
+					//optionsList.addChild("li")
+					//	.addChild("input", new String[]{"type"}, new String[]{"checkbox"}, "Group SSK Editions");
+					optionsList.addChild("li")
+						.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", "1"}, "Show older editions");
+					//optionsList.addChild("li")
+					//	.addChild("input", new String[]{"type"}, new String[]{"checkbox"}, "Sort by relevence");
+				HTMLNode newIndexInput = optionsBox.addChild("div", new String[]{"class", "style"}, new String[]{"index", "display: inline-table;"}, "Add an index:");
+					newIndexInput.addChild("br");
+					newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "Name:");
+					newIndexInput.addChild("input", new String[]{"type", "class"}, new String[]{"text", "index"});
+					newIndexInput.addChild("br");
+					newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "URI:");
+					newIndexInput.addChild("input", new String[]{"name", "type", "value", "class"}, new String[]{"index", "text", indexuri, "index"});
+
 
 
 
@@ -283,6 +278,7 @@ class MainPage implements WebPage {
 	
 	/**
 	 * Draw progress bars and describe progress
+	 * FIXME doesnt seem to be displaying index names for multi searches
 	 * @param request
 	 * @return
 	 */
