@@ -11,6 +11,11 @@ import java.util.SortedMap;
 import java.util.AbstractSet;
 
 
+/**
+** A B-tree set implementation backed by a {@link BTreeMap}. DOCUMENT
+**
+** @author infinity0
+*/
 public class BTreeSet<E> extends AbstractSet<E>
 implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 
@@ -49,10 +54,18 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	}
 
 	/**
-	** Protected constructor for use by the {@link #subSet(Object, Object)}
+	** Protected constructor for use by the {@link SkeletonTreeSet}
+	** constructors.
+	*/
+	protected BTreeSet(BTreeMap<E, E> m) {
+		map = m;
+	}
+
+	/**
+	** Private constructor for use by the {@link #subSet(Object, Object)}
 	** etc. methods.
 	*/
-	protected BTreeSet(SortedMap<E, E> m) {
+	private BTreeSet(SortedMap<E, E> m) {
 		map = m;
 	}
 
@@ -150,6 +163,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	@Override public SortedSet<E> headSet(E to) {
 		return new BTreeSet(map.headMap(to));
 	}
+
 	@Override public SortedSet<E> tailSet(E fr) {
 		return new BTreeSet(map.tailMap(fr));
 	}

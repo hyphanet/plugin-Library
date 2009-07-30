@@ -19,7 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.ArrayList;
 
 /**
-** Skeleton of a BTreeMap. DOCUMENT
+** {@link Skeleton} of a {@link BTreeMap}. DOCUMENT
 **
 ** @author infinity0
 */
@@ -277,16 +277,22 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	/**
 	** This is necessary because Node is a non-static class.
 	*/
-	public NodeTranslator makeNodeTranslator(Translator<K, String> ktr, Translator<SkeletonTreeMap<K, V>, Map<String, Object>> mtr) {
+	public <Q, R> NodeTranslator<Q, R> makeNodeTranslator(Translator<K, Q> ktr, Translator<SkeletonTreeMap<K, V>, Map<String, Object>> mtr) {
 		return new NodeTranslator(ktr, mtr);
 	}
 
-	public class NodeTranslator implements Translator<SkeletonNode, Map<String, Object>> {
+	/**
+	** DOCUMENT
+	**
+	** @param <Q> Target type of key-translator
+	** @param <R> Target type of map-translater
+	*/
+	public class NodeTranslator<Q, R> implements Translator<SkeletonNode, Map<String, Object>> {
 
-		final Translator<K, String> ktr;
-		final Translator<SkeletonTreeMap<K, V>, Map<String, Object>> mtr;
+		final Translator<K, Q> ktr;
+		final Translator<SkeletonTreeMap<K, V>, R> mtr;
 
-		public NodeTranslator(Translator<K, String> k, Translator<SkeletonTreeMap<K, V>, Map<String, Object>> m) {
+		public NodeTranslator(Translator<K, Q> k, Translator<SkeletonTreeMap<K, V>, R> m) {
 			ktr = k;
 			mtr = m;
 		}
@@ -315,9 +321,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		@Override public SkeletonNode rev(Map<String, Object> map) {
 			try {
-				SkeletonNode node = new SkeletonNode(!map.containsKey("subnodes"), mtr.rev((Map<String, Object>)map.get("entries")));
-				node.lkey = (ktr == null)? (K)map.get("lkey"): ktr.rev((String)map.get("lkey"));
-				node.rkey = (ktr == null)? (K)map.get("rkey"): ktr.rev((String)map.get("rkey"));
+				SkeletonNode node = new SkeletonNode(!map.containsKey("subnodes"), mtr.rev((R)map.get("entries")));
+				node.lkey = (ktr == null)? (K)map.get("lkey"): ktr.rev((Q)map.get("lkey"));
+				node.rkey = (ktr == null)? (K)map.get("rkey"): ktr.rev((Q)map.get("rkey"));
 				if (!node.isLeaf()) {
 					List<Object> subnodes = (List<Object>)map.get("subnodes");
 					K lastkey = node.lkey;
