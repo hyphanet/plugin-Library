@@ -50,9 +50,17 @@ implements Request<Collection<URIWrapper>> {
 	private int blocksTotal;
 
 	private static HashMap<String, Search> allsearches = new HashMap<String, Search>();
+	private static HashMap<Integer,Search> searchhashes = new HashMap<Integer, Search>();
+
+
+	private static void storeSearch(Search search){
+		allsearches.put(search.getSubject(), search);
+		searchhashes.put(search.hashCode(), search);
+	}
 
 	/**
 	 * Creates a search for any number of indices, starts and returns the associated Request object
+	 * TODO startSearch with array of indexes
 	 *
 	 * @param search string to be searched
 	 * @param indexuri URI of index(s) to be used
@@ -101,13 +109,19 @@ implements Request<Collection<URIWrapper>> {
 		if(resultOperation==ResultOperation.PHRASE && requests.size()<=2)
 			throw new InvalidSearchException("Phrase operations need more than one term");
 		query = query.toLowerCase(Locale.US).trim();
-		subsearches = new ArrayList(requests);
+		subsearches = new ArrayList();
+		for (Request request : requests) {
+			if(request != null)
+				subsearches.add(request);
+			else
+				throw new NullPointerException("Search cannot encapsulate null");
+		}
 
 		this.query = query;
 		this.indexURI = indexURI;
 		this.resultOperation = resultOperation;
 
-		allsearches.put(subject, this);
+		storeSearch(this);
 		Logger.minor(this, "Created Search object for with subRequests :"+subsearches);
 	}
 
@@ -120,6 +134,8 @@ implements Request<Collection<URIWrapper>> {
 	 */
 	private Search(String query, String indexURI, Request request){
 		super(makeString(query, indexURI));
+		if(request == null)
+			throw new NullPointerException("Search cannot encapsulate null");
 		query = query.toLowerCase(Locale.US).trim();
 		subsearches = new ArrayList();
 		subsearches.add(request);
@@ -127,7 +143,7 @@ implements Request<Collection<URIWrapper>> {
 		this.query = query;
 		this.indexURI = indexURI;
 		this.resultOperation = ResultOperation.UNION;
-		allsearches.put(subject, this);
+		storeSearch(this);
 	}
 
 
@@ -231,13 +247,14 @@ implements Request<Collection<URIWrapper>> {
 	 * @return Search or null if not found
 	 */
 	public static Search getSearch(String search, String indexuri){
+		if(search==null || indexuri==null)
+			return null;
 		search = search.toLowerCase(Locale.US).trim();
 
-		// See if the same search exists
-		if (hasSearch(search, indexuri))
-			return allsearches.get(makeString(search, indexuri));
-		else
-			return null;
+		return allsearches.get(makeString(search, indexuri));
+	}
+	public static Search getSearch(int searchHash){
+		return searchhashes.get(searchHash);
 	}
 
 	/**
@@ -249,10 +266,7 @@ implements Request<Collection<URIWrapper>> {
 	public static boolean hasSearch(String search, String indexuri){
 		if(search==null || indexuri==null)
 			return false;
-		if(allsearches.containsKey(makeString(search, indexuri)))
-			Logger.minor(allsearches.get(makeString(search, indexuri)), search);
-		else
-			Logger.minor(Search.class, makeString(search, indexuri)+" not found");
+		search = search.toLowerCase(Locale.US).trim();
 		return allsearches.containsKey(makeString(search, indexuri));
 	}
 
@@ -268,11 +282,22 @@ implements Request<Collection<URIWrapper>> {
 		return indexURI;
 	}
 
+	/**
+	 * Creates a string which uniquly identifies this Search object for comparison
+	 * and lookup, wont make false positives but can make false negatives as search and indexuri aren't standardised
+	 * 
+	 * @param search
+	 * @param indexuri
+	 * @return
+	 */
 	public static String makeString(String search, String indexuri){
-		return search + "%" + indexuri;
+		return search + "@" + indexuri;
 	}
 
 	@Override
+	/**
+	 * A descriptive string for logging
+	 */
 	public String toString(){
 		return "Search: "+resultOperation+" : "+subject+" : "+subsearches;
 	}
@@ -290,7 +315,7 @@ implements Request<Collection<URIWrapper>> {
 	 */
 	@Override public boolean isDone(){
 		for(Request r : subsearches)
-			if(!r.isDone())
+			if(!r.isDone())	// FIXME got a NULLPointerException here on r i think, need to make sure this doesnt happen
 				return false;
 		return true;
 	}

@@ -29,7 +29,7 @@ public class Library {
 	public static final String BOOKMARK_PREFIX = "bookmark:";
 	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "freenetindex";
 	private static int version = 1;
-	private String plugName = "Library " + getVersion();
+	public final String plugName = "Library " + getVersion();
 
 
 
