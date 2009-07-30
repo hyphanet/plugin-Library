@@ -890,6 +890,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         keys
 	*/
 	@Override public V put(K key, V value) {
+		if (key == null) { throw new UnsupportedOperationException("Sorry, this BTreeMap implementation can't handle null keys, even if the comparator supports it."); }
 		Node node = root, parent = null;
 
 		for (;;) {
@@ -1297,7 +1298,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}*/
 
 	/*========================================================================
-	  public interface Map
+	  public interface SortedMap
 	 ========================================================================*/
 
 	@Override public Comparator<? super K> comparator() {
