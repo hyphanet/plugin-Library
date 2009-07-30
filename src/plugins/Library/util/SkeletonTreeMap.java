@@ -425,14 +425,36 @@ implements SkeletonMap<K, V> {
 
 	@Override public K lastKey() { return loaded.lastKey(); }
 
+	/**
+	** {@inheritDoc}
+	**
+	** Not yet implemented - throws {@link UnsupportedOperationException}
+	*/
 	@Override public SortedMap<K,V> headMap(K toKey) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** Not yet implemented - throws {@link UnsupportedOperationException}
+	*/
 	@Override public SortedMap<K,V> subMap(K fromKey, K toKey) {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** '''THIS IMPLEMENTATION IS INCOMPLETE AND INCORRECT''' and is only
+	** provided as a temporary solution to make {@link SkeletonBTreeMap} work.
+	** That class only needs the keys of the tailmap; not the values, so the
+	** hack is fine.
+	**
+	** Attempting to retrieve any values from this tailmap will result in
+	** incorrect behaviour, specifically, {@code null} will be returned for
+	** non-loaded data, instead of {@link DataNotLoadedException} being thrown.
+	*/
 	@Override public SortedMap<K,V> tailMap(K fromKey) {
 		return super.tailMap(fromKey);
 		// URGENT: this is ONLY here for SkeletonBTreeMap

@@ -1,26 +1,15 @@
-== Dependencies ==
-
-Download SnakeYAML (you need at least 1.3):
-
-  $EXT$ wget "http://snakeyaml.googlecode.com/files/SnakeYAML-all-1.3.zip"
-  $EXT$ unzip SnakeYAML-all-1.3.zip  snakeyaml/target/SnakeYAML-1.3.jar
-  plugin-Library/lib$ ln -s $EXT/snakeyaml/target/SnakeYAML-1.3.jar
-
-Download bliki-doclet, which is a little something I cooked up to have
-mediawiki markup instead of ugly HTML in javadoc comments:
-
-  $EXT$ wget "http://cloud.github.com/downloads/infinity0/bliki-doclet/bliki-doclet_openjdk-6-src-b16-24_apr_2009.jar"
-  plugin-Library/lib$ ln -s $EXT/bliki-doclet*.jar bliki-doclet.jar
-
-(If you don't care about generating pretty javadocs, you can comment out the
-line that starts "<doclet" in build.xml, to make the build process not fail.)
-
 == Build ==
 
-Build and generate javadocs:
+Build:
 
   plugin-Library$ ant
 
-Compile, test and package only:
+== Javadoc ==
 
-  plugin-Library$ ant jar
+If you want to generate Javadocs, download bliki-doclet, which is a little
+something I cooked up to have mediawiki markup instead of ugly HTML in javadoc
+comments, and put it into the doc/ directory:
+
+  $EXT$ wget "http://cloud.github.com/downloads/infinity0/bliki-doclet/bliki-doclet_openjdk-6-src-b16-24_apr_2009.jar"
+  plugin-Library/doc$ ln -s $EXT/bliki-doclet*.jar bliki-doclet.jar
+  plugin-Library$ ant javadoc

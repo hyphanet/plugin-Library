@@ -88,22 +88,22 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	/**
 	** Minimum number of children of each node.
 	*/
-	final protected int NODE_MIN;
+	final public int NODE_MIN;
 
 	/**
 	** Maximum number of children of each node. Equal to {@code NODE_MIN * 2}.
 	*/
-	final protected int NODE_MAX;
+	final public int NODE_MAX;
 
 	/**
 	** Minimum number of entries in each node. Equal to {@code NODE_MIN - 1}.
 	*/
-	final protected int ENT_MIN;
+	final public int ENT_MIN;
 
 	/**
 	** Maximum number of entries in each node. Equal to {@code NODE_MAX - 1}.
 	*/
-	final protected int ENT_MAX;
+	final public int ENT_MAX;
 
 	/**
 	** Comparator for this {@link SortedMap}.
@@ -437,7 +437,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** @throws IllegalStateException if the constraints are not satisfied
 	*/
-	void verifyNodeIntegrity(Node node) {
+	final void verifyNodeIntegrity(Node node) {
 		if (node.entries.isEmpty()) {
 			verify(node == root && node.lkey == null && node.rkey == null);
 			verify(node.isLeaf() && node.rnodes == null && node.lnodes == null);
@@ -483,7 +483,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** @return depth of all leaves
 	** @throws IllegalStateException if the constraints are not satisfied
 	*/
-	int verifyTreeIntegrity(Node node) {
+	final int verifyTreeIntegrity(Node node) {
 		verifyNodeIntegrity(node);
 		if (node.isLeaf()) {
 			return 0;
@@ -505,7 +505,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** @throws IllegalStateException if the constraints are not satisfied
 	*/
-	void verifyTreeIntegrity() {
+	final void verifyTreeIntegrity() {
 		verifyTreeIntegrity(root);
 	}
 
@@ -770,6 +770,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		assert(parent.rnodes.get(skey) == rnode);
 		assert(parent.lnodes.get(skey) == lnode);
 		return mkey;
+	}
+
+	/**
+	** Returns the number of entries contained in the root node.
+	*/
+	public int rootSize() {
+		return root.size();
 	}
 
 	/*========================================================================

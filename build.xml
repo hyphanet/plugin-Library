@@ -16,75 +16,76 @@
 	<property name="junit.location" value="/usr/share/java/junit.jar"/>
 	<property name="packagebase" value="plugins.Library" />
 
-	<property name="SnakeYAML.mirror" value="http://snakeyaml.googlecode.com/files/SnakeYAML-all-1.3.zip" />
-	<property name="SnakeYAML.md5" value="c7cc57854c70a39533877f475ca1954d" />
-	<property name="SnakeYAML.sha" value="10996d5ed81185bd87a558531397e53aebe06594" />
-	<property name="SnakeYAML-jar" location="lib/SnakeYAML-1.3.jar"/>
-
 	<available file="src/plugins/Library/Version.java" property="version.present"/>
 	<available file="${junit.location}" property="junit.present"/>
 
+	<path id="lib.path">
+		<pathelement location="${freenet-ext.location}"/>
+		<pathelement location="${freenet-cvs-snapshot.location}"/>
+		<fileset dir="lib/">
+			<include name="**/*.jar"/>
+		</fileset>
+	</path>
+
+	<!-- ================================================== -->
 	<target name="mkdir">
 		<mkdir dir="${build}"/>
 		<mkdir dir="${build-test}"/>
 		<mkdir dir="${run-test}"/>
 		<mkdir dir="${dist}"/>
-		<mkdir dir="${tmp}"/>
-		<mkdir dir="lib/"/>
 		<echo message="Using ${freenet-cvs-snapshot.location} as freenet-cvs-snapshot.jar"/>
 		<echo message="Using ${freenet-ext.location} as freenet-ext.jar"/>
 	</target>
 
 	<target name="setver" if="version.present">
-		<!-- Update the Version file -->
+		<!-- Update the Version.java file -->
 		<replace file="src/plugins/Library/Version.java">
 			<replacefilter token="@custom@" value="${svn.revision}"/>
 		</replace>
 	</target>
 
+	<target name="build-dep">
+		<mkdir dir="lib/"/>
+		<mkdir dir="${tmp}"/>
+		<ant target="SnakeYAML-get"/>
+		<delete dir="${tmp}"/>
+	</target>
 
-  <available property="SnakeYAML.exist" file="${SnakeYAML-jar}" />
-  <target name="SnakeYAML-get" unless="SnakeYAML.exist" depends="mkdir">
-     <get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/SnakeYAML.zip" />
-       <checksum file="${tmp}/SnakeYAML.zip" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
-       <checksum file="${tmp}/SnakeYAML.zip" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
-       <fail message="SnakeYAML.zip checksum mismatch">
-       <condition>
-         <or>
-           <equals arg1="${SnakeYAMLMD5ok}" arg2="false" />
-           <equals arg1="${SnakeYAMLSHAok}" arg2="false" />
-         </or>
-       </condition>
-     </fail>
-     <unzip src="${tmp}/SnakeYAML.zip" dest="lib/">
-       <patternset>
-         <include name="**/*.jar"/>
-       </patternset>
-       <mapper type="flatten"/>
-     </unzip>
-  </target>
+	<property name="SnakeYAML.mirror" value="http://snakeyaml.googlecode.com/files/SnakeYAML-all-1.3.zip" />
+	<property name="SnakeYAML.md5" value="c7cc57854c70a39533877f475ca1954d" />
+	<property name="SnakeYAML.sha" value="10996d5ed81185bd87a558531397e53aebe06594" />
+	<available property="SnakeYAML.exist" classname="org.yaml.snakeyaml.Yaml" classpathref="lib.path"/>
+	<target name="SnakeYAML-get" unless="SnakeYAML.exist">
+		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/SnakeYAML.zip" />
+		<checksum file="${tmp}/SnakeYAML.zip" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
+		<checksum file="${tmp}/SnakeYAML.zip" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
+		<fail message="SnakeYAML.zip checksum mismatch">
+			<condition>
+				<or>
+					<equals arg1="${SnakeYAMLMD5ok}" arg2="false" />
+					<equals arg1="${SnakeYAMLSHAok}" arg2="false" />
+				</or>
+			</condition>
+		</fail>
+		<unzip src="${tmp}/SnakeYAML.zip" dest="lib/">
+			<patternset>
+				<include name="**/SnakeYAML*.jar"/>
+			</patternset>
+			<mapper type="flatten"/>
+		</unzip>
+	</target>
 
 	<!-- ================================================== -->
-	<target name="compile" depends="mkdir,SnakeYAML-get,setver" >
-		<!-- Create the time stamp -->
+	<target name="compile" depends="mkdir,build-dep,setver" >
 		<tstamp/>
-		<!-- Create the build directory structure used by compile -->
-
-		<javac srcdir="src/" destdir="${build}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
-			<classpath>
-				<pathelement location="${freenet-ext.location}"/>
-				<pathelement location="${freenet-cvs-snapshot.location}"/>
-				<fileset dir="lib/">
-					<include name="**/*.jar"/>
-				</fileset>
-			</classpath>
+		<javac srcdir="src/" destdir="${build}" classpathref="lib.path"
+		debug="on" optimize="on" source="${source-version}" target="${target-version}">
 			<include name="**/*.java"/>
 		</javac>
 	</target>
 
 	<target name="run" depends="dist">
-		<java
-			classname="${packagebase}.ui.TestInterface">
+		<java classname="${packagebase}.ui.TestInterface">
 			<classpath>
 				<pathelement location="../fred/lib/freenet-cvs-snapshot.jar"/>
 				<pathelement location="../fred/lib/freenet-ext.jar"/>
@@ -94,16 +95,11 @@
 	</target>
 
 	<!-- ================================================== -->
-
 	<target name="unit-build" depends="compile" if="junit.present" unless="skip_tests">
 		<javac srcdir="test/" destdir="${build-test}" debug="on" optimize="on" source="1.5">
 			<classpath>
+				<path refid="lib.path"/>
 				<pathelement path="${build}"/>
-				<pathelement location="${freenet-ext.location}"/>
-				<pathelement location="${freenet-cvs-snapshot.location}"/>
-				<fileset dir="lib/">
-					<include name="**/*.jar"/>
-				</fileset>
 				<pathelement location="${junit.location}"/>
 			</classpath>
 			<compilerarg value="-Xlint"/>
@@ -116,13 +112,9 @@
 		<mkdir dir="${run-test}"/>
 		<junit printsummary="yes" fork="yes" haltonfailure="yes" dir="${run-test}" showoutput="yes">
 			<classpath>
+				<path refid="lib.path"/>
 				<pathelement path="${build}"/>
 				<pathelement path="${build-test}"/>
-				<pathelement location="${freenet-ext.location}"/>
-				<pathelement location="${freenet-cvs-snapshot.location}"/>
-				<fileset dir="lib/">
-					<include name="**/*.jar"/>
-				</fileset>
 				<pathelement location="${junit.location}"/>
 			</classpath>
 			<assertions><enable/></assertions>
@@ -154,28 +146,20 @@
 	</target>
 
 	<!-- ================================================== -->
-	<target name="javadoc" description="Generate javadocs for this package.">
-		<javadoc destdir="${javadoc}" author="true" version="true" use="true" private="true">
-			<doclet name="info.bliki.doclet.standard.Standard" path="lib/bliki-doclet.jar"/>
-			<!--<doclet name="com.visural.doclets.markdown.standard.Standard" path="lib/MarkdownDoclet.jar"/>-->
+	<target name="javadoc" description="generate javadocs">
+		<javadoc classpathref="lib.path" destdir="${javadoc}" author="true" version="true" use="true" private="true">
+			<doclet name="info.bliki.doclet.standard.Standard" path="doc/bliki-doclet.jar"/>
+			<!--<doclet name="com.visural.doclets.markdown.standard.Standard" path="doc/MarkdownDoclet.jar"/>-->
 			<fileset dir="src/" defaultexcludes="yes">
 				<include name="**/*.java"/>
 			</fileset>
-			<classpath>
-				<pathelement location="${freenet-ext.location}"/>
-				<pathelement location="${freenet-cvs-snapshot.location}"/>
-				<fileset dir="lib/">
-					<include name="**/*.jar"/>
-				</fileset>
-			</classpath>
 			<link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
-			<link href="http://google-collections.googlecode.com/svn/trunk/javadoc"/>
 			<link href="http://snakeyamlrepo.appspot.com/releases/1.3/site/apidocs"/>
 		</javadoc>
 	</target>
 
 	<!-- ================================================== -->
-	<target name="dist" depends="clean,jar,javadoc" description="generate the distribution">
+	<target name="dist" depends="clean,jar" description="generate the distribution from scratch">
 	</target>
 
 	<!-- ================================================== -->
