@@ -15,28 +15,17 @@ import java.util.Set;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeSet;
 
 /**
-** {@link MapSerialiser} that packs a map of weighable elements (eg. elements
-** with "size") into a group of fixed-capacity bins. There are two main modes
-** of operation:
-**
-** ; {@link #no_tiny} is {@code false} :
-**   Uses the Best-Fit Decreasing bin-packing algorithm, plus an additional
-**   redistribution algorithm that "evens out" the bins. Each bin will weigh
-**   between BIN_CAP / 2 and BIN_CAP inclusive, except for at most one bin.
-** ; {@link #no_tiny} is {@code true} :
-**   Same as above, but if the exceptional bin exists, it will be merged with
-**   the next-smallest bin, if that exists. As before, each bin will weigh
-**   between BIN_CAP / 2 and BIN_CAP inclusive, except for the merged element
-**   (if it exists), which will weigh between BIN_CAP and BIN_CAP * 3/2
-**   exclusive.
-**
-** In addition to this, there is an {@link #aggression} attribute that affects
-** the speed vs. optimality of the packing.
+** {@link MapSerialiser} that packs a map of weighable elements (eg. objects
+** with a {@code size()} method) into a group of fixed-capacity bins. There are
+** two main modes of operation, depending on the value of {@link #no_tiny}; in
+** addition to this, there is an {@link #aggression} attribute that affects
+** the speed vs. optimity of the packing.
 **
 ** The class requires that the weights of each element is never greater than
 ** BIN_CAP, so that an element can always totally fit into an additional bin;
@@ -57,14 +46,40 @@ import java.util.TreeSet;
 **
 ** depending on the format of the metadata that the child serialiser expects.
 **
+** Note that this class effectively '''disables''' the "duplicate" detection of
+** {@link ProgressTracker}: that class uses {@link IdentityHashMap}s to keep
+** track of pull/push requests for given meta/data; but this class dynamically
+** generates the meta/data for each bin on each pull/push request. This should
+** not intefere with correctness (as long as the relevant locks in place); just
+** be slightly inefficient when requests for the same bin are given to any
+** child serialisers that use {@link ProgressTracker} to detect duplicates.
+**
+** If you plan on using a child serialiser that uses some other method to
+** detect duplicates, bear in mind that {@link #pullUnloaded(Map, Object)}
+** actually '''depends''' on said behaviour for correctness; see its source
+** code for more details.
+**
 ** @author infinity0
 */
 abstract public class Packer<K, T>
 implements MapSerialiser<K, T>,
            Serialiser.Composite<IterableSerialiser<Map<K, T>>> {
 
+	/**
+	** Maximum weight of a bin (except one; see {@link #push(Map, Object)} for
+	** details).
+	*/
 	final protected int BIN_CAP;
+
+	/**
+	** {@code BIN_CAP}/2 (or 1/2 less than this, if {@code BIN_CAP} is odd).
+	*/
 	final protected int BIN_CAPHF;
+
+	/**
+	** Whether the "tiny" (weight less than {@code BIN_CAP/2}) bin will be kept
+	** as a separate bin, or merged into the next-smallest.
+	*/
 	final protected boolean no_tiny;
 
 	/**
@@ -78,14 +93,16 @@ implements MapSerialiser<K, T>,
 	*/
 	private Integer aggression = 1;
 
-	/**
-	** DOCUMENT
-	*/
 	final protected IterableSerialiser<Map<K, T>> subsrl;
 	public IterableSerialiser<Map<K, T>> getChildSerialiser() { return subsrl; }
 
 	/**
-	** Constructs a Packer with the given parameters
+	** Constructs a Packer with the given parameters.
+	**
+	** If you are using a child {@link Serialiser} that detects and discards
+	** duplicate pull/push requests using a mechanism '''other''' than the
+	** default {@link ProgressTracker}, please first read the section relating
+	** to this in the class description.
 	**
 	** @param s The child serialiser
 	** @param c The maximum weight of a bin
@@ -107,6 +124,14 @@ implements MapSerialiser<K, T>,
 	/**
 	** Constructs a Packer with the given parameters and {@link #no_tiny}
 	** set to {@code true}.
+	**
+	** If you are using a child {@link Serialiser} that detects and discards
+	** duplicate pull/push requests using a mechanism '''other''' than the
+	** default {@link ProgressTracker}, please first read the section relating
+	** to this in the class description.
+	**
+	** @param s The child serialiser
+	** @param c The maximum weight of a bin
 	*/
 	public Packer(IterableSerialiser<Map<K, T>> s, int c) {
 		this(s, c, true);
@@ -116,6 +141,9 @@ implements MapSerialiser<K, T>,
 	** Atomically set the {@link #aggression}.
 	*/
 	public void setAggression(int i) {
+		if (i < 0 || i > 3) {
+			throw new IllegalArgumentException("Invalid aggression value: only 0,1,2,3 is allowed.");
+		}
 		synchronized (aggression) {
 			aggression = i;
 		}
@@ -140,14 +168,14 @@ implements MapSerialiser<K, T>,
 	** metadata.
 	*/
 	public Object makeBinMeta(Object mapmeta, Object binid) {
-		return new Object[]{mapmeta, binid};
+		return (mapmeta == null)? binid: new Object[]{mapmeta, binid};
 	}
 
 	/**
 	** Read the bin ID from the given bin's metadata.
 	*/
 	public Object readBinMetaID(Object binmeta) {
-		return ((Object[])binmeta)[1];
+		return (binmeta instanceof Object[])? ((Object[])binmeta)[1]: binmeta;
 	}
 
 	/**
@@ -211,7 +239,7 @@ implements MapSerialiser<K, T>,
 			//   from strictly less than BIN_CAP / 2 to strictly more than BIN_CAP
 			// - in other words, we will always "hit" our target weight range of
 			//   BIN_CAP / 2 and BIN_CAP, and the other bin will be in this zone too
-			//   (since the single bin would weight between BIN_CAP and BIN_CAP * 3/2
+			//   (since the single bin would weigh between BIN_CAP and BIN_CAP * 3/2
 			//
 			Bin<K> heaviest = bins.first();
 			if (heaviest.filled() > BIN_CAP) {
@@ -382,12 +410,24 @@ implements MapSerialiser<K, T>,
 			PullTask<T> newtask = newtasks.get(en.getKey());
 			if (task.data != null) { continue; }
 			if (newtask == null) {
-				// URGENT bug here... :(
-				// if the data is already being pulled there is no way to retrieve it...
-				// argh... dunno how to fix...
-				throw new TaskAbortException("This will be fixed ASAP...", null);
+				// this part of the code should never be reached because ProgressTracker
+				// uses IdentityHashMaps, and the object representing the metadata of each
+				// bin is re-created from scratch upon each push/pull operation. so a
+				// child serialiser that extends Serialiser.Trackable should never discard
+				// a pull/push task for a bin as a "duplicate" of another task already in
+				// progress, and hence newtask should never be null.
+
+				// this is an inefficiency that doesn't have an easy workaround due to the
+				// design of the serialiser/progress system, but such cases should be rare.
+				// external locks should prevent any concurrent modification of the bins;
+				// it is not the job of the Serialiser to prevent this (and Serialisers in
+				// general have this behaviour, not just this class).
+
+				// if a future programmer uses a child serialiser that behaves differently,
+				// we throw this exception to warn them:
+				throw new IllegalStateException("The child serialiser should *not* discard (what it perceives to be) duplicate requests for bins. See the class documentation for details.");
 			} else if (newtask.data == null) {
-				throw new IllegalStateException("Packer did not get the expected data while pulling unloaded bins; the pull method is buggy.");
+				throw new IllegalStateException("Packer did not get the expected data while pulling unloaded bins; the pull method (or the child serialiser) is buggy.");
 			}
 			task.data = newtask.data;
 			task.meta = newtask.meta;
@@ -454,7 +494,24 @@ implements MapSerialiser<K, T>,
 	/**
 	** {@inheritDoc}
 	**
-	** This implementation uses the algorithm described in the... DOCUMENT
+	** This implementation will pack all tasks with non-null data into bins,
+	** taking into account bins already allocated (as defined by the tasks with
+	** null data and non-null metadata).
+	**
+	** There are two main modes of operation:
+	**
+	** ; {@link #no_tiny} is {@code false} :
+	**   Uses the Best-Fit Decreasing bin-packing algorithm, plus an additional
+	**   redistribution algorithm that "evens out" the bins. Each bin's weight
+	**   will be between [BIN_CAP/2, BIN_CAP], except for at most one bin.
+	** ; {@link #no_tiny} is {@code true} :
+	**   As above, but if the exceptional bin exists, it will be merged with
+	**   the next-smallest bin, if that exists. As before, each bin will weigh
+	**   between [BIN_CAP/2, BIN_CAP], except for the merged element (if it
+	**   exists), which will weigh between (BIN_CAP, BIN_CAP*3/2).
+	**
+	** In addition to this, the {@link #aggression} attribute will affect when
+	** fully-unloaded unchanged bins are discarded.
 	**
 	** The default generator '''requires''' all keys of the backing map to be
 	** present in the input task map, since the default {@link IDGenerator}

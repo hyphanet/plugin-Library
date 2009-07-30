@@ -23,6 +23,9 @@ import java.util.Map;
 ** Object form of a primitive; an Array, {@link Collection}, or {@link Map},
 ** where the elements are also serialisable as defined here; or a Java Bean.
 **
+** TODO restructure this class, maybe split off into a Serialisers class, or
+** a serial.serialiser package...
+**
 ** @author infinity0
 */
 public interface Serialiser<T> {
