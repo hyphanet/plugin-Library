@@ -1,14 +1,19 @@
 package plugins.Library.ui;
 
 
+import freenet.client.HighLevelSimpleClient;
+import freenet.clients.http.RedirectException;
+import freenet.clients.http.Toadlet;
+import freenet.clients.http.ToadletContext;
+import freenet.clients.http.ToadletContextClosedException;
 import freenet.keys.FreenetURI;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;
-import freenet.support.MultiValueTable;
 import freenet.support.api.HTTPRequest;
+import java.io.IOException;
 import java.net.MalformedURLException;
-import java.util.ArrayList;
+import java.net.URI;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -20,7 +25,6 @@ import plugins.Library.Library;
 import plugins.Library.index.Request;
 import plugins.Library.index.Request.RequestState;
 import plugins.Library.index.URIWrapper;
-import plugins.Library.search.InvalidSearchException;
 import plugins.Library.search.Search;
 import plugins.Library.serial.TaskAbortException;
 
@@ -31,22 +35,32 @@ import plugins.Library.serial.TaskAbortException;
  *
  * @author MikeB
  */
-class MainPage implements WebPage {
+class ProgressPageToadlet extends Toadlet {
 	private final Library library;
 	private final PluginRespirator pr;
 
 	private Search search = null;
-	private ArrayList<Exception> exceptions = new ArrayList();
 	private boolean showold = false;
-	private boolean js = false;
-	private String query = "";
-	private String indexuri = Library.DEFAULT_INDEX_SITE;
-	
 	
 
-	MainPage(Library library, PluginRespirator pr) {
+	ProgressPageToadlet(HighLevelSimpleClient client, Library library, PluginRespirator pr) {
+		super(client);
 		this.library = library;
 		this.pr = pr;
+	}
+
+	@Override
+	public void handleGet(URI uri, final HTTPRequest request, final ToadletContext ctx)
+	throws ToadletContextClosedException, IOException, RedirectException {
+		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
+		Thread.currentThread().setContextClassLoader(Library.class.getClassLoader());
+		try {
+			processGetRequest(request);
+			// write reply
+			writeHTMLReply(ctx, 200, "OK", null, progressxml());
+		} finally {
+			Thread.currentThread().setContextClassLoader(origClassLoader);
+		}
 	}
 
 	/**
@@ -54,123 +68,51 @@ class MainPage implements WebPage {
 	 * request id (for an ongoing request) and formatting parameters
 	 */
 	public void processGetRequest(HTTPRequest request){
-		js = request.isParameterSet("js");
 		showold = request.isParameterSet("showold");
 
 		if (request.isParameterSet("request")){
 			search = Search.getSearch(request.getIntParam("request"));
-			if(search!=null){
-				query = search.getQuery();
-				indexuri = search.getIndexURI();
-				Logger.normal(this, "Refreshing request "+request.getIntParam("request")+" " +query);
-			}
 		}
 	}
-	
+
+
 	/**
-	 * Process a post request
-	 * 
-	 * @see plugins.XMLSpider.WebPage#processPostRequest(freenet.support.api.HTTPRequest,
-	 * freenet.support.HTMLNode)
+	 * Return progress and results on a request in xml format for ajax
+	 * @param searchquery
+	 * @param indexuri
+	 * @param showold
+	 * @return
 	 */
-	public void processPostRequest(HTTPRequest request, HTMLNode contentNode, boolean userAccess ) {
-		js = request.isPartSet("js");
-		showold = request.isPartSet("showold");
-
-
-		// Get index list
-		indexuri = "";
-		for (String bm : library.bookmarkKeys()){
-			String bmid = Library.BOOKMARK_PREFIX + bm;
-			if(request.isPartSet(bmid))
-				indexuri += bmid.trim() + " ";
-		}
-		if (request.isPartSet("index"))
-			indexuri += request.getPartAsString("index", 256).trim();
-		indexuri = indexuri.trim();
-
-		if("".equals(indexuri))
-			indexuri = Library.DEFAULT_INDEX_SITE;
-		
-		
-		// get search query
-		if (request.isPartSet("search")){
-			// Start or continue a search
-			query = request.getPartAsString("search", 256);
-			
+	String progressxml() {
+		HTMLNode resp = new HTMLNode("pagecontent");
+		String progress;
+		// If search is happening, return it's progress
+		if(search!=null){
+			HTMLNode progresstable = new HTMLNode("table", new String[]{"id", "class"}, new String[]{"progress-table", "progress-table"});
+				progresstable.addChild(progressBar(search));
+			progress = progresstable.generate();
+		}else
+			progress = "No search for this, something went wrong";		// FIXME this came up again ??
+		// If it's finished, return it's results
+		if(search != null && search.getState()==RequestState.FINISHED)
 			try {
-				search = Search.startSearch(query, indexuri);
-			} catch (InvalidSearchException ex) {
-				exceptions.add(ex);
-			} catch (RuntimeException ex){
-				exceptions.add(ex);
+				resp.addChild("result", WebUI.resultNodeGrouped(search, showold, true).generate());
+				resp.addChild("progress", "RequestState", "FINISHED", "Search complete");
+			} catch (TaskAbortException ex) {
+				addError(resp.addChild("error", "RequestState",  "ERROR"), ex.getCause());
+			} catch (RuntimeException ex) {
+				addError(resp.addChild("error", "RequestState",  "ERROR"), ex);
 			}
-		}
-
-	}
-
-
-	
-	/**
-	 * Write the search page out
-	 *
-	 * 
-	 * @see plugins.XMLSpider.WebPage#writeContent(freenet.support.api.HTTPRequest,
-	 * freenet.support.HTMLNode)
-	 */
-	public void writeContent(HTMLNode contentNode, MultiValueTable<String, String> headers) {
-		Logger.normal(this, "Writing page for "+ query + " " + search + " " + indexuri);
-		
-		// Don't refresh if there is no request option, if it is finished or there is an error to show or js is enabled
-		if(search!=null && !"".equals(search.getQuery()) && !search.isDone() && exceptions.size()<=0){
-			// refresh will GET so use a request id
-			if(!js)
-				headers.put("Refresh", "2;url="+path()+"?request="+search.hashCode() + (showold?"&showold=on":""));
-			contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
-		}
-
-
-		// Style
-		contentNode.addChild("style", new String[]{"type", "src"}, new String[]{"text/css", path() + "static/stylecss"}, " ");
-		
-        // Start of body
-		contentNode.addChild(searchBox(query, indexuri, js, showold));
-		contentNode.addChild("br");
-
-
-        // Show any errors
-		HTMLNode errorDiv = new HTMLNode("div", "id", "errors");
-		for (Exception exception : exceptions) {
-			addError(errorDiv, exception);
-		}
-		contentNode.addChild(errorDiv);
-
-
-        // If showing a search
-        if(search != null){
-			// show progress
-			contentNode.addChild(progressBox(query, indexuri, search));
-			contentNode.addChild("p");
-
-            // If search is complete show results
-            if (search.getState()==RequestState.FINISHED)
-				try{
-					contentNode.addChild(resultNodeGrouped(search, showold, js));
-				}catch(TaskAbortException ex){
-					addError(errorDiv, ex);
-				}catch(RuntimeException ex){
-					addError(errorDiv, ex);
-				}
-			else
-				contentNode.addChild("div", "id", "results").addChild("#");
-        }
+		else
+			resp.addChild("progress", "RequestState",  (search==null)?"":search.getState().toString(), progress);
+		return "<?xml version='1.0' encoding='ISO-8859-1'?>\n"+resp.generate();
 	}
 
 
 	/**
 	 * Put an error on the page, under node, also draws a big grey box around the error
 	 */
-	public void addError(HTMLNode node, Throwable error){
+	public static void addError(HTMLNode node, Throwable error){
 		HTMLNode error1 = node.addChild("div", "style", "padding:10px;border:5px solid gray;margin:10px", error.toString());
 		for (StackTraceElement ste : error.getStackTrace()){
 			error1.addChild("br");
@@ -178,77 +120,6 @@ class MainPage implements WebPage {
 		}
 		if(error.getCause()!=null)
 			addError(error1, error.getCause());
-	}
-
-
-	/**
-	 * Create search form
-	 * @param search already started
-	 * @param indexuri
-	 * @param js whether js has been detected
-	 * @param showold
-	 * @return
-	 */
-	private HTMLNode searchBox(String search, String indexuri, boolean js, boolean showold){
-		// Put all bookmarked indexes being used into a list and leave others in a string
-		String[] indexes = indexuri.split("[ ;]");
-		Set<String> allbookmarks = library.bookmarkKeys();
-		ArrayList<String> usedbookmarks = new ArrayList();
-		indexuri = "";
-		for (String string : indexes) {
-			if(string.startsWith(Library.BOOKMARK_PREFIX)
-					&& allbookmarks.contains(string.substring(Library.BOOKMARK_PREFIX.length())))
-				usedbookmarks.add(string);
-			else
-				indexuri += string + " ";
-		}
-		indexuri.trim();
-
-
-		HTMLNode searchDiv = new HTMLNode("div", new String[]{"id", "style"}, new String[]{"searchbar", "text-align: center;"});
-		HTMLNode searchForm = pr.addFormChild(searchDiv, path(), "searchform");
-			HTMLNode searchBox = searchForm.addChild("div", "style", "display: inline-table; text-align: left; margin: 20px 20px 20px 0px;");
-				searchBox.addChild("#", "Search query:");
-				searchBox.addChild("br");
-				searchBox.addChild("input", new String[]{"name", "size", "type", "value"}, new String[]{"search", "40", "text", search});
-				searchBox.addChild("input", new String[]{"name", "type", "value", "tabindex"}, new String[]{"find", "submit", "Find!", "1"});
-				if(js)
-					searchBox.addChild("input", new String[]{"type","name"}, new String[]{"hidden","js"});
-				// Shows the list of bookmarked indexes TODO show descriptions on mouseover ??
-				HTMLNode indexeslist = searchBox.addChild("ul", "Select indexes");
-				for (String bm : library.bookmarkKeys()){
-					//searchDiv.addChild("%", "<!-- Checking for bm="+bm+" in \""+indexuri+"\" -->");
-					indexeslist.addChild("li")
-						.addChild("input", new String[]{"type", "name", "value", (usedbookmarks.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"checkbox", Library.BOOKMARK_PREFIX+bm, Library.BOOKMARK_PREFIX+bm, "1" } , bm);
-				}
-
-			HTMLNode optionsBox = searchForm.addChild("div", "style", "margin: 20px 0px 20px 20px; display: inline-table; text-align: left;", "Options");
-				HTMLNode optionsList = optionsBox.addChild("ul", "class", "subnavlist");
-					//optionsList.addChild("li")
-					//	.addChild("input", new String[]{"type"}, new String[]{"checkbox"}, "Group SSK Editions");
-					optionsList.addChild("li")
-						.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", "1"}, "Show older editions");
-					//optionsList.addChild("li")
-					//	.addChild("input", new String[]{"type"}, new String[]{"checkbox"}, "Sort by relevence");
-				HTMLNode newIndexInput = optionsBox.addChild("div", new String[]{"class", "style"}, new String[]{"index", "display: inline-table;"}, "Add an index:");
-					newIndexInput.addChild("br");
-					newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "Name:");
-					newIndexInput.addChild("input", new String[]{"type", "class"}, new String[]{"text", "index"});
-					newIndexInput.addChild("br");
-					newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "URI:");
-					newIndexInput.addChild("input", new String[]{"name", "type", "value", "class"}, new String[]{"index", "text", indexuri, "index"});
-
-
-
-
-						/*
-					.addChild("td", L10nString.getString("Index"))
-						.addChild("input", new String[]{"name", "type", "value", "size"}, new String[]{"index", "text", indexuri, "40"});
-				searchTable.addChild("tr")
-					.addChild("td", L10nString.getString("ShowOldVersions"))
-						.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", showold?"checked":"1"});
-						 * */
-		return searchDiv;
 	}
 
 
@@ -450,21 +321,11 @@ class MainPage implements WebPage {
     }
 	
 	
-	
-	@Override
-	public WebPage clone() {
-		return new MainPage(library, pr);
-	}
-	
 	public String path() {
-		return "/library/";
+		return "/library/xml";
 	}
 	
 	public String supportedMethods() {
-		return "GET, POST";
-	}
-
-	public String name() {
-		return "Search";
+		return "GET";
 	}
 }

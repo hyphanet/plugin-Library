@@ -69,7 +69,7 @@ class PageToadlet extends Toadlet {
 			MultiValueTable<String, String> headers = new MultiValueTable();
 			// process the request
 			page.processGetRequest(request);
-			page.writeContent(request, contentNode, ctx, headers);
+			page.writeContent(contentNode, headers);
 			// write reply
 			writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
 		} finally {
@@ -100,7 +100,7 @@ class PageToadlet extends Toadlet {
 			MultiValueTable<String, String> headers = new MultiValueTable();
 			// write reply
 			page.processPostRequest(request, contentNode, formPassword.equals(core.formPassword));
-			page.writeContent(request, contentNode, ctx, headers);
+			page.writeContent(contentNode, headers);
 			// write reply
 			writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
 		} finally {

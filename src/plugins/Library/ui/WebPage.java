@@ -1,6 +1,5 @@
 package plugins.Library.ui;
 
-import freenet.clients.http.ToadletContext;
 import freenet.support.HTMLNode;
 import freenet.support.MultiValueTable;
 import freenet.support.api.HTTPRequest;
@@ -24,6 +23,6 @@ interface WebPage {
 
 	public String supportedMethods();
 
-	public abstract void writeContent(HTTPRequest request, HTMLNode contentNode, ToadletContext ctx, MultiValueTable<String, String> headers);
+	public abstract void writeContent(HTMLNode contentNode, MultiValueTable<String, String> headers);
 
 }

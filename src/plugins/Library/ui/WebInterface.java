@@ -44,12 +44,14 @@ public class WebInterface {
 		pageMaker.addNavigationCategory("/library/", "Library", "Library", new Main());
 
 		toadlets  = new PageToadlet[]{
-			new PageToadlet(client, library, core, new MainPage(library, pr))
+			new PageToadlet(client, library, core, new MainPage(library, pr)),
 		};
 
 		for (PageToadlet toadlet : toadlets) {
 			toadletContainer.register(toadlet, "Library", toadlet.path(), true, toadlet.name(), toadlet.name(), true, null );
 		}
+		toadletContainer.register(new StaticToadlet(client), null, "/library/static/", true, false);
+		toadletContainer.register(new ProgressPageToadlet(client, library, pr), null, "/library/xml/", true, false);
 		
 	}
 
