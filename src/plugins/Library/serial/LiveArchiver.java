@@ -4,7 +4,6 @@
 package plugins.Library.serial;
 
 import plugins.Library.serial.Serialiser.*;
-import plugins.Library.util.SkeletonMap;
 
 import java.util.Collection;
 import java.util.Map;

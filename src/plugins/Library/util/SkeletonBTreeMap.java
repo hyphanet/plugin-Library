@@ -324,14 +324,23 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 
 	/**
-	** This is necessary because Node is a non-static class.
+	** This is necessary because {@link NodeTranslator} is a non-static class.
+	**
+	** For an in-depth discussion on why that class is not static, see the
+	** class description for {@link BTreeMap.Node}.
+	**
+	** TODO store these in a WeakHashSet or something... will need to code
+	** equals() and hashCode() for that
 	*/
 	public <Q, R> NodeTranslator<Q, R> makeNodeTranslator(Translator<K, Q> ktr, Translator<SkeletonTreeMap<K, V>, R> mtr) {
 		return new NodeTranslator(ktr, mtr);
 	}
 
 	/**
-	** DOCUMENT
+	** DOCUMENT.
+	**
+	** For an in-depth discussion on why this class is not static, see the
+	** class description for {@link BTreeMap.Node}.
 	**
 	** @param <Q> Target type of key-translator
 	** @param <R> Target type of map-translater
@@ -355,8 +364,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		@Override public Map<String, Object> app(SkeletonNode node) {
 			if (!node.isBare()) {
-				// FIXME put back after option (1) above is implemented...
-				//throw new IllegalStateException("Cannot translate non-bare node");
+				throw new IllegalStateException("Cannot translate non-bare node " + node.getShortName());
 			}
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("lkey", (ktr == null)? node.lkey: ktr.app(node.lkey));

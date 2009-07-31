@@ -91,15 +91,32 @@ implements Archiver<ProtoIndex>,
 	}
 
 
+	protected static Translator<SkeletonTreeMap<String, SkeletonBTreeSet<TokenEntry>>, Map<String, Object>> ttab_keys_mtr = new TreeMapTranslator<String, SkeletonBTreeSet<TokenEntry>>(null);
 
 	public static ProtoIndex setSerialiserFor(ProtoIndex index) {
 		// TODO utab too
-		BTreeNodeSerialiser ttab_keys = new BTreeNodeSerialiser<String, SkeletonBTreeSet<TokenEntry>>(index.ttab, null);
+		BTreeNodeSerialiser ttab_keys = new BTreeNodeSerialiser<String, SkeletonBTreeSet<TokenEntry>>(
+			"term listings",
+			index.ttab.makeNodeTranslator(null, ttab_keys_mtr)
+		);
 		TermEntrySerialiser ttab_data = new TermEntrySerialiser(index.ttab.ENT_MAX);
 		index.ttab.setSerialiser(ttab_keys, ttab_data);
 		index.trackables[ProtoIndex.TTAB_KEYS] = ttab_keys;
 		index.trackables[ProtoIndex.TTAB_DATA] = ttab_data;
 		return index;
+	}
+
+	protected static Translator<SkeletonTreeMap<TokenEntry, TokenEntry>, Collection<TokenEntry>> term_data_mtr = new SkeletonBTreeSet.TreeSetTranslator<TokenEntry>();
+
+	protected static MapSerialiser<TokenEntry, TokenEntry> term_dummy = new DummySerialiser<TokenEntry, TokenEntry>();
+
+	public static SkeletonBTreeSet<TokenEntry> setSerialiserFor(SkeletonBTreeSet<TokenEntry> entries) {
+		BTreeNodeSerialiser term_keys = new BTreeNodeSerialiser<TokenEntry, TokenEntry>(
+			"entries",
+			entries.makeNodeTranslator(null, term_data_mtr)
+		);
+		entries.setSerialiser(term_keys, term_dummy);
+		return entries;
 	}
 
 
@@ -122,8 +139,6 @@ implements Archiver<ProtoIndex>,
 		subsrl.push(serialisable);
 		task.meta = serialisable.meta;
 	}
-
-
 
 
 	public static class IndexTranslator
@@ -183,8 +198,11 @@ implements Archiver<ProtoIndex>,
 
 
 
-
-
+	/**
+	** Handles serialisation of a B-tree {@link
+	** plugins.Library.util.SkeletonBTreeMap.SkeletonNode}. This can be used
+	** for {@link SkeletonBTreeSet}s too; they use the same node class.
+	*/
 	public static class BTreeNodeSerialiser<K, V>
 	extends ParallelSerialiser<SkeletonBTreeMap<K, V>.SkeletonNode, SimpleProgress>
 	implements Archiver<SkeletonBTreeMap<K, V>.SkeletonNode>,
@@ -194,10 +212,23 @@ implements Archiver<ProtoIndex>,
 		final protected Translator<SkeletonBTreeMap<K, V>.SkeletonNode, Map<String, Object>> trans;
 		final protected LiveArchiver<Map<String, Object>, SimpleProgress> subsrl;
 
-		public BTreeNodeSerialiser(SkeletonBTreeMap<K, V> btreemap, final Translator<K, String> ktr) {
+		protected String name;
+
+		/**
+		** Constructs a new serialiser. A new one must be constructed for each
+		** BTree being serialised.
+		**
+		** @param n Description of what the map stores. This is used in the
+		**          progress report.
+		** @param btreemap The B-tree to act as a serialiser for. TODO make this accept BTreeSets too....
+		** @param ktr Translator for the key
+		** @param mtr Translator for the value
+		*/
+		public BTreeNodeSerialiser(String n, SkeletonBTreeMap<K, V>.NodeTranslator<?, ?> t) {
 			super(new ProgressTracker<SkeletonBTreeMap<K, V>.SkeletonNode, SimpleProgress>(SimpleProgress.class));
 			subsrl = new YamlArchiver<Map<String, Object>>(true);
-			trans = btreemap.makeNodeTranslator(ktr, new TreeMapTranslator<K, V>(null));
+			trans = t;
+			name = n;
 		}
 
 		@Override public Translator<SkeletonBTreeMap<K, V>.SkeletonNode, Map<String, Object>> getTranslator() {
@@ -211,7 +242,7 @@ implements Archiver<ProtoIndex>,
 		@Override public void pullLive(PullTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) {
 			SkeletonBTreeMap<K, V>.GhostNode ghost = (SkeletonBTreeMap.GhostNode)task.meta;
 			PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(ghost.getMeta());
-			p.setName("Pulling listings for " + ghost.getShortName());
+			p.setName("Pulling " + name + ": " + ghost.getShortName());
 			p.addTotal(1, false);
 			subsrl.pullLive(serialisable, p);
 			ghost.setMeta(serialisable.meta); task.data = trans.rev(serialisable.data);
@@ -221,7 +252,7 @@ implements Archiver<ProtoIndex>,
 		@Override public void pushLive(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) {
 			Map<String, Object> intermediate = trans.app(task.data);
 			PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(intermediate, task.meta);
-			p.setName("Pushing listings for " + task.data.getShortName());
+			p.setName("Pushing " + name + ": " + task.data.getShortName());
 			p.addTotal(1, false);
 			subsrl.pushLive(serialisable, p);
 			task.meta = task.data.makeGhost(serialisable.meta);

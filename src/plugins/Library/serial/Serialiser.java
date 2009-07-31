@@ -3,8 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.serial;
 
-import plugins.Library.util.PrefixTreeMap;
-
 import java.util.Collection;
 import java.util.Map;
 
@@ -12,12 +10,12 @@ import java.util.Map;
 ** An empty marker interface for serialisation classes. It defines some nested
 ** subclasses that acts as a unified interface between these classes.
 **
-** By default, nested data structures such as {@link PrefixTreeMap} will use
-** the metadata of their children directly (as in, without using a {@link
-** Translator} during a serialisation operation. Therefore, it is recommended
-** that all metadata passing through this class (and related classes) be
-** directly serialisable by an {@link Archiver}. This will make the task of
-** writing {@link Translator}s much easier, possibly even unnecessary.
+** Nested data structures such as {@link plugins.Library.util.SkeletonBTreeMap}
+** will generally use the metadata of their children directly (ie. without
+** using a {@link Translator} during a serialisation operation. Therefore, it
+** is recommended that all metadata passing through this class (and related
+** classes) be directly serialisable by an {@link Archiver}. This will make the
+** task of writing {@link Translator}s much easier, maybe even unnecessary.
 **
 ** The recommended way to ensure this is for it to be either: a primitive or
 ** Object form of a primitive; an Array, {@link Collection}, or {@link Map},

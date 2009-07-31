@@ -40,8 +40,11 @@ abstract public class SortedMapTestSkeleton extends TestCase {
 		assertTrue(testmap.get(testmap.firstKey()) == 124);
 		assertTrue(testmap.entrySet().contains(entry));
 
-		int s = testmap.size();
-		int i = 0;
+		int s = testmap.size(), i = 0;
+		for (Map.Entry<String, Integer> en: testmap.entrySet()) { ++i; }
+		assertTrue(s == i);
+		i = 0;
+
 		Map.Entry<String, Integer> e = null;
 		while (testmap.size() > 0) {
 			// get first entry
@@ -58,8 +61,10 @@ abstract public class SortedMapTestSkeleton extends TestCase {
 		fillTestMap();
 		assertTrue(testmap.keySet() == testmap.keySet());
 		assertTrue(testmap.size() == testmap.keySet().size());
-		int s = testmap.size();
-		int i = 0;
+		int s = testmap.size(), i = 0;
+		for (String en: testmap.keySet()) { ++i; }
+		assertTrue(s == i);
+		i = 0;
 		String e = null;
 		while (testmap.size() > 0) {
 			// get first entry
@@ -76,8 +81,10 @@ abstract public class SortedMapTestSkeleton extends TestCase {
 		fillTestMap();
 		assertTrue(testmap.values() == testmap.values());
 		assertTrue(testmap.size() == testmap.values().size());
-		int s = testmap.size();
-		int i = 0;
+		int s = testmap.size(), i = 0;
+		for (Integer en: testmap.values()) { ++i; }
+		assertTrue(s == i);
+		i = 0;
 		Integer e = null;
 		while (testmap.size() > 0) {
 			// get first entry
@@ -93,10 +100,13 @@ abstract public class SortedMapTestSkeleton extends TestCase {
 		// test that entrySet.iterator is properly backed by the map
 		fillTestMap();
 		Iterator<Map.Entry<String, Integer>> it = testmap.entrySet().iterator();
+		int s=testmap.size(), i=0;
 		while (it.hasNext()) {
 			assertTrue(it.next().getKey() == testmap.firstKey());
 			it.remove();
+			++i;
 		}
+		assertTrue(i == s);
 		assertTrue(testmap.size() == 0);
 	}
 
@@ -104,10 +114,13 @@ abstract public class SortedMapTestSkeleton extends TestCase {
 		// test that keySet.iterator is properly backed by the map
 		fillTestMap();
 		Iterator<String> it = testmap.keySet().iterator();
+		int s=testmap.size(), i=0;
 		while (it.hasNext()) {
 			assertTrue(it.next().equals(testmap.firstKey()));
 			it.remove();
+			++i;
 		}
+		assertTrue(i == s);
 		assertTrue(testmap.size() == 0);
 	}
 
@@ -115,10 +128,13 @@ abstract public class SortedMapTestSkeleton extends TestCase {
 		// test that values.iterator is properly backed by the map
 		fillTestMap();
 		Iterator<Integer> it = testmap.values().iterator();
+		int s=testmap.size(), i=0;
 		while (it.hasNext()) {
 			assertTrue(it.next().equals(testmap.get(testmap.firstKey())));
 			it.remove();
+			++i;
 		}
+		assertTrue(i == s);
 		assertTrue(testmap.size() == 0);
 	}
 

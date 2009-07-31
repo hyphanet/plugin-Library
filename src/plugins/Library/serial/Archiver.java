@@ -4,7 +4,6 @@
 package plugins.Library.serial;
 
 import plugins.Library.serial.Serialiser.*;
-import plugins.Library.util.SkeletonMap;
 
 import java.util.Collection;
 import java.util.Map;
@@ -20,13 +19,13 @@ public interface Archiver<T> extends Serialiser<T> {
 	** Execute a {@link PullTask}, returning only when the task is done.
 	**
 	** Implementations of this method which act on a recursive data structure
-	** that is designed to be partially loaded (such as {@link SkeletonMap}),
-	** should only pull the minimal data necessary to give a consistent
-	** instance of that data structure. This is to provide a finer degree of
-	** control over the pulling process, which is likely to be needed by such
-	** a data structure.
+	** that is designed to be partially loaded (such as {@link
+	** plugins.Library.util.SkeletonMap}), should only pull the minimal data
+	** necessary to give a consistent instance of that data structure. This is
+	** to provide a finer degree of control over the pulling process, which is
+	** likely to be needed by such a data structure.
 	**
-	** Implementations should not automatically populate the data structure
+	** In other words, the data structure should not be automatically populated
 	** after it is formed.
 	**
 	** @param task The task to execute
@@ -37,11 +36,11 @@ public interface Archiver<T> extends Serialiser<T> {
 	** Execute a {@link PushTask}, returning only when the task is done.
 	**
 	** Implementations of this method which act on a recursive data structure
-	** that is designed to be partially loaded (such as {@link SkeletonMap}),
-	** should ensure that the data passed into this method is minimal in terms
-	** of that data structure. This is to provide a finer degree of control
-	** over the pulling process, which is likely to be needed by such a data
-	** structure.
+	** that is designed to be partially loaded (such as {@link
+	** plugins.Library.util.SkeletonMap}), should ensure that the data passed
+	** into this method is minimal in terms of that data structure. This is to
+	** provide a finer degree of control over the pulling process, which is
+	** likely to be needed by such a data structure.
 	**
 	** If the data is not minimal, implementations should throw {@link
 	** IllegalArgumentException} rather than automatically depopulating

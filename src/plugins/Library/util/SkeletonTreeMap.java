@@ -437,10 +437,19 @@ implements SkeletonMap<K, V> {
 	/**
 	** {@inheritDoc}
 	**
-	** Not yet implemented - throws {@link UnsupportedOperationException}
+	** '''THIS IMPLEMENTATION IS INCOMPLETE AND INCORRECT''' and is only
+	** provided as a temporary solution to make {@link SkeletonBTreeMap} work.
+	** That class only needs the keys of the tailmap; not the values, so the
+	** hack is fine.
+	**
+	** Attempting to retrieve any values from this tailmap will result in
+	** incorrect behaviour, specifically, {@code null} will be returned for
+	** non-loaded data, instead of {@link DataNotLoadedException} being thrown.
 	*/
 	@Override public SortedMap<K,V> headMap(K toKey) {
-		throw new UnsupportedOperationException("Not implemented.");
+		return super.headMap(toKey);
+		// URGENT: this is ONLY here for SkeletonBTreeMap
+		//throw new UnsupportedOperationException("Not implemented.");
 	}
 
 	/**

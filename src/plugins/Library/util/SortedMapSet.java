@@ -14,7 +14,7 @@ import java.util.AbstractSet;
 /**
 ** A {@link SortedSet} backed by a {@link SortedMap}, with one additional bonus
 ** method which I felt was lacking from the {@link Set} interface, namely
-** {@link get(Object)}.
+** {@link #get(Object)}.
 **
 ** This implementation assumes that for the backing map, looking up items by
 ** key is more efficient than by value. It is up to the programmer to ensure

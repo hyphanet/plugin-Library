@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Stack;
 import java.util.ArrayList;
 import java.util.NoSuchElementException;
+import java.util.ConcurrentModificationException;
 
 /**
 ** General purpose B-tree implementation. '''This class is not a general-use
@@ -74,7 +75,8 @@ import java.util.NoSuchElementException;
 ** the places in the code which are affected by this logic, as well as all
 ** occurences of /\.[lr]key == null/.
 **
-** * '''TODO ConcurrentModificationException for the entrySet iterator'''
+** * '''TODO {@link ConcurrentModificationException} for the entrySet
+**   iterator''' (can do this when we do the commit algorithm for indexes)
 ** * '''TODO better distribution algorithm for putAll'''
 **
 ** @author infinity0
@@ -181,6 +183,31 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**    | - {@link #entries} mappings
 	**    \ - {@link #rnodes} mappings (and the subnode's {@link #lkey})
 	**    / - {@link #lnodes} mappings (and the subnode's {@link #rkey})
+	**
+	** Note: before anyone gets any ideas about making this class static
+	** (believe me, I tried), note that {@link TreeMap} '''requires''' the
+	** comparator to be passed at construction. The neatest way to do this is
+	** to pass either the tree or the comparator to the node's constructor.
+	**
+	** This is fine in the context of {@link BTreeMap}, but serialisation makes
+	** it extremely awkard. Passing the tree requires us to extend {@link
+	** plugins.Library.serial.Translator} to take a context paramater, and
+	** passing the comparator requires us to add checks to ensure that the
+	** comparators are equal when the node is re-attached to the tree.
+	**
+	** And even if this is implemented, nodes still need to know their parent
+	** tree (to set {@link plugins.Library.serial.Serialiser}s etc) and so you
+	** would need to code a secondary initialisation scheme to be called after
+	** object construction, and after execution returns from {@link
+	** plugins.Library.serial.Translator#rev(Object)}. All in all, this is more
+	** trouble than it's worth.
+	**
+	** So I've gone with the non-static class, which means a new {@code
+	** Translator} needs to be constructed for each new B-tree. This is only
+	** two fields above an {@link Object} (if you re-use the same objects for
+	** the {@link SkeletonBTreeMap.NodeTranslator#ktr} and {@code
+	** SkeletonBTreeMap.NodeTranslator#mtr} fields) and so should be negligible
+	** compared to the memory size of the rest of the B-tree.
 	**
 	** @author infinity0
 	*/
@@ -1192,11 +1219,22 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 						K lastkey = null;
 
+						// DEBUG ONLY, remove when unneeded
+						/*public String toString() {
+							StringBuffer s = new StringBuffer();
+							for (Node n: nodestack) {
+								s.append(n.getShortName()).append(", ");
+							}
+							return "nodestack: [" + s + "]; cnode: " + cnode.getShortName() + "; lastkey: " + lastkey;
+						}*/
+
 						@Override public boolean hasNext() {
+							// TODO should really iterate in the reverse order
 							for (Iterator<Map.Entry<K, V>> it: itstack) {
 								if (it.hasNext()) { return true; }
 							}
 							if (centit.hasNext()) { return true; }
+							if (!cnode.isLeaf()) { return true; }
 							return false;
 						}
 

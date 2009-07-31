@@ -7,6 +7,7 @@ import plugins.Library.serial.Serialiser.*;
 import plugins.Library.serial.Archiver;
 import plugins.Library.serial.MapSerialiser;
 import plugins.Library.serial.Translator;
+import plugins.Library.serial.TaskAbortException;
 
 import java.util.Comparator;
 import java.util.Collection;
@@ -45,6 +46,33 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 		super(m);
 	}
 
+	public boolean isBare() {
+		return ((SkeletonBTreeMap<E, E>)bkmap).isBare();
+	}
+
+	public boolean isLive() {
+		return ((SkeletonBTreeMap<E, E>)bkmap).isLive();
+	}
+
+	public void deflate() throws TaskAbortException {
+		((SkeletonBTreeMap<E, E>)bkmap).deflate();
+	}
+
+	public void inflate() throws TaskAbortException {
+		((SkeletonBTreeMap<E, E>)bkmap).inflate();
+	}
+
+
+	public <Q, R> SkeletonBTreeMap<E, E>.NodeTranslator<Q, R> makeNodeTranslator(Translator<E, Q> ktr, Translator<SkeletonTreeMap<E, E>, R> mtr) {
+		return ((SkeletonBTreeMap<E, E>)bkmap).makeNodeTranslator(ktr, mtr);
+	}
+
+
+
+
+
+
+
 	abstract public static class MapCollectionTranslator<E, M extends Map<E, E>, C extends Collection<E>>
 	implements Translator<M, C> {
 
@@ -59,6 +87,7 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 		}
 
 	}
+
 
 	/**
 	** Translator for the TreeMap backing a TreeSet. This will turn a map into

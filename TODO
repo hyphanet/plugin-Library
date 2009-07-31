@@ -11,6 +11,8 @@ apart from that, dotted throughout the source code are the following:
 - TODO
 - OPTIMISE
 
+- DEBUG - was added for debug, should be removed
+
 there are also methods or code blocks containing:
 
 throw new UnsupportedOperationException("not implemented");

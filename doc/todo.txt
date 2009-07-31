@@ -4,18 +4,17 @@ index: "suggested tokens" - suggest what other people should tag this index as;
        they are free to ignore this suggestion
 
 
-- TODO - find a data structure other than SortedSet to store the tokens in.
-- it must be able to sort by relevance, but have same-relevance items in as long as they don't equals().
-- there should be only one entry per URI per Token (enforce this in the code at some point)
+- TODO there should be only one entry per URI per Token (enforce this in the code at some point)
+
+- TODO make Packer track the progress
+
 
 
 - TODO make TokenEntries immutable, and make Yaml stuff to create/uncreate these...
-
 - URGENT for now, make URIKey use pkHash + docName for SSKs (until we find something better)
 
 
 - PRIORITY merge URIWrapper with TokenURIEntry
-
 - PRIORITY do we want to merge the library/ and index/ subpackages? or shuffle
 things around?
 

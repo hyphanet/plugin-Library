@@ -68,6 +68,8 @@ public class BIndexTest extends TestCase {
 		for (int i=0; i<1024; ++i) {
 			String key = Generators.rndKey();
 			SkeletonBTreeSet<TokenEntry> entries = new SkeletonBTreeSet<TokenEntry>();
+			srl.setSerialiserFor(entries);
+
 			int n = rand.nextInt(16) + 16;
 			totalentries += n;
 
@@ -86,6 +88,10 @@ public class BIndexTest extends TestCase {
 		}
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
 
+		for (SkeletonBTreeSet<TokenEntry> entries: idx.ttab.values()) {
+			entries.deflate();
+			assert(entries.isBare());
+		}
 		idx.ttab.deflate();
 		assertTrue(idx.ttab.isBare());
 		assertFalse(idx.ttab.isLive());

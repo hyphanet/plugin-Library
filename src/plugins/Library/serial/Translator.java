@@ -4,7 +4,6 @@
 package plugins.Library.serial;
 
 import plugins.Library.serial.Serialiser;
-import plugins.Library.util.SkeletonMap;
 
 /**
 ** A class that translates an object into one of another type. Used mostly in
@@ -19,8 +18,9 @@ public interface Translator<T, I> {
 	** Apply the translation.
 	**
 	** Implementations of this method which act on a recursive data structure
-	** that is designed to be partially loaded (such as {@link SkeletonMap}),
-	** should follow the same guidelines as in {@link Archiver#push(Serialiser.PushTask)},
+	** that is designed to be partially loaded (such as
+	** {@link plugins.Library.util.SkeletonMap}), should follow the same
+	** guidelines as in {@link Archiver#push(Serialiser.PushTask)},
 	** particularly with regards to throwing {@link IllegalArgumentException}.
 	*/
 	I app(T translatee);
@@ -29,8 +29,9 @@ public interface Translator<T, I> {
 	** Reverse the translation.
 	**
 	** Implementations of this method which act on a recursive data structure
-	** that is designed to be partially loaded (such as {@link SkeletonMap}),
-	** should follow the same guidelines as in {@link Archiver#pull(Serialiser.PullTask)}.
+	** that is designed to be partially loaded (such as
+	** {@link plugins.Library.util.SkeletonMap}), should follow the same
+	** guidelines as in {@link Archiver#pull(Serialiser.PullTask)}.
 	*/
 	T rev(I intermediate);
 
