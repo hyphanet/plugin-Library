@@ -44,8 +44,6 @@ FindRequest
   pull/push?
 
 
-
-- TODO setSerialiser only when data structure isLive()
 - TODO use markdown-doclet instead of bliki-doclet
   - not yet - MarkdownJ has bugs relating to parsing of uppercase HTML tags,
     which SJD generates, unfortunately :/

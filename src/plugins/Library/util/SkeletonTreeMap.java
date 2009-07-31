@@ -21,7 +21,7 @@ import java.util.AbstractCollection;
 import java.util.Iterator;
 
 /**
-** A {@link SkeletonMap} of a {@link TreeMap}.
+** A {@link SkeletonMap} of a {@link TreeMap}. DOCUMENT.
 **
 ** This implementation is NOT thread-safe.
 **
@@ -81,7 +81,13 @@ implements SkeletonMap<K, V> {
 		loaded = (TreeMap<K, Object>)m.loaded.clone();
 	}
 
+	/**
+	** DOCUMENT
+	*/
 	public Object putDummy(K key, Object o) {
+		if (o == null) {
+			throw new IllegalArgumentException("Cannot put a null dummy into the map. Use put(K, V) to mark an object as loaded.");
+		}
 		put(key, null);
 		Object d = loaded.put(key, o);
 		if (d == null) { ++dummyCount; }
@@ -91,6 +97,9 @@ implements SkeletonMap<K, V> {
 	protected MapSerialiser<K, V> serialiser;
 
 	public void setSerialiser(MapSerialiser<K, V> s) {
+		if (serialiser != null && !isLive()) {
+			throw new IllegalStateException("Cannot change the serialiser when the structure is not live.");
+		}
 		serialiser = s;
 	}
 

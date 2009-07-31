@@ -62,7 +62,8 @@ implements Archiver<ProtoIndex>,
 	/**
 	** Generic map translator, for both utab and ttab
 	*/
-	public static class TreeMapTranslator<K, V> implements Translator<SkeletonTreeMap<K, V>, Map<String, Object>> {
+	public static class TreeMapTranslator<K, V>
+	extends SkeletonTreeMap.TreeMapTranslator<K, V> {
 
 		final protected Translator<K, String> ktr;
 
@@ -71,11 +72,11 @@ implements Archiver<ProtoIndex>,
 		}
 
 		@Override public Map<String, Object> app(SkeletonTreeMap<K, V> map) {
-			return SkeletonTreeMap.TreeMapTranslator.app(map, new TreeMap<String, Object>(), ktr);
+			return app(map, new TreeMap<String, Object>(), ktr);
 		}
 
 		@Override public SkeletonTreeMap<K, V> rev(Map<String, Object> map) {
-			return SkeletonTreeMap.TreeMapTranslator.rev(map, new SkeletonTreeMap<K, V>(), ktr);
+			return rev(map, new SkeletonTreeMap<K, V>(), ktr);
 		}
 	}
 
@@ -337,6 +338,50 @@ implements Archiver<ProtoIndex>,
 			subsrl.pushLive(t, p);
 			task.meta = t.meta;
 			p.addPartDone();
+		}
+
+	}
+
+	/**
+	** Not recommended but may save implementation effort. DOCUMENT
+	**
+	** See source code of {@link SkeletonBTreeMap} for why this is here.
+	*/
+	public static class DummySerialiser<K, T>
+	implements IterableSerialiser<T>,
+	           MapSerialiser<K, T> {
+
+
+		public void pull(PullTask<T> task) {
+			task.data = (T)task.meta;
+		}
+
+		public void push(PushTask<T> task) {
+			task.meta = task.data;
+		}
+
+		public void pull(Iterable<PullTask<T>> tasks) {
+			for (PullTask<T> task: tasks) {
+				task.data = (T)task.meta;
+			}
+		}
+
+		public void push(Iterable<PushTask<T>> tasks) {
+			for (PushTask<T> task: tasks) {
+				task.meta = task.data;
+			}
+		}
+
+		public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) {
+			for (PullTask<T> task: tasks.values()) {
+				task.data = (T)task.meta;
+			}
+		}
+
+		public void push(Map<K, PushTask<T>> tasks, Object mapmeta) {
+			for (PushTask<T> task: tasks.values()) {
+				task.meta = task.data;
+			}
 		}
 
 	}

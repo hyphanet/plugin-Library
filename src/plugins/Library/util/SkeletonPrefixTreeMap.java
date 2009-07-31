@@ -121,6 +121,9 @@ implements SkeletonMap<K, V> {
 	protected MapSerialiser<K, V> serialiserLocal;
 
 	public void setSerialiser(IterableSerialiser<SkeletonPrefixTreeMap<K, V>> s, MapSerialiser<K, V> vs) {
+		if ((serialiser != null || serialiserLocal != null) && !isLive()) {
+			throw new IllegalStateException("Cannot change the serialiser when the structure is not live.");
+		}
 		serialiser = s;
 		serialiserLocal = vs;
 		tmap.setSerialiser(vs);

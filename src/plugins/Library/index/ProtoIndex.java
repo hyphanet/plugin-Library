@@ -207,10 +207,8 @@ public class ProtoIndex {
 					try {
 						p.inflate((String)d.getKey());
 					} catch (TaskAbortException e) {
-						// DEBUG
-						throw new RuntimeException(e);
-						// TODO setError() or something...
-						//break;
+						error = e;
+						break;
 					}
 				}
 			}

@@ -25,11 +25,60 @@ import java.util.ArrayList;
 */
 public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMap<K, V> {
 
+	/*
+	** Whether entries are "internal to" or "contained within" nodes, ie.
+	** are the entries for a node completely stored (including values) with
+	** that node in the serialised representation, or do they refer to other
+	** serialised data that is external to the node?
+	**
+	** This determines whether a {@link TreeMap} or a {@link SkeletonTreeMap}
+	** is used to back the entries in a node.
+	**
+	** Eg. a {@code BTreeMap<String, BTreeSet<TokenEntry>>} would have this
+	** {@code true} for the map, and {@code false} for the map backing the set.
+	*/
+	//final protected boolean internal_entries;
+	/* TODO disable for now, since I can't think of a good way to implement
+	** this tidily.
+	**
+	** three options:
+	**
+	** 0 have SkeletonNode use TreeMap when int_ent is true rather than
+	**   SkeletonTreeMap but this will either break the Skeleton contract of
+	**   deflate(), which expects isBare() to be true afterwards, or it will
+	**   break the contract of isBare(), if we modifiy that method to return
+	**   true for TreeMaps instead.
+	**
+	**   - pros: uses an existing class, efficient
+	**   - cons: breaks contracts (no foreseeable way to avoid), complicated
+	**     to implement
+	**
+	** 1 have another class that extends SkeletonTreeMap which has one single
+	**   boolean value isDeflated, alias *flate(K) to *flate(), and all those
+	**   functions do is set that boolean. then override get() etc to throw
+	**   DNLEx depending on the value of that boolean; and have SkeletonNode
+	**   use this class when int_ent is true.
+	**
+	**   - pros: simple, efficient OPTIMISE
+	**   - cons: requires YetAnotherClass
+	**
+	** 2 don't have the internal_entries, and just use a dummy serialiser that
+	**   copies task.data to task.meta for push tasks, and vice versa for pull
+	**   tasks.
+	**
+	**   - pros: simple to implement
+	**   - cons: a hack, inefficient
+	**
+	** for now using option 2, will probably implement option 1 at some point..
+	*/
+
 	protected Archiver<SkeletonNode> nsrl;
 	protected MapSerialiser<K, V> vsrl;
 
-	// TODO maybe make this write-once
 	public void setSerialiser(Archiver<SkeletonNode> n, MapSerialiser<K, V> v) {
+		if ((nsrl != null || vsrl != null) && !isLive()) {
+			throw new IllegalStateException("Cannot change the serialiser when the structure is not live.");
+		}
 		nsrl = n;
 		vsrl = v;
 		((SkeletonNode)root).setSerialiser();
