@@ -5,6 +5,7 @@ package plugins.Library.util;
 
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.SortedMap;
@@ -14,6 +15,10 @@ import java.util.AbstractSet;
 ** A {@link SortedSet} backed by a {@link SortedMap}, with one additional bonus
 ** method which I felt was lacking from the {@link Set} interface, namely
 ** {@link get(Object)}.
+**
+** This implementation assumes that for the backing map, looking up items by
+** key is more efficient than by value. It is up to the programmer to ensure
+** that this holds; most maps are designed to have this property however.
 **
 ** TODO this could be made to extend {@code MapSet} but I haven't yet bothered
 ** since I haven't needed it as a separate class of its own. Feel free.
@@ -30,9 +35,24 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 
 	/**
 	** Construct a set backed by the given {@link SortedMap}.
+	**
+	** Note: this constructor assumes that all of the mappings in given map are
+	** self-mappings, ie. for all {@code (k,v)} in {@code m}: {@code k == v}.
+	** It is up to the calling code to ensure that this holds.
 	*/
 	protected SortedMapSet(M m) {
+		assert(verifyBackingMapIntegrity(m));
 		bkmap = m;
+	}
+
+	/**
+	** Verifies the backing map for the condition described in the constructor.
+	*/
+	final static <E> boolean verifyBackingMapIntegrity(SortedMap<E, E> m) {
+		for (Map.Entry<E, E> en: m.entrySet()) {
+			assert(en.getKey() == en.getValue());
+		}
+		return true;
 	}
 
 	/**

@@ -410,7 +410,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** @param b The test condition
 	** @throws IllegalStateException if the test condition is false
 	*/
-	final void verify(boolean b) {
+	final static void verify(boolean b) {
 		if (!b) { throw new IllegalStateException("Verification failed"); }
 	}
 

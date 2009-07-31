@@ -4,11 +4,8 @@
 package plugins.Library.util;
 
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.SortedMap;
-import java.util.AbstractSet;
 
 /**
 ** A B-tree set implementation backed by a {@link BTreeMap}. DOCUMENT
