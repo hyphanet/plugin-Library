@@ -71,7 +71,7 @@ public class ProtoIndex {
 
 
 	final protected SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>> ttab;
-	final protected SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab;
+	final protected SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = null;
 
 
 	public ProtoIndex(FreenetURI i, String n) {

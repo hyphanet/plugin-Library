@@ -43,8 +43,11 @@ import java.util.TreeSet;
 **
 ** * {@link #makeBinMeta(Object, Object)}
 ** * {@link #readBinMetaID(Object)}
+** * {@link #preprocessPullBins(Map, Collection)}
+** * {@link #preprocessPushBins(Map, Collection)}
 **
-** depending on the format of the metadata that the child serialiser expects.
+** depending on the format of the metadata that the child serialiser expects,
+** and whether progress tracking is required.
 **
 ** Note that this class effectively '''disables''' the "duplicate" detection of
 ** {@link ProgressTracker}: that class uses {@link IdentityHashMap}s to keep
@@ -184,6 +187,20 @@ implements MapSerialiser<K, T>,
 	public IDGenerator generator() {
 		return new IDGenerator();
 	}
+
+	/**
+	** Any tasks that need to be done after the bin tasks have been formed,
+	** but before they have been passed to the child serialiser. The default
+	** implementation does nothing.
+	*/
+	protected void preprocessPullBins(Map<K, PullTask<T>> tasks, Collection<PullTask<Map<K, T>>> bintasks) { }
+
+	/**
+	** Any tasks that need to be done after the bin tasks have been formed,
+	** but before they have been passed to the child serialiser. The default
+	** implementation does nothing.
+	*/
+	protected void preprocessPushBins(Map<K, PushTask<T>> tasks, Collection<PushTask<Map<K, T>>> bintasks) { }
 
 	/**
 	** Looks through {@code elems} for {@link PushTask}s with null data and
@@ -447,7 +464,7 @@ implements MapSerialiser<K, T>,
 			Scale<K, T> sc = newScale(tasks);
 			Map<Object, PullTask<Map<K, T>>> bintasks = new HashMap<Object, PullTask<Map<K, T>>>();
 
-			// put all the bins from each task into a list of new tasks for each bin
+			// form the list of bin-tasks from the bins referred to by the map-tasks
 			for (Map.Entry<K, PullTask<T>> en: tasks.entrySet()) {
 				Object binid = sc.readMetaID(en.getValue().meta);
 				if (!bintasks.containsKey(binid)) {
@@ -455,7 +472,8 @@ implements MapSerialiser<K, T>,
 				}
 			}
 
-			// pull each bin
+			// pull all the bins
+			preprocessPullBins(tasks, bintasks.values());
 			subsrl.pull(bintasks.values());
 
 			// for each task, grab and remove its element from its bin
@@ -567,7 +585,7 @@ implements MapSerialiser<K, T>,
 				pullUnloaded(tasks, mapmeta);
 			}
 
-			// push all the bins
+			// form the list of bin-tasks for each bin, using data from the map-tasks
 			List<PushTask<Map<K, T>>> bintasks = new ArrayList<PushTask<Map<K, T>>>(bins.size());
 			for (Bin<K> bin: bins) {
 				Map<K, T> data = new HashMap<K, T>(bin.size()<<1);
@@ -576,6 +594,9 @@ implements MapSerialiser<K, T>,
 				}
 				bintasks.add(new PushTask<Map<K, T>>(data, makeBinMeta(mapmeta, bin.id)));
 			}
+
+			// push all the bins
+			preprocessPushBins(tasks, bintasks);
 			subsrl.push(bintasks);
 
 			// set the metadata for all the pushed bins

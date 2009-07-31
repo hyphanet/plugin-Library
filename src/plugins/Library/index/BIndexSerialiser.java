@@ -273,6 +273,8 @@ implements Archiver<ProtoIndex>,
 	/**
 	** Serialiser for (the TokenEntry entries) of (a B-tree node in the
 	** (BTreeSet container for a term's results)).
+	**
+	** TODO maybe add one more progress part for the bin packing operation
 	*/
 	public static class TermEntrySerialiser
 	extends Packer<String, SkeletonBTreeSet<TokenEntry>>
@@ -308,8 +310,6 @@ implements Archiver<ProtoIndex>,
 
 		}
 
-
-/*
 		@Override protected void preprocessPullBins(Map<String, PullTask<SkeletonBTreeSet<TokenEntry>>> tasks, Collection<PullTask<Map<String, SkeletonBTreeSet<TokenEntry>>>> bintasks) {
 			List<Object> mib = new ArrayList<Object>(bintasks.size());
 			for (PullTask<Map<String, SkeletonBTreeSet<TokenEntry>>> t: bintasks) {
@@ -335,8 +335,6 @@ implements Archiver<ProtoIndex>,
 				p.setName("Pushing containers for " + en.getKey());
 			}
 		}
-*/
-
 
 	}
 

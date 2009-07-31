@@ -9,6 +9,9 @@ index: "suggested tokens" - suggest what other people should tag this index as;
 - TODO make Packer track the progress
 
 
+- TODO implement equals() and compare() on TokenEntry properly
+- TODO get rid of unnecessary Prefix* files
+
 
 - TODO make TokenEntries immutable, and make Yaml stuff to create/uncreate these...
 - URGENT for now, make URIKey use pkHash + docName for SSKs (until we find something better)
