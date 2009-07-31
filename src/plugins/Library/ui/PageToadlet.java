@@ -62,6 +62,8 @@ class PageToadlet extends Toadlet {
 		Thread.currentThread().setContextClassLoader(Library.class.getClassLoader());
 		try {
 			PageNode p = ctx.getPageMaker().getPageNode(library.plugName, ctx);
+			// Style
+			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/stylecss", "text/css"});
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 			// Make a clone of the webpage so state information doesnt stay between requests

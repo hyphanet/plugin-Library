@@ -156,13 +156,9 @@ class MainPage implements WebPage {
 			//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
 		}
 
-
-		// Style
-		contentNode.addChild("style", new String[]{"type", "src"}, new String[]{"text/css", path() + "static/stylecss"}, " ");
 		
         // Start of body
 		contentNode.addChild(searchBox());
-		contentNode.addChild("br");
 
 
         // Show any errors
@@ -177,7 +173,6 @@ class MainPage implements WebPage {
         if(search != null){
 			// show progress
 			contentNode.addChild(progressBox());
-			contentNode.addChild("p");
 
             // If search is complete show results
             if (search.getState()==RequestState.FINISHED)
@@ -243,7 +238,7 @@ class MainPage implements WebPage {
 				if(js)
 					searchBox.addChild("input", new String[]{"type","name"}, new String[]{"hidden","js"});
 				// Shows the list of bookmarked indexes TODO show descriptions on mouseover ??
-				HTMLNode indexeslist = searchBox.addChild("ul", "Select indexes");
+				HTMLNode indexeslist = searchBox.addChild("ul", "class", "index-bookmark-list", "Select indexes");
 				for (String bm : library.bookmarkKeys()){
 					//Logger.normal(this, "Checking for bm="+Library.BOOKMARK_PREFIX+bm+" in \""+indexuri + " = " + selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm)+" "+indexuri.contains(Library.BOOKMARK_PREFIX+bm));
 					indexeslist.addChild("li")
@@ -251,7 +246,7 @@ class MainPage implements WebPage {
 				}
 
 			HTMLNode optionsBox = searchForm.addChild("div", "style", "margin: 20px 0px 20px 20px; display: inline-table; text-align: left;", "Options");
-				HTMLNode optionsList = optionsBox.addChild("ul", "class", "subnavlist");
+				HTMLNode optionsList = optionsBox.addChild("ul", "class", "options-list");
 					//optionsList.addChild("li")
 					//	.addChild("input", new String[]{"type"}, new String[]{"checkbox"}, "Group SSK Editions");
 					optionsList.addChild("li")
@@ -416,7 +411,7 @@ class MainPage implements WebPage {
 			HTMLNode siteBlockOldOuter = siteNode.addChild("div", new String[]{"id", "style"}, new String[]{"result-hiddenblock-"+keybase, (!showold?"display:none":"")});
 			// put title on block if it has more than one version in it
 			if(siteMap.size()>1)
-				siteBlockOldOuter.addChild("a", new String[]{"onClick", "name"}, new String[]{"toggleResult('"+keybase+"')", keybase}).addChild("h3", keybase.replaceAll("\\b.*/(.*)", "$1"));
+				siteBlockOldOuter.addChild("a", new String[]{"onClick", "name"}, new String[]{"toggleResult('"+keybase+"')", keybase}).addChild("h3", "class", "result-grouptitle", keybase.replaceAll("\\b.*/(.*)", "$1"));
 			// inner block for old versions to be hidden
 			HTMLNode oldEditionContainer = siteBlockOldOuter.addChild("div", new String[]{"class", "style"}, new String[]{"result-hideblock", "border-left: thick black;"});
 			// Loop over all editions in this site
@@ -430,16 +425,16 @@ class MainPage implements WebPage {
 				HTMLNode versionNode;
 				if(siteMap.get(version).size()>1||siteMap.size()>1){
 					// table for this version
-					versionNode = oldEditionContainer.addChild("table", new String[]{"class", "width", "border", "cellspacing", "cellpadding"}, new String[]{"librarian-result", "95%", "0px 8px", "0", "0",});
+					versionNode = oldEditionContainer.addChild("table", new String[]{"class"}, new String[]{"librarian-result"});
 					HTMLNode grouptitle = versionNode.addChild("tr").addChild("td", new String[]{"padding", "colspan"}, new String[]{"0", "3"});
-					grouptitle.addChild("h4", "style", "display:inline; padding-top: 5px; color:"+(newestVersion?"black":"darkGrey"), keybase.replaceAll("\\b.*/(.*)", "$1")+(version.longValue()>=0 ? "-"+version.toString():""));
+					grouptitle.addChild("h4", "class", (newestVersion?"result-editiontitle-new":"result-editiontitle-old"), keybase.replaceAll("\\b.*/(.*)", "$1")+(version.longValue()>=0 ? "-"+version.toString():""));
 					// Put link to show hidden older versions block if necessary
 					if(newestVersion && !showold && js && siteMap.size()>1)
 						grouptitle.addChild("a", new String[]{"href", "onClick"}, new String[]{"#"+keybase, "toggleResult('"+keybase+"')"}, "       ["+(siteMap.size()-1)+" older matching versions]");
 					HTMLNode versionrow = versionNode.addChild("tr");
 					versionrow.addChild("td", "width", "8px");
 					// draw black line down the side of the version
-					versionrow.addChild("td", new String[]{"bgcolor", "width"}, new String[]{"black", "2px"});
+					versionrow.addChild("td", new String[]{"class"}, new String[]{"sskeditionbracket"});
 
 					versionCell=versionrow.addChild("td", "style", "padding-left:15px");
 				}else
@@ -456,7 +451,7 @@ class MainPage implements WebPage {
 							showtitle = showurl;
 						}
 						String realurl = "/" + uri.toString();
-						HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-title", ""});
+						HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-entry", ""});
 						pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: " + (newestVersion ? "Blue" : "LightBlue"), u.URI}, showtitle);
 						// create usk url
 						if (uri.isSSKForUSK()) {

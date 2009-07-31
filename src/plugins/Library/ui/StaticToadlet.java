@@ -102,22 +102,31 @@ class StaticToadlet extends Toadlet {
 
 
 		stylecss("text/css",
-			"body {font-family:sans-serif;\nbackground:white;}\n" +
+			//"body {font-family:sans-serif;\nbackground:white;}\n" +
+			"table.librarian-result { width: 95%; border: 0px 8px; cellspacing: 0; cellpadding 0; }\n" +
+			".result-grouptitle { font-size: large; font-weight: bold; margin-bottom: 0;  }\n" +
+			".result-editiontitle-new { display:inline; padding-top: 5px; font-size: medium; color: black; }\n" +
+			".result-editiontitle-old { display:inline; padding-top: 5px; font-size: medium; color: darkGrey }\n" +
+			".result-entry { margin-bottom: 10px; }\n" +
 			".result-sitename {color:black; font-weight:bold}\n" +
 			".result-table { border-spacing : 5px; }\n" +
 			".result-url {color:green; font-size:small; padding-left:15px}\n" +
 			".result-uskbutton {color: #480000; font-variant: small-caps; font-size: small; padding-left: 20px}\n" +
 			".progress-table {border-spacing:10px 0px;}\n" +
-			".progress-bar-outline { width:300px; border:1px solid grey; height : 20px;}\n" +
-			".progress-bar-inner-final { background-color: red; height:15px; z-index:-1}\n" +
-			".progress-bar-inner-nonfinal { background-color: pink; height:15px; z-index:-1}\n" +
-			"div#navbar { background-color: white; border : none; } \n" +
-			"div#navbar ul { text-align : left; }\n" +
-			"th, td { border: none; padding: 0; }\n" +
-			"div#navbar ul li:hover ul, div#navbar ul li ul:hover { top: 1.1em; border: 1px solid #666633; background-color: #CCFFBB; }\n" +
-			"h1, h2 { font-size: xx-large; font-weight: bold; }\n" +
+			".progress-bar-outline { width:300px; border:1px solid grey; height : 20px; border-spacing: 0px; }\n" +
+			".progress-bar-inner-final { background-color: red; height:15px; z-index:-1; border-spacing: 0px; }\n" +
+			".progress-bar-inner-nonfinal { background-color: pink; height:15px; z-index:-1; border-spacing: 0px; }\n" +
+			//"div#navbar { background-color: white; border : none; } \n" +
+			//"div#navbar ul { text-align : left; }\n" +
+			//"th, td { border: none; padding: 0; }\n" +
+			//"div#navbar ul li:hover ul, div#navbar ul li ul:hover { top: 1.1em; border: 1px solid #666633; background-color: #CCFFBB; }\n" +
+			//"h1, h2 { font-size: xx-large; font-weight: bold; }\n" +
 			"input.index { font-size: 0.63em; size: 25; }\n" +
-			"li.index {  }\n"
+			"li.index {  }\n" +
+			"td.sskeditionbracket { background: black; width: 2px; padding: 0px; }\n" +
+			"ul.index-bookmark-list { list-style: none; }\n" +
+			"ul.options-list { list-style: none; }\n" +
+			"div#content th, td { border: none; }\n"
 		);
 
 
