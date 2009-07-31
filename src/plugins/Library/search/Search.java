@@ -435,7 +435,10 @@ implements Request<Collection<URIWrapper>> {
 		switch(resultOperation){
 			case UNION:
 				for(Request<Set<URIWrapper>> r : subsearches)
-					result.addAll(r.getResult());
+					if(r.getResult()==null)
+						Logger.error(this, "the result of "+r +" was null");
+					else
+						result.addAll(r.getResult());
 				break;
 			case INTERSECTION:
 				Iterator<Request> it = subsearches.iterator();

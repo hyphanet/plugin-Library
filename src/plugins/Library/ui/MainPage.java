@@ -9,7 +9,6 @@ import freenet.support.MultiValueTable;
 import freenet.support.api.HTTPRequest;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -40,10 +39,20 @@ class MainPage implements WebPage {
 	private boolean showold = false;
 	private boolean js = false;
 	private String query = "";
-	private String indexuri = Library.DEFAULT_INDEX_SITE;
+	/** All of the indexes used in the request together seperated by spaces */
+	private String indexstring = Library.DEFAULT_INDEX_SITE;
+	/** Array of all the bookmark indexes used in this request */
+	private ArrayList<String> selectedBMIndexes = new ArrayList();
+	/** Any other indexes which are not bookmarks seperated by spaces */
+	private String etcIndexes ="";
 	
 	
-
+	/**
+	 * TODO the whole index thing here is a huge mess
+	 * FIXME ajaxy stuff isnt working, it doesnt seem to renew the timeout in the js, it stopped working when the response type of the xml was changed to text/xml
+	 * @param library
+	 * @param pr
+	 */
 	MainPage(Library library, PluginRespirator pr) {
 		this.library = library;
 		this.pr = pr;
@@ -61,7 +70,15 @@ class MainPage implements WebPage {
 			search = Search.getSearch(request.getIntParam("request"));
 			if(search!=null){
 				query = search.getQuery();
-				indexuri = search.getIndexURI();
+				indexstring = search.getIndexURI();
+				String[] indexes = indexstring.split("[ ;]");
+				for (String string : indexes) {
+					if(string.length() > Library.BOOKMARK_PREFIX.length() && library.bookmarkKeys().contains(string.substring(Library.BOOKMARK_PREFIX.length())))
+						selectedBMIndexes.add(string);
+					else
+						etcIndexes += string.trim() + " ";
+				}
+				etcIndexes = etcIndexes.trim();
 				Logger.normal(this, "Refreshing request "+request.getIntParam("request")+" " +query);
 			}
 		}
@@ -79,18 +96,26 @@ class MainPage implements WebPage {
 
 
 		// Get index list
-		indexuri = "";
+		indexstring = "";
 		for (String bm : library.bookmarkKeys()){
-			String bmid = Library.BOOKMARK_PREFIX + bm;
-			if(request.isPartSet(bmid))
-				indexuri += bmid.trim() + " ";
+			String bmid = (Library.BOOKMARK_PREFIX + bm).trim();
+			//Logger.normal(this, "checking for ~" + bm + " - "+request.isPartSet("~"+bm));
+			if(request.isPartSet("~"+bm)){
+				indexstring += bmid + " ";
+				selectedBMIndexes.add(bmid);
+			}
 		}
-		if (request.isPartSet("index"))
-			indexuri += request.getPartAsString("index", 256).trim();
-		indexuri = indexuri.trim();
+		if (request.isPartSet("index")){
+			indexstring += request.getPartAsString("index", 256).trim();
+			etcIndexes = request.getPartAsString("index", 256).trim();
+		}
+		indexstring = indexstring.trim();
 
-		if("".equals(indexuri))
-			indexuri = Library.DEFAULT_INDEX_SITE;
+		if("".equals(indexstring))
+			indexstring = Library.DEFAULT_INDEX_SITE;
+
+		if(etcIndexes.length()==0 && selectedBMIndexes.size() == 0)
+			selectedBMIndexes.add(Library.DEFAULT_INDEX_SITE);
 		
 		
 		// get search query
@@ -99,7 +124,8 @@ class MainPage implements WebPage {
 			query = request.getPartAsString("search", 256);
 			
 			try {
-				search = Search.startSearch(query, indexuri);
+				//Logger.normal(this, "starting search for "+query+" on "+indexuri);
+				search = Search.startSearch(query, indexstring);
 			} catch (InvalidSearchException ex) {
 				exceptions.add(ex);
 			} catch (RuntimeException ex){
@@ -119,14 +145,15 @@ class MainPage implements WebPage {
 	 * freenet.support.HTMLNode)
 	 */
 	public void writeContent(HTMLNode contentNode, MultiValueTable<String, String> headers) {
-		Logger.normal(this, "Writing page for "+ query + " " + search + " " + indexuri);
+		//Logger.normal(this, "Writing page for "+ query + " " + search + " " + indexuri);
 		
 		// Don't refresh if there is no request option, if it is finished or there is an error to show or js is enabled
 		if(search!=null && !"".equals(search.getQuery()) && !search.isDone() && exceptions.size()<=0){
 			// refresh will GET so use a request id
 			if(!js)
 				headers.put("Refresh", "2;url="+path()+"?request="+search.hashCode() + (showold?"&showold=on":""));
-			contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
+			// The JS isn't working again, so it's disabled again
+			//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
 		}
 
 
@@ -134,7 +161,7 @@ class MainPage implements WebPage {
 		contentNode.addChild("style", new String[]{"type", "src"}, new String[]{"text/css", path() + "static/stylecss"}, " ");
 		
         // Start of body
-		contentNode.addChild(searchBox(query, indexuri, js, showold));
+		contentNode.addChild(searchBox());
 		contentNode.addChild("br");
 
 
@@ -149,13 +176,13 @@ class MainPage implements WebPage {
         // If showing a search
         if(search != null){
 			// show progress
-			contentNode.addChild(progressBox(query, indexuri, search));
+			contentNode.addChild(progressBox());
 			contentNode.addChild("p");
 
             // If search is complete show results
             if (search.getState()==RequestState.FINISHED)
 				try{
-					contentNode.addChild(resultNodeGrouped(search, showold, js));
+					contentNode.addChild(resultNodeGrouped());
 				}catch(TaskAbortException ex){
 					addError(errorDiv, ex);
 				}catch(RuntimeException ex){
@@ -189,20 +216,21 @@ class MainPage implements WebPage {
 	 * @param showold
 	 * @return
 	 */
-	private HTMLNode searchBox(String search, String indexuri, boolean js, boolean showold){
+	private HTMLNode searchBox(){
 		// Put all bookmarked indexes being used into a list and leave others in a string
-		String[] indexes = indexuri.split("[ ;]");
-		Set<String> allbookmarks = library.bookmarkKeys();
-		ArrayList<String> usedbookmarks = new ArrayList();
-		indexuri = "";
-		for (String string : indexes) {
-			if(string.startsWith(Library.BOOKMARK_PREFIX)
-					&& allbookmarks.contains(string.substring(Library.BOOKMARK_PREFIX.length())))
-				usedbookmarks.add(string);
-			else
-				indexuri += string + " ";
-		}
-		indexuri.trim();
+//		Logger.normal(this, "searchBox for "+search + "  " + indexuri);
+//		String[] indexes = indexuri.split("[ ;]");
+//		Set<String> allbookmarks = library.bookmarkKeys();
+//		ArrayList<String> usedbookmarks = new ArrayList();
+//		indexuri = "";
+//		for (String string : indexes) {
+//			if(string.startsWith(Library.BOOKMARK_PREFIX)
+//					&& allbookmarks.contains(string.substring(Library.BOOKMARK_PREFIX.length())))
+//				usedbookmarks.add(string);
+//			else
+//				indexuri += string + " ";
+//		}
+//		indexuri.trim();
 
 
 		HTMLNode searchDiv = new HTMLNode("div", new String[]{"id", "style"}, new String[]{"searchbar", "text-align: center;"});
@@ -210,16 +238,16 @@ class MainPage implements WebPage {
 			HTMLNode searchBox = searchForm.addChild("div", "style", "display: inline-table; text-align: left; margin: 20px 20px 20px 0px;");
 				searchBox.addChild("#", "Search query:");
 				searchBox.addChild("br");
-				searchBox.addChild("input", new String[]{"name", "size", "type", "value"}, new String[]{"search", "40", "text", search});
+				searchBox.addChild("input", new String[]{"name", "size", "type", "value"}, new String[]{"search", "40", "text", query});
 				searchBox.addChild("input", new String[]{"name", "type", "value", "tabindex"}, new String[]{"find", "submit", "Find!", "1"});
 				if(js)
 					searchBox.addChild("input", new String[]{"type","name"}, new String[]{"hidden","js"});
 				// Shows the list of bookmarked indexes TODO show descriptions on mouseover ??
 				HTMLNode indexeslist = searchBox.addChild("ul", "Select indexes");
 				for (String bm : library.bookmarkKeys()){
-					//searchDiv.addChild("%", "<!-- Checking for bm="+bm+" in \""+indexuri+"\" -->");
+					//Logger.normal(this, "Checking for bm="+Library.BOOKMARK_PREFIX+bm+" in \""+indexuri + " = " + selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm)+" "+indexuri.contains(Library.BOOKMARK_PREFIX+bm));
 					indexeslist.addChild("li")
-						.addChild("input", new String[]{"type", "name", "value", (usedbookmarks.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"checkbox", Library.BOOKMARK_PREFIX+bm, Library.BOOKMARK_PREFIX+bm, "1" } , bm);
+						.addChild("input", new String[]{"type", "name", "value", (selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"checkbox", "~"+bm, Library.BOOKMARK_PREFIX+bm, "1" } , bm);
 				}
 
 			HTMLNode optionsBox = searchForm.addChild("div", "style", "margin: 20px 0px 20px 20px; display: inline-table; text-align: left;", "Options");
@@ -236,7 +264,7 @@ class MainPage implements WebPage {
 					newIndexInput.addChild("input", new String[]{"type", "class"}, new String[]{"text", "index"});
 					newIndexInput.addChild("br");
 					newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "URI:");
-					newIndexInput.addChild("input", new String[]{"name", "type", "value", "class"}, new String[]{"index", "text", indexuri, "index"});
+					newIndexInput.addChild("input", new String[]{"name", "type", "value", "class"}, new String[]{"index", "text", etcIndexes, "index"});
 
 
 
@@ -259,7 +287,7 @@ class MainPage implements WebPage {
 	 * @param request request to get progress from
 	 * @return
 	 */
-	private static HTMLNode progressBox(String search, String indexuri, Request request){
+	private HTMLNode progressBox(){
 			HTMLNode progressDiv = new HTMLNode("div", "id", "progress");
             // Search description
 			HTMLNode progressTable = progressDiv.addChild("table", "width", "100%");
@@ -267,9 +295,9 @@ class MainPage implements WebPage {
 					.addChild("td");
 						searchingforCell.addChild("#", L10nString.getString("Searching-for"));
 						searchingforCell.addChild("span", "class", "librarian-searching-for-target")
-							.addChild("b", search);
+							.addChild("b", query);
 						searchingforCell.addChild("#", L10nString.getString("in-index"));
-						searchingforCell.addChild("i", indexuri);
+						searchingforCell.addChild("i", indexstring);
 
 
 				// Search status
@@ -277,7 +305,7 @@ class MainPage implements WebPage {
 					statusRow.addChild("td")
 							.addChild("div", "id", "librarian-search-status")
 							.addChild("table", new String[]{"id", "class"}, new String[]{"progress-table", "progress-table"})
-							.addChild(progressBar(request));
+							.addChild(progressBar(search));
 		return progressDiv;
 	}
 
@@ -288,7 +316,7 @@ class MainPage implements WebPage {
 	 * @param request
 	 * @return
 	 */
-	private static HTMLNode progressBar(Request request) {
+	private HTMLNode progressBar(Request request) {
 		HTMLNode bar;
 		// If it doesn't have subrequests, draw it's progress
 		if(request.getSubRequests()==null){
@@ -340,13 +368,13 @@ class MainPage implements WebPage {
 	 * @param showold whether to display results from older SSK versions
 	 * @param js whether js can be used to display results
 	 */
-	public static HTMLNode resultNodeGrouped(Request<Collection<URIWrapper>> request, boolean showold, boolean js) throws TaskAbortException {
+	public HTMLNode resultNodeGrouped() throws TaskAbortException {
 		// Output results
 		int results = 0;
 		// Loop to separate results into SSK groups
 		HTMLNode resultsNode = new HTMLNode("div", "id", "results");
 		HashMap<String, SortedMap<Long, Set<URIWrapper>>> groupmap = new HashMap();
-		Iterator<URIWrapper> it = request.getResult().iterator();
+		Iterator<URIWrapper> it = search.getResult().iterator();
 		while(it.hasNext()){
 			URIWrapper o = it.next();
 			// Get the key and name

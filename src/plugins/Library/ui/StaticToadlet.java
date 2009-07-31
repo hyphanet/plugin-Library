@@ -45,7 +45,7 @@ class StaticToadlet extends Toadlet {
 			StaticPage page = StaticPage.valueOf(httprequest.getPath().substring(path().length()));
 			if (page == null)
 				this.sendErrorPage(ctx, 404, "Not found", "Could not find " + httprequest.getPath().substring(path().length()) + " in " + path());
-			Integer request = httprequest.getIntParam("request");
+			Integer request = httprequest.getIntParam("request");		// Make sure String aren't allowed here
 			boolean showold = httprequest.isParameterSet("showold");
 			this.writeReply(ctx, 200, page.mimetype, "Success", page.content.replaceAll("\\$request", request.toString()).replaceAll("\\$showold", showold ? "showold=on":""));
 		} finally {
@@ -69,16 +69,15 @@ class StaticToadlet extends Toadlet {
 			"\n" +
 			"function xmlhttpstatechanged(){\n" +
 			"	if(xmlhttp.readyState==4){\n" +
-			"		var parser = new DOMParser();\n" +
-			"		var resp = parser.parseFromString(xmlhttp.responseText, 'application/xml').documentElement;\n" +
-			"		document.getElementById('librarian-search-status').innerHTML=" +
-						"resp.getElementsByTagName('progress')[0].textContent;\n" +
+			"		var resp = xmlhttp.responseXML;\n" +
+			"		var progresscontainer = document.getElementById('librarian-search-status');\n" +
+			"		progresscontainer.replaceChild(resp.getElementsByTagName('progress')[0].cloneNode(true), progresscontainer.getElementsByTagName('table')[0]);\n" +
 			"		if(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('RequestState').value=='FINISHED')\n" +
-			"			document.getElementById('results').innerHTML=" +
-							"resp.getElementsByTagName('result')[0].textContent;\n" +
+			"			document.getElementById('results').appendChild(" +
+							"resp.getElementsByTagName('result')[0].cloneNode(true));\n" +
 			"		else if(resp.getElementsByTagName('progress')[0].attributes.getNamedItem('RequestState').value=='ERROR')\n" +
-			"			document.getElementById('errors').innerHTML+=" +
-							"resp.getElementsByTagName('error')[0].textContent;\n" +
+			"			document.getElementById('errors').appendChild(" +
+							"resp.getElementsByTagName('error')[0].cloneNode(true));\n" +
 			"		else\n" +
 			"			var t = setTimeout('getProgress()', 1000);\n" +
 			"	}\n" +
@@ -97,7 +96,7 @@ class StaticToadlet extends Toadlet {
 
 
 		detectjs("application/javascript",
-			"window.location='/library/?js&request=$request;\n"
+			"window.location='/library/?js&request=$request';\n"
 		),
 
 

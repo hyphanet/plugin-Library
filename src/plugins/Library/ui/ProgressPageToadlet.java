@@ -57,7 +57,7 @@ class ProgressPageToadlet extends Toadlet {
 		try {
 			processGetRequest(request);
 			// write reply
-			writeHTMLReply(ctx, 200, "OK", null, progressxml());
+			writeReply(ctx, 200, "text/xml", "OK", null, progressxml());
 		} finally {
 			Thread.currentThread().setContextClassLoader(origClassLoader);
 		}
@@ -85,18 +85,17 @@ class ProgressPageToadlet extends Toadlet {
 	 */
 	String progressxml() {
 		HTMLNode resp = new HTMLNode("pagecontent");
-		String progress;
+		HTMLNode progress;
 		// If search is happening, return it's progress
 		if(search!=null){
-			HTMLNode progresstable = new HTMLNode("table", new String[]{"id", "class"}, new String[]{"progress-table", "progress-table"});
-				progresstable.addChild(progressBar(search));
-			progress = progresstable.generate();
+			progress = new HTMLNode("table", new String[]{"id", "class"}, new String[]{"progress-table", "progress-table"});
+				progress.addChild(progressBar(search));
 		}else
-			progress = "No search for this, something went wrong";		// FIXME this came up again ??
+			progress = new HTMLNode("#", "No search for this, something went wrong");
 		// If it's finished, return it's results
 		if(search != null && search.getState()==RequestState.FINISHED)
 			try {
-				resp.addChild("result", WebUI.resultNodeGrouped(search, showold, true).generate());
+				resp.addChild("result").addChild(WebUI.resultNodeGrouped(search, showold, true));
 				resp.addChild("progress", "RequestState", "FINISHED", "Search complete");
 			} catch (TaskAbortException ex) {
 				addError(resp.addChild("error", "RequestState",  "ERROR"), ex.getCause());
@@ -104,7 +103,7 @@ class ProgressPageToadlet extends Toadlet {
 				addError(resp.addChild("error", "RequestState",  "ERROR"), ex);
 			}
 		else
-			resp.addChild("progress", "RequestState",  (search==null)?"":search.getState().toString(), progress);
+			resp.addChild("progress", "RequestState",  (search==null)?"":search.getState().toString()).addChild(progress);
 		return "<?xml version='1.0' encoding='ISO-8859-1'?>\n"+resp.generate();
 	}
 
