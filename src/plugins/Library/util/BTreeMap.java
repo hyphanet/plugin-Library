@@ -79,6 +79,8 @@ import java.util.ConcurrentModificationException;
 **   iterator''' (can do this when we do the commit algorithm for indexes)
 ** * '''TODO better distribution algorithm for putAll'''
 **
+** PRIORITY DOCUMENT SkeletonBTreeMap dependency on use of size() & isLeaf()...
+**
 ** @author infinity0
 ** @see TreeMap
 ** @see Comparator
@@ -1255,6 +1257,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 									// NULLNOTICE lastkey initialised to null, so this will get the right node
 									// even at the smaller edge of the map
 									cnode = cnode.rnodes.get(lastkey);
+									cnode.isLeaf(); // trigger DataNotLoadedException if cnode is a GhostNode
 									centit = cnode.entries.entrySet().iterator();
 								}
 							}

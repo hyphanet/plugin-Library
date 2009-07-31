@@ -47,11 +47,15 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 
 	/**
 	** Verifies the backing map for the condition described in the constructor.
+	**
+	** Note: this test is disabled (will always return true) since it is
+	** impossible to test this for partially-loaded data structures. Code kept
+	** here to remind future programmers of this.
 	*/
 	final static <E> boolean verifyBackingMapIntegrity(SortedMap<E, E> m) {
-		for (Map.Entry<E, E> en: m.entrySet()) {
+		/*for (Map.Entry<E, E> en: m.entrySet()) {
 			assert(en.getKey() == en.getValue());
-		}
+		}*/
 		return true;
 	}
 

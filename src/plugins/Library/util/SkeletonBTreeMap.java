@@ -59,7 +59,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	**   DNLEx depending on the value of that boolean; and have SkeletonNode
 	**   use this class when int_ent is true.
 	**
-	**   - pros: simple, efficient OPTIMISE
+	**   - pros: simple, efficient OPTIMISE PRIORITY
 	**   - cons: requires YetAnotherClass
 	**
 	** 2 don't have the internal_entries, and just use a dummy serialiser that

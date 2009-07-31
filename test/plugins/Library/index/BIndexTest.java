@@ -15,13 +15,15 @@ import freenet.keys.FreenetURI;
 import java.util.*;
 
 /**
+** TODO most of this code needs to go into WriteableIndex at some point.
+**
 ** @author infinity0
 */
 public class BIndexTest extends TestCase {
 
 	static {
 		//plugins.Library.serial.YamlArchiver.setTestMode();
-		ProtoIndex.BTREE_NODE_MIN = 0x100; // DEBUG so we see tree splits
+		ProtoIndex.BTREE_NODE_MIN = 0x40; // DEBUG so we see tree splits
 	}
 
 	long time = 0;
@@ -65,12 +67,12 @@ public class BIndexTest extends TestCase {
 
 		int totalentries = 0;
 
-		for (int i=0; i<1024; ++i) {
+		for (int i=0; i<0x100; ++i) {
 			String key = Generators.rndKey();
-			SkeletonBTreeSet<TokenEntry> entries = new SkeletonBTreeSet<TokenEntry>();
+			SkeletonBTreeSet<TokenEntry> entries = new SkeletonBTreeSet<TokenEntry>(ProtoIndex.BTREE_NODE_MIN);
 			srl.setSerialiserFor(entries);
 
-			int n = rand.nextInt(16) + 16;
+			int n = rand.nextInt(0xF0) + 0x10;
 			totalentries += n;
 
 			try {
@@ -123,7 +125,7 @@ public class BIndexTest extends TestCase {
 		int totalentries = 0;
 
 		for (String word: randomWords) {
-			SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
+			SkeletonBTreeSet<TokenEntry> entries = new SkeletonBTreeSet<TokenEntry>();
 			int n = rand.nextInt(16) + 16;
 			totalentries += n;
 

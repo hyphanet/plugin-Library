@@ -23,7 +23,7 @@ import java.util.TreeSet;
 /**
 ** {@link MapSerialiser} that packs a map of weighable elements (eg. objects
 ** with a {@code size()} method) into a group of fixed-capacity bins. There are
-** two main modes of operation, depending on the value of {@link #no_tiny}; in
+** two main modes of operation, depending on the value of {@link #NO_TINY}; in
 ** addition to this, there is an {@link #aggression} attribute that affects
 ** the speed vs. optimity of the packing.
 **
@@ -80,7 +80,7 @@ implements MapSerialiser<K, T>,
 	** Whether the "tiny" (weight less than {@code BIN_CAP/2}) bin will be kept
 	** as a separate bin, or merged into the next-smallest.
 	*/
-	final public boolean no_tiny;
+	final public boolean NO_TINY;
 
 	/**
 	** How aggressive the bin-packing algorithm is. Eg. will it load bins that
@@ -118,11 +118,11 @@ implements MapSerialiser<K, T>,
 		subsrl = s;
 		BIN_CAP = c;
 		BIN_CAPHF = c>>1;
-		no_tiny = n;
+		NO_TINY = n;
 	}
 
 	/**
-	** Constructs a Packer with the given parameters and {@link #no_tiny}
+	** Constructs a Packer with the given parameters and {@link #NO_TINY}
 	** set to {@code true}.
 	**
 	** If you are using a child {@link Serialiser} that detects and discards
@@ -226,7 +226,7 @@ implements MapSerialiser<K, T>,
 	*/
 	protected void packBestFitDecreasing(SortedSet<Bin<K>> bins, Map<K, PushTask<T>> elems, Scale<K, T> sc, IDGenerator gen) {
 
-		if (no_tiny && !bins.isEmpty()) {
+		if (NO_TINY && !bins.isEmpty()) {
 			// locate the single bin heavier than BIN_CAP (if it exists), and keep
 			// moving the heaviest element from that bin into another bin, until that
 			// bin weighs more than BIN_CAP / 2 (and both bins will weigh between
@@ -296,7 +296,7 @@ implements MapSerialiser<K, T>,
 		// 2nd-lightest bin is >= BIN_CAP / 2
 		assert(bins.size() < 2 || bins.headSet(bins.last()).last().filled() >= BIN_CAPHF);
 
-		if (no_tiny && bins.size() > 1) {
+		if (NO_TINY && bins.size() > 1) {
 			// locate the single bin lighter than BIN_CAP / 2 (if it exists), and
 			// combine it with the next smallest bin
 			Bin<K> lightest = bins.last();
@@ -500,11 +500,11 @@ implements MapSerialiser<K, T>,
 	**
 	** There are two main modes of operation:
 	**
-	** ; {@link #no_tiny} is {@code false} :
+	** ; {@link #NO_TINY} is {@code false} :
 	**   Uses the Best-Fit Decreasing bin-packing algorithm, plus an additional
 	**   redistribution algorithm that "evens out" the bins. Each bin's weight
 	**   will be between [BIN_CAP/2, BIN_CAP], except for at most one bin.
-	** ; {@link #no_tiny} is {@code true} :
+	** ; {@link #NO_TINY} is {@code true} :
 	**   As above, but if the exceptional bin exists, it will be merged with
 	**   the next-smallest bin, if that exists. As before, each bin will weigh
 	**   between [BIN_CAP/2, BIN_CAP], except for the merged element (if it
@@ -599,6 +599,8 @@ implements MapSerialiser<K, T>,
 	** remove() methods of the sets and iterators returned by the subset and
 	** iterator methods, to also recalculate the weight, but these are never
 	** used so it's OK.
+	**
+	** @author infinity0
 	*/
 	protected static class Bin<K> extends TreeSet<K> implements Comparable<Bin<K>> {
 
@@ -661,6 +663,8 @@ implements MapSerialiser<K, T>,
 	** This is used when we want a such a bin for some purpose (eg. as an
 	** argument to a comparator) but we don't want to have to populate a real
 	** bin to get the desired weight (which might be massive).
+	**
+	** @author infinity0
 	*/
 	public static class DummyBin<K> extends Bin<K> {
 
@@ -689,8 +693,10 @@ implements MapSerialiser<K, T>,
 	}
 
 
-	/***
+	/************************************************************************
 	** JavaBean representing bin metadata.
+	**
+	** @author infinity0
 	*/
 	public static class BinInfo {
 
@@ -710,17 +716,25 @@ implements MapSerialiser<K, T>,
 	/************************************************************************
 	** A class that provides a "weight" assignment for each key in a given map,
 	** by reading either the data or the metadata of its associated task.
+	**
+	** @author infinity0
 	*/
 	abstract public static class Scale<K, T> extends IdentityComparator<K> {
 
 		final protected Map<K, Integer> weights = new HashMap<K, Integer>();
 		final protected Map<K, ? extends Task<T>> elements;
-		final protected int BIN_CAP;
+		final protected Packer<K, T> packer;
+
+		/**
+		** Keeps track of "the exceptional element" as defined in the
+		** description for {@link #push(Map, Object)}.
+		*/
+		protected K giant;
 
 		// TODO maybe ? extends T, or something
-		protected Scale(Map<K, ? extends Task<T>> elem, int cap) {
+		protected Scale(Map<K, ? extends Task<T>> elem, Packer<K, T> pk) {
 			elements = elem;
-			BIN_CAP = cap;
+			packer = pk;
 		}
 
 		/**
@@ -763,8 +777,12 @@ implements MapSerialiser<K, T>,
 				} else {
 					i = weigh(task.data);
 				}
-				if (i > BIN_CAP) {
-					throw new IllegalArgumentException("Element greater than the capacity allowed: " + key);
+				if (i > packer.BIN_CAP) {
+					if (packer.NO_TINY && giant == null) {
+						giant = key;
+					} else {
+						throw new IllegalArgumentException("Element " + key + " greater than the capacity allowed: " + i + "/" + packer.BIN_CAP);
+					}
 				}
 				weights.put(key, i);
 			}
@@ -804,6 +822,8 @@ implements MapSerialiser<K, T>,
 	** This implementation cannot ensure uniqueness of IDs generated (with
 	** respect to ones generated in a previous session), unless they are
 	** explicitly registered using {@link #registerID(Object)}.
+	**
+	** @author infinity0
 	*/
 	public static class IDGenerator {
 

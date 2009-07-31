@@ -51,7 +51,7 @@ implements Archiver<ProtoIndex>,
            Serialiser.Trackable<Index>*/ {
 
 
-	final public static int TMBIN_MAX = 256;
+	final public static int TMBIN_MAX = 0x100;
 
 
 	final protected Archiver<Map<String, Object>> subsrl;
@@ -284,13 +284,13 @@ implements Archiver<ProtoIndex>,
 		}
 
 		@Override public Packer.Scale<String, SkeletonBTreeSet<TokenEntry>> newScale(Map<String, ? extends Task<SkeletonBTreeSet<TokenEntry>>> elems) {
-			return new BTreeScale(elems, BIN_CAP);
+			return new BTreeScale(elems, this);
 		}
 
 		public static class BTreeScale extends Packer.Scale<String, SkeletonBTreeSet<TokenEntry>> {
 
-			public BTreeScale(Map<String, ? extends Task<SkeletonBTreeSet<TokenEntry>>> elems, int cap) {
-				super(elems, cap);
+			public BTreeScale(Map<String, ? extends Task<SkeletonBTreeSet<TokenEntry>>> elems, Packer<String, SkeletonBTreeSet<TokenEntry>> pk) {
+				super(elems, pk);
 			}
 
 			@Override public int weigh(SkeletonBTreeSet<TokenEntry> element) {

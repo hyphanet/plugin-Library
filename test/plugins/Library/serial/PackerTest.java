@@ -43,7 +43,8 @@ public class PackerTest extends TestCase {
 	}, NODE_MAX, true) {
 
 		@Override public Scale<String, HashSet> newScale(Map<String, ? extends Task<HashSet>> elems) {
-			return new Scale<String, HashSet>(elems, NODE_MAX) {
+			final Packer<String, HashSet> t = this;
+			return new Scale<String, HashSet>(elems, t) {
 				@Override public int weigh(HashSet elem) {
 					return elem.size();
 				}
