@@ -355,7 +355,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		@Override public Map<String, Object> app(SkeletonNode node) {
 			if (!node.isBare()) {
-				throw new IllegalStateException("Cannot translate non-bare node");
+				// FIXME put back after option (1) above is implemented...
+				//throw new IllegalStateException("Cannot translate non-bare node");
 			}
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("lkey", (ktr == null)? node.lkey: ktr.app(node.lkey));
@@ -425,7 +426,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			map.put("size", tree.size);
 			Map<String, Object> rmap = tree.makeNodeTranslator(ktr, mtr).app((SkeletonBTreeMap.SkeletonNode)tree.root);
 			map.put("entries", rmap.get("entries"));
-			map.put("subnodes", rmap.get("subnodes"));
+			if (!tree.root.isLeaf()) {
+				map.put("subnodes", rmap.get("subnodes"));
+			}
 			return map;
 		}
 

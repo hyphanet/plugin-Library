@@ -69,18 +69,18 @@ implements MapSerialiser<K, T>,
 	** Maximum weight of a bin (except one; see {@link #push(Map, Object)} for
 	** details).
 	*/
-	final protected int BIN_CAP;
+	final public int BIN_CAP;
 
 	/**
 	** {@code BIN_CAP}/2 (or 1/2 less than this, if {@code BIN_CAP} is odd).
 	*/
-	final protected int BIN_CAPHF;
+	final public int BIN_CAPHF;
 
 	/**
 	** Whether the "tiny" (weight less than {@code BIN_CAP/2}) bin will be kept
 	** as a separate bin, or merged into the next-smallest.
 	*/
-	final protected boolean no_tiny;
+	final public boolean no_tiny;
 
 	/**
 	** How aggressive the bin-packing algorithm is. Eg. will it load bins that
@@ -689,6 +689,24 @@ implements MapSerialiser<K, T>,
 	}
 
 
+	/***
+	** JavaBean representing bin metadata.
+	*/
+	public static class BinInfo {
+
+		protected Object id;
+		protected int weight;
+
+		public BinInfo() { }
+		public BinInfo(Object i, int w) { id = i; weight = w; }
+		public Object getID() { return id; }
+		public int getWeight() { return weight; }
+		public void setID(Object i) { id = i; }
+		public void setWeight(int w) { weight = w; }
+
+	}
+
+
 	/************************************************************************
 	** A class that provides a "weight" assignment for each key in a given map,
 	** by reading either the data or the metadata of its associated task.
@@ -714,21 +732,21 @@ implements MapSerialiser<K, T>,
 		** Read the bin ID from the given metadata.
 		*/
 		public Object readMetaID(Object meta) {
-			return ((Object[])meta)[0];
+			return ((BinInfo)meta).id;
 		}
 
 		/**
 		** Read the bin weight from the given metadata.
 		*/
 		public int readMetaWeight(Object meta) {
-			return (Integer)((Object[])meta)[1];
+			return ((BinInfo)meta).weight;
 		}
 
 		/**
 		** Construct the metadata for the given bin ID and weight.
 		*/
 		public Object makeMeta(Object id, int weight) {
-			return new Object[]{id, new Integer(weight)};
+			return new BinInfo(id, weight);
 		}
 
 		/**

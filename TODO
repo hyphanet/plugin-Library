@@ -6,6 +6,7 @@ apart from that, dotted throughout the source code are the following:
 
 - DOCUMENT
 - URGENT bugs will likely crop up until this issue is fixed
+- FIXME
 - PRIORITY major things, that other things depend on
 - TODO
 - OPTIMISE

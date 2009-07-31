@@ -19,6 +19,17 @@ import java.util.AbstractSet;
 public class BTreeSet<E> extends AbstractSet<E>
 implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 
+	/**
+	** Ideally this should be a {@link BTreeMap} but this would complicate the
+	** implementation of the {@link subSet(Object, Object)} etc methods - we'd
+	** have to have a subclass that does this exact same wrapping, but with a
+	** {@code SortedMap} instead.
+	**
+	** This means that {@link #rootSize()} is a bit of a hack, but oh well.
+	** FIXME maybe some day fix this. TODO actually not so complicated, just
+	** have an abstract MapSet class...
+	**
+	*/
 	final protected SortedMap<E, E> map;
 
 	/**
@@ -67,6 +78,18 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	*/
 	private BTreeSet(SortedMap<E, E> m) {
 		map = m;
+	}
+
+	/**
+	** Returns the number of entries contained in the root node. If this object
+	** is actually a {@link #subSet(Object, Object) subSet} of an actual {@code
+	** BTreeSet}, then this will throw {@link UnsupportedOperationException}.
+	*/
+	public int rootSize() {
+		if (map instanceof BTreeMap) {
+			return ((BTreeMap)map).rootSize();
+		}
+		throw new UnsupportedOperationException("This is not a full BTreeSet and so cannot access the root");
 	}
 
 	/*========================================================================

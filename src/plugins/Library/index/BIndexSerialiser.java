@@ -5,6 +5,7 @@ package plugins.Library.index;
 
 import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.util.SkeletonBTreeMap;
+import plugins.Library.util.SkeletonBTreeSet;
 
 import plugins.Library.serial.Serialiser.*;
 import plugins.Library.serial.Serialiser;
@@ -15,8 +16,7 @@ import plugins.Library.serial.IterableSerialiser;
 import plugins.Library.serial.MapSerialiser;
 import plugins.Library.serial.LiveArchiver;
 import plugins.Library.serial.ParallelSerialiser;
-import plugins.Library.serial.CollectionSplitPacker;
-import plugins.Library.serial.MapSplitPacker;
+import plugins.Library.serial.Packer;
 import plugins.Library.serial.Progress;
 import plugins.Library.serial.SimpleProgress;
 import plugins.Library.serial.CompoundProgress;
@@ -85,7 +85,7 @@ implements Archiver<ProtoIndex>,
 		// for DEBUG use; the freenet version would save to SSK@key/my_index/index.yml
 		subsrl = new YamlArchiver<Map<String, Object>>(true);
 		//trans = new IndexTranslator();
-		//tmsrl = new BTreeMapSerialiser<String, SortedSet<TokenEntry>>();
+		//tmsrl = new BTreeMapSerialiser<String, SkeletonBTreeSet<TokenEntry>>();
 		//usrl = new BTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKeyTranslator());
 		trans = new IndexTranslator();
 	}
@@ -94,8 +94,8 @@ implements Archiver<ProtoIndex>,
 
 	public static ProtoIndex setSerialiserFor(ProtoIndex index) {
 		// TODO utab too
-		BTreeNodeSerialiser ttab_keys = new BTreeNodeSerialiser<String, SortedSet<TokenEntry>>(index.ttab, null);
-		TermEntrySerialiser ttab_data = new TermEntrySerialiser();
+		BTreeNodeSerialiser ttab_keys = new BTreeNodeSerialiser<String, SkeletonBTreeSet<TokenEntry>>(index.ttab, null);
+		TermEntrySerialiser ttab_data = new TermEntrySerialiser(index.ttab.ENT_MAX);
 		index.ttab.setSerialiser(ttab_keys, ttab_data);
 		index.trackables[ProtoIndex.TTAB_KEYS] = ttab_keys;
 		index.trackables[ProtoIndex.TTAB_DATA] = ttab_data;
@@ -132,9 +132,9 @@ implements Archiver<ProtoIndex>,
 		/**
 		** Term-table translator
 		*/
-		Translator<SkeletonBTreeMap<String, SortedSet<TokenEntry>>, Map<String, Object>> tmtrans = new
-		SkeletonBTreeMap.TreeTranslator<String, SortedSet<TokenEntry>>(null, new
-		TreeMapTranslator<String, SortedSet<TokenEntry>>(null));
+		Translator<SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>>, Map<String, Object>> tmtrans = new
+		SkeletonBTreeMap.TreeTranslator<String, SkeletonBTreeSet<TokenEntry>>(null, new
+		TreeMapTranslator<String, SkeletonBTreeSet<TokenEntry>>(null));
 
 		// URI-table translator too...
 
@@ -164,7 +164,7 @@ implements Archiver<ProtoIndex>,
 					Date modified = (Date)map.get("modified");
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
 					//SkeletonBTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>> utab = (SkeletonBTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>)map.get("utab");
-					SkeletonBTreeMap<String, SortedSet<TokenEntry>> ttab = tmtrans.rev((Map<String, Object>)map.get("ttab"));
+					SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>> ttab = tmtrans.rev((Map<String, Object>)map.get("ttab"));
 
 					return setSerialiserFor(new ProtoIndex(id, name, modified, extra, /*utab, */ttab));
 
@@ -235,62 +235,85 @@ implements Archiver<ProtoIndex>,
 
 
 	public static class TermEntrySerialiser
-	extends CollectionSplitPacker<String, SortedSet<TokenEntry>>
-	implements MapSerialiser<String, SortedSet<TokenEntry>>,
-	           Serialiser.Trackable<SortedSet<TokenEntry>> {
+	extends Packer<String, SkeletonBTreeSet<TokenEntry>>
+	implements MapSerialiser<String, SkeletonBTreeSet<TokenEntry>>,
+	           Serialiser.Trackable<SkeletonBTreeSet<TokenEntry>> {
 
-		final protected ProgressTracker<SortedSet<TokenEntry>, CompoundProgress> tracker;
+		final protected ProgressTracker<SkeletonBTreeSet<TokenEntry>, CompoundProgress> tracker;
 		final protected TermEntryGroupSerialiser subsrl;
 
-		public TermEntrySerialiser() {
-			super(new TermEntryGroupSerialiser(), TMBIN_MAX, (Class<TreeSet<TokenEntry>>)((new TreeSet<TokenEntry>()).getClass()));
+		public TermEntrySerialiser(int cap) {
+			super(new TermEntryGroupSerialiser(), cap);
 			subsrl = (TermEntryGroupSerialiser)super.subsrl;
-			tracker = new ProgressTracker<SortedSet<TokenEntry>, CompoundProgress>(CompoundProgress.class);
+			tracker = new ProgressTracker<SkeletonBTreeSet<TokenEntry>, CompoundProgress>(CompoundProgress.class);
 		}
 
-		@Override public ProgressTracker<SortedSet<TokenEntry>, ? extends Progress> getTracker() {
+		@Override public ProgressTracker<SkeletonBTreeSet<TokenEntry>, ? extends Progress> getTracker() {
 			return tracker;
 		}
 
-		@Override protected void preprocessPullBins(Map<String, PullTask<SortedSet<TokenEntry>>> tasks, Collection<PullTask<Map<String, SortedSet<TokenEntry>>>> bintasks) {
+		@Override public Packer.Scale<String, SkeletonBTreeSet<TokenEntry>> newScale(Map<String, ? extends Task<SkeletonBTreeSet<TokenEntry>>> elems) {
+			return new BTreeScale(elems, BIN_CAP);
+		}
+
+		public static class BTreeScale extends Packer.Scale<String, SkeletonBTreeSet<TokenEntry>> {
+
+			public BTreeScale(Map<String, ? extends Task<SkeletonBTreeSet<TokenEntry>>> elems, int cap) {
+				super(elems, cap);
+			}
+
+			@Override public int weigh(SkeletonBTreeSet<TokenEntry> element) {
+				return element.rootSize();
+			}
+
+		}
+
+
+/*
+		@Override protected void preprocessPullBins(Map<String, PullTask<SkeletonBTreeSet<TokenEntry>>> tasks, Collection<PullTask<Map<String, SkeletonBTreeSet<TokenEntry>>>> bintasks) {
 			List<Object> mib = new ArrayList<Object>(bintasks.size());
-			for (PullTask<Map<String, SortedSet<TokenEntry>>> t: bintasks) {
+			for (PullTask<Map<String, SkeletonBTreeSet<TokenEntry>>> t: bintasks) {
 				mib.add(t.meta);
 			}
 
-			for (Map.Entry<String, PullTask<SortedSet<TokenEntry>>> en: tasks.entrySet()) {
+			for (Map.Entry<String, PullTask<SkeletonBTreeSet<TokenEntry>>> en: tasks.entrySet()) {
 				CompoundProgress p = tracker.addPullProgress(en.getValue().meta);
 				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPull(mib)); }
 				p.setName("Pulling containers for " + en.getKey());
 			}
 		}
 
-		@Override protected void preprocessPushBins(Map<String, PushTask<SortedSet<TokenEntry>>> tasks, Collection<PushTask<Map<String, SortedSet<TokenEntry>>>> bintasks) {
-			List<Map<String, SortedSet<TokenEntry>>> dib = new ArrayList<Map<String, SortedSet<TokenEntry>>>(bintasks.size());
-			for (PushTask<Map<String, SortedSet<TokenEntry>>> t: bintasks) {
+		@Override protected void preprocessPushBins(Map<String, PushTask<SkeletonBTreeSet<TokenEntry>>> tasks, Collection<PushTask<Map<String, SkeletonBTreeSet<TokenEntry>>>> bintasks) {
+			List<Map<String, SkeletonBTreeSet<TokenEntry>>> dib = new ArrayList<Map<String, SkeletonBTreeSet<TokenEntry>>>(bintasks.size());
+			for (PushTask<Map<String, SkeletonBTreeSet<TokenEntry>>> t: bintasks) {
 				dib.add(t.data);
 			}
 
-			for (Map.Entry<String, PushTask<SortedSet<TokenEntry>>> en: tasks.entrySet()) {
+			for (Map.Entry<String, PushTask<SkeletonBTreeSet<TokenEntry>>> en: tasks.entrySet()) {
 				CompoundProgress p = tracker.addPushProgress(en.getValue().data);
 				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPush(dib)); }
 				p.setName("Pushing containers for " + en.getKey());
 			}
 		}
+*/
+
 
 	}
 
 
 
 	public static class TermEntryGroupSerialiser
-	extends ParallelSerialiser<Map<String, SortedSet<TokenEntry>>, SimpleProgress>
-	implements IterableSerialiser<Map<String, SortedSet<TokenEntry>>>,
+	extends ParallelSerialiser<Map<String, SkeletonBTreeSet<TokenEntry>>, SimpleProgress>
+	implements IterableSerialiser<Map<String, SkeletonBTreeSet<TokenEntry>>>,
 	           Serialiser.Composite<LiveArchiver<Map<String, Object>, SimpleProgress>> {
 
 		final protected LiveArchiver<Map<String, Object>, SimpleProgress> subsrl;
+		final protected Translator<SkeletonBTreeSet<TokenEntry>, Map<String, Object>> trans
+			= new SkeletonBTreeSet.TreeTranslator<TokenEntry, TokenEntry>(null,
+				new SkeletonBTreeSet.TreeSetTranslator<TokenEntry>());
 
 		public TermEntryGroupSerialiser() {
-			super(new ProgressTracker<Map<String, SortedSet<TokenEntry>>, SimpleProgress>(SimpleProgress.class));
+			super(new ProgressTracker<Map<String, SkeletonBTreeSet<TokenEntry>>, SimpleProgress>(SimpleProgress.class));
 			subsrl = new YamlArchiver<Map<String, Object>>(true);
 		}
 
@@ -298,21 +321,17 @@ implements Archiver<ProtoIndex>,
 			return subsrl;
 		}
 
-		@Override public void pullLive(PullTask<Map<String, SortedSet<TokenEntry>>> task, SimpleProgress p) {
+		@Override public void pullLive(PullTask<Map<String, SkeletonBTreeSet<TokenEntry>>> task, SimpleProgress p) {
 			PullTask<Map<String, Object>> t = new PullTask<Map<String, Object>>(task.meta);
 			p.setName("Pulling container " + task.meta);
 			p.addTotal(1, false);
 			try {
 				subsrl.pullLive(t, p);
 
-				Map<String, SortedSet<TokenEntry>> map = new HashMap<String, SortedSet<TokenEntry>>(t.data.size()<<1);
+				Map<String, SkeletonBTreeSet<TokenEntry>> map = new HashMap<String, SkeletonBTreeSet<TokenEntry>>(t.data.size()<<1);
 				try {
 					for (Map.Entry<String, Object> en: t.data.entrySet()) {
-						SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
-						for (Object o: (List)en.getValue()) {
-							entries.add((TokenEntry)o);
-						}
-						map.put(en.getKey(), entries);
+						map.put(en.getKey(), trans.rev((Map<String, Object>)en.getValue()));
 					}
 				} catch (ClassCastException e) {
 					// TODO more meaningful error message
@@ -326,10 +345,10 @@ implements Archiver<ProtoIndex>,
 			}
 		}
 
-		@Override public void pushLive(PushTask<Map<String, SortedSet<TokenEntry>>> task, SimpleProgress p) {
+		@Override public void pushLive(PushTask<Map<String, SkeletonBTreeSet<TokenEntry>>> task, SimpleProgress p) {
 			Map<String, Object> conv = new HashMap<String, Object>();
-			for (Map.Entry<String, SortedSet<TokenEntry>> mp: task.data.entrySet()) {
-				conv.put(mp.getKey(), new ArrayList(mp.getValue()));
+			for (Map.Entry<String, SkeletonBTreeSet<TokenEntry>> mp: task.data.entrySet()) {
+				conv.put(mp.getKey(), trans.app(mp.getValue()));
 			}
 
 			PushTask<Map<String, Object>> t = new PushTask<Map<String, Object>>(conv, task.meta);

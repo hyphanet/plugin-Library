@@ -67,7 +67,7 @@ public class BIndexTest extends TestCase {
 
 		for (int i=0; i<1024; ++i) {
 			String key = Generators.rndKey();
-			SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
+			SkeletonBTreeSet<TokenEntry> entries = new SkeletonBTreeSet<TokenEntry>();
 			int n = rand.nextInt(16) + 16;
 			totalentries += n;
 

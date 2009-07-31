@@ -42,6 +42,10 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 		super(new SkeletonBTreeMap<E, E>());
 	}
 
+	protected SkeletonBTreeSet(SkeletonBTreeMap<E, E> m) {
+		super(m);
+	}
+
 	abstract public static class MapCollectionTranslator<E, M extends Map<E, E>, C extends Collection<E>>
 	implements Translator<M, C> {
 
@@ -79,6 +83,24 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 			SkeletonTreeMap<E, E> dst = new SkeletonTreeMap<E, E>();
 			rev(src, dst);
 			return dst;
+		}
+
+	}
+
+	public static class TreeTranslator<E, T> implements Translator<SkeletonBTreeSet<E>, Map<String, Object>> {
+
+		final SkeletonBTreeMap.TreeTranslator<E, E> trans;
+
+		public TreeTranslator(Translator<E, T> k, Translator<SkeletonTreeMap<E, E>, ? extends Collection<T>> m) {
+			trans = new SkeletonBTreeMap.TreeTranslator<E, E>(k, m);
+		}
+
+		@Override public Map<String, Object> app(SkeletonBTreeSet<E> tree) {
+			return trans.app((SkeletonBTreeMap<E, E>)tree.map);
+		}
+
+		@Override public SkeletonBTreeSet<E> rev(Map<String, Object> tree) {
+			return new SkeletonBTreeSet(trans.rev(tree));
 		}
 
 	}

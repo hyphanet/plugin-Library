@@ -7,6 +7,7 @@ import plugins.Library.util.Skeleton;
 import plugins.Library.util.SkeletonMap;
 import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.util.SkeletonBTreeMap;
+import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.DataNotLoadedException;
 import plugins.Library.serial.Serialiser;
 import plugins.Library.serial.TaskAbortException;
@@ -69,7 +70,7 @@ public class ProtoIndex {
 	final protected Serialiser.Trackable[] trackables = new Serialiser.Trackable[4];
 
 
-	final protected SkeletonBTreeMap<String, SortedSet<TokenEntry>> ttab;
+	final protected SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>> ttab;
 	//final protected SkeletonMap<URIKey, SortedMap<FreenetURI, URIEntry>> utab;
 
 
@@ -80,13 +81,13 @@ public class ProtoIndex {
 		extra = new HashMap<String, Object>();
 
 		//utab = new SkeletonBTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKey(), UTAB_MAX);
-		ttab = new SkeletonBTreeMap<String, SortedSet<TokenEntry>>(BTREE_NODE_MIN);
+		ttab = new SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>>(BTREE_NODE_MIN);
 		//filtab = new SkeletonPrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX);
 	}
 
 	protected ProtoIndex(FreenetURI i, String n, Date m, Map<String, Object> x/*,
 		SkeletonMap<URIKey, SortedMap<FreenetURI, URIEntry>> u*/,
-		SkeletonBTreeMap<String, SortedSet<TokenEntry>> t/*,
+		SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>> t/*,
 		SkeletonMap<Token, TokenFilter> f*/
 		) {
 		id = i;
