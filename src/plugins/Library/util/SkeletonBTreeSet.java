@@ -25,7 +25,6 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 	// TODO when we implement internal_entries in SkeletonBTreeMap, then
 	// we can have it automatically set to TRUE here.
 
-	// TODO maybe make this write-once
 	public void setSerialiser(Archiver<SkeletonBTreeMap<E, E>.SkeletonNode> n, MapSerialiser<E, E> v) {
 		((SkeletonBTreeMap)map).setSerialiser(n, v);
 	}

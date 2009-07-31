@@ -100,7 +100,6 @@ SkeletonMap<K, V> extends Skeleton<K>
 
 == Schedule ==
 
- - Packer for BTreeMap root 1-2 days
  - URI map, 2-3 days
 
  - implement freenet inflate/deflate 3-4 days

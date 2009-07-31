@@ -10,27 +10,13 @@ import java.util.SortedSet;
 import java.util.SortedMap;
 import java.util.AbstractSet;
 
-
 /**
 ** A B-tree set implementation backed by a {@link BTreeMap}. DOCUMENT
 **
 ** @author infinity0
 */
-public class BTreeSet<E> extends AbstractSet<E>
+public class BTreeSet<E> extends SortedMapSet<E, BTreeMap<E, E>>
 implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
-
-	/**
-	** Ideally this should be a {@link BTreeMap} but this would complicate the
-	** implementation of the {@link subSet(Object, Object)} etc methods - we'd
-	** have to have a subclass that does this exact same wrapping, but with a
-	** {@code SortedMap} instead.
-	**
-	** This means that {@link #rootSize()} is a bit of a hack, but oh well.
-	** FIXME maybe some day fix this. TODO actually not so complicated, just
-	** have an abstract MapSet class...
-	**
-	*/
-	final protected SortedMap<E, E> map;
 
 	/**
 	** Creates a new empty set, sorted according to the given comparator, and
@@ -41,7 +27,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	** @param node_min Minimum number of subnodes in each node
 	*/
 	public BTreeSet(Comparator<? super E> cmp, int node_min) {
-		map = new BTreeMap<E, E>(cmp, node_min);
+		super(new BTreeMap<E, E>(cmp, node_min));
 	}
 
 	/**
@@ -52,7 +38,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	** @param node_min Minimum number of subnodes in each node
 	**/
 	public BTreeSet(int node_min) {
-		map = new BTreeMap<E, E>(node_min);
+		super(new BTreeMap<E, E>(node_min));
 	}
 
 	/**
@@ -61,7 +47,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	** subnodes.
 	*/
 	public BTreeSet() {
-		map = new BTreeMap<E, E>();
+		super(new BTreeMap<E, E>());
 	}
 
 	/**
@@ -69,15 +55,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	** constructors.
 	*/
 	protected BTreeSet(BTreeMap<E, E> m) {
-		map = m;
-	}
-
-	/**
-	** Private constructor for use by the {@link #subSet(Object, Object)}
-	** etc. methods.
-	*/
-	private BTreeSet(SortedMap<E, E> m) {
-		map = m;
+		super(m);
 	}
 
 	/**
@@ -90,109 +68,6 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 			return ((BTreeMap)map).rootSize();
 		}
 		throw new UnsupportedOperationException("This is not a full BTreeSet and so cannot access the root");
-	}
-
-	/*========================================================================
-	  public interface Set
-	 ========================================================================*/
-
-	@Override public int size() {
-		return map.size();
-	}
-
-	@Override public boolean isEmpty() {
-		return map.isEmpty();
-	}
-
-	@Override public boolean contains(Object o) {
-		return map.containsKey(o);
-	}
-
-	@Override public Iterator<E> iterator() {
-		return map.keySet().iterator();
-	}
-
-	/* provided by AbstractSet
-	@Override public Object[] toArray() { }
-	*/
-
-	/* provided by AbstractSet
-	@Override public <T> T[] toArray(T[] a) { }
-	*/
-
-	@Override public boolean add(E o) {
-		if (o == null) {
-			// BTreeMap doesn't support null keys at the time of coding, but this may change
-			return !map.containsKey(null)? map.put(null, null) == null: false;
-		}
-		return map.put(o, o) == null;
-	}
-
-	@Override public boolean remove(Object o) {
-		if (o == null) {
-			// BTreeMap doesn't support null keys at the time of coding, but this may change
-			return map.containsKey(null)? map.remove(null) == null: false;
-		}
-		return map.remove(o) == o;
-	}
-
-	/**
-	** Returns the object reference-identical to the one added into the set.
-	**
-	** @param o An object "equal" (ie. compares 0) to the one in the set.
-	** @return The object contained in the set.
-	** @throws ClassCastException object cannot be compared with the objects
-	**         currently in the map
-	** @throws NullPointerException o is {@code null} and this map uses
-	**         natural order, or its comparator does not tolerate {@code null}
-	**         keys
-	*/
-	public E get(Object o) {
-		return map.get(o);
-	}
-
-	/* provided by AbstractSet
-	@Override public boolean containsAll(Collection<?> c) { }
-	@Override public boolean addAll(Collection<? extends E> c) { }
-	@Override public boolean retainAll(Collection<?> c) { }
-	@Override public boolean removeAll(Collection<?> c) { }
-	*/
-
-	@Override public void clear() {
-		map.clear();
-	}
-
-	/* provided by AbstractSet
-	@Override public boolean equals(Object o) { }
-	@Override public int hashCode() { }
-	*/
-
-	/*========================================================================
-	  public interface SortedSet
-	 ========================================================================*/
-
-	@Override public Comparator<? super E> comparator() {
-		return map.comparator();
-	}
-
-	@Override public E first() {
-		return map.firstKey();
-	}
-
-	@Override public E last() {
-		return map.lastKey();
-	}
-
-	@Override public SortedSet<E> headSet(E to) {
-		return new BTreeSet(map.headMap(to));
-	}
-
-	@Override public SortedSet<E> tailSet(E fr) {
-		return new BTreeSet(map.tailMap(fr));
-	}
-
-	@Override public SortedSet<E> subSet(E fr, E to) {
-		return new BTreeSet(map.subMap(fr, to));
 	}
 
 }
