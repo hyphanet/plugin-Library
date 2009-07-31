@@ -26,57 +26,13 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	/**
 	** {@link SortedMap} backing this {@link SortedSet}.
 	*/
-	final protected M map;
+	final protected M bkmap;
 
 	/**
 	** Construct a set backed by the given {@link SortedMap}.
 	*/
 	protected SortedMapSet(M m) {
-		map = m;
-	}
-
-	/*========================================================================
-	  public interface Set
-	 ========================================================================*/
-
-	@Override public int size() {
-		return map.size();
-	}
-
-	@Override public boolean isEmpty() {
-		return map.isEmpty();
-	}
-
-	@Override public boolean contains(Object o) {
-		return map.containsKey(o);
-	}
-
-	@Override public Iterator<E> iterator() {
-		return map.keySet().iterator();
-	}
-
-	/* provided by AbstractSet
-	@Override public Object[] toArray() { }
-	*/
-
-	/* provided by AbstractSet
-	@Override public <T> T[] toArray(T[] a) { }
-	*/
-
-	@Override public boolean add(E o) {
-		if (o == null) {
-			// BTreeMap doesn't support null keys at the time of coding, but this may change
-			return !map.containsKey(null)? map.put(null, null) == null: false;
-		}
-		return map.put(o, o) == null;
-	}
-
-	@Override public boolean remove(Object o) {
-		if (o == null) {
-			// BTreeMap doesn't support null keys at the time of coding, but this may change
-			return map.containsKey(null)? map.remove(null) == null: false;
-		}
-		return map.remove(o) == o;
+		bkmap = m;
 	}
 
 	/**
@@ -91,7 +47,51 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	**         keys
 	*/
 	public E get(Object o) {
-		return map.get(o);
+		return bkmap.get(o);
+	}
+
+	/*========================================================================
+	  public interface Set
+	 ========================================================================*/
+
+	@Override public int size() {
+		return bkmap.size();
+	}
+
+	@Override public boolean isEmpty() {
+		return bkmap.isEmpty();
+	}
+
+	@Override public boolean contains(Object o) {
+		return bkmap.containsKey(o);
+	}
+
+	@Override public Iterator<E> iterator() {
+		return bkmap.keySet().iterator();
+	}
+
+	/* provided by AbstractSet
+	@Override public Object[] toArray() { }
+	*/
+
+	/* provided by AbstractSet
+	@Override public <T> T[] toArray(T[] a) { }
+	*/
+
+	@Override public boolean add(E o) {
+		if (o == null) {
+			// BTreeMap doesn't support null keys at the time of coding, but this may change
+			return !bkmap.containsKey(null)? bkmap.put(null, null) == null: false;
+		}
+		return bkmap.put(o, o) == null;
+	}
+
+	@Override public boolean remove(Object o) {
+		if (o == null) {
+			// BTreeMap doesn't support null keys at the time of coding, but this may change
+			return bkmap.containsKey(null)? bkmap.remove(null) == null: false;
+		}
+		return bkmap.remove(o) == o;
 	}
 
 	/* provided by AbstractSet
@@ -102,7 +102,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	*/
 
 	@Override public void clear() {
-		map.clear();
+		bkmap.clear();
 	}
 
 	/* provided by AbstractSet
@@ -115,27 +115,27 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	 ========================================================================*/
 
 	@Override public Comparator<? super E> comparator() {
-		return map.comparator();
+		return bkmap.comparator();
 	}
 
 	@Override public E first() {
-		return map.firstKey();
+		return bkmap.firstKey();
 	}
 
 	@Override public E last() {
-		return map.lastKey();
+		return bkmap.lastKey();
 	}
 
 	@Override public SortedSet<E> headSet(E to) {
-		return new SortedMapSet<E, SortedMap<E, E>>(map.headMap(to));
+		return new SortedMapSet<E, SortedMap<E, E>>(bkmap.headMap(to));
 	}
 
 	@Override public SortedSet<E> tailSet(E fr) {
-		return new SortedMapSet<E, SortedMap<E, E>>(map.tailMap(fr));
+		return new SortedMapSet<E, SortedMap<E, E>>(bkmap.tailMap(fr));
 	}
 
 	@Override public SortedSet<E> subSet(E fr, E to) {
-		return new SortedMapSet<E, SortedMap<E, E>>(map.subMap(fr, to));
+		return new SortedMapSet<E, SortedMap<E, E>>(bkmap.subMap(fr, to));
 	}
 
 }

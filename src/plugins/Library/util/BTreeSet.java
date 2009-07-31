@@ -64,10 +64,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	** BTreeSet}, then this will throw {@link UnsupportedOperationException}.
 	*/
 	public int rootSize() {
-		if (map instanceof BTreeMap) {
-			return ((BTreeMap)map).rootSize();
-		}
-		throw new UnsupportedOperationException("This is not a full BTreeSet and so cannot access the root");
+		return bkmap.rootSize();
 	}
 
 }

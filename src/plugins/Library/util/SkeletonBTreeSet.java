@@ -26,7 +26,7 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 	// we can have it automatically set to TRUE here.
 
 	public void setSerialiser(Archiver<SkeletonBTreeMap<E, E>.SkeletonNode> n, MapSerialiser<E, E> v) {
-		((SkeletonBTreeMap)map).setSerialiser(n, v);
+		((SkeletonBTreeMap)bkmap).setSerialiser(n, v);
 	}
 
 	public SkeletonBTreeSet(Comparator<? super E> cmp, int node_min) {
@@ -95,7 +95,7 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 		}
 
 		@Override public Map<String, Object> app(SkeletonBTreeSet<E> tree) {
-			return trans.app((SkeletonBTreeMap<E, E>)tree.map);
+			return trans.app((SkeletonBTreeMap<E, E>)tree.bkmap);
 		}
 
 		@Override public SkeletonBTreeSet<E> rev(Map<String, Object> tree) {
