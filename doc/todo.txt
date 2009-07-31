@@ -99,21 +99,19 @@ SkeletonMap<K, V> extends Skeleton<K>
 
 == Schedule ==
 
- - URI map, 2-3 days
+ - progress reports for the integrated index structure 1-2 days
+ - URI map, 1-2 days
+ - implement freenet inflate/deflate 1-2 days
+ - tidying up index stuff 2-3 days
 
- - implement freenet inflate/deflate 3-4 days
+ - build interdex skeleton 2-3 days
+ - implement interdex algorithm 4-5 days
+
+--- gsoc end ---
+
  - implement filters 2 days
-
- - implement fcp (mikeb is doing this part, he seems to be on top of it)
-
- - build interdex skeleton 3-4 days
- - implement interdex algorithm 5-7 days
-
-
  - implement WriteableIndex and commit algorithms 4-6 days
  - implement crawler...
-
-
 
 
 

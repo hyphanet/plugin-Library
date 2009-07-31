@@ -17,30 +17,35 @@ import java.util.HashSet;
 import java.util.HashMap;
 
 /**
+** PRIORITY actually write some tests for this...
+**
 ** @author infinity0
 */
 public class PackerTest extends TestCase {
 
 	final static public int NODE_MAX = 64;
 
-	final public static Packer<String, HashSet> srl = new
-	Packer<String, HashSet>(new IterableSerialiser<Map<String, HashSet>>() {
+	final public static Packer<String, HashSet> srl = new Packer<String, HashSet>(
+		new IterableSerialiser<Map<String, HashSet>>() {
 
-		public void pull(Iterable<PullTask<Map<String, HashSet>>> t) {}
-		public void push(Iterable<PushTask<Map<String, HashSet>>> t) {
-			for (PushTask<Map<String, HashSet>> task: t) {
-				System.out.print("[");
-				for (Map.Entry<String, HashSet> en: task.data.entrySet()) {
-					System.out.print(en.getKey() + ": " + en.getValue().size() + ", ");
+			public void pull(Iterable<PullTask<Map<String, HashSet>>> t) {}
+			public void push(Iterable<PushTask<Map<String, HashSet>>> t) {
+				for (PushTask<Map<String, HashSet>> task: t) {
+					System.out.print("[");
+					for (Map.Entry<String, HashSet> en: task.data.entrySet()) {
+						System.out.print(en.getKey() + ": " + en.getValue().size() + ", ");
+					}
+					System.out.println("]");
 				}
-				System.out.println("]");
 			}
-		}
 
-		public void pull(PullTask<Map<String, HashSet>> t) {}
-		public void push(PushTask<Map<String, HashSet>> t) {}
+			public void pull(PullTask<Map<String, HashSet>> t) {}
+			public void push(PushTask<Map<String, HashSet>> t) {}
 
-	}, NODE_MAX, true) {
+		},
+		NODE_MAX,
+		true
+	) {
 
 		@Override public Scale<String, HashSet> newScale(Map<String, ? extends Task<HashSet>> elems) {
 			final Packer<String, HashSet> t = this;

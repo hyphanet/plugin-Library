@@ -51,46 +51,23 @@ implements Archiver<ProtoIndex>,
            Serialiser.Trackable<Index>*/ {
 
 
-	final public static int TMBIN_MAX = 0x100;
-
-
 	final protected Archiver<Map<String, Object>> subsrl;
 	final protected Translator<ProtoIndex, Map<String, Object>> trans;
 
 
-
-	/**
-	** Generic map translator, for both utab and ttab
-	*/
-	public static class TreeMapTranslator<K, V>
-	extends SkeletonTreeMap.TreeMapTranslator<K, V> {
-
-		final protected Translator<K, String> ktr;
-
-		public TreeMapTranslator(Translator<K, String> k) {
-			ktr = k;
-		}
-
-		@Override public Map<String, Object> app(SkeletonTreeMap<K, V> map) {
-			return app(map, new TreeMap<String, Object>(), ktr);
-		}
-
-		@Override public SkeletonTreeMap<K, V> rev(Map<String, Object> map) {
-			return rev(map, new SkeletonTreeMap<K, V>(), ktr);
-		}
-	}
-
 	public BIndexSerialiser() {
-		//subsrl = new YamlArchiver<Map<String, Object>>("index", "");
 		// for DEBUG use; the freenet version would save to SSK@key/my_index/index.yml
+		//subsrl = new YamlArchiver<Map<String, Object>>("index", "");
 		subsrl = new YamlArchiver<Map<String, Object>>(true);
-		//trans = new IndexTranslator();
 		//tmsrl = new BTreeMapSerialiser<String, SkeletonBTreeSet<TokenEntry>>();
 		//usrl = new BTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKeyTranslator());
 		trans = new IndexTranslator();
 	}
 
-
+	/**
+	** Translator for (the SkeletonBTreeSet entries) of (a B-tree node in the
+	** ttab).
+	*/
 	protected static Translator<SkeletonTreeMap<String, SkeletonBTreeSet<TokenEntry>>, Map<String, Object>> ttab_keys_mtr = new TreeMapTranslator<String, SkeletonBTreeSet<TokenEntry>>(null);
 
 	public static ProtoIndex setSerialiserFor(ProtoIndex index) {
@@ -106,8 +83,17 @@ implements Archiver<ProtoIndex>,
 		return index;
 	}
 
+	/**
+	** Translator for (the TokenEntry entries) of (a B-tree node in the
+	** (BTreeSet container for a term's results)).
+	*/
 	protected static Translator<SkeletonTreeMap<TokenEntry, TokenEntry>, Collection<TokenEntry>> term_data_mtr = new SkeletonBTreeSet.TreeSetTranslator<TokenEntry>();
 
+	/**
+	** Dummy translator, since a SkeletonBTreeMap node was designed to hold
+	** values externally, whereas (a B-tree node in the (BTreeSet container
+	** for a term's results)) holds them internally.
+	*/
 	protected static MapSerialiser<TokenEntry, TokenEntry> term_dummy = new DummySerialiser<TokenEntry, TokenEntry>();
 
 	public static SkeletonBTreeSet<TokenEntry> setSerialiserFor(SkeletonBTreeSet<TokenEntry> entries) {
@@ -199,9 +185,31 @@ implements Archiver<ProtoIndex>,
 
 
 	/**
-	** Handles serialisation of a B-tree {@link
-	** plugins.Library.util.SkeletonBTreeMap.SkeletonNode}. This can be used
-	** for {@link SkeletonBTreeSet}s too; they use the same node class.
+	** Generic {@link SkeletonTreeMap} translator.
+	*/
+	public static class TreeMapTranslator<K, V>
+	extends SkeletonTreeMap.TreeMapTranslator<K, V> {
+
+		final protected Translator<K, String> ktr;
+
+		public TreeMapTranslator(Translator<K, String> k) {
+			ktr = k;
+		}
+
+		@Override public Map<String, Object> app(SkeletonTreeMap<K, V> map) {
+			return app(map, new TreeMap<String, Object>(), ktr);
+		}
+
+		@Override public SkeletonTreeMap<K, V> rev(Map<String, Object> map) {
+			return rev(map, new SkeletonTreeMap<K, V>(), ktr);
+		}
+	}
+
+
+	/**
+	** Serialiser for a general B-tree node. This can be used for both a
+	** {@link SkeletonBTreeMap} and a {@link SkeletonBTreeSet}; they use the
+	** same node class.
 	*/
 	public static class BTreeNodeSerialiser<K, V>
 	extends ParallelSerialiser<SkeletonBTreeMap<K, V>.SkeletonNode, SimpleProgress>
@@ -262,9 +270,10 @@ implements Archiver<ProtoIndex>,
 	}
 
 
-
-
-
+	/**
+	** Serialiser for (the TokenEntry entries) of (a B-tree node in the
+	** (BTreeSet container for a term's results)).
+	*/
 	public static class TermEntrySerialiser
 	extends Packer<String, SkeletonBTreeSet<TokenEntry>>
 	implements MapSerialiser<String, SkeletonBTreeSet<TokenEntry>>,
@@ -332,7 +341,10 @@ implements Archiver<ProtoIndex>,
 	}
 
 
-
+	/**
+	** Serialiser for the bins containing (TokenEntry entries) that the
+	** {@link TermEntrySerialiser} has packed.
+	*/
 	public static class TermEntryGroupSerialiser
 	extends ParallelSerialiser<Map<String, SkeletonBTreeSet<TokenEntry>>, SimpleProgress>
 	implements IterableSerialiser<Map<String, SkeletonBTreeSet<TokenEntry>>>,
@@ -391,7 +403,6 @@ implements Archiver<ProtoIndex>,
 		}
 
 	}
-
 
 
 	/**
