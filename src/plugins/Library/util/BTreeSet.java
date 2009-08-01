@@ -39,15 +39,6 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	}
 
 	/**
-	** Creates a new empty set, sorted according to the keys' {@link Comparable
-	** natural} ordering, and with each non-root node having at least 256
-	** subnodes.
-	*/
-	public BTreeSet() {
-		super(new BTreeMap<E, E>());
-	}
-
-	/**
 	** Protected constructor for use by the {@link SkeletonBTreeSet}
 	** constructors.
 	*/

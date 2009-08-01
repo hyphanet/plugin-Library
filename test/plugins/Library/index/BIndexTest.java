@@ -92,7 +92,7 @@ public class BIndexTest extends TestCase {
 
 		for (SkeletonBTreeSet<TokenEntry> entries: idx.ttab.values()) {
 			entries.deflate();
-			assert(entries.isBare());
+			assertTrue(entries.isBare());
 		}
 		idx.ttab.deflate();
 		assertTrue(idx.ttab.isBare());
@@ -119,14 +119,16 @@ public class BIndexTest extends TestCase {
 			fullInflate();
 		}
 	}
-/*
-	public void partialInflate() {
+
+	public void partialInflate() throws TaskAbortException {
 		newTestSkeleton();
 		int totalentries = 0;
 
 		for (String word: randomWords) {
-			SkeletonBTreeSet<TokenEntry> entries = new SkeletonBTreeSet<TokenEntry>();
-			int n = rand.nextInt(16) + 16;
+			SkeletonBTreeSet<TokenEntry> entries = new SkeletonBTreeSet<TokenEntry>(ProtoIndex.BTREE_NODE_MIN);
+			srl.setSerialiserFor(entries);
+
+			int n = rand.nextInt(0xF0) + 0x10;
 			totalentries += n;
 
 			try {
@@ -139,44 +141,46 @@ public class BIndexTest extends TestCase {
 				// pass
 			}
 
-			test.put(new Token(word), entries);
+			idx.ttab.put(word, entries);
 		}
 
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
 
-		test.deflate();
-		assertTrue(test.isBare());
-		assertFalse(test.isLive());
-		PushTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>> task = new
-		PushTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>>(test);
+		for (SkeletonBTreeSet<TokenEntry> entries: idx.ttab.values()) {
+			entries.deflate();
+			assertTrue(entries.isBare());
+		}
+		idx.ttab.deflate();
+		assertTrue(idx.ttab.isBare());
+		assertFalse(idx.ttab.isLive());
+		PushTask<ProtoIndex> task = new PushTask<ProtoIndex>(idx);
 		srl.push(task);
-		System.out.print("deflated in " + timeDiff() + " ms, ");
 
-		PullTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>> tasq = new
-		PullTask<SkeletonPrefixTreeMap<Token, SortedSet<TokenEntry>>>(task.meta);
+		System.out.print("deflated in " + timeDiff() + " ms, root at " + task.meta + ", ");
+
+		PullTask<ProtoIndex> tasq = new PullTask<ProtoIndex>(task.meta);
 		srl.pull(tasq);
 
 		for (String s: randomWords) {
 			//assertFalse(test.isLive()); // might be live if inflate(key) inflates some other keys too
-			Token t = Token.intern(s);
-			test.inflate(t);
-			test.get(t);
-			assertFalse(test.isBare());
+			idx.ttab.inflate(s);
+			idx.ttab.get(s);
+			assertFalse(idx.ttab.isBare());
 		}
-		assertTrue(test.isLive());
-		assertFalse(test.isBare());
+		assertTrue(idx.ttab.isLive());
+		assertFalse(idx.ttab.isBare());
 		System.out.println("inflated all terms separately in " + timeDiff() + " ms");
 
 	}
 
-	public void testPartialInflateMulti() {
+	public void testPartialInflateMulti() throws TaskAbortException {
 		int n = 8;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
 			partialInflate();
 		}
 	}
-*/
+
 
 /*
 	public void testProgress() throws TaskAbortException {

@@ -279,9 +279,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		super(node_min);
 	}
 
-	public SkeletonBTreeMap() {
-		super();
-	}
 
 
 	@Override protected Node newNode(boolean leaf) {
@@ -318,7 +315,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		try {
 			get(key);
 		} catch (DataNotLoadedException e) {
-			e.getParent().deflate(e.getKey());
+			e.getParent().inflate(e.getKey());
 		}
 	}
 

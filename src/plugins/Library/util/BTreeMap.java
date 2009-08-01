@@ -156,15 +156,6 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/**
-	** Creates a new empty map, sorted according to the keys' {@link Comparable
-	** natural} ordering, and with each non-root node having at least 256
-	** subnodes.
-	*/
-	public BTreeMap() {
-		this(null, 0x100);
-	}
-
-	/**
 	** A B-tree node. It has the following structure:
 	**
 	** * Every entry in a non-leaf node has two adjacent subnodes, holding

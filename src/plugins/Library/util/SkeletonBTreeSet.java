@@ -38,10 +38,6 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 		super(new SkeletonBTreeMap<E, E>(node_min));
 	}
 
-	public SkeletonBTreeSet() {
-		super(new SkeletonBTreeMap<E, E>());
-	}
-
 	protected SkeletonBTreeSet(SkeletonBTreeMap<E, E> m) {
 		super(m);
 	}
