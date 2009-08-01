@@ -162,7 +162,15 @@ implements Archiver<ProtoIndex>,
 			"term listings",
 			index.ttab.makeNodeTranslator(null, ttab_keys_mtr)
 		);
-		TermEntrySerialiser ttab_data = new TermEntrySerialiser(index.ttab.ENT_MAX);
+		BTreePacker<String, SkeletonBTreeSet<TokenEntry>, TermEntryGroupSerialiser> ttab_data = new BTreePacker(
+			new TermEntryGroupSerialiser(),
+			new Packer.Scale<SkeletonBTreeSet<TokenEntry>>() {
+				@Override public int weigh(SkeletonBTreeSet<TokenEntry> element) {
+					return element.rootSize();
+				}
+			},
+			index.ttab.ENT_MAX
+		);
 		index.ttab.setSerialiser(ttab_keys, ttab_data);
 
 		// set serialisers on the utab
@@ -170,7 +178,15 @@ implements Archiver<ProtoIndex>,
 			"uri listings",
 			index.utab.makeNodeTranslator(null, null) // no need for utab_keys_mtr
 		);
-		URIEntrySerialiser utab_data = new URIEntrySerialiser(index.utab.ENT_MAX);
+		BTreePacker<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>, URIEntryGroupSerialiser> utab_data = new BTreePacker(
+			new URIEntryGroupSerialiser(),
+			new Packer.Scale<SkeletonBTreeMap<FreenetURI, URIEntry>>() {
+				@Override public int weigh(SkeletonBTreeMap<FreenetURI, URIEntry> element) {
+					return element.rootSize();
+				}
+			},
+			index.utab.ENT_MAX
+		);
 		index.utab.setSerialiser(utab_keys, utab_data);
 
 		// set index trackables
@@ -245,6 +261,7 @@ implements Archiver<ProtoIndex>,
 		}
 	}
 
+
 	/**
 	** Serialiser for a general B-tree node. This can be used for both a
 	** {@link SkeletonBTreeMap} and a {@link SkeletonBTreeSet}; they use the
@@ -307,69 +324,47 @@ implements Archiver<ProtoIndex>,
 	}
 
 
-
-
-
 	/**
-	** Serialiser for (the local TokenEntry entries) of (a B-tree node in the
-	** (BTreeSet container for a term's results)).
-	**
-	** TODO maybe add one more progress part for the bin packing operation
+	** Serialiser for the entries contained within a B-tree node.
 	*/
-	public static class TermEntrySerialiser
-	extends Packer<String, SkeletonBTreeSet<TokenEntry>>
-	implements MapSerialiser<String, SkeletonBTreeSet<TokenEntry>>,
-	           Serialiser.Trackable<SkeletonBTreeSet<TokenEntry>> {
+	public static class BTreePacker<K, V, S extends IterableSerialiser<Map<K, V>> & Serialiser.Trackable<Map<K, V>>>
+	extends Packer<K, V>
+	implements MapSerialiser<K, V>,
+	           Serialiser.Trackable<V> {
 
-		final protected ProgressTracker<SkeletonBTreeSet<TokenEntry>, CompoundProgress> tracker;
-		final protected TermEntryGroupSerialiser subsrl;
+		final protected ProgressTracker<V, CompoundProgress> tracker;
+		final protected S subsrl;
 
-		public TermEntrySerialiser(int cap) {
-			super(new TermEntryGroupSerialiser(), cap);
-			subsrl = (TermEntryGroupSerialiser)super.subsrl;
-			tracker = new ProgressTracker<SkeletonBTreeSet<TokenEntry>, CompoundProgress>(CompoundProgress.class);
+		public BTreePacker(S s, Packer.Scale<V> sc, int cap) {
+			super(s, sc, cap);
+			subsrl = (S)super.subsrl;
+			tracker = new ProgressTracker<V, CompoundProgress>(CompoundProgress.class);
 		}
 
-		@Override public ProgressTracker<SkeletonBTreeSet<TokenEntry>, ? extends Progress> getTracker() {
+		@Override public ProgressTracker<V, ? extends Progress> getTracker() {
 			return tracker;
 		}
 
-		@Override public Packer.Scale<String, SkeletonBTreeSet<TokenEntry>> newScale(Map<String, ? extends Task<SkeletonBTreeSet<TokenEntry>>> elems) {
-			return new BTreeScale(elems, this);
-		}
-
-		public static class BTreeScale extends Packer.Scale<String, SkeletonBTreeSet<TokenEntry>> {
-
-			public BTreeScale(Map<String, ? extends Task<SkeletonBTreeSet<TokenEntry>>> elems, Packer<String, SkeletonBTreeSet<TokenEntry>> pk) {
-				super(elems, pk);
-			}
-
-			@Override public int weigh(SkeletonBTreeSet<TokenEntry> element) {
-				return element.rootSize();
-			}
-
-		}
-
-		@Override protected void preprocessPullBins(Map<String, PullTask<SkeletonBTreeSet<TokenEntry>>> tasks, Collection<PullTask<Map<String, SkeletonBTreeSet<TokenEntry>>>> bintasks) {
+		@Override protected void preprocessPullBins(Map<K, PullTask<V>> tasks, Collection<PullTask<Map<K, V>>> bintasks) {
 			List<Object> mib = new ArrayList<Object>(bintasks.size());
-			for (PullTask<Map<String, SkeletonBTreeSet<TokenEntry>>> t: bintasks) {
+			for (PullTask<Map<K, V>> t: bintasks) {
 				mib.add(t.meta);
 			}
 
-			for (Map.Entry<String, PullTask<SkeletonBTreeSet<TokenEntry>>> en: tasks.entrySet()) {
+			for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
 				CompoundProgress p = tracker.addPullProgress(en.getValue().meta);
 				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPull(mib)); }
 				p.setName("Pulling root container for " + en.getKey());
 			}
 		}
 
-		@Override protected void preprocessPushBins(Map<String, PushTask<SkeletonBTreeSet<TokenEntry>>> tasks, Collection<PushTask<Map<String, SkeletonBTreeSet<TokenEntry>>>> bintasks) {
-			List<Map<String, SkeletonBTreeSet<TokenEntry>>> dib = new ArrayList<Map<String, SkeletonBTreeSet<TokenEntry>>>(bintasks.size());
-			for (PushTask<Map<String, SkeletonBTreeSet<TokenEntry>>> t: bintasks) {
+		@Override protected void preprocessPushBins(Map<K, PushTask<V>> tasks, Collection<PushTask<Map<K, V>>> bintasks) {
+			List<Map<K, V>> dib = new ArrayList<Map<K, V>>(bintasks.size());
+			for (PushTask<Map<K, V>> t: bintasks) {
 				dib.add(t.data);
 			}
 
-			for (Map.Entry<String, PushTask<SkeletonBTreeSet<TokenEntry>>> en: tasks.entrySet()) {
+			for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
 				CompoundProgress p = tracker.addPushProgress(en.getValue().data);
 				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPush(dib)); }
 				p.setName("Pushing root container for " + en.getKey());
@@ -379,9 +374,13 @@ implements Archiver<ProtoIndex>,
 	}
 
 
+
+
+
+
 	/**
-	** Serialiser for the bins containing (TokenEntry entries) that the
-	** {@link TermEntrySerialiser} has packed.
+	** Serialiser for the bins containing (B-tree containers for term entries)
+	** that the {@link BTreePacker} has packed.
 	*/
 	public static class TermEntryGroupSerialiser
 	extends ParallelSerialiser<Map<String, SkeletonBTreeSet<TokenEntry>>, SimpleProgress>
@@ -416,7 +415,7 @@ implements Archiver<ProtoIndex>,
 					}
 				} catch (ClassCastException e) {
 					// TODO more meaningful error message
-					throw new DataFormatException("Exception in converting data", e, null, null, null);
+					throw new DataFormatException("Exception in converting data", e, t.data, null, null);
 				}
 
 				task.data = map;
@@ -444,18 +443,36 @@ implements Archiver<ProtoIndex>,
 
 
 
+
+
+
 	/**
-	** Serialiser for (the local URIEntry entries) of (a B-tree node in the
-	** (BTreeMap container for a uri's results)).
+	** Serialiser for the bins containing (B-tree containers for uri entries)
+	** that the {@link BTreePacker} has packed.
 	*/
-	abstract /* DEBUG */ public static class URIEntrySerialiser
-	extends Packer<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>
-	implements MapSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>,
-	           Serialiser.Trackable<SkeletonBTreeMap<FreenetURI, URIEntry>> {
+	public static class URIEntryGroupSerialiser
+	extends ParallelSerialiser<Map<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>, SimpleProgress>
+	implements IterableSerialiser<Map<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>>,
+	           Serialiser.Composite<LiveArchiver<Map<String, Object>, SimpleProgress>> {
 
+		// TODO
+		public URIEntryGroupSerialiser() {
+			super(null);
+		}
 
+		@Override public LiveArchiver<Map<String, Object>, SimpleProgress> getChildSerialiser() {
+			return null;
+		}
+
+		@Override public void pullLive(PullTask<Map<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>> task, SimpleProgress p) {
+		}
+
+		@Override public void pushLive(PushTask<Map<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>> task, SimpleProgress p) {
+		}
 
 	}
+
+
 
 
 	/**

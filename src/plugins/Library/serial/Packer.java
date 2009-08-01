@@ -34,20 +34,16 @@ import java.util.TreeSet;
 **
 ** This class is useful for packing together a collection of root B-tree nodes.
 **
-** To implement this class, the programmer needs to implement:
+** To use this class, the programmer needs to extend {@link Scale} to override
+** {@link Scale#weigh(Object)}, and pass it into the constructor. The other
+** methods can also be optionally overridden if an alternate metadata format is
+** desired.
 **
-** * {@link #newScale(Map)}
-** * {@link Scale} (by implementing {@link Scale#weigh(Object)})
+** The programmer might also like wish to override the following:
 **
-** The programmer might also wish to override the following:
-**
-** * {@link #makeBinMeta(Object, Object)}
-** * {@link #readBinMetaID(Object)}
+** * {@link #generator()}
 ** * {@link #preprocessPullBins(Map, Collection)}
 ** * {@link #preprocessPushBins(Map, Collection)}
-**
-** depending on the format of the metadata that the child serialiser expects,
-** and whether progress tracking is required.
 **
 ** Note that this class effectively '''disables''' the "duplicate" detection of
 ** {@link ProgressTracker}: that class uses {@link IdentityHashMap}s to keep
@@ -64,7 +60,7 @@ import java.util.TreeSet;
 **
 ** @author infinity0
 */
-abstract public class Packer<K, T>
+public class Packer<K, T>
 implements MapSerialiser<K, T>,
            Serialiser.Composite<IterableSerialiser<Map<K, T>>> {
 
@@ -84,6 +80,11 @@ implements MapSerialiser<K, T>,
 	** as a separate bin, or merged into the next-smallest.
 	*/
 	final public boolean NO_TINY;
+
+	/**
+	** The {@link Scale} used to weigh bins and read/make their metadata.
+	*/
+	final public Scale<T> scale;
 
 	/**
 	** How aggressive the bin-packing algorithm is. Eg. will it load bins that
@@ -111,7 +112,7 @@ implements MapSerialiser<K, T>,
 	** @param c The maximum weight of a bin
 	** @param n Whether to merge or overlook the "tiny" element
 	*/
-	public Packer(IterableSerialiser<Map<K, T>> s, int c, boolean n) {
+	public Packer(IterableSerialiser<Map<K, T>> s, Scale<T> sc, int c, boolean n) {
 		if (s == null) {
 			throw new IllegalArgumentException("Can't have a null child serialiser");
 		}
@@ -119,6 +120,7 @@ implements MapSerialiser<K, T>,
 			throw new IllegalArgumentException("Capacity must be greater than zero.");
 		}
 		subsrl = s;
+		scale = sc;
 		BIN_CAP = c;
 		BIN_CAPHF = c>>1;
 		NO_TINY = n;
@@ -136,8 +138,8 @@ implements MapSerialiser<K, T>,
 	** @param s The child serialiser
 	** @param c The maximum weight of a bin
 	*/
-	public Packer(IterableSerialiser<Map<K, T>> s, int c) {
-		this(s, c, true);
+	public Packer(IterableSerialiser<Map<K, T>> s, Scale<T> sc, int c) {
+		this(s, sc, c, true);
 	}
 
 	/**
@@ -162,29 +164,20 @@ implements MapSerialiser<K, T>,
 	}
 
 	/**
-	** Constructs a {@link Scale} that measures the given map of elements.
+	** Creates a {@link IDGenerator} for use by the rest of the algorithms of
+	** this class.
+	**
+	** The default generator '''requires''' all keys of the backing map to be
+	** present in the input task map, since the default {@link IDGenerator}
+	** does not have any other way of knowing what bin IDs were handed out in
+	** previous push operations, and it must avoid giving out duplicate IDs.
+	**
+	** You can bypass this requirement by extending {@link IDGenerator} so that
+	** it can work out that information (eg. using an algorithm that generates
+	** a UUID), and overriding {@link #generator()}. (ID generation based on
+	** bin ''content'' is ''not'' supported, and is not a priority at present.)
 	*/
-	abstract public Scale<K, T> newScale(Map<K, ? extends Task<T>> elems);
-
-	/**
-	** Constructs the metadata for a bin, from the bin ID and the map-wide
-	** metadata.
-	*/
-	public Object makeBinMeta(Object mapmeta, Object binid) {
-		return (mapmeta == null)? binid: new Object[]{mapmeta, binid};
-	}
-
-	/**
-	** Read the bin ID from the given bin's metadata.
-	*/
-	public Object readBinMetaID(Object binmeta) {
-		return (binmeta instanceof Object[])? ((Object[])binmeta)[1]: binmeta;
-	}
-
-	/**
-	** Creates a new {@link IDGenerator}.
-	*/
-	public IDGenerator generator() {
+	protected IDGenerator generator() {
 		return new IDGenerator();
 	}
 
@@ -206,7 +199,7 @@ implements MapSerialiser<K, T>,
 	** Looks through {@code elems} for {@link PushTask}s with null data and
 	** reads its metadata to determine which bin to add it to.
 	*/
-	protected SortedSet<Bin<K>> initialiseBinSet(SortedSet<Bin<K>> bins, Map<K, PushTask<T>> elems, Scale<K, T> sc, IDGenerator gen) {
+	protected SortedSet<Bin<K>> initialiseBinSet(SortedSet<Bin<K>> bins, Map<K, PushTask<T>> elems, Inventory<K, T> inv, IDGenerator gen) {
 
 		Map<Object, Set<K>> binincubator = new HashMap<Object, Set<K>>();
 
@@ -216,7 +209,7 @@ implements MapSerialiser<K, T>,
 				if (task.meta != null) {
 					throw new IllegalArgumentException("Packer error: null data and null meta for key" + en.getKey());
 				}
-				Object binID = sc.readMetaID(task.meta);
+				Object binID = scale.readMetaID(task.meta);
 
 				Set<K> binegg = binincubator.get(binID);
 				if (binegg == null) {
@@ -228,7 +221,7 @@ implements MapSerialiser<K, T>,
 		}
 
 		for (Map.Entry<Object, Set<K>> en: binincubator.entrySet()) {
-			bins.add(new Bin(BIN_CAP, sc, gen.registerID(en.getKey()), en.getValue()));
+			bins.add(new Bin(BIN_CAP, inv, gen.registerID(en.getKey()), en.getValue()));
 		}
 
 		return bins;
@@ -241,7 +234,7 @@ implements MapSerialiser<K, T>,
 	** NOTE: this method assumes the conditions described in the description
 	** for this class. It is up to the calling code to ensure that they hold.
 	*/
-	protected void packBestFitDecreasing(SortedSet<Bin<K>> bins, Map<K, PushTask<T>> elems, Scale<K, T> sc, IDGenerator gen) {
+	protected void packBestFitDecreasing(SortedSet<Bin<K>> bins, Map<K, PushTask<T>> elems, Inventory<K, T> inv, IDGenerator gen) {
 
 		if (NO_TINY && !bins.isEmpty()) {
 			// locate the single bin heavier than BIN_CAP (if it exists), and keep
@@ -260,7 +253,7 @@ implements MapSerialiser<K, T>,
 			//
 			Bin<K> heaviest = bins.first();
 			if (heaviest.filled() > BIN_CAP) {
-				Bin<K> second = new Bin(BIN_CAP, sc, gen.nextID(), null);
+				Bin<K> second = new Bin(BIN_CAP, inv, gen.nextID(), null);
 				bins.remove(heaviest);
 				while (second.filled() < BIN_CAPHF) {
 					K key = heaviest.last();
@@ -278,7 +271,7 @@ implements MapSerialiser<K, T>,
 		assert(bins.size() < 2 || bins.headSet(bins.last()).last().filled() >= BIN_CAPHF);
 
 		// sort keys in descending weight order of their elements
-		SortedSet<K> sorted = new TreeSet<K>(Collections.reverseOrder(sc));
+		SortedSet<K> sorted = new TreeSet<K>(Collections.reverseOrder(inv));
 		for (Map.Entry<K, PushTask<T>> en: elems.entrySet()) {
 			if (en.getValue().data != null) {
 				sorted.add(en.getKey());
@@ -287,14 +280,14 @@ implements MapSerialiser<K, T>,
 
 		// go through the sorted set and try to fit the keys into the bins
 		for (K key: sorted) {
-			int weight = sc.getWeight(key);
+			int weight = inv.getWeight(key);
 
 			// get all bins that can fit the key; tailSet() should do this efficiently
 			SortedSet<Bin<K>> subbins = bins.tailSet(new DummyBin(BIN_CAP, BIN_CAP - weight));
 
 			if (subbins.isEmpty()) {
 				// if no bin can fit it, then start a new bin
-				Bin<K> bin = new Bin(BIN_CAP, sc, gen.nextID(), null);
+				Bin<K> bin = new Bin(BIN_CAP, inv, gen.nextID(), null);
 				bin.add(key);
 				bins.add(bin);
 
@@ -333,7 +326,7 @@ implements MapSerialiser<K, T>,
 	** Given a group of bins, attempts to redistribute the items already
 	** contained within them to make the weights more even.
 	*/
-	protected void redistributeWeights(SortedSet<Bin<K>> bins, Scale<K, T> sc) {
+	protected void redistributeWeights(SortedSet<Bin<K>> bins, Inventory<K, T> inv) {
 
 		// keep track of bins we have finalised
 		List<Bin<K>> binsFinal = new ArrayList<Bin<K>>(bins.size());
@@ -361,7 +354,7 @@ implements MapSerialiser<K, T>,
 
 			// get the lightest element
 			K feather = heaviest.first();
-			if (sc.getWeight(feather) < weightdiff) {
+			if (inv.getWeight(feather) < weightdiff) {
 				// can be strictly "evened out"
 
 				bins.remove(lightest);
@@ -464,14 +457,14 @@ implements MapSerialiser<K, T>,
 	@Override public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) throws TaskAbortException {
 
 		try {
-			Scale<K, T> sc = newScale(tasks);
+			Inventory<K, T> inv = new Inventory(this, tasks);
 			Map<Object, PullTask<Map<K, T>>> bintasks = new HashMap<Object, PullTask<Map<K, T>>>();
 
 			// form the list of bin-tasks from the bins referred to by the map-tasks
 			for (Map.Entry<K, PullTask<T>> en: tasks.entrySet()) {
-				Object binid = sc.readMetaID(en.getValue().meta);
+				Object binid = scale.readMetaID(en.getValue().meta);
 				if (!bintasks.containsKey(binid)) {
-					bintasks.put(binid, new PullTask<Map<K, T>>(makeBinMeta(mapmeta, binid)));
+					bintasks.put(binid, new PullTask<Map<K, T>>(scale.makeBinMeta(mapmeta, binid)));
 				}
 			}
 
@@ -482,12 +475,12 @@ implements MapSerialiser<K, T>,
 			// for each task, grab and remove its element from its bin
 			for (Map.Entry<K, PullTask<T>> en: tasks.entrySet()) {
 				PullTask<T> task = en.getValue();
-				PullTask<Map<K, T>> bintask = bintasks.get(sc.readMetaID(task.meta));
+				PullTask<Map<K, T>> bintask = bintasks.get(scale.readMetaID(task.meta));
 				if (bintask == null) {
 					// task was marked as redundant by child serialiser
 					tasks.remove(en.getKey());
 				} else if (bintask.data == null || (task.data = bintask.data.remove(en.getKey())) == null) {
-					throw new TaskAbortException("Packer did not find the element (" + en.getKey() + ") in the expected bin (" + sc.readMetaID(task.meta) + "). Either the data is corrupt, or the child serialiser is buggy.", null);
+					throw new TaskAbortException("Packer did not find the element (" + en.getKey() + ") in the expected bin (" + scale.readMetaID(task.meta) + "). Either the data is corrupt, or the child serialiser is buggy.", null);
 				}
 			}
 
@@ -499,7 +492,7 @@ implements MapSerialiser<K, T>,
 					if (tasks.containsKey(el.getKey())) {
 						throw new TaskAbortException("Packer found an extra unexpected element (" + el.getKey() + ") inside a bin (" + en.getKey() + "). Either the data is corrupt, or the child serialiser is buggy.", null);
 					}
-					PullTask<T> task = new PullTask<T>(sc.makeMeta(en.getKey(), sc.weigh(el.getValue())));
+					PullTask<T> task = new PullTask<T>(scale.makeMeta(en.getKey(), scale.weigh(el.getValue())));
 					task.data = el.getValue();
 					leftovers.put(el.getKey(), task);
 				}
@@ -552,7 +545,7 @@ implements MapSerialiser<K, T>,
 			int agg = getAggression();
 
 			IDGenerator gen = generator();
-			Scale<K, T> sc = newScale(tasks);
+			Inventory<K, T> inv = new Inventory(this, tasks);
 			SortedSet<Bin<K>> bins = new TreeSet<Bin<K>>();
 
 			// initialise the binset based on the aggression setting
@@ -567,21 +560,21 @@ implements MapSerialiser<K, T>,
 				}
 			} else if (agg <= 2) {
 				// initialise already-allocated bins from tasks with null data
-				initialiseBinSet(bins, tasks, sc, gen);
+				initialiseBinSet(bins, tasks, inv, gen);
 			} else {
 				// pull all tasks with null data
 				pullUnloaded(tasks, mapmeta);
 			}
 
 			// pack elements into bins
-			packBestFitDecreasing(bins, tasks, sc, gen);
+			packBestFitDecreasing(bins, tasks, inv, gen);
 			if (agg <= 1) {
 				// discard all bins not affected by the pack operation
 				discardUnchangedBins(bins, tasks);
 			}
 
 			// redistribute weights between bins
-			redistributeWeights(bins, sc);
+			redistributeWeights(bins, inv);
 			if (agg <= 2) {
 				// discard all bins not affected by the redistribution operation
 				discardUnchangedBins(bins, tasks);
@@ -596,7 +589,7 @@ implements MapSerialiser<K, T>,
 				for (K k: bin) {
 					data.put(k, tasks.get(k).data);
 				}
-				bintasks.add(new PushTask<Map<K, T>>(data, makeBinMeta(mapmeta, bin.id)));
+				bintasks.add(new PushTask<Map<K, T>>(data, scale.makeBinMeta(mapmeta, bin.id)));
 			}
 
 			// push all the bins
@@ -606,7 +599,7 @@ implements MapSerialiser<K, T>,
 			// set the metadata for all the pushed bins
 			for (PushTask<Map<K, T>> bintask: bintasks) {
 				for (K k: bintask.data.keySet()) {
-					tasks.get(k).meta = sc.makeMeta(readBinMetaID(bintask.meta), sc.getWeight(k));
+					tasks.get(k).meta = scale.makeMeta(scale.readBinMetaID(bintask.meta), inv.getWeight(k));
 				}
 			}
 
@@ -630,16 +623,16 @@ implements MapSerialiser<K, T>,
 	protected static class Bin<K> extends TreeSet<K> implements Comparable<Bin<K>> {
 
 		final protected Object id;
-		final protected Scale<K, ?> scale;
 		final protected Set<K> orig;
 		final protected int capacity;
+		final protected Inventory<K, ?> inv;
 
 		int weight = 0;
 
-		public Bin(int cap, Scale<K, ?> sc, Object i, Set<K> o) {
-			super(sc);
-			capacity = cap;
-			scale = sc;
+		public Bin(int c, Inventory<K, ?> v, Object i, Set<K> o) {
+			super(v);
+			inv = v;
+			capacity = c;
 			id = i;
 			orig = o;
 		}
@@ -659,12 +652,12 @@ implements MapSerialiser<K, T>,
 		}
 
 		@Override public boolean add(K c) {
-			if (super.add(c)) { weight += scale.getWeight(c); return true; }
+			if (super.add(c)) { weight += inv.getWeight(c); return true; }
 			return false;
 		}
 
 		@Override public boolean remove(Object c) {
-			if (super.remove(c)) { weight -= scale.getWeight((K)c); return true; }
+			if (super.remove(c)) { weight -= inv.getWeight((K)c); return true; }
 			return false;
 		}
 
@@ -691,10 +684,10 @@ implements MapSerialiser<K, T>,
 	**
 	** @author infinity0
 	*/
-	public static class DummyBin<K> extends Bin<K> {
+	protected static class DummyBin<K> extends Bin<K> {
 
-		public DummyBin(int cap, int w) {
-			super(cap, null, null, null);
+		public DummyBin(int c, int w) {
+			super(c, null, null, null);
 			weight = w;
 		}
 
@@ -719,51 +712,17 @@ implements MapSerialiser<K, T>,
 
 
 	/************************************************************************
-	** JavaBean representing bin metadata.
-	**
-	** @author infinity0
-	*/
-	public static class BinInfo {
-
-		protected Object id;
-		protected int weight;
-
-		public BinInfo() { }
-		public BinInfo(Object i, int w) { id = i; weight = w; }
-		public Object getID() { return id; }
-		public int getWeight() { return weight; }
-		public void setID(Object i) { id = i; }
-		public void setWeight(int w) { weight = w; }
-
-		@Override public boolean equals(Object o) {
-			if (o == this) { return true; }
-			if (!(o instanceof BinInfo)) { return false; }
-			BinInfo bi = (BinInfo)o;
-			return id.equals(bi.id) && weight == bi.weight;
-		}
-
-		@Override public int hashCode() {
-			return id.hashCode() + weight*31;
-		}
-
-		@Override public String toString() {
-			return "Bin \"" + id + "\" - " + weight + "oz.";
-		}
-
-	}
-
-
-	/************************************************************************
 	** A class that provides a "weight" assignment for each key in a given map,
 	** by reading either the data or the metadata of its associated task.
 	**
 	** @author infinity0
 	*/
-	abstract public static class Scale<K, T> extends IdentityComparator<K> {
+	protected static class Inventory<K, T> extends IdentityComparator<K> {
 
 		final protected Map<K, Integer> weights = new HashMap<K, Integer>();
 		final protected Map<K, ? extends Task<T>> elements;
 		final protected Packer<K, T> packer;
+		final protected Scale<T> scale;
 
 		/**
 		** Keeps track of "the exceptional element" as defined in the
@@ -772,35 +731,10 @@ implements MapSerialiser<K, T>,
 		protected K giant;
 
 		// TODO maybe ? extends T, or something
-		protected Scale(Map<K, ? extends Task<T>> elem, Packer<K, T> pk) {
-			elements = elem;
+		protected Inventory(Packer<K, T> pk, Map<K, ? extends Task<T>> elem) {
 			packer = pk;
-		}
-
-		/**
-		** Return the weight of the given element.
-		*/
-		abstract public int weigh(T element);
-
-		/**
-		** Read the bin ID from the given metadata.
-		*/
-		public Object readMetaID(Object meta) {
-			return ((BinInfo)meta).id;
-		}
-
-		/**
-		** Read the bin weight from the given metadata.
-		*/
-		public int readMetaWeight(Object meta) {
-			return ((BinInfo)meta).weight;
-		}
-
-		/**
-		** Construct the metadata for the given bin ID and weight.
-		*/
-		public Object makeMeta(Object id, int weight) {
-			return new BinInfo(id, weight);
+			scale = pk.scale;
+			elements = elem;
 		}
 
 		/**
@@ -813,9 +747,9 @@ implements MapSerialiser<K, T>,
 				if (task == null) {
 					throw new IllegalArgumentException("This scale does not have a weight for " + key);
 				} else if (task.data == null) {
-					i = readMetaWeight(task.meta);
+					i = scale.readMetaWeight(task.meta);
 				} else {
-					i = weigh(task.data);
+					i = scale.weigh(task.data);
 				}
 				if (i > packer.BIN_CAP) {
 					if (packer.NO_TINY && giant == null) {
@@ -897,6 +831,95 @@ implements MapSerialiser<K, T>,
 		*/
 		public Long nextID() {
 			return nextID++;
+		}
+
+	}
+
+
+	/************************************************************************
+	** JavaBean representing bin metadata.
+	**
+	** @author infinity0
+	*/
+	public static class BinInfo {
+
+		protected Object id;
+		protected int weight;
+
+		public BinInfo() { }
+		public BinInfo(Object i, int w) { id = i; weight = w; }
+		public Object getID() { return id; }
+		public int getWeight() { return weight; }
+		public void setID(Object i) { id = i; }
+		public void setWeight(int w) { weight = w; }
+
+		@Override public boolean equals(Object o) {
+			if (o == this) { return true; }
+			if (!(o instanceof BinInfo)) { return false; }
+			BinInfo bi = (BinInfo)o;
+			return id.equals(bi.id) && weight == bi.weight;
+		}
+
+		@Override public int hashCode() {
+			return id.hashCode() + weight*31;
+		}
+
+		@Override public String toString() {
+			return "Bin \"" + id + "\" - " + weight + "oz.";
+		}
+
+	}
+
+
+	/************************************************************************
+	** Performs measurements and readings on bins and their elements.
+	**
+	** To implement this class, the programmer needs to implement the {@link
+	** weight(Object)} method.
+	**
+	** @author infinity0
+	*/
+	abstract public static class Scale<T> {
+
+		/**
+		** Constructs the metadata for a bin, from the bin ID and the map-wide
+		** metadata.
+		*/
+		public Object makeBinMeta(Object mapmeta, Object binid) {
+			return (mapmeta == null)? binid: new Object[]{mapmeta, binid};
+		}
+
+		/**
+		** Read the bin ID from the given bin's metadata.
+		*/
+		public Object readBinMetaID(Object binmeta) {
+			return (binmeta instanceof Object[])? ((Object[])binmeta)[1]: binmeta;
+		}
+
+		/**
+		** Return the weight of the given element.
+		*/
+		abstract public int weigh(T element);
+
+		/**
+		** Read the bin ID from the given metadata.
+		*/
+		public Object readMetaID(Object meta) {
+			return ((BinInfo)meta).id;
+		}
+
+		/**
+		** Read the bin weight from the given metadata.
+		*/
+		public int readMetaWeight(Object meta) {
+			return ((BinInfo)meta).weight;
+		}
+
+		/**
+		** Construct the metadata for the given bin ID and weight.
+		*/
+		public Object makeMeta(Object id, int weight) {
+			return new BinInfo(id, weight);
 		}
 
 	}

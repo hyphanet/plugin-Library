@@ -485,7 +485,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	*/
 	final void verifyNodeIntegrity(Node node) {
 		if (node.entries.isEmpty()) {
-			verify(node == root && node.lkey == null && node.rkey == null);
+			// don't test node == root since it might be a newly-created detached node
+			verify(node.lkey == null && node.rkey == null);
 			verify(node.isLeaf() && node.rnodes == null && node.lnodes == null);
 			return;
 		}
@@ -520,8 +521,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		verify(node._size < 0 || node._size == s);
 
 		verify(node.nodeSize() <= ENT_MAX);
-		// NULLNOTICE don't test node == root since it might be a newly-created
-		// detached node
+		// don't test node == root since it might be a newly-created detached node
 		verify(node.lkey == null && node.rkey == null && node.nodeSize() >= 1
 		                    || node.nodeSize() >= ENT_MIN);
 	}

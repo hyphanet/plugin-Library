@@ -43,20 +43,13 @@ public class PackerTest extends TestCase {
 			public void push(PushTask<Map<String, HashSet>> t) {}
 
 		},
-		NODE_MAX,
-		true
-	) {
-
-		@Override public Scale<String, HashSet> newScale(Map<String, ? extends Task<HashSet>> elems) {
-			final Packer<String, HashSet> t = this;
-			return new Scale<String, HashSet>(elems, t) {
-				@Override public int weigh(HashSet elem) {
-					return elem.size();
-				}
-			};
-		}
-
-	};
+		new Packer.Scale<HashSet>() {
+			@Override public int weigh(HashSet elem) {
+				return elem.size();
+			}
+		},
+		NODE_MAX
+	);
 
 	protected Map<String, PushTask<HashSet>> generateTasks(int[] sizes) {
 		String meta = "dummy metadata";

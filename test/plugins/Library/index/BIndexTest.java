@@ -185,7 +185,7 @@ public class BIndexTest extends TestCase {
 		}
 	}
 
-
+/*
 	public void testProgress() throws TaskAbortException {
 		if (disabled) { return; }
 		newTestSkeleton();
@@ -246,6 +246,6 @@ public class BIndexTest extends TestCase {
 		}
 
 	}
-
+*/
 
 }

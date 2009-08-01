@@ -410,9 +410,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				verifyNodeIntegrity(node);
 				return node;
 			} catch (ClassCastException e) {
-				throw new DataFormatException("Could not build SkeletonNode from data", e, null, null, null);
+				throw new DataFormatException("Could not build SkeletonNode from data", e, map, null, null);
 			} catch (IllegalStateException e) {
-				throw new DataFormatException("Could not build SkeletonNode from data", e, null, null, null);
+				throw new DataFormatException("Could not build SkeletonNode from data", e, map, null, null);
 			}
 		}
 
@@ -455,7 +455,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				}
 				return tree;
 			} catch (ClassCastException e) {
-				throw new DataFormatException("Could not build SkeletonBTreeMap from data", e, null, null, null);
+				throw new DataFormatException("Could not build SkeletonBTreeMap from data", e, map, null, null);
 			}
 		}
 

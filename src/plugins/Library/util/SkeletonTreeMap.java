@@ -272,7 +272,7 @@ implements SkeletonMap<K, V> {
 						map.putDummy((K)en.getKey(), en.getValue());
 					}
 				} catch (ClassCastException e) {
-					throw new DataFormatException("TreeMapTranslator: reverse translation failed. Try supplying a non-null key-translator.", e, null, null, null);
+					throw new DataFormatException("TreeMapTranslator: reverse translation failed. Try supplying a non-null key-translator.", e, intm, null, null);
 				}
 			} else {
 				for (Map.Entry<String, Object> en: intm.entrySet()) {
