@@ -34,6 +34,7 @@ public class ProtoIndex {
 
 	// DEBUG make final again later
 	/*final*/ public static int BTREE_NODE_MIN = 0x10000;
+	final public static int BTREE_ENT_MAX = (BTREE_NODE_MIN<<1) - 1;
 
 	/**
 	** Magic number to guide serialisation.
