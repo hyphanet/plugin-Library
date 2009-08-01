@@ -8,6 +8,7 @@ import plugins.Library.serial.Translator;
 import plugins.Library.serial.MapSerialiser;
 import plugins.Library.serial.DataFormatException;
 import plugins.Library.serial.TaskAbortException;
+import plugins.Library.serial.TaskCompleteException;
 
 import java.util.Comparator;
 import java.util.Set;
@@ -166,22 +167,27 @@ implements SkeletonMap<K, V> {
 		Map<K, PullTask<V>> tasks = new HashMap<K, PullTask<V>>();
 		tasks.put(key, new PullTask<V>(keymeta));
 
-		serialiser.pull(tasks, mapmeta);
+		try {
+			serialiser.pull(tasks, mapmeta);
 
-		put(key, tasks.remove(key).data);
-		if (tasks.isEmpty()) { return; }
+			put(key, tasks.remove(key).data);
+			if (tasks.isEmpty()) { return; }
 
-		for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
-			// other keys may also have been inflated, so add them if the metadata
-			// match. if they don't match, then the data was only partially inflated
-			// so ignore for now. (needs a new data structure to allow partial
-			// inflates of values...)
-			K k = en.getKey();
-			PullTask<V> t = en.getValue();
-			Object m = loaded.get(k);
-			if (m.equals(t.meta)) {
-				put(k, t.data);
+			for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
+				// other keys may also have been inflated, so add them if the metadata
+				// match. if they don't match, then the data was only partially inflated
+				// so ignore for now. (needs a new data structure to allow partial
+				// inflates of values...)
+				K k = en.getKey();
+				PullTask<V> t = en.getValue();
+				Object m = loaded.get(k);
+				if (m.equals(t.meta)) {
+					put(k, t.data);
+				}
 			}
+
+		} catch (TaskCompleteException e) {
+			assert(loaded.get(key) == null);
 		}
 	}
 

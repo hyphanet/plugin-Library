@@ -421,7 +421,10 @@ implements MapSerialiser<K, T>,
 				newtasks.put(en.getKey(), new PullTask<T>(task.meta));
 			}
 		}
+
+		if (newtasks.isEmpty()) { return; }
 		pull(newtasks, meta);
+
 		for (Map.Entry<K, PushTask<T>> en: tasks.entrySet()) {
 			PushTask<T> task = en.getValue();
 			PullTask<T> newtask = newtasks.get(en.getKey());
@@ -502,6 +505,7 @@ implements MapSerialiser<K, T>,
 				}
 			}
 			tasks.putAll(leftovers);
+			if (tasks.isEmpty()) { throw new TaskCompleteException("All tasks appear to be complete"); }
 
 		} catch (RuntimeException e) {
 			throw new TaskAbortException("Could not complete the pull operation", e);
@@ -730,6 +734,17 @@ implements MapSerialiser<K, T>,
 		public int getWeight() { return weight; }
 		public void setID(Object i) { id = i; }
 		public void setWeight(int w) { weight = w; }
+
+		@Override public boolean equals(Object o) {
+			if (o == this) { return true; }
+			if (!(o instanceof BinInfo)) { return false; }
+			BinInfo bi = (BinInfo)o;
+			return id.equals(bi.id) && weight == bi.weight;
+		}
+
+		@Override public int hashCode() {
+			return id.hashCode() + weight;
+		}
 
 	}
 

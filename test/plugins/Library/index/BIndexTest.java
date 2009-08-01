@@ -113,7 +113,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	public void testBasicMulti() throws TaskAbortException {
-		int n = 2;//8;
+		int n = 0;//8;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
 			fullInflate();

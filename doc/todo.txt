@@ -4,6 +4,8 @@ index: "suggested tokens" - suggest what other people should tag this index as;
        they are free to ignore this suggestion
 
 
+- PRIORITY document TaskComplete handling...
+
 - TODO there should be only one entry per URI per Token (enforce this in the code at some point)
 
 - TODO make Packer track the progress

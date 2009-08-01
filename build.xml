@@ -166,8 +166,8 @@
 	<target name="clean" description="Delete class files and docs dir.">
 		<delete dir="${build}"/>
 		<delete dir="${build-test}"/>
-		<delete dir="${dist}"/>
 		<delete dir="${run-test}"/>
+		<delete dir="${dist}"/>
 		<delete dir="${javadoc}"/>
 	</target>
 

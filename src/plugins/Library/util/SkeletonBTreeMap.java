@@ -312,10 +312,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	}
 
 	@Override public void inflate(K key) throws TaskAbortException {
-		try {
-			get(key);
-		} catch (DataNotLoadedException e) {
-			e.getParent().inflate(e.getKey());
+		for (;;) {
+			try {
+				get(key);
+				break;
+			} catch (DataNotLoadedException e) {
+				e.getParent().inflate(e.getKey());
+			}
 		}
 	}
 
