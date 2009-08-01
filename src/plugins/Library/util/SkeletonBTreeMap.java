@@ -109,7 +109,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		public GhostNode makeGhost(Object meta) {
-			GhostNode ghost = new GhostNode(lkey, rkey);
+			GhostNode ghost = new GhostNode(lkey, rkey, totalSize());
 			ghost.setMeta(meta);
 			return ghost;
 		}
@@ -222,15 +222,16 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		SkeletonNode parent;
 		Object meta;
 
-		GhostNode(SkeletonNode p, K l, K r) {
+		GhostNode(SkeletonNode p, K l, K r, int s) {
 			super(false, null);
 			parent = p;
 			lkey = l;
 			rkey = r;
+			_size = s;
 		}
 
-		GhostNode(K l, K r) {
-			this(null, l, r);
+		GhostNode(K l, K r, int s) {
+			this(null, l, r, s);
 		}
 
 		public Object getMeta() {
@@ -241,7 +242,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			meta = m;
 		}
 
-		@Override int size() {
+		@Override int nodeSize() {
 			throw new DataNotLoadedException("BTreeMap Node not loaded", parent, rkey, this);
 		}
 
@@ -364,7 +365,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		@Override public Map<String, Object> app(SkeletonNode node) {
 			if (!node.isBare()) {
-				throw new IllegalStateException("Cannot translate non-bare node " + node.getShortName());
+				throw new IllegalStateException("Cannot translate non-bare node " + node.getRange());
 			}
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("lkey", (ktr == null)? node.lkey: ktr.app(node.lkey));
@@ -372,13 +373,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			map.put("entries", (mtr == null)? node.entries: mtr.app((SkeletonTreeMap<K, V>)node.entries));
 
 			if (!node.isLeaf()) {
-				List<Object> subnodes = new ArrayList<Object>();
+				Map<Object, Integer> subnodes = new LinkedHashMap<Object, Integer>();
 				for (K k: node.entries.keySet()) {
 					GhostNode gh = (GhostNode)node.lnodes.get(k);
-					subnodes.add(gh.getMeta());
+					subnodes.put(gh.getMeta(), gh.totalSize());
 				}
 				GhostNode gh = (GhostNode)node.lnodes.get(node.rkey);
-				subnodes.add(gh.getMeta());
+				subnodes.put(gh.getMeta(), gh.totalSize());
 				map.put("subnodes", subnodes);
 			}
 			return map;
@@ -391,17 +392,19 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				                                                  : mtr.rev((R)map.get("entries")));
 				node.lkey = (ktr == null)? (K)map.get("lkey"): ktr.rev((Q)map.get("lkey"));
 				node.rkey = (ktr == null)? (K)map.get("rkey"): ktr.rev((Q)map.get("rkey"));
+				node._size = node.entries.size();
 				if (!node.isLeaf()) {
-					List<Object> subnodes = (List<Object>)map.get("subnodes");
+					Map<Object, Integer> subnodes = (Map<Object, Integer>)map.get("subnodes");
 					K lastkey = node.lkey;
 					Iterator<K> keys = node.entries.keySet().iterator();
-					for (Object meta: subnodes) {
+					for (Map.Entry<Object, Integer> en: subnodes.entrySet()) {
 						K thiskey = keys.hasNext()? keys.next(): node.rkey;
-						GhostNode ghost = new GhostNode(node, lastkey, thiskey);
-						ghost.setMeta(meta);
+						GhostNode ghost = new GhostNode(node, lastkey, thiskey, en.getValue());
+						ghost.setMeta(en.getKey());
 						node.rnodes.put(lastkey, ghost);
 						node.lnodes.put(thiskey, ghost);
 						lastkey = thiskey;
+						node._size += en.getValue();
 					}
 				}
 				verifyNodeIntegrity(node);
@@ -443,10 +446,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		@Override public SkeletonBTreeMap<K, V> rev(Map<String, Object> map) {
 			try {
 				SkeletonBTreeMap<K, V> tree = new SkeletonBTreeMap<K, V>((Integer)map.get("node_min"));
-				tree.size = (Integer)map.get("size"); // TODO have some way of verifying this
+				tree.size = (Integer)map.get("size");
 				// map.put("lkey", null); // NULLNOTICE: get() gives null which matches
 				// map.put("rkey", null); // NULLNOTICE: get() gives null which matches
 				tree.root = tree.makeNodeTranslator(ktr, mtr).rev(map);
+				if (tree.size != tree.root.totalSize()) {
+					throw new DataFormatException("Mismatched sizes - tree: " + tree.size + "; root: " + tree.root.totalSize(), null);
+				}
 				return tree;
 			} catch (ClassCastException e) {
 				throw new DataFormatException("Could not build SkeletonBTreeMap from data", e, null, null, null);

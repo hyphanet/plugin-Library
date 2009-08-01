@@ -248,7 +248,7 @@ implements Archiver<ProtoIndex>,
 		@Override public void pullLive(PullTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) {
 			SkeletonBTreeMap<K, V>.GhostNode ghost = (SkeletonBTreeMap.GhostNode)task.meta;
 			PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(ghost.getMeta());
-			p.setName("Pulling " + name + ": " + ghost.getShortName());
+			p.setName("Pulling " + name + ": " + ghost.getRange());
 			p.addTotal(1, false);
 			subsrl.pullLive(serialisable, p);
 			ghost.setMeta(serialisable.meta); task.data = trans.rev(serialisable.data);
@@ -258,7 +258,7 @@ implements Archiver<ProtoIndex>,
 		@Override public void pushLive(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) {
 			Map<String, Object> intermediate = trans.app(task.data);
 			PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(intermediate, task.meta);
-			p.setName("Pushing " + name + ": " + task.data.getShortName());
+			p.setName("Pushing " + name + ": " + task.data.getRange());
 			p.addTotal(1, false);
 			subsrl.pushLive(serialisable, p);
 			task.meta = task.data.makeGhost(serialisable.meta);

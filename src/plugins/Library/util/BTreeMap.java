@@ -241,6 +241,12 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		K rkey = null;
 
 		/**
+		** Cache for the total number of entries in this node and all subnodes.
+		** A negative value means the cache was invalidated.
+		*/
+		transient int _size = -1;
+
+		/**
 		** Creates a new node for the BTree, with a custom map to store the
 		** entries.
 		**
@@ -286,8 +292,10 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** tree, either this method or {@link #isLeaf()} will be called at
 		** least once for each node visited, before any merge / split / rotate
 		** operations upon it.
+		**
+		** DOCUMENT
 		*/
-		int size() {
+		int nodeSize() {
 			return entries.size();
 		}
 
@@ -296,9 +304,27 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** either this method or {@link #size()} will be called at least once
 		** for each node visited, before any merge / split / rotate operations
 		** upon it.
+		**
+		** DOCUMENT
 		*/
 		boolean isLeaf() {
 			return isLeaf;
+		}
+
+		/**
+		** Calculate the total number of entries in this node and all subnodes.
+		*/
+		int totalSize() {
+			if (_size < 0) {
+				int s = nodeSize(); // makes any future synchronization easier
+				if (!isLeaf()) {
+					for (Node n: lnodes.values()) {
+						s += n.totalSize();
+					}
+				}
+				_size = s;
+			}
+			return _size;
 		}
 
 		/**
@@ -382,10 +408,10 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		}
 
 		public String getName() {
-			return "BTreeMap node " + getShortName();
+			return "BTreeMap node " + getRange();
 		}
 
-		public String getShortName() {
+		public String getRange() {
 			return (lkey == null? "*": lkey) + "-" + (rkey == null? "*": rkey);
 		}
 
@@ -467,6 +493,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		verify(compare2(node.lkey, node.entries.firstKey()) < 0);
 		verify(compare2(node.entries.lastKey(), node.rkey) < 0);
 
+		int s = node.nodeSize();
 		if (!node.isLeaf()) {
 			Iterator<K> it = node.entries.keySet().iterator();
 			verify(it.hasNext());
@@ -475,6 +502,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			K curr = it.next();
 			while (curr != node.rkey || prev != node.rkey) {
 				Node node1 = node.rnodes.get(prev);
+				s += node1.totalSize();
 				verify(node1 != null && compare2(curr, node1.rkey) == 0);
 				Node node2 = node.lnodes.get(curr);
 				verify(node1 == node2 && compare2(node2.lkey, prev) == 0);
@@ -482,15 +510,20 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				curr = it.hasNext()? it.next(): node.rkey;
 			}
 
-			verify(node.size() + 1 == node.rnodes.size());
-			verify(node.size() + 1 == node.lnodes.size());
+			verify(node.nodeSize() + 1 == node.rnodes.size());
+			verify(node.nodeSize() + 1 == node.lnodes.size());
 		}
+		if (node._size > 0 && node._size != s) {
+			System.out.println(node._size + " vs " + s);
+			System.out.println(node.toTreeString("\t"));
+		}
+		verify(node._size < 0 || node._size == s);
 
-		verify(node.size() <= ENT_MAX);
+		verify(node.nodeSize() <= ENT_MAX);
 		// NULLNOTICE don't test node == root since it might be a newly-created
 		// detached node
-		verify(node.lkey == null && node.rkey == null && node.size() >= 1
-		                    || node.size() >= ENT_MIN);
+		verify(node.lkey == null && node.rkey == null && node.nodeSize() >= 1
+		                    || node.nodeSize() >= ENT_MIN);
 	}
 
 	/**
@@ -554,9 +587,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** @param child The subnode to split
 	*/
 	private K split(Node parent, Node child) {
-		assert(child.size() == ENT_MAX);
+		assert(child.nodeSize() == ENT_MAX);
 		assert(parent == null? (child.lkey == null && child.rkey == null):
-		                       (parent.size() < ENT_MAX
+		                       (parent.nodeSize() < ENT_MAX
 		                     && !parent.isLeaf()
 		                     && parent.rnodes.get(child.lkey) == child
 		                     && parent.lnodes.get(child.rkey) == child));
@@ -567,6 +600,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			parent.lnodes.put(null, child);
 			parent.rnodes.put(null, child);
 		}
+		parent._size = child._size = -1;
+
 		Node lnode = newNode(child.isLeaf());
 		K mkey;
 
@@ -644,12 +679,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	private K merge(Node parent, Node lnode, Node rnode) {
 		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
 		assert(lnode.isLeaf() && rnode.isLeaf() || !lnode.isLeaf() && !rnode.isLeaf());
-		assert(lnode.size() == ENT_MIN);
-		assert(rnode.size() == ENT_MIN);
-		assert(parent == root && parent.size() > 0
-		                      || parent.size() > ENT_MIN);
+		assert(lnode.nodeSize() == ENT_MIN);
+		assert(rnode.nodeSize() == ENT_MIN);
+		assert(parent == root && parent.nodeSize() > 0
+		                      || parent.nodeSize() > ENT_MIN);
 		assert(!parent.isLeaf() && parent.rnodes.get(lnode.rkey) == rnode
 		                      && parent.lnodes.get(rnode.lkey) == lnode);
+		parent._size = lnode._size = rnode._size = -1;
 
 		K mkey = rnode.lkey; // same as lnode.rkey;
 
@@ -717,10 +753,11 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	private K rotateL(Node parent, Node lnode, Node rnode) {
 		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
 		assert(lnode.isLeaf() && rnode.isLeaf() || !lnode.isLeaf() && !rnode.isLeaf());
-		assert(rnode.size() >= lnode.size());
-		assert(rnode.size() > ENT_MIN);
+		assert(rnode.nodeSize() >= lnode.nodeSize());
+		assert(rnode.nodeSize() > ENT_MIN);
 		assert(!parent.isLeaf() && parent.rnodes.get(lnode.rkey) == rnode
 		                      && parent.lnodes.get(rnode.lkey) == lnode);
+		parent._size = lnode._size = rnode._size = -1;
 
 		K mkey = rnode.lkey;
 		K skey = rnode.entries.firstKey();
@@ -767,10 +804,11 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	private K rotateR(Node parent, Node lnode, Node rnode) {
 		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
 		assert(lnode.isLeaf() && rnode.isLeaf() || !lnode.isLeaf() && !rnode.isLeaf());
-		assert(lnode.size() >= rnode.size());
-		assert(lnode.size() > ENT_MIN);
+		assert(lnode.nodeSize() >= rnode.nodeSize());
+		assert(lnode.nodeSize() > ENT_MIN);
 		assert(!parent.isLeaf() && parent.rnodes.get(lnode.rkey) == rnode
 		                      && parent.lnodes.get(rnode.lkey) == lnode);
+		parent._size = lnode._size = rnode._size = -1;
 
 		K mkey = lnode.rkey;
 		K skey = lnode.entries.lastKey();
@@ -796,7 +834,48 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** Returns the number of entries contained in the root node.
 	*/
 	public int rootSize() {
-		return root.size();
+		return root.nodeSize();
+	}
+
+	/**
+	** Returns the entry at a particular (zero-based) index.
+	*/
+	public Map.Entry<K, V> getEntry(int index) {
+		if (index < 0 || index >= size) {
+			throw new IndexOutOfBoundsException("Index outside of range [0," + size + ")");
+		}
+
+		int current = 0;
+		Node node = root;
+
+		for (;;) {
+			if (node.isLeaf()) {
+				for (Map.Entry<K, V> en: node.entries.entrySet()) {
+					if (current == index) { return en; }
+					++current;
+				}
+				throw new IllegalStateException("BTreeMap getKey method is buggy, please report.");
+			}
+
+			// PRIORITY OPTIMISE better way to do this than linear iteration through the entries.
+			// this performs badly for large nodes. perhaps cache the sums?
+			Node nextnode = node.rnodes.get(node.lkey);
+			int next = current + nextnode.totalSize();
+			if (index < next) { node = nextnode; continue; }
+			current = next;
+
+			for (Map.Entry<K, V> en: node.entries.entrySet()) {
+				if (current == index) { return en; }
+				++current;
+
+				nextnode = node.rnodes.get(en.getKey());
+				next = current + nextnode.totalSize();
+				if (index < next) { node = nextnode; break; }
+				current = next;
+			}
+
+			assert(current <= index);
+		}
 	}
 
 	/*========================================================================
@@ -914,20 +993,21 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		Node node = root, parent = null;
 
 		for (;;) {
-			if (node.size() == ENT_MAX) {
+			node._size = -1; // pre-emptively invalidate node size cache
+
+			if (node.nodeSize() == ENT_MAX) {
 				K median = split(parent, node);
 				if (parent == null) { parent = root; }
 
 				node = parent.selectNode(key);
 				if (node == null) { return parent.entries.put(key, value); }
 			}
-			assert(node.size() < ENT_MAX);
+			assert(node.nodeSize() < ENT_MAX);
 
 			if (node.isLeaf()) {
-				int sz = node.size();
+				int sz = node.nodeSize();
 				V v = node.entries.put(key, value);
-				// update size cache
-				if (node.size() != sz) { ++size; }
+				if (node.nodeSize() != sz) { ++size; } // update tree size counter
 				return v;
 			}
 
@@ -993,10 +1073,12 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		Node node = root, parent = null;
 
 		for (;;) {
-			if (node != root && node.size() == ENT_MIN) {
+			node._size = -1; // pre-emptively invalidate node size cache
+
+			if (node != root && node.nodeSize() == ENT_MIN) {
 				Node lnode = parent.nodeL(node), rnode = parent.nodeR(node);
-				int L = (lnode == null)? -1: lnode.size();
-				int R = (rnode == null)? -1: rnode.size();
+				int L = (lnode == null)? -1: lnode.nodeSize();
+				int R = (rnode == null)? -1: rnode.nodeSize();
 
 				K kk = // in java, ?: must be used in a statement :|
 				// lnode doesn't exist
@@ -1016,20 +1098,19 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				node = parent.selectNode(key);
 				assert(node != null);
 			}
-			assert(node == root || node.size() >= ENT_MIN);
+			assert(node == root || node.nodeSize() >= ENT_MIN);
 
 			if (node.isLeaf()) { // leaf node
-				int sz = node.size();
+				int sz = node.nodeSize();
 				V v = node.entries.remove(key);
-				// update size cache
-				if (node.size() != sz) { --size; }
+				if (node.nodeSize() != sz) { --size; } // update tree size counter
 				return v;
 			}
 
 			Node nextnode = node.selectNode(key);
 			if (nextnode == null) { // key is already in the node
 				Node lnode = node.lnodes.get(key), rnode = node.rnodes.get(key);
-				int L = lnode.size(), R = rnode.size();
+				int L = lnode.nodeSize(), R = rnode.nodeSize();
 
 				K kk =
 				// both lnode and rnode must exist, so
@@ -1216,9 +1297,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 						/*public String toString() {
 							StringBuffer s = new StringBuffer();
 							for (Node n: nodestack) {
-								s.append(n.getShortName()).append(", ");
+								s.append(n.getRange()).append(", ");
 							}
-							return "nodestack: [" + s + "]; cnode: " + cnode.getShortName() + "; lastkey: " + lastkey;
+							return "nodestack: [" + s + "]; cnode: " + cnode.getRange() + "; lastkey: " + lastkey;
 						}*/
 
 						@Override public boolean hasNext() {

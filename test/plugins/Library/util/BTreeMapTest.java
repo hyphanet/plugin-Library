@@ -34,8 +34,7 @@ public class BTreeMapTest extends SortedMapTestSkeleton {
 				testmap.verifyTreeIntegrity();
 			}
 			int s = testmap.size(); // random there so could be dupes
-			assert(s <= 0x10000 && testmap.size() == backmap.size());
-			System.out.println("Successfully put " + s + " entries to the BTreeMap");
+			assertTrue(s <= 0x10000 && testmap.size() == backmap.size());
 
 			Iterator<String> it = backmap.keySet().iterator();
 			for (int i=0; i<s;) {
@@ -45,8 +44,7 @@ public class BTreeMapTest extends SortedMapTestSkeleton {
 				}
 				testmap.verifyTreeIntegrity();
 			}
-			assert(testmap.size() == 0 && backmap.size() == 0);
-			System.out.println("Successfully removed " + s + " entries to the BTreeMap");
+			assertTrue(testmap.size() == 0 && backmap.size() == 0);
 
 		} catch (AssertionError e) {
 			System.out.println(testmap.toTreeString());
@@ -68,6 +66,21 @@ public class BTreeMapTest extends SortedMapTestSkeleton {
 			testmap.putAll(backmap);
 			testmap.verifyTreeIntegrity();
 			//if (n<10) { System.out.println(testmap.toTreeString()); }
+		}
+
+	}
+
+	public void testNumericIndexes() {
+
+		BTreeMap<Integer, Integer> testmap = new BTreeMap<Integer, Integer>(0x40);
+		int i=0;
+
+		for (i=0; i<0x10000; ++i) {
+			testmap.put(i, i);
+		}
+
+		for (i=0; i<0x10000; ++i) {
+			assertTrue(testmap.getEntry(i).getKey().equals(i));
 		}
 
 	}

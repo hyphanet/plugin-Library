@@ -47,12 +47,18 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	}
 
 	/**
-	** Returns the number of entries contained in the root node. If this object
-	** is actually a {@link #subSet(Object, Object) subSet} of an actual {@code
-	** BTreeSet}, then this will throw {@link UnsupportedOperationException}.
+	** Returns the number of entries contained in the root node.
 	*/
 	public int rootSize() {
 		return bkmap.rootSize();
 	}
+
+	/**
+	** Returns the element at a particular (zero-based) index.
+	*/
+	public E get(int i) {
+		return bkmap.getEntry(i).getKey();
+	}
+
 
 }

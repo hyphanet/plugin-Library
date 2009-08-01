@@ -21,6 +21,8 @@ import java.util.*;
 */
 public class BIndexTest extends TestCase {
 
+	final public static boolean disabled = false;
+
 	static {
 		//plugins.Library.serial.YamlArchiver.setTestMode();
 		ProtoIndex.BTREE_NODE_MIN = 0x40; // DEBUG so we see tree splits
@@ -113,6 +115,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	public void testBasicMulti() throws TaskAbortException {
+		if (disabled) { return; }
 		int n = 4;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
@@ -174,6 +177,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	public void testPartialInflateMulti() throws TaskAbortException {
+		if (disabled) { return; }
 		int n = 4;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
@@ -183,6 +187,7 @@ public class BIndexTest extends TestCase {
 
 
 	public void testProgress() throws TaskAbortException {
+		if (disabled) { return; }
 		newTestSkeleton();
 
 		int totalentries = 0;
