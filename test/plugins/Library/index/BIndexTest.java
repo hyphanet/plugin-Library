@@ -113,7 +113,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	public void testBasicMulti() throws TaskAbortException {
-		int n = 0;//8;
+		int n = 4;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
 			fullInflate();
@@ -174,7 +174,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	public void testPartialInflateMulti() throws TaskAbortException {
-		int n = 8;
+		int n = 4;
 		for (int i=0; i<n; ++i) {
 			System.out.print(i + "/" + n + ": ");
 			partialInflate();
@@ -182,12 +182,11 @@ public class BIndexTest extends TestCase {
 	}
 
 
-/*
 	public void testProgress() throws TaskAbortException {
 		newTestSkeleton();
 
 		int totalentries = 0;
-		int numterms = 16;
+		int numterms = 0x100;
 		int save = rand.nextInt(numterms);
 		String sterm = null;
 
@@ -195,8 +194,11 @@ public class BIndexTest extends TestCase {
 		for (int i=0; i<numterms; ++i) {
 			String key = Generators.rndStr().substring(0,8);
 			if (i == save) { sterm = key; }
-			SortedSet<TokenEntry> entries = new TreeSet<TokenEntry>();
-			int n = rand.nextInt(512) + 512;
+
+			SkeletonBTreeSet<TokenEntry> entries = new SkeletonBTreeSet<TokenEntry>(ProtoIndex.BTREE_NODE_MIN);
+			srl.setSerialiserFor(entries);
+
+			int n = rand.nextInt(0x200) + 0x200;
 			totalentries += n;
 
 			try {
@@ -214,6 +216,10 @@ public class BIndexTest extends TestCase {
 		}
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
 
+		for (SkeletonBTreeSet<TokenEntry> entries: idx.ttab.values()) {
+			entries.deflate();
+			assertTrue(entries.isBare());
+		}
 		idx.ttab.deflate();
 		assertTrue(idx.ttab.isBare());
 		assertFalse(idx.ttab.isLive());
@@ -235,6 +241,6 @@ public class BIndexTest extends TestCase {
 		}
 
 	}
-*/
+
 
 }

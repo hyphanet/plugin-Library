@@ -743,7 +743,7 @@ implements MapSerialiser<K, T>,
 		}
 
 		@Override public int hashCode() {
-			return id.hashCode() + weight;
+			return id.hashCode() + weight*31;
 		}
 
 	}

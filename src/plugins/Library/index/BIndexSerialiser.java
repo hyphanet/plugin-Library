@@ -319,7 +319,7 @@ implements Archiver<ProtoIndex>,
 			for (Map.Entry<String, PullTask<SkeletonBTreeSet<TokenEntry>>> en: tasks.entrySet()) {
 				CompoundProgress p = tracker.addPullProgress(en.getValue().meta);
 				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPull(mib)); }
-				p.setName("Pulling containers for " + en.getKey());
+				p.setName("Pulling root container for " + en.getKey());
 			}
 		}
 
@@ -332,7 +332,7 @@ implements Archiver<ProtoIndex>,
 			for (Map.Entry<String, PushTask<SkeletonBTreeSet<TokenEntry>>> en: tasks.entrySet()) {
 				CompoundProgress p = tracker.addPushProgress(en.getValue().data);
 				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPush(dib)); }
-				p.setName("Pushing containers for " + en.getKey());
+				p.setName("Pushing root container for " + en.getKey());
 			}
 		}
 
@@ -364,7 +364,7 @@ implements Archiver<ProtoIndex>,
 
 		@Override public void pullLive(PullTask<Map<String, SkeletonBTreeSet<TokenEntry>>> task, SimpleProgress p) {
 			PullTask<Map<String, Object>> t = new PullTask<Map<String, Object>>(task.meta);
-			p.setName("Pulling container " + task.meta);
+			p.setName("Pulling root container " + task.meta);
 			p.addTotal(1, false);
 			try {
 				subsrl.pullLive(t, p);
@@ -393,7 +393,7 @@ implements Archiver<ProtoIndex>,
 			}
 
 			PushTask<Map<String, Object>> t = new PushTask<Map<String, Object>>(conv, task.meta);
-			p.setName("Pushing container for keys " + task.data.keySet());
+			p.setName("Pushing root container for keys " + task.data.keySet());
 			p.addTotal(1, false);
 			subsrl.pushLive(t, p);
 			task.meta = t.meta;
