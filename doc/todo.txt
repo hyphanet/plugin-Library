@@ -13,7 +13,6 @@
 - TODO index: "suggested tokens" - suggest what other people should tag this
   index as; they are free to ignore this suggestion (very low priority for now)
 
-
 == Task handling ==
 
 - TODO work out TaskAbortException handling for SkeletonTreeMap

@@ -4,7 +4,6 @@
 package plugins.Library.index;
 
 import plugins.Library.util.Skeleton;
-import plugins.Library.util.SkeletonMap;
 import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
@@ -71,7 +70,7 @@ public class ProtoIndex {
 
 
 	final protected SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>> ttab;
-	final protected SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = null;
+	final protected SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab;
 
 
 	public ProtoIndex(FreenetURI i, String n) {
@@ -80,13 +79,13 @@ public class ProtoIndex {
 		modified = new Date();
 		extra = new HashMap<String, Object>();
 
-		//utab = new SkeletonBTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKey(), UTAB_MAX);
+		utab = new SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(BTREE_NODE_MIN);
 		ttab = new SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>>(BTREE_NODE_MIN);
 		//filtab = new SkeletonPrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX);
 	}
 
-	protected ProtoIndex(FreenetURI i, String n, Date m, Map<String, Object> x/*,
-		SkeletonMap<URIKey, SortedMap<FreenetURI, URIEntry>> u*/,
+	protected ProtoIndex(FreenetURI i, String n, Date m, Map<String, Object> x,
+		SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> u,
 		SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>> t/*,
 		SkeletonMap<Token, TokenFilter> f*/
 		) {
@@ -97,7 +96,7 @@ public class ProtoIndex {
 
 		//filtab = f;
 		ttab = t;
-		//utab = u;
+		utab = u;
 	}
 
 	public long getMagic() {
@@ -126,8 +125,6 @@ public class ProtoIndex {
 		}
 		return request;
 	}
-
-
 
 
 

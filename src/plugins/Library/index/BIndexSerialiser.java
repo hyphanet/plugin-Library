@@ -54,7 +54,6 @@ implements Archiver<ProtoIndex>,
 	final protected Archiver<Map<String, Object>> subsrl;
 	final protected Translator<ProtoIndex, Map<String, Object>> trans;
 
-
 	public BIndexSerialiser() {
 		// for DEBUG use; the freenet version would save to SSK@key/my_index/index.yml
 		//subsrl = new YamlArchiver<Map<String, Object>>("index", "");
@@ -63,48 +62,6 @@ implements Archiver<ProtoIndex>,
 		//usrl = new BTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKeyTranslator());
 		trans = new IndexTranslator();
 	}
-
-	/**
-	** Translator for (the SkeletonBTreeSet entries) of (a B-tree node in the
-	** ttab).
-	*/
-	protected static Translator<SkeletonTreeMap<String, SkeletonBTreeSet<TokenEntry>>, Map<String, Object>> ttab_keys_mtr = new TreeMapTranslator<String, SkeletonBTreeSet<TokenEntry>>(null);
-
-	public static ProtoIndex setSerialiserFor(ProtoIndex index) {
-		// TODO utab too
-		BTreeNodeSerialiser ttab_keys = new BTreeNodeSerialiser<String, SkeletonBTreeSet<TokenEntry>>(
-			"term listings",
-			index.ttab.makeNodeTranslator(null, ttab_keys_mtr)
-		);
-		TermEntrySerialiser ttab_data = new TermEntrySerialiser(index.ttab.ENT_MAX);
-		index.ttab.setSerialiser(ttab_keys, ttab_data);
-		index.trackables[ProtoIndex.TTAB_KEYS] = ttab_keys;
-		index.trackables[ProtoIndex.TTAB_DATA] = ttab_data;
-		return index;
-	}
-
-	/**
-	** Translator for (the TokenEntry entries) of (a B-tree node in the
-	** (BTreeSet container for a term's results)).
-	*/
-	protected static Translator<SkeletonTreeMap<TokenEntry, TokenEntry>, Collection<TokenEntry>> term_data_mtr = new SkeletonBTreeSet.TreeSetTranslator<TokenEntry>();
-
-	/**
-	** Dummy translator, since a SkeletonBTreeMap node was designed to hold
-	** values externally, whereas (a B-tree node in the (BTreeSet container
-	** for a term's results)) holds them internally.
-	*/
-	protected static MapSerialiser<TokenEntry, TokenEntry> term_dummy = new DummySerialiser<TokenEntry, TokenEntry>();
-
-	public static SkeletonBTreeSet<TokenEntry> setSerialiserFor(SkeletonBTreeSet<TokenEntry> entries) {
-		BTreeNodeSerialiser term_keys = new BTreeNodeSerialiser<TokenEntry, TokenEntry>(
-			"entries",
-			entries.makeNodeTranslator(null, term_data_mtr)
-		);
-		entries.setSerialiser(term_keys, term_dummy);
-		return entries;
-	}
-
 
 	@Override public Archiver<Map<String, Object>> getChildSerialiser() {
 		return subsrl;
@@ -146,7 +103,7 @@ implements Archiver<ProtoIndex>,
 
 
 		@Override public Map<String, Object> app(ProtoIndex idx) {
-			if (!idx.ttab.isBare() /* || !idx.utab.isBare() */) {
+			if (!idx.ttab.isBare() || !idx.utab.isBare()) {
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
@@ -155,8 +112,7 @@ implements Archiver<ProtoIndex>,
 			map.put("name", idx.name);
 			map.put("modified", idx.modified);
 			map.put("extra", idx.extra);
-			// these are meant to be removed by the parent Serialiser and pushed
-			//map.put("utab", idx.utab);
+			map.put("utab", utrans.app(idx.utab));
 			map.put("ttab", ttrans.app(idx.ttab));
 			return map;
 		}
@@ -170,10 +126,10 @@ implements Archiver<ProtoIndex>,
 					String name = (String)map.get("name");
 					Date modified = (Date)map.get("modified");
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
-					//SkeletonBTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>> utab = (SkeletonBTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>)map.get("utab");
+					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
 					SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>> ttab = ttrans.rev((Map<String, Object>)map.get("ttab"));
 
-					return setSerialiserFor(new ProtoIndex(id, name, modified, extra, /*utab, */ttab));
+					return setSerialiserFor(new ProtoIndex(id, name, modified, extra, utab, ttab));
 
 				} catch (ClassCastException e) {
 					// TODO maybe find a way to pass the actual bad data to the exception
@@ -186,6 +142,84 @@ implements Archiver<ProtoIndex>,
 		}
 
 	}
+
+
+
+
+
+
+
+
+	/**
+	** Translator for (the SkeletonBTreeSet entries) of (a B-tree node in the
+	** ttab).
+	*/
+	protected static Translator<SkeletonTreeMap<String, SkeletonBTreeSet<TokenEntry>>, Map<String, Object>> ttab_keys_mtr = new TreeMapTranslator<String, SkeletonBTreeSet<TokenEntry>>(null);
+
+	public static ProtoIndex setSerialiserFor(ProtoIndex index) {
+		// set serialisers on the ttab
+		BTreeNodeSerialiser ttab_keys = new BTreeNodeSerialiser<String, SkeletonBTreeSet<TokenEntry>>(
+			"term listings",
+			index.ttab.makeNodeTranslator(null, ttab_keys_mtr)
+		);
+		TermEntrySerialiser ttab_data = new TermEntrySerialiser(index.ttab.ENT_MAX);
+		index.ttab.setSerialiser(ttab_keys, ttab_data);
+
+		// set serialisers on the utab
+		BTreeNodeSerialiser utab_keys = new BTreeNodeSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(
+			"uri listings",
+			index.utab.makeNodeTranslator(null, null) // no need for utab_keys_mtr
+		);
+		URIEntrySerialiser utab_data = new URIEntrySerialiser(index.utab.ENT_MAX);
+		index.utab.setSerialiser(utab_keys, utab_data);
+
+		// set index trackables
+		index.trackables[ProtoIndex.TTAB_KEYS] = ttab_keys;
+		index.trackables[ProtoIndex.TTAB_DATA] = ttab_data;
+		index.trackables[ProtoIndex.UTAB_KEYS] = utab_keys;
+		index.trackables[ProtoIndex.UTAB_DATA] = utab_data;
+		return index;
+	}
+
+	/**
+	** Translator for (the TokenEntry entries) of (a B-tree node in the
+	** (BTreeSet container for a term's results)).
+	*/
+	protected static Translator<SkeletonTreeMap<TokenEntry, TokenEntry>, Collection<TokenEntry>> term_data_mtr = new SkeletonBTreeSet.TreeSetTranslator<TokenEntry>();
+
+	/**
+	** Dummy translator the term entries.
+	*
+	*/
+	protected static MapSerialiser<TokenEntry, TokenEntry> term_dummy = new DummySerialiser<TokenEntry, TokenEntry>();
+
+	public static SkeletonBTreeSet<TokenEntry> setSerialiserFor(SkeletonBTreeSet<TokenEntry> entries) {
+		BTreeNodeSerialiser term_keys = new BTreeNodeSerialiser<TokenEntry, TokenEntry>(
+			"term entries",
+			entries.makeNodeTranslator(null, term_data_mtr)
+		);
+		entries.setSerialiser(term_keys, term_dummy);
+		return entries;
+	}
+
+	/**
+	** Dummy translator for the uri entries.
+	*/
+	protected static MapSerialiser<FreenetURI, URIEntry> uri_dummy = new DummySerialiser<FreenetURI, URIEntry>();
+
+	public static SkeletonBTreeMap<FreenetURI, URIEntry> setSerialiserFor(SkeletonBTreeMap<FreenetURI, URIEntry> entries) {
+		BTreeNodeSerialiser uri_keys = new BTreeNodeSerialiser<FreenetURI, URIEntry>(
+			"uri entries",
+			entries.makeNodeTranslator(null, null)
+		);
+		entries.setSerialiser(uri_keys, uri_dummy);
+		return entries;
+	}
+
+
+
+
+
 
 
 
@@ -210,7 +244,6 @@ implements Archiver<ProtoIndex>,
 			return rev(map, new SkeletonTreeMap<K, V>(), ktr);
 		}
 	}
-
 
 	/**
 	** Serialiser for a general B-tree node. This can be used for both a
@@ -274,8 +307,11 @@ implements Archiver<ProtoIndex>,
 	}
 
 
+
+
+
 	/**
-	** Serialiser for (the TokenEntry entries) of (a B-tree node in the
+	** Serialiser for (the local TokenEntry entries) of (a B-tree node in the
 	** (BTreeSet container for a term's results)).
 	**
 	** TODO maybe add one more progress part for the bin packing operation
@@ -407,10 +443,33 @@ implements Archiver<ProtoIndex>,
 	}
 
 
+
 	/**
-	** Not recommended but may save implementation effort. DOCUMENT
+	** Serialiser for (the local URIEntry entries) of (a B-tree node in the
+	** (BTreeMap container for a uri's results)).
+	*/
+	abstract /* DEBUG */ public static class URIEntrySerialiser
+	extends Packer<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>
+	implements MapSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>,
+	           Serialiser.Trackable<SkeletonBTreeMap<FreenetURI, URIEntry>> {
+
+
+
+	}
+
+
+	/**
+	** Dummy serialiser.
 	**
-	** See source code of {@link SkeletonBTreeMap} for why this is here.
+	** A SkeletonBTreeMap node was designed to hold values externally, whereas
+	** (a B-tree node in the (BTreeSet container for a term's results)) and
+	** (a B-tree node in the (BTreeMap container for a uri's results)) hold
+	** them internally. This class simplifies the logic required; see the
+	** source code of {@link SkeletonBTreeMap} for more details.
+	**
+	** @deprecated Avoid using this class. It will be removed after option 1
+	**             (see the source code of {@link SkeletonBTreeMap}) is coded.
+	** @author infinity0
 	*/
 	public static class DummySerialiser<K, T>
 	implements IterableSerialiser<T>,
