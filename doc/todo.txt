@@ -26,7 +26,6 @@
 - TODO implement equals() and compare() on TokenEntry properly
 - TODO there should be only one entry per URI per Token (enforce this in the code at some point)
 - TODO make TokenEntries immutable, and make Yaml stuff to create/uncreate these...
-- URGENT for now, make URIKey use pkHash + docName for SSKs (until we find something better)
 - PRIORITY merge URIWrapper with TokenURIEntry
 
 == Request/Progress reporting ==

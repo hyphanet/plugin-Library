@@ -133,11 +133,17 @@ implements Archiver<ProtoIndex>,
 		/**
 		** Term-table translator
 		*/
-		Translator<SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>>, Map<String, Object>> tmtrans = new
+		Translator<SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>>, Map<String, Object>> ttrans = new
 		SkeletonBTreeMap.TreeTranslator<String, SkeletonBTreeSet<TokenEntry>>(null, new
 		TreeMapTranslator<String, SkeletonBTreeSet<TokenEntry>>(null));
 
-		// URI-table translator too...
+		/**
+		** URI-table translator
+		*/
+		Translator<SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>, Map<String, Object>> utrans = new
+		SkeletonBTreeMap.TreeTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null, new
+		TreeMapTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null));
+
 
 		@Override public Map<String, Object> app(ProtoIndex idx) {
 			if (!idx.ttab.isBare() /* || !idx.utab.isBare() */) {
@@ -151,7 +157,7 @@ implements Archiver<ProtoIndex>,
 			map.put("extra", idx.extra);
 			// these are meant to be removed by the parent Serialiser and pushed
 			//map.put("utab", idx.utab);
-			map.put("ttab", tmtrans.app(idx.ttab));
+			map.put("ttab", ttrans.app(idx.ttab));
 			return map;
 		}
 
@@ -165,7 +171,7 @@ implements Archiver<ProtoIndex>,
 					Date modified = (Date)map.get("modified");
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
 					//SkeletonBTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>> utab = (SkeletonBTreeMap<URIKey, SortedMap<FreenetURI, URIEntry>>)map.get("utab");
-					SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>> ttab = tmtrans.rev((Map<String, Object>)map.get("ttab"));
+					SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>> ttab = ttrans.rev((Map<String, Object>)map.get("ttab"));
 
 					return setSerialiserFor(new ProtoIndex(id, name, modified, extra, /*utab, */ttab));
 

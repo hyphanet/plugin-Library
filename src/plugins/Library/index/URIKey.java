@@ -6,25 +6,35 @@ package plugins.Library.index;
 import plugins.Library.util.BytePrefixKey;
 
 import freenet.keys.FreenetURI;
+import freenet.keys.BaseClientKey;
+import freenet.keys.ClientKey;
 
 /**
-** A {@link BytePrefixKey} backed by the 32-byte routing key (or for SSKs,
-** pubkey hash) of a {@link FreenetURI}.
+** A {@link BytePrefixKey} backed by the 32-byte routing key for the {@link
+** NodeKey} constructed from a {@link FreenetURI}.
 **
 ** @author infinity0
 */
 public class URIKey extends BytePrefixKey<URIKey> {
 
 	public URIKey() {
-		super(32);
+		super(0x20);
 	}
 
 	public URIKey(byte[] h) {
-		super(32, h);
+		super(0x20, h);
 	}
 
-	public URIKey(FreenetURI u) {
-		super(32, u.getRoutingKey());
+	public URIKey(FreenetURI u) throws java.net.MalformedURLException {
+		super(0x20, getNodeRoutingKey(u));
+	}
+
+	public static byte[] getNodeRoutingKey(FreenetURI u) throws java.net.MalformedURLException {
+		try {
+			return ((ClientKey)BaseClientKey.getBaseKey(u.isUSK()? u.sskForUSK(): u)).getNodeKey().getRoutingKey();
+		} catch (ClassCastException e) {
+			throw new UnsupportedOperationException("Could not get the node routing key for FreenetURI " + u + ". Only CHK/SSK/USK/KSKs are supported.");
+		}
 	}
 
 	/*========================================================================
