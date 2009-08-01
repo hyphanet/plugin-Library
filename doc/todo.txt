@@ -1,5 +1,11 @@
 = TODO =
 
+== Documentation of Quirks and Stuff That Future Programmers Must Know ==
+
+- PRIORITY document TaskComplete handling...
+- PRIORITY document SkeletonBTreeMap reliance on isLeaf() and size() being
+  called in the correct places.
+
 == Index semantics ==
 
 - PRIORITY work out semantics for getting a subset of a collection of entries
@@ -10,7 +16,6 @@
 
 == Task handling ==
 
-- PRIORITY document TaskComplete handling...
 - TODO work out TaskAbortException handling for SkeletonTreeMap
 - TODO maybe have deflate/inflate throw a different checked exception from
   TaskAbortException, forcing them to handle the TaskAbortException thrown by
@@ -27,9 +32,8 @@
 == Request/Progress reporting ==
 
 - PRIORITY make a CompoundRequest that extends CompoundProgress (and make CompondProgress better and more standard)
-- and it will have "getSubRequests" should go
-- how to implement getSubStage* in Search, and how to put it back into
-FindRequest
+  - and it will have equivalent functionality as "getSubRequests"
+  - how to implement getSubStage* in Search, and put it back into FindRequest
 - implement nice version of finalTotalEstimate() in FindRequest and Search
 - TODO probably should synchronize AtomicProgress, SimpleProgress, and
   CompoundProgress... although maybe unnecessary since these should all be
@@ -96,7 +100,6 @@ data structure more after the rest is working.
 
 == Schedule ==
 
- - progress reports for the integrated index structure 1-2 days
  - URI map, 1-2 days
  - implement freenet inflate/deflate 1-2 days
  - tidying up index stuff 2-3 days

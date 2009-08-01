@@ -17,12 +17,12 @@ import java.util.Iterator;
 public class BTreeMapTest extends SortedMapTestSkeleton {
 
 	@Override public SortedMap<String, Integer> makeTestMap() {
-		return new BTreeMap<String, Integer>(16);
+		return new BTreeMap<String, Integer>(0x40);
 	}
 
 	public void testBasic() {
 
-		BTreeMap<String, String> testmap = new BTreeMap<String, String>(16);
+		BTreeMap<String, String> testmap = new BTreeMap<String, String>(0x40);
 		Map<String, String> backmap = new HashMap<String, String>();
 		try {
 			for (int i=0; i<0x10000;) {

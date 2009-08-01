@@ -228,9 +228,7 @@ implements Archiver<ProtoIndex>,
 		**
 		** @param n Description of what the map stores. This is used in the
 		**          progress report.
-		** @param btreemap The B-tree to act as a serialiser for. TODO make this accept BTreeSets too....
-		** @param ktr Translator for the key
-		** @param mtr Translator for the value
+		** @param t Translator for the node.
 		*/
 		public BTreeNodeSerialiser(String n, SkeletonBTreeMap<K, V>.NodeTranslator<?, ?> t) {
 			super(new ProgressTracker<SkeletonBTreeMap<K, V>.SkeletonNode, SimpleProgress>(SimpleProgress.class));

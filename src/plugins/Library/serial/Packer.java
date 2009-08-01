@@ -746,6 +746,10 @@ implements MapSerialiser<K, T>,
 			return id.hashCode() + weight*31;
 		}
 
+		@Override public String toString() {
+			return "Bin \"" + id + "\" - " + weight + "oz.";
+		}
+
 	}
 
 
