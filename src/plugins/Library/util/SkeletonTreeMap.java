@@ -144,7 +144,7 @@ implements SkeletonMap<K, V> {
 	@Override public void deflate() throws TaskAbortException {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
-		Map<K, PushTask<V>> tasks = new HashMap<K, PushTask<V>>(size()*2);
+		Map<K, PushTask<V>> tasks = new HashMap<K, PushTask<V>>(size()<<1);
 		for (K k: keySet()) {
 			tasks.put(k, new PushTask<V>(get(k), loaded.get(k)));
 		}

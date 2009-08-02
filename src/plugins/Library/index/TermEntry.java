@@ -12,10 +12,10 @@ import plugins.Library.util.IdentityComparator;
 ** Subclasses '''must''' override the following methods to use information
 ** specifict to that subclass:
 **
-** * {@link entryType()}
-** * {@link compareTo(TermEntry)}
-** * {@link equals(Object)}
-** * {@link hashCode()}
+** * {@link #entryType()}
+** * {@link #compareTo(TermEntry)}
+** * {@link #equals(Object)}
+** * {@link #hashCode()}
 **
 ** TODO make these immutable and make YamlArchiver constructors/representers
 ** for these.

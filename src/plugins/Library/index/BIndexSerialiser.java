@@ -173,7 +173,11 @@ implements Archiver<ProtoIndex>,
 	ttab_data = new BTreePacker(
 		new EntryGroupSerialiser<String, SkeletonBTreeSet<TermEntry>>(
 			null,
-			new SkeletonBTreeSet.TreeTranslator<TermEntry, TermEntry>(null, term_data_mtr)
+			new SkeletonBTreeSet.TreeTranslator<TermEntry, TermEntry>(null, term_data_mtr) {
+				@Override public SkeletonBTreeSet<TermEntry> rev(Map<String, Object> tree) {
+					return BIndexSerialiser.setSerialiserFor(super.rev(tree));
+				}
+			}
 		),
 		new Packer.Scale<SkeletonBTreeSet<TermEntry>>() {
 			@Override public int weigh(SkeletonBTreeSet<TermEntry> element) {
@@ -208,7 +212,11 @@ implements Archiver<ProtoIndex>,
 	utab_data = new BTreePacker(
 		new EntryGroupSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(
 			null,
-			new SkeletonBTreeMap.TreeTranslator<FreenetURI, URIEntry>(null, null)
+			new SkeletonBTreeMap.TreeTranslator<FreenetURI, URIEntry>(null, null) {
+				@Override public SkeletonBTreeMap<FreenetURI, URIEntry> rev(Map<String, Object> tree) {
+					return BIndexSerialiser.setSerialiserFor(super.rev(tree));
+				}
+			}
 		),
 		new Packer.Scale<SkeletonBTreeMap<FreenetURI, URIEntry>>() {
 			@Override public int weigh(SkeletonBTreeMap<FreenetURI, URIEntry> element) {

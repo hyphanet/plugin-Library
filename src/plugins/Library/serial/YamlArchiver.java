@@ -50,8 +50,11 @@ implements Archiver<T>,
 	*/
 	final private static ThreadLocal<Yaml> yaml = new ThreadLocal() {
 		protected synchronized Yaml initialValue() {
+			DumperOptions opt = new DumperOptions();
+			opt.setWidth(Integer.MAX_VALUE);
+			opt.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
 			return new Yaml(new Loader(new FreenetURIConstructor()),
-			                new Dumper(new FreenetURIRepresenter(), new DumperOptions()));
+			                new Dumper(new FreenetURIRepresenter(), opt));
 		}
 	};
 

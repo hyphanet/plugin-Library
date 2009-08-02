@@ -101,7 +101,6 @@ public class BIndexTest extends TestCase {
 		assertFalse(idx.ttab.isLive());
 		PushTask<ProtoIndex> task1 = new PushTask<ProtoIndex>(idx);
 		srl.push(task1);
-
 		System.out.print("deflated in " + timeDiff() + " ms, root at " + task1.meta + ", ");
 
 		PullTask<ProtoIndex> task2 = new PullTask<ProtoIndex>(task1.meta);
@@ -111,7 +110,18 @@ public class BIndexTest extends TestCase {
 		idx.ttab.inflate();
 		assertTrue(idx.ttab.isLive());
 		assertFalse(idx.ttab.isBare());
-		System.out.println("inflated in " + timeDiff() + " ms");
+		System.out.print("inflated in " + timeDiff() + " ms, ");
+
+		for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
+			entries.deflate();
+			assertTrue(entries.isBare());
+		}
+		idx.ttab.deflate();
+		assertTrue(idx.ttab.isBare());
+		assertFalse(idx.ttab.isLive());
+		PushTask<ProtoIndex> task3 = new PushTask<ProtoIndex>(idx);
+		srl.push(task3);
+		System.out.println("re-deflated in " + timeDiff() + " ms, root at " + task3.meta);
 	}
 
 	public void testBasicMulti() throws TaskAbortException {

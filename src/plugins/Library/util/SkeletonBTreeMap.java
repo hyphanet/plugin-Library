@@ -141,8 +141,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		@Override public void deflate() throws TaskAbortException {
 			if (!isLeaf()) {
 				for (K k: lnodes.keySet()) {
-					((SkeletonNode)lnodes.get(k)).deflate();
-					deflate(k);
+					deflate(k, true);
 				}
 			}
 			((SkeletonTreeMap<K, V>)entries).deflate();
@@ -153,23 +152,39 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			((SkeletonTreeMap<K, V>)entries).inflate();
 			if (!isLeaf()) {
 				for (K k: lnodes.keySet()) {
-					inflate(k);
-					((SkeletonNode)lnodes.get(k)).inflate();
+					inflate(k, true);
 				}
 			}
 			assert(isLive());
 		}
 
-		/**
-		** Expects metadata to be of type {@link GhostNode}.
-		*/
 		@Override public void deflate(K key) throws TaskAbortException {
+			deflate(key, false);
+		}
+
+		@Override public void inflate(K key) throws TaskAbortException {
+			inflate(key, false);
+		}
+
+		/**
+		** Deflates the node to the left of the given key.
+		**
+		** Expects metadata to be of type {@link GhostNode}.
+		**
+		** @param K the key
+		** @param auto Whether to recursively deflate the node's subnodes.
+		*/
+		public void deflate(K key, boolean auto) throws TaskAbortException {
 			if (isLeaf()) { return; }
 			Node node = lnodes.get(key);
 			if (node.entries == null) { return; } // ghost node
 
 			if (!((SkeletonNode)node).isBare()) {
-				throw new IllegalStateException("Cannot deflate non-bare BTreeMap node");
+				if (auto) {
+					((SkeletonNode)node).deflate();
+				} else {
+					throw new IllegalStateException("Cannot deflate non-bare BTreeMap node");
+				}
 			}
 
 			PushTask<SkeletonNode> task = new PushTask<SkeletonNode>((SkeletonNode)node);
@@ -191,7 +206,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 		}
 
-		@Override public void inflate(K key) throws TaskAbortException {
+		/**
+		** Inflates the node to the left of the given key.
+		**
+		** @param K the key
+		** @param auto Whether to recursively inflate the node's subnodes.
+		*/
+		public void inflate(K key, boolean auto) throws TaskAbortException {
 			if (isLeaf()) { return; }
 			Node node = lnodes.get(key);
 			if (node.entries != null) { return; } // skeleton node
@@ -207,6 +228,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				lnodes.put(task.data.rkey, task.data);
 				rnodes.put(task.data.lkey, task.data);
 				--ghosts;
+
+				if (auto) {
+					task.data.inflate();
+				}
 
 			} catch (TaskCompleteException e) {
 				assert(lnodes.get(key).entries != null);
@@ -405,6 +430,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						node.lnodes.put(thiskey, ghost);
 						lastkey = thiskey;
 						node._size += en.getValue();
+						++node.ghosts;
 					}
 				}
 				verifyNodeIntegrity(node);
