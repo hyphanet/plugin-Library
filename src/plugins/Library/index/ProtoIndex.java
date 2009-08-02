@@ -67,7 +67,7 @@ public class ProtoIndex {
 	final protected Serialiser.Trackable[] trackables = new Serialiser.Trackable[4];
 
 
-	final protected SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>> ttab;
+	final protected SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab;
 	final protected SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab;
 
 
@@ -78,13 +78,13 @@ public class ProtoIndex {
 		extra = new HashMap<String, Object>();
 
 		utab = new SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(BTREE_NODE_MIN);
-		ttab = new SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>>(BTREE_NODE_MIN);
+		ttab = new SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>>(BTREE_NODE_MIN);
 		//filtab = new SkeletonPrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX);
 	}
 
 	protected ProtoIndex(FreenetURI i, String n, Date m, Map<String, Object> x,
 		SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> u,
-		SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>> t/*,
+		SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> t/*,
 		SkeletonMap<Token, TokenFilter> f*/
 		) {
 		id = i;
@@ -107,11 +107,11 @@ public class ProtoIndex {
 
 
 
-	private Map<String, Request<Collection<TokenEntry>>> getTermEntriesProgress = new
-	HashMap<String, Request<Collection<TokenEntry>>>();
+	private Map<String, Request<Collection<TermEntry>>> getTermEntriesProgress = new
+	HashMap<String, Request<Collection<TermEntry>>>();
 
-	public Request<Collection<TokenEntry>> getTermEntries(String term) {
-		Request<Collection<TokenEntry>> request = getTermEntriesProgress.get(term);
+	public Request<Collection<TermEntry>> getTermEntries(String term) {
+		Request<Collection<TermEntry>> request = getTermEntriesProgress.get(term);
 		if (request == null) {
 			request = new getTermEntriesHandler(term);
 			getTermEntriesProgress.put(term, request);
@@ -130,7 +130,7 @@ public class ProtoIndex {
 
 
 
-	public class getTermEntriesHandler extends AbstractRequest<Collection<TokenEntry>> implements Runnable {
+	public class getTermEntriesHandler extends AbstractRequest<Collection<TermEntry>> implements Runnable {
 
 		final Stack<Object> objects = new Stack<Object>();
 
@@ -162,14 +162,14 @@ public class ProtoIndex {
 			throw new UnsupportedOperationException("not implemented");
 		}
 
-		protected Collection<TokenEntry> resultreturn;
+		protected Collection<TermEntry> resultreturn;
 		/**
 		** {@inheritDoc}
 		**
 		** This implementation returns an immutable collection backed by the
 		** data stored in the Library.
 		*/
-		@Override public Collection<TokenEntry> getResult() {
+		@Override public Collection<TermEntry> getResult() {
 			if (result != null && resultreturn == null) {
 				resultreturn = Collections.unmodifiableCollection(result);
 			}

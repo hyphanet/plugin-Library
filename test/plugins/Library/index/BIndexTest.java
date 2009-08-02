@@ -71,7 +71,7 @@ public class BIndexTest extends TestCase {
 
 		for (int i=0; i<0x100; ++i) {
 			String key = Generators.rndKey();
-			SkeletonBTreeSet<TokenEntry> entries = new SkeletonBTreeSet<TokenEntry>(ProtoIndex.BTREE_NODE_MIN);
+			SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
 			srl.setSerialiserFor(entries);
 
 			int n = rand.nextInt(0xF0) + 0x10;
@@ -79,7 +79,7 @@ public class BIndexTest extends TestCase {
 
 			try {
 				for (int j=0; j<n; ++j) {
-					TokenEntry e = new TokenURIEntry(key, new FreenetURI("CHK@" + Generators.rndStr().replace('-', 'Z')));
+					TermEntry e = new TermPageEntry(key, new FreenetURI("CHK@" + Generators.rndStr().replace('-', 'Z')));
 					e.setRelevance((float)Math.random());
 					entries.add(e);
 				}
@@ -92,7 +92,7 @@ public class BIndexTest extends TestCase {
 		}
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
 
-		for (SkeletonBTreeSet<TokenEntry> entries: idx.ttab.values()) {
+		for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
 			entries.deflate();
 			assertTrue(entries.isBare());
 		}
@@ -128,7 +128,7 @@ public class BIndexTest extends TestCase {
 		int totalentries = 0;
 
 		for (String word: randomWords) {
-			SkeletonBTreeSet<TokenEntry> entries = new SkeletonBTreeSet<TokenEntry>(ProtoIndex.BTREE_NODE_MIN);
+			SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
 			srl.setSerialiserFor(entries);
 
 			int n = rand.nextInt(0xF0) + 0x10;
@@ -136,7 +136,7 @@ public class BIndexTest extends TestCase {
 
 			try {
 				for (int j=0; j<n; ++j) {
-					TokenEntry e = new TokenURIEntry(word, new FreenetURI("CHK@" + Generators.rndStr().replace('-', 'Z')));
+					TermEntry e = new TermPageEntry(word, new FreenetURI("CHK@" + Generators.rndStr().replace('-', 'Z')));
 					e.setRelevance((float)Math.random());
 					entries.add(e);
 				}
@@ -149,7 +149,7 @@ public class BIndexTest extends TestCase {
 
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
 
-		for (SkeletonBTreeSet<TokenEntry> entries: idx.ttab.values()) {
+		for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
 			entries.deflate();
 			assertTrue(entries.isBare());
 		}
@@ -200,7 +200,7 @@ public class BIndexTest extends TestCase {
 			String key = Generators.rndStr().substring(0,8);
 			if (i == save) { sterm = key; }
 
-			SkeletonBTreeSet<TokenEntry> entries = new SkeletonBTreeSet<TokenEntry>(ProtoIndex.BTREE_NODE_MIN);
+			SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
 			srl.setSerialiserFor(entries);
 
 			int n = rand.nextInt(0x200) + 0x200;
@@ -208,7 +208,7 @@ public class BIndexTest extends TestCase {
 
 			try {
 				for (int j=0; j<n; ++j) {
-					TokenEntry e = new TokenURIEntry(key, new FreenetURI("CHK@" + Generators.rndStr().replace('-', 'Z')));
+					TermEntry e = new TermPageEntry(key, new FreenetURI("CHK@" + Generators.rndStr().replace('-', 'Z')));
 					e.setRelevance((float)Math.random());
 					entries.add(e);
 				}
@@ -221,7 +221,7 @@ public class BIndexTest extends TestCase {
 		}
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
 
-		for (SkeletonBTreeSet<TokenEntry> entries: idx.ttab.values()) {
+		for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
 			entries.deflate();
 			assertTrue(entries.isBare());
 		}
@@ -232,9 +232,9 @@ public class BIndexTest extends TestCase {
 		System.out.println("deflated in " + timeDiff() + " ms");
 		plugins.Library.serial.YamlArchiver.setTestMode();
 
-		Request<Collection<TokenEntry>> rq1 = idx.getTermEntries(sterm);
-		Request<Collection<TokenEntry>> rq2 = idx.getTermEntries(sterm);
-		Request<Collection<TokenEntry>> rq3 = idx.getTermEntries(sterm);
+		Request<Collection<TermEntry>> rq1 = idx.getTermEntries(sterm);
+		Request<Collection<TermEntry>> rq2 = idx.getTermEntries(sterm);
+		Request<Collection<TermEntry>> rq3 = idx.getTermEntries(sterm);
 
 		assertTrue(rq1 == rq2);
 		assertTrue(rq2 == rq3);

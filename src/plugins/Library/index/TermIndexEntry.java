@@ -6,11 +6,11 @@ package plugins.Library.index;
 import freenet.keys.FreenetURI;
 
 /**
-** A {@link TokenEntry} that associates a subject term with another index.
+** A {@link TermEntry} that associates a subject term with another index.
 **
 ** @author infinity0
 */
-public class TokenIndexEntry extends TokenEntry {
+public class TermIndexEntry extends TermEntry {
 
 	/**
 	** Index target of this entry.
@@ -20,9 +20,9 @@ public class TokenIndexEntry extends TokenEntry {
 	/**
 	** Empty constructor for the JavaBean convention.
 	*/
-	public TokenIndexEntry() { }
+	public TermIndexEntry() { }
 
-	public TokenIndexEntry(String s, FreenetURI i) {
+	public TermIndexEntry(String s, FreenetURI i) {
 		super(s);
 		setIndex(i);
 	}
@@ -38,22 +38,22 @@ public class TokenIndexEntry extends TokenEntry {
 	}
 
 	/*========================================================================
-	  abstract public class TokenEntry
+	  abstract public class TermEntry
 	 ========================================================================*/
 
 	@Override public int entryType() {
-		assert(getClass() == TokenIndexEntry.class);
-		return TokenEntry.TYPE_INDEX;
+		assert(getClass() == TermIndexEntry.class);
+		return TermEntry.TYPE_INDEX;
 	}
 
-	@Override public int compareTo(TokenEntry o) {
+	@Override public int compareTo(TermEntry o) {
 		int a = super.compareTo(o);
 		if (a != 0) { return a; }
-		return index.toString().compareTo(((TokenIndexEntry)o).index.toString());
+		return index.toString().compareTo(((TermIndexEntry)o).index.toString());
 	}
 
 	@Override public boolean equals(Object o) {
-		return super.equals(o) && index.equals(((TokenIndexEntry)o).index);
+		return super.equals(o) && index.equals(((TermIndexEntry)o).index);
 	}
 
 	@Override public int hashCode() {

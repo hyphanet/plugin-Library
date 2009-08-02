@@ -18,7 +18,7 @@ deflate/inflate should be able to occur concurrently on different nodes/keys
 it should block put/remove operations, but not read operations
 
 
-ttab: BTreeMap<String, BTreeSet<TokenEntry>>
+ttab: BTreeMap<String, BTreeSet<TermEntry>>
 utab: BTreeMap<URIKey, BTreeMap<FreenetURI, URIEntry>>
 
 
@@ -47,8 +47,8 @@ Internal representation of an index.
 FetchTokenEntries [term]
 ClearTokenEntries [term]
 
-InsertTokenEntry [data]
-RemoveTokenEntry [data]
+InsertTermEntry [data]
+RemoveTermEntry [data]
 
 FetchURIEntry [uri]
 ClearURIEntry [uri]
@@ -74,7 +74,7 @@ PushIndex [index]
 Index
  |-- metadata                                                  SSK@X/index-n/index.yml
  |-- utab    Map<URIKey,SortedMap<FreenetURI, URIEntry>> utab  SSK@X/index-n/u*
- |-- tktab   Map<Token,SortedSet<TokenEntry>> tktab            SSK@X/index-n/tk*
+ |-- tktab   Map<Token,SortedSet<TermEntry>> tktab            SSK@X/index-n/tk*
  |-- filtab  Map<Token,TokenFilter> filtab                     SSK@X/index-n/fil*
 
 === Token table ===
@@ -82,12 +82,12 @@ Index
 A term is a discrete phrase that results are associated with. A Token is the
 md5 version of a term, and is used as a key into the token and filter tables.
 
-A TokenEntry stores data about a particular result for a Token.
+A TermEntry stores data about a particular result for a Token.
 
-TokenEntry - has relevance rating (TODO remove quality from the java class)
- : TokenTermEntry - redirects to another search term
- : TokenIndexEntry - redirects to another index
- : TokenURIEntry - final target for term
+TermEntry - has relevance rating (TODO remove quality from the java class)
+ : TermTermEntry - redirects to another search term
+ : TermIndexEntry - redirects to another index
+ : TermPageEntry - final target for term
 
 TokenEntries are stored in tk*.tab*.yml, where tk* is the prefix of the node in
 the PTM where its corresponding Token is stored, and tab* is the splitfiles
@@ -97,7 +97,7 @@ map files, eg. tab13, tab14, tab15.
 
 To aid query retrieval times, for each token, the 16 (or some other number)
 most relevant token entries from different sites, have their URIEntry (see
-below) stored along with the TokenEntry in the same splitfile, as well as in
+below) stored along with the TermEntry in the same splitfile, as well as in
 the URI table.
 
 === URI table ===

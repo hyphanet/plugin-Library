@@ -61,7 +61,7 @@ implements Archiver<ProtoIndex>,
 		// for DEBUG use; the freenet version would save to SSK@key/my_index/index.yml
 		//subsrl = new YamlArchiver<Map<String, Object>>("index", "");
 		subsrl = new YamlArchiver<Map<String, Object>>(true);
-		//tmsrl = new BTreeMapSerialiser<String, SkeletonBTreeSet<TokenEntry>>();
+		//tmsrl = new BTreeMapSerialiser<String, SkeletonBTreeSet<TermEntry>>();
 		//usrl = new BTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKeyTranslator());
 		trans = new IndexTranslator();
 	}
@@ -93,9 +93,9 @@ implements Archiver<ProtoIndex>,
 		/**
 		** Term-table translator
 		*/
-		Translator<SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>>, Map<String, Object>> ttrans = new
-		SkeletonBTreeMap.TreeTranslator<String, SkeletonBTreeSet<TokenEntry>>(null, new
-		TreeMapTranslator<String, SkeletonBTreeSet<TokenEntry>>(null));
+		Translator<SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>>, Map<String, Object>> ttrans = new
+		SkeletonBTreeMap.TreeTranslator<String, SkeletonBTreeSet<TermEntry>>(null, new
+		TreeMapTranslator<String, SkeletonBTreeSet<TermEntry>>(null));
 
 		/**
 		** URI-table translator
@@ -130,7 +130,7 @@ implements Archiver<ProtoIndex>,
 					Date modified = (Date)map.get("modified");
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
 					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
-					SkeletonBTreeMap<String, SkeletonBTreeSet<TokenEntry>> ttab = ttrans.rev((Map<String, Object>)map.get("ttab"));
+					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>)map.get("ttab"));
 
 					return setSerialiserFor(new ProtoIndex(id, name, modified, extra, utab, ttab));
 
@@ -153,15 +153,15 @@ implements Archiver<ProtoIndex>,
 	/**
 	** Translator for the local entries of a node of the ''term table''.
 	*/
-	final protected static Translator<SkeletonTreeMap<String, SkeletonBTreeSet<TokenEntry>>, Map<String, Object>>
-	ttab_keys_mtr = new TreeMapTranslator<String, SkeletonBTreeSet<TokenEntry>>(null);
+	final protected static Translator<SkeletonTreeMap<String, SkeletonBTreeSet<TermEntry>>, Map<String, Object>>
+	ttab_keys_mtr = new TreeMapTranslator<String, SkeletonBTreeSet<TermEntry>>(null);
 
 	/**
 	** Translator for the local entries of a node of the ''B-tree'' for a
 	** ''term''.
 	*/
-	final protected static Translator<SkeletonTreeMap<TokenEntry, TokenEntry>, Collection<TokenEntry>>
-	term_data_mtr = new SkeletonBTreeSet.TreeSetTranslator<TokenEntry>();
+	final protected static Translator<SkeletonTreeMap<TermEntry, TermEntry>, Collection<TermEntry>>
+	term_data_mtr = new SkeletonBTreeSet.TreeSetTranslator<TermEntry>();
 
 	/**
 	** Serialiser for the ''targets'' of the values stored in a node of the
@@ -169,14 +169,14 @@ implements Archiver<ProtoIndex>,
 	** ''B-tree'' that holds ''term entries'' for the ''term'' mapping to the
 	** value.
 	*/
-	final protected static BTreePacker<String, SkeletonBTreeSet<TokenEntry>, EntryGroupSerialiser<String, SkeletonBTreeSet<TokenEntry>>>
+	final protected static BTreePacker<String, SkeletonBTreeSet<TermEntry>, EntryGroupSerialiser<String, SkeletonBTreeSet<TermEntry>>>
 	ttab_data = new BTreePacker(
-		new EntryGroupSerialiser<String, SkeletonBTreeSet<TokenEntry>>(
+		new EntryGroupSerialiser<String, SkeletonBTreeSet<TermEntry>>(
 			null,
-			new SkeletonBTreeSet.TreeTranslator<TokenEntry, TokenEntry>(null, term_data_mtr)
+			new SkeletonBTreeSet.TreeTranslator<TermEntry, TermEntry>(null, term_data_mtr)
 		),
-		new Packer.Scale<SkeletonBTreeSet<TokenEntry>>() {
-			@Override public int weigh(SkeletonBTreeSet<TokenEntry> element) {
+		new Packer.Scale<SkeletonBTreeSet<TermEntry>>() {
+			@Override public int weigh(SkeletonBTreeSet<TermEntry> element) {
 				return element.rootSize();
 			}
 		},
@@ -224,7 +224,7 @@ implements Archiver<ProtoIndex>,
 	*/
 	public static ProtoIndex setSerialiserFor(ProtoIndex index) {
 		// set serialisers on the ttab
-		BTreeNodeSerialiser ttab_keys = new BTreeNodeSerialiser<String, SkeletonBTreeSet<TokenEntry>>(
+		BTreeNodeSerialiser ttab_keys = new BTreeNodeSerialiser<String, SkeletonBTreeSet<TermEntry>>(
 			"term listings",
 			index.ttab.makeNodeTranslator(null, ttab_keys_mtr)
 		);
@@ -250,7 +250,7 @@ implements Archiver<ProtoIndex>,
 	** ''B-tree'' for a ''term''. In this case, the values are the actual
 	** targets and are stored inside the node, so we use a dummy.
 	*/
-	final protected static MapSerialiser<TokenEntry, TokenEntry> term_dummy = new DummySerialiser<TokenEntry, TokenEntry>();
+	final protected static MapSerialiser<TermEntry, TermEntry> term_dummy = new DummySerialiser<TermEntry, TermEntry>();
 
 	/**
 	** Set the serialiser for the ''B-tree'' that holds the ''uri-entry
@@ -276,8 +276,8 @@ implements Archiver<ProtoIndex>,
 	** Set the serialiser for the ''B-tree'' that holds the ''term entries''
 	** for a ''term''.
 	*/
-	public static SkeletonBTreeSet<TokenEntry> setSerialiserFor(SkeletonBTreeSet<TokenEntry> entries) {
-		BTreeNodeSerialiser term_keys = new BTreeNodeSerialiser<TokenEntry, TokenEntry>(
+	public static SkeletonBTreeSet<TermEntry> setSerialiserFor(SkeletonBTreeSet<TermEntry> entries) {
+		BTreeNodeSerialiser term_keys = new BTreeNodeSerialiser<TermEntry, TermEntry>(
 			"term entries",
 			entries.makeNodeTranslator(null, term_data_mtr)
 		);

@@ -9,12 +9,12 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
-** A {@link TokenEntry} that associates a subject term with a final target
+** A {@link TermEntry} that associates a subject term with a final target
 ** {@link FreenetURI} that satisfies the term.
 **
 ** @author infinity0
 */
-public class TokenURIEntry extends TokenEntry {
+public class TermPageEntry extends TermEntry {
 
 	/**
 	** URI of the target
@@ -30,9 +30,9 @@ public class TokenURIEntry extends TokenEntry {
 	/**
 	** Empty constructor for the JavaBean convention.
 	*/
-	public TokenURIEntry() { }
+	public TermPageEntry() { }
 
-	public TokenURIEntry(String s, FreenetURI u) {
+	public TermPageEntry(String s, FreenetURI u) {
 		super(s);
 		setURI(u);
 	}
@@ -61,24 +61,24 @@ public class TokenURIEntry extends TokenEntry {
 	}
 
 	/*========================================================================
-	  abstract public class TokenEntry
+	  abstract public class TermEntry
 	 ========================================================================*/
 
 	@Override public int entryType() {
-		assert(getClass() == TokenURIEntry.class);
-		return TokenEntry.TYPE_URI;
+		assert(getClass() == TermPageEntry.class);
+		return TermEntry.TYPE_URI;
 	}
 
 	// we discount the "pos" field as there is no simple way to compare a map.
 	// this case should never crop up anyway.
-	@Override public int compareTo(TokenEntry o) {
+	@Override public int compareTo(TermEntry o) {
 		int a = super.compareTo(o);
 		if (a != 0) { return a; }
-		return uri.toString().compareTo(((TokenURIEntry)o).uri.toString());
+		return uri.toString().compareTo(((TermPageEntry)o).uri.toString());
 	}
 
 	@Override public boolean equals(Object o) {
-		return super.equals(o) && uri.equals(((TokenURIEntry)o).uri);
+		return super.equals(o) && uri.equals(((TermPageEntry)o).uri);
 	}
 
 	@Override public int hashCode() {

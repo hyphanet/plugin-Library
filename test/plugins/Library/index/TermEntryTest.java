@@ -22,7 +22,7 @@ import java.net.MalformedURLException;
 /**
 ** @author infinity0
 */
-public class TokenEntryTest extends TestCase {
+public class TermEntryTest extends TestCase {
 
 	public void testBasic() throws TaskAbortException {
 		YamlArchiver<Map<String, Object>> ym = new YamlArchiver<Map<String, Object>>("test", null);
@@ -34,22 +34,22 @@ public class TokenEntryTest extends TestCase {
 		assertTrue(nulltest1 == null);
 		assertTrue(nulltest2 == null);
 
-		TokenTermEntry w  = new TokenTermEntry("test", "lol");
+		TermTermEntry w  = new TermTermEntry("test", "lol");
 		w.setRelevance(0.8f);
-		TokenIndexEntry x = null;
-		TokenURIEntry z = null;
+		TermIndexEntry x = null;
+		TermPageEntry z = null;
 		try {
-			x = new TokenIndexEntry("test", new FreenetURI("CHK@yeah"));
+			x = new TermIndexEntry("test", new FreenetURI("CHK@yeah"));
 			x.setRelevance(0.8f);
-			z = new TokenURIEntry("lol", new FreenetURI("CHK@yeah"));
+			z = new TermPageEntry("lol", new FreenetURI("CHK@yeah"));
 			z.setRelevance(0.8f);
 		} catch (MalformedURLException e) {
 			// pass
 		}
-		TokenTermEntry y  = new TokenTermEntry("test", "lol2");
+		TermTermEntry y  = new TermTermEntry("test", "lol2");
 		y.setRelevance(0.8f);
 
-		List<TokenEntry> l = new ArrayList<TokenEntry>();
+		List<TermEntry> l = new ArrayList<TermEntry>();
 		l.add(w);
 		l.add(w);
 		l.add(x);
@@ -69,11 +69,11 @@ public class TokenEntryTest extends TestCase {
 		Map<String, Object> m = pt.data;
 		assertTrue(m.get("test") instanceof List);
 		List ll = (List)m.get("test");
-		assertTrue(ll.get(0) instanceof TokenTermEntry);
+		assertTrue(ll.get(0) instanceof TermTermEntry);
 		assertTrue(ll.get(1) == ll.get(0));
 		// NOTE these tests fail in snakeYAML 1.2 and below, fixed in hg
-		assertTrue(ll.get(2) instanceof TokenIndexEntry);
-		assertTrue(ll.get(3) instanceof TokenTermEntry);
+		assertTrue(ll.get(2) instanceof TermIndexEntry);
+		assertTrue(ll.get(3) instanceof TermTermEntry);
 	}
 
 }

@@ -13,7 +13,7 @@ import plugins.Library.util.IdentityComparator;
 ** specifict to that subclass:
 **
 ** * {@link entryType()}
-** * {@link compareTo(TokenEntry)}
+** * {@link compareTo(TermEntry)}
 ** * {@link equals(Object)}
 ** * {@link hashCode()}
 **
@@ -21,11 +21,11 @@ import plugins.Library.util.IdentityComparator;
 ** for these.
 **
 ** TODO better way to compare FreenetURIs than toString().compareTo() (this
-** applies for TokenIndexEntry, TokenPageEntry)
+** applies for TermIndexEntry, TokenPageEntry)
 **
 ** @author infinity0
 */
-abstract public class TokenEntry implements Comparable<TokenEntry> {
+abstract public class TermEntry implements Comparable<TermEntry> {
 
 	final public static int TYPE_URI = 0x00;
 	final public static int TYPE_INDEX = 0xF1;
@@ -44,9 +44,9 @@ abstract public class TokenEntry implements Comparable<TokenEntry> {
 	/**
 	** Empty constructor for the JavaBean convention.
 	*/
-	public TokenEntry() { }
+	public TermEntry() { }
 
-	public TokenEntry(String s) {
+	public TermEntry(String s) {
 		setSubject(s);
 	}
 
@@ -73,7 +73,7 @@ abstract public class TokenEntry implements Comparable<TokenEntry> {
 	}
 
 	/**
-	** Returns the type of TokenEntry. This '''must''' be constant for
+	** Returns the type of TermEntry. This '''must''' be constant for
 	** instances of the same class, and different between classes.
 	*/
 	abstract protected int entryType();
@@ -89,7 +89,7 @@ abstract public class TokenEntry implements Comparable<TokenEntry> {
 	**
 	** @throws IllegalArgumentException if the entries have different subjects
 	*/
-	public int compareTo(TokenEntry o) {
+	public int compareTo(TermEntry o) {
 		if (!subj.equals(o.subj)) {
 			throw new IllegalArgumentException("Entries for different subjects cannot be compared.");
 		}
@@ -110,7 +110,7 @@ abstract public class TokenEntry implements Comparable<TokenEntry> {
 	*/
 	public boolean equals(Object o) {
 		if (getClass() != o.getClass()) { return false; }
-		TokenEntry en = (TokenEntry)o;
+		TermEntry en = (TermEntry)o;
 		return rel == en.rel && subj.equals(en.subj);
 	}
 

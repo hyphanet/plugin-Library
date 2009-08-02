@@ -14,22 +14,22 @@ algorithm for recursive search on token T:
 def query(T):
 
 	for all index I in WoT.goodIndexes():
-		Q = new SortedSet<TokenTermEntry>(descending effective_relevance);
-		E = new TokenTermEntry(token=T, relevance=1);
+		Q = new SortedSet<TermTermEntry>(descending effective_relevance);
+		E = new TermTermEntry(token=T, relevance=1);
 
 		recursive_query(I, E, Q);
 
 
-def recursive_query(I, TokenTermEntry E, Q);
+def recursive_query(I, TermTermEntry E, Q);
 
 	for all entries E' in I[E.token]:
 		effective_relevance[E'] = E'.relevance * effective_relevance[E]
 
-		case E' TokenTermEntry:
+		case E' TermTermEntry:
 			push E' onto Q only if it doesn't exist already
 			(?or replace with higher/lower?)
 
-		case E' TokenIndexEntry:
+		case E' TermIndexEntry:
 			load the index I' pointed to by E'
 			recursive_query(I', E, Q);
 			for all E" in Q: effective_relevance[E"] > effective_relevance[E']

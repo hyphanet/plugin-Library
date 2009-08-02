@@ -4,11 +4,11 @@
 package plugins.Library.index;
 
 /**
-** A {@link TokenEntry} that associates a subject term with a related term.
+** A {@link TermEntry} that associates a subject term with a related term.
 **
 ** @author infinity0
 */
-public class TokenTermEntry extends TokenEntry {
+public class TermTermEntry extends TermEntry {
 
 	/**
 	** Related term target for this entry.
@@ -18,9 +18,9 @@ public class TokenTermEntry extends TokenEntry {
 	/**
 	** Empty constructor for the JavaBean convention.
 	*/
-	public TokenTermEntry() { }
+	public TermTermEntry() { }
 
-	public TokenTermEntry(String s, String t) {
+	public TermTermEntry(String s, String t) {
 		super(s);
 		setTerm(t);
 	}
@@ -29,7 +29,7 @@ public class TokenTermEntry extends TokenEntry {
 	** Allow an entry with relevance=1 only in the constructor. This is used
 	** by Interdex's recursive search algorithm.
 	*/
-	public TokenTermEntry(boolean d) {
+	public TermTermEntry(boolean d) {
 		if (d) { rel = 1; }
 	}
 
@@ -49,22 +49,22 @@ public class TokenTermEntry extends TokenEntry {
 	}
 
 	/*========================================================================
-	  abstract public class TokenEntry
+	  abstract public class TermEntry
 	 ========================================================================*/
 
 	@Override public int entryType() {
-		assert(getClass() == TokenTermEntry.class);
-		return TokenEntry.TYPE_TERM;
+		assert(getClass() == TermTermEntry.class);
+		return TermEntry.TYPE_TERM;
 	}
 
-	@Override public int compareTo(TokenEntry o) {
+	@Override public int compareTo(TermEntry o) {
 		int a = super.compareTo(o);
 		if (a != 0) { return a; }
-		return term.compareTo(((TokenTermEntry)o).term);
+		return term.compareTo(((TermTermEntry)o).term);
 	}
 
 	@Override public boolean equals(Object o) {
-		return super.equals(o) && term.equals(((TokenTermEntry)o).term);
+		return super.equals(o) && term.equals(((TermTermEntry)o).term);
 	}
 
 	@Override public int hashCode() {
