@@ -26,15 +26,6 @@ public class TokenTermEntry extends TokenEntry {
 	}
 
 	/**
-	** Returns the canonical {@link Token} form of the term.
-	**
-	** @see Token#intern(String)
-	*/
-	public Token token() {
-		return Token.intern(term);
-	}
-
-	/**
 	** Allow an entry with relevance=1 only in the constructor. This is used
 	** by Interdex's recursive search algorithm.
 	*/
@@ -55,6 +46,29 @@ public class TokenTermEntry extends TokenEntry {
 			throw new IllegalArgumentException("Relevance must be in the half-open interval [0,1).");
 		}
 		super.setRelevance(r);
+	}
+
+	/*========================================================================
+	  abstract public class TokenEntry
+	 ========================================================================*/
+
+	@Override public int entryType() {
+		assert(getClass() == TokenTermEntry.class);
+		return TokenEntry.TYPE_TERM;
+	}
+
+	@Override public int compareTo(TokenEntry o) {
+		int a = super.compareTo(o);
+		if (a != 0) { return a; }
+		return term.compareTo(((TokenTermEntry)o).term);
+	}
+
+	@Override public boolean equals(Object o) {
+		return super.equals(o) && term.equals(((TokenTermEntry)o).term);
+	}
+
+	@Override public int hashCode() {
+		return super.hashCode() ^ term.hashCode();
 	}
 
 }

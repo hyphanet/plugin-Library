@@ -11,7 +11,7 @@ import freenet.keys.ClientKey;
 
 /**
 ** A {@link BytePrefixKey} backed by the 32-byte routing key for the {@link
-** NodeKey} constructed from a {@link FreenetURI}.
+** freenet.keys.Key NodeKey} constructed from a {@link FreenetURI}.
 **
 ** @author infinity0
 */

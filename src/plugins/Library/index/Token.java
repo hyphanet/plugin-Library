@@ -15,6 +15,7 @@ import java.util.WeakHashMap;
 /**
 ** A {@link BytePrefixKey} backed by the MD5 hash of a {@link String} term.
 **
+** @deprecated
 ** @author infinity0
 */
 public class Token extends BytePrefixKey<Token> {

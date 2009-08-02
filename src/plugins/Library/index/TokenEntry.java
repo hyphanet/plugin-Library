@@ -9,19 +9,32 @@ import plugins.Library.util.IdentityComparator;
 ** Represents data indexed by a {@link Token} and associated with a given
 ** subject {@link String} term.
 **
-** TODO maybe have a "writeable" field to enforce immutability when inserted
-** into a collection.
+** Subclasses '''must''' override the following methods to use information
+** specifict to that subclass:
 **
-** URGENT code equals() for this and subclasses
+** * {@link entryType()}
+** * {@link compareTo(TokenEntry)}
+** * {@link equals(Object)}
+** * {@link hashCode()}
+**
+** TODO make these immutable and make YamlArchiver constructors/representers
+** for these.
+**
+** TODO better way to compare FreenetURIs than toString().compareTo() (this
+** applies for TokenIndexEntry, TokenPageEntry)
 **
 ** @author infinity0
 */
-public abstract class TokenEntry implements Comparable<TokenEntry> {
+abstract public class TokenEntry implements Comparable<TokenEntry> {
+
+	final public static int TYPE_URI = 0x00;
+	final public static int TYPE_INDEX = 0xF1;
+	final public static int TYPE_TERM = 0xF2;
 
 	/**
-	** Actual (not hashed) subject term of this entry.
+	** Subject term of this entry.
 	*/
-	protected String subject;
+	protected String subj;
 
 	/**
 	** Relevance rating. Must be in the closed interval [0,1].
@@ -38,11 +51,14 @@ public abstract class TokenEntry implements Comparable<TokenEntry> {
 	}
 
 	public String getSubject() {
-		return subject;
+		return subj;
 	}
 
 	public void setSubject(String s) {
-		subject = (s == null)? null: s.intern();
+		if (s == null) {
+			throw new IllegalArgumentException("can't have a null subject!");
+		}
+		subj = s.intern();
 	}
 
 	public float getRelevance() {
@@ -56,6 +72,55 @@ public abstract class TokenEntry implements Comparable<TokenEntry> {
 		rel = r;
 	}
 
+	/**
+	** Returns the type of TokenEntry. This '''must''' be constant for
+	** instances of the same class, and different between classes.
+	*/
+	abstract protected int entryType();
+
+	/**
+	** {@inheritDoc}
+	**
+	** Compares two entries, based on how useful they might be to the end user.
+	**
+	** This implementation sorts by order of descending relevance, then by
+	** order of ascending {@link entryType()}. It '''must be overridden'' to
+	** use information specific to the type of the entry too.
+	**
+	** @throws IllegalArgumentException if the entries have different subjects
+	*/
+	public int compareTo(TokenEntry o) {
+		if (!subj.equals(o.subj)) {
+			throw new IllegalArgumentException("Entries for different subjects cannot be compared.");
+		}
+		if (this == o) { return 0; }
+		if (rel != o.rel) { return (rel > o.rel)? -1: 1; }
+
+		int a = entryType(), b = o.entryType();
+		if (a != b) { return (a < b)? -1: 1; }
+		return 0;
+	}
+
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation tests whether the run-time classes of the argument
+	** is identical to the run-time class of this object. If they are, then
+	** it tests the relevance and subject fields.
+	*/
+	public boolean equals(Object o) {
+		if (getClass() != o.getClass()) { return false; }
+		TokenEntry en = (TokenEntry)o;
+		return rel == en.rel && subj.equals(en.subj);
+	}
+
+	/**
+	*/
+	public int hashCode() {
+		return subj.hashCode() ^ Float.floatToIntBits(rel);
+	}
+
+
 	/*
 	** Calculates an accumulated score to sort the entry by, using the formula
 	** relevance^3 * quality; in other words, relevance is (for sorting
@@ -68,20 +133,5 @@ public abstract class TokenEntry implements Comparable<TokenEntry> {
 		}
 		return score_;
 	}*/
-
-	/**
-	** Compares two entries by their relevance.
-	*/
-	@Override public int compareTo(TokenEntry o) {
-		if (this == o) { return 0; }
-		float f = o.rel - rel;
-		if (f != 0) { return (f > 0)? 1: -1; }
-		// PRIORITY hmmm, no, this won't do, we need a equals() based comparator
-		// actually, SortedSet won't do at all...
-		// we need a data structure that can sort itself on the fly without
-		// discarding elements which compare to 0, but which can detect
-		// equals() elements... RESEARCH
-		return IdentityComparator.comparator.compare(this, o);
-	}
 
 }

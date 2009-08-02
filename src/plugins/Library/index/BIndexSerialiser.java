@@ -110,7 +110,7 @@ implements Archiver<ProtoIndex>,
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
-			map.put("MAGIC", idx.getMagic());
+			map.put("serialVersionUID", idx.serialVersionUID);
 			map.put("id", idx.id);
 			map.put("name", idx.name);
 			map.put("modified", idx.modified);
@@ -121,9 +121,9 @@ implements Archiver<ProtoIndex>,
 		}
 
 		@Override public ProtoIndex rev(Map<String, Object> map) {
-			long magic = (Long)map.get("MAGIC");
+			long magic = (Long)map.get("serialVersionUID");
 
-			if (magic == ProtoIndex.MAGIC) {
+			if (magic == ProtoIndex.serialVersionUID) {
 				try {
 					FreenetURI id = (FreenetURI)map.get("id");
 					String name = (String)map.get("name");
@@ -140,7 +140,7 @@ implements Archiver<ProtoIndex>,
 				}
 
 			} else {
-				throw new DataFormatException("Unrecognised magic number", magic, map, "magic");
+				throw new DataFormatException("Unrecognised magic number", magic, map, "serialVersionUID");
 			}
 		}
 
@@ -338,8 +338,9 @@ implements Archiver<ProtoIndex>,
 		** BTree being serialised.
 		**
 		** @param n Description of what the map stores. This is used in the
-		**          progress report.
-		** @param t Translator for the node.
+		**        progress report.
+		** @param t Translator for the node - create this using {@link
+		**        SkeletonBTreeMap#makeNodeTranslator(Translator, Translator)}.
 		*/
 		public BTreeNodeSerialiser(String n, SkeletonBTreeMap<K, V>.NodeTranslator<?, ?> t) {
 			super(new ProgressTracker<SkeletonBTreeMap<K, V>.SkeletonNode, SimpleProgress>(SimpleProgress.class));

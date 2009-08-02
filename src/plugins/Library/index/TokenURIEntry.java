@@ -5,6 +5,7 @@ package plugins.Library.index;
 
 import freenet.keys.FreenetURI;
 
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -21,15 +22,10 @@ public class TokenURIEntry extends TokenEntry {
 	protected FreenetURI uri;
 
 	/**
-	** Type of the target. TODO make subclasses with set types & metadata, eg
-	** doc -> occurences, audio, video, etc etc
+	** Positions in the document where the term occurs, and an optional
+	** fragment of text surrounding this.
 	*/
-	protected String type;
-
-	/**
-	** Type-dependent metadata.
-	*/
-	protected Map<String, Object> meta;
+	protected Map<Integer, String> pos;
 
 	/**
 	** Empty constructor for the JavaBean convention.
@@ -47,23 +43,46 @@ public class TokenURIEntry extends TokenEntry {
 
 	public void setURI(FreenetURI u) {
 		// OPTIMISE make the translator use the same URI object as from the URI table
+		// actually, nah, not that important
 		uri = u;
 	}
 
-	public String getType() {
-		return type;
+	transient protected Map<Integer, String> pos_immutable;
+
+	public Map<Integer, String> getPositions() {
+		if (pos_immutable == null && pos != null) {
+			pos_immutable = Collections.unmodifiableMap(pos);
+		}
+		return pos_immutable;
 	}
 
-	public void setType(String t) {
-		type = (t == null)? null: t.intern();
+	public void setPositions(Map<Integer, String> p) {
+		pos = p;
 	}
 
-	public Map<String, Object> getMeta() {
-		return meta;
+	/*========================================================================
+	  abstract public class TokenEntry
+	 ========================================================================*/
+
+	@Override public int entryType() {
+		assert(getClass() == TokenURIEntry.class);
+		return TokenEntry.TYPE_URI;
 	}
 
-	public void setMeta(Map<String, Object> m) {
-		meta = m;
+	// we discount the "pos" field as there is no simple way to compare a map.
+	// this case should never crop up anyway.
+	@Override public int compareTo(TokenEntry o) {
+		int a = super.compareTo(o);
+		if (a != 0) { return a; }
+		return uri.toString().compareTo(((TokenURIEntry)o).uri.toString());
+	}
+
+	@Override public boolean equals(Object o) {
+		return super.equals(o) && uri.equals(((TokenURIEntry)o).uri);
+	}
+
+	@Override public int hashCode() {
+		return super.hashCode() ^ uri.hashCode();
 	}
 
 }

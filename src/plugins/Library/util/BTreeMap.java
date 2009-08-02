@@ -1295,7 +1295,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 						// DEBUG ONLY, remove when unneeded
 						/*public String toString() {
-							StringBuffer s = new StringBuffer();
+							StringBuilder s = new StringBuilder();
 							for (Node n: nodestack) {
 								s.append(n.getRange()).append(", ");
 							}

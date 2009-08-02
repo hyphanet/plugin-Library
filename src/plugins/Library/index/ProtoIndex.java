@@ -32,14 +32,11 @@ import java.util.Date;
 */
 public class ProtoIndex {
 
+	final static long serialVersionUID = 0xf82a9082681e5ba6L;
+
 	// DEBUG make final again later
 	/*final*/ public static int BTREE_NODE_MIN = 0x10000;
 	final public static int BTREE_ENT_MAX = (BTREE_NODE_MIN<<1) - 1;
-
-	/**
-	** Magic number to guide serialisation.
-	*/
-	final public static long MAGIC = 0xf82a9084681e5ba6L;
 
 	/**
 	** Freenet ID for this index
@@ -98,10 +95,6 @@ public class ProtoIndex {
 		//filtab = f;
 		ttab = t;
 		utab = u;
-	}
-
-	public long getMagic() {
-		return MAGIC;
 	}
 
 

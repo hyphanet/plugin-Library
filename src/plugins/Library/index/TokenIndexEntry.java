@@ -31,9 +31,33 @@ public class TokenIndexEntry extends TokenEntry {
 		return index;
 	}
 
-	// OPTIMISE maybe have some intern pool of FreenetURIs like we have for Token
+	// OPTIMISE have some intern pool of FreenetURIs like we have for Token.
+	// Or just use a string instead?
 	public void setIndex(FreenetURI i) {
 		index = i;
+	}
+
+	/*========================================================================
+	  abstract public class TokenEntry
+	 ========================================================================*/
+
+	@Override public int entryType() {
+		assert(getClass() == TokenIndexEntry.class);
+		return TokenEntry.TYPE_INDEX;
+	}
+
+	@Override public int compareTo(TokenEntry o) {
+		int a = super.compareTo(o);
+		if (a != 0) { return a; }
+		return index.toString().compareTo(((TokenIndexEntry)o).index.toString());
+	}
+
+	@Override public boolean equals(Object o) {
+		return super.equals(o) && index.equals(((TokenIndexEntry)o).index);
+	}
+
+	@Override public int hashCode() {
+		return super.hashCode() ^ index.hashCode();
 	}
 
 }

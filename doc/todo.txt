@@ -98,7 +98,6 @@ data structure more after the rest is working.
 
 == Schedule ==
 
- - URI map, 1-2 days
  - implement freenet inflate/deflate 1-2 days
  - tidying up index stuff 2-3 days
 

@@ -875,7 +875,7 @@ implements MapSerialiser<K, T>,
 	** Performs measurements and readings on bins and their elements.
 	**
 	** To implement this class, the programmer needs to implement the {@link
-	** weight(Object)} method.
+	** #weigh(Object)} method.
 	**
 	** @author infinity0
 	*/
