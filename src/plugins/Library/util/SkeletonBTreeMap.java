@@ -171,7 +171,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		** Expects metadata to be of type {@link GhostNode}.
 		**
-		** @param K the key
+		** @param key the key
 		** @param auto Whether to recursively deflate the node's subnodes.
 		*/
 		public void deflate(K key, boolean auto) throws TaskAbortException {
@@ -209,7 +209,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		/**
 		** Inflates the node to the left of the given key.
 		**
-		** @param K the key
+		** @param key the key
 		** @param auto Whether to recursively inflate the node's subnodes.
 		*/
 		public void inflate(K key, boolean auto) throws TaskAbortException {

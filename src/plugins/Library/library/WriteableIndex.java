@@ -3,7 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.library;
 
-import plugins.Library.index.TokenEntry;
+import plugins.Library.index.TermEntry;
 import plugins.Library.index.URIEntry;
 import plugins.Library.index.Request;
 
@@ -18,11 +18,11 @@ import java.util.Collection;
 */
 public interface WriteableIndex extends Index {
 
-	public Request<Collection<TokenEntry>> clearTermEntries(String term);
+	public Request<Collection<TermEntry>> clearTermEntries(String term);
 
-	public Request<TokenEntry> putTokenEntry(TokenEntry entry);
+	public Request<TermEntry> putTermEntry(TermEntry entry);
 
-	public Request<TokenEntry> remTokenEntry(TokenEntry entry);
+	public Request<TermEntry> remTermEntry(TermEntry entry);
 
 	public Request<URIEntry> clearURIEntry(FreenetURI uri);
 

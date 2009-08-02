@@ -3,7 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.library;
 
-import plugins.Library.index.TokenEntry;
+import plugins.Library.index.TermEntry;
 import plugins.Library.index.URIEntry;
 import plugins.Library.index.Request;
 

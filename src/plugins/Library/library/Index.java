@@ -3,7 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.library;
 
-import plugins.Library.index.TokenEntry;
+import plugins.Library.index.TermEntry;
 import plugins.Library.index.URIEntry;
 import plugins.Library.index.Request;
 
@@ -23,7 +23,7 @@ public interface Index {
 	**
 	** DOCUMENT
 	*/
-	public Request<Collection<TokenEntry>> getTermEntries(String term);
+	public Request<Collection<TermEntry>> getTermEntries(String term);
 
 	public Request<URIEntry> getURIEntry(FreenetURI uri);
 

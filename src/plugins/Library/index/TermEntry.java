@@ -84,7 +84,7 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 	** Compares two entries, based on how useful they might be to the end user.
 	**
 	** This implementation sorts by order of descending relevance, then by
-	** order of ascending {@link entryType()}. It '''must be overridden'' to
+	** order of ascending {@link #entryType()}. It '''must be overridden'' to
 	** use information specific to the type of the entry too.
 	**
 	** @throws IllegalArgumentException if the entries have different subjects
