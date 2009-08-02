@@ -10,7 +10,7 @@ import plugins.Library.util.IdentityComparator;
 ** subject {@link String} term.
 **
 ** Subclasses '''must''' override the following methods to use information
-** specifict to that subclass:
+** specific to that subclass:
 **
 ** * {@link #entryType()}
 ** * {@link #compareTo(TermEntry)}

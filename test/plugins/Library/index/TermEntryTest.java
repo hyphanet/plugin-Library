@@ -8,6 +8,7 @@ import junit.framework.TestCase;
 import plugins.Library.serial.Serialiser.*;
 import plugins.Library.serial.YamlArchiver;
 import plugins.Library.serial.TaskAbortException;
+import plugins.Library.serial.Packer;
 
 import freenet.keys.FreenetURI;
 
@@ -56,6 +57,11 @@ public class TermEntryTest extends TestCase {
 		l.add(y);
 		l.add(z);
 		map.put("test", l);
+		try {
+			map.put("test2", new Packer.BinInfo(new FreenetURI("CHK@yeah"), 123));
+		} catch (java.net.MalformedURLException e) {
+			assert(false);
+		}
 
 		ym.push(new PushTask<Map<String, Object>>(map));
 		PullTask<Map<String, Object>> pt = new PullTask<Map<String, Object>>("");
@@ -74,6 +80,10 @@ public class TermEntryTest extends TestCase {
 		// NOTE these tests fail in snakeYAML 1.2 and below, fixed in hg
 		assertTrue(ll.get(2) instanceof TermIndexEntry);
 		assertTrue(ll.get(3) instanceof TermTermEntry);
+
+		assertTrue(m.get("test2") instanceof Packer.BinInfo);
+		Packer.BinInfo inf = (Packer.BinInfo)m.get("test2");
+		assertTrue(inf.getID() instanceof FreenetURI);
 	}
 
 }

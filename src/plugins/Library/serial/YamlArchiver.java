@@ -5,6 +5,7 @@ package plugins.Library.serial;
 
 import plugins.Library.serial.Serialiser.*;
 import plugins.Library.serial.TaskAbortException;
+import plugins.Library.serial.Packer;
 
 import freenet.keys.FreenetURI;
 
@@ -17,10 +18,12 @@ import org.yaml.snakeyaml.representer.Representer;
 import org.yaml.snakeyaml.representer.Represent;
 import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.nodes.ScalarNode;
+import org.yaml.snakeyaml.nodes.MappingNode;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.constructor.Construct;
 import org.yaml.snakeyaml.constructor.ConstructorException;
 
+import java.util.Collections;
 import java.util.Map;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -53,8 +56,8 @@ implements Archiver<T>,
 			DumperOptions opt = new DumperOptions();
 			opt.setWidth(Integer.MAX_VALUE);
 			opt.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-			return new Yaml(new Loader(new FreenetURIConstructor()),
-			                new Dumper(new FreenetURIRepresenter(), opt));
+			return new Yaml(new Loader(new ExtendedConstructor()),
+			                new Dumper(new ExtendedRepresenter(), opt));
 		}
 	};
 
@@ -205,9 +208,10 @@ implements Archiver<T>,
 	/************************************************************************
 	** DOCUMENT
 	*/
-	public static class FreenetURIRepresenter extends Representer {
-		public FreenetURIRepresenter() {
+	public static class ExtendedRepresenter extends Representer {
+		public ExtendedRepresenter() {
 			this.representers.put(FreenetURI.class, new RepresentFreenetURI());
+			this.representers.put(Packer.BinInfo.class, new RepresentPackerBinInfo());
 		}
 
 		private class RepresentFreenetURI implements Represent {
@@ -215,14 +219,23 @@ implements Archiver<T>,
 				return representScalar("!FreenetURI", ((FreenetURI) data).toString());
 			}
 		}
+
+		private class RepresentPackerBinInfo implements Represent {
+			@Override public Node representData(Object data) {
+				Packer.BinInfo inf = (Packer.BinInfo)data;
+				Map map = Collections.singletonMap(inf.id, inf.weight);
+				return representMapping("!BinInfo", map, true);
+			}
+		}
 	}
 
 	/************************************************************************
 	** DOCUMENT
 	*/
-	public static class FreenetURIConstructor extends Constructor {
-		public FreenetURIConstructor() {
+	public static class ExtendedConstructor extends Constructor {
+		public ExtendedConstructor() {
 			this.yamlConstructors.put("!FreenetURI", new ConstructFreenetURI());
+			this.yamlConstructors.put("!BinInfo", new ConstructPackerBinInfo());
 		}
 
 		private class ConstructFreenetURI implements Construct {
@@ -233,6 +246,21 @@ implements Archiver<T>,
 				} catch (java.net.MalformedURLException e) {
 					throw new ConstructorException("while constructing a FreenetURI", node.getStartMark(), "found malformed URI " + uri, null) {};
 				}
+			}
+			// TODO this might be removed in snakeYAML later
+			@Override public void construct2ndStep(Node node, Object object) { }
+		}
+
+		private class ConstructPackerBinInfo implements Construct {
+			@Override public Object construct(Node node) {
+				Map<?, ?> map = (Map) constructMapping((MappingNode)node);
+				if (map.size() != 1) {
+					throw new ConstructorException("while constructing a Packer.BinInfo", node.getStartMark(), "found incorrectly sized map data " + map, null) {};
+				}
+				for (Map.Entry en: map.entrySet()) {
+					return new Packer.BinInfo(en.getKey(), (Integer)en.getValue());
+				}
+				throw new AssertionError();
 			}
 			// TODO this might be removed in snakeYAML later
 			@Override public void construct2ndStep(Node node, Object object) { }

@@ -21,7 +21,9 @@ import java.util.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static boolean disabled = false;
+	final public static int it_basic = 2;
+	final public static int it_partial = 4;
+	final public static boolean disabled_progress = true;
 
 	static {
 		//plugins.Library.serial.YamlArchiver.setTestMode();
@@ -125,10 +127,8 @@ public class BIndexTest extends TestCase {
 	}
 
 	public void testBasicMulti() throws TaskAbortException {
-		if (disabled) { return; }
-		int n = 4;
-		for (int i=0; i<n; ++i) {
-			System.out.print(i + "/" + n + ": ");
+		for (int i=0; i<it_basic; ++i) {
+			System.out.print(i + "/" + it_basic + ": ");
 			fullInflate();
 		}
 	}
@@ -187,17 +187,15 @@ public class BIndexTest extends TestCase {
 	}
 
 	public void testPartialInflateMulti() throws TaskAbortException {
-		if (disabled) { return; }
-		int n = 4;
-		for (int i=0; i<n; ++i) {
-			System.out.print(i + "/" + n + ": ");
+		for (int i=0; i<it_partial; ++i) {
+			System.out.print(i + "/" + it_basic + ": ");
 			partialInflate();
 		}
 	}
 
 
 	public void testProgress() throws TaskAbortException {
-		if (disabled) { return; }
+		if (disabled_progress) { return; }
 		newTestSkeleton();
 
 		int totalentries = 0;
@@ -256,6 +254,5 @@ public class BIndexTest extends TestCase {
 		}
 
 	}
-
 
 }
