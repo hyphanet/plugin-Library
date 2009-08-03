@@ -9,15 +9,11 @@
 == Index semantics ==
 
 - PRIORITY work out semantics for getting a subset of a collection of entries
-  - as a pre-requisite to this, must change SkeletonTreeMap & BTreeMap iterator
-    to support loading data **in place**, during an iteration.
-
 - TODO index: "suggested tokens" - suggest what other people should tag this
   index as; they are free to ignore this suggestion (very low priority for now)
 
 == Task handling ==
 
-- TODO work out TaskAbortException handling for SkeletonTreeMap
 - TODO maybe have deflate/inflate throw a different checked exception from
   TaskAbortException, forcing them to handle the TaskAbortException thrown by
   pull/push?
@@ -41,13 +37,13 @@
 
 == Packaging structure ==
 
+- PRIORITY implementation of progress tracking code has made this a clutter; sort it out:
+  - have a Skeleton<K> interface with deflate(K) methods so that
+    SkeletonMap<K, V> extends Skeleton<K>
 - TODO do we want to merge the library/ and index/ subpackages? or shuffle
 things around?
 - TODO get rid of unnecessary Prefix* files
 - TODO restructure the Serialiser.* stuff
-- TODO refactor this, maybe..?
-  - have a Skeleton<K> interface with deflate(K) methods so that
-  SkeletonMap<K, V> extends Skeleton<K>
 
 == Misc ==
 

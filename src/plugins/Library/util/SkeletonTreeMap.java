@@ -170,6 +170,10 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		return ghosts == skmap.size();
 	}
 
+	@Override public MapSerialiser<K, V> getSerialiser() {
+		return serialiser;
+	}
+
 	@Override public Object getMeta() {
 		return mapmeta;
 	}

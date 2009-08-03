@@ -4,7 +4,7 @@
 package plugins.Library.util;
 
 import plugins.Library.serial.Serialiser.*;
-import plugins.Library.serial.Archiver;
+import plugins.Library.serial.IterableSerialiser;
 import plugins.Library.serial.MapSerialiser;
 import plugins.Library.serial.Translator;
 import plugins.Library.serial.TaskAbortException;
@@ -26,7 +26,7 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 	// TODO when we implement internal_entries in SkeletonBTreeMap, then
 	// we can have it automatically set to TRUE here.
 
-	public void setSerialiser(Archiver<SkeletonBTreeMap<E, E>.SkeletonNode> n, MapSerialiser<E, E> v) {
+	public void setSerialiser(IterableSerialiser<SkeletonBTreeMap<E, E>.SkeletonNode> n, MapSerialiser<E, E> v) {
 		((SkeletonBTreeMap<E, E>)bkmap).setSerialiser(n, v);
 	}
 

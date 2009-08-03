@@ -21,8 +21,8 @@ import java.util.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 4;
-	final public static int it_partial = 4;
+	final public static int it_basic = 0;
+	final public static int it_partial = 0;
 	final public static boolean disabled_progress = false;
 
 	static {

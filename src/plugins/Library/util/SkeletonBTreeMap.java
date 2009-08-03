@@ -4,7 +4,7 @@
 package plugins.Library.util;
 
 import plugins.Library.serial.Serialiser.*;
-import plugins.Library.serial.Archiver;
+import plugins.Library.serial.IterableSerialiser;
 import plugins.Library.serial.MapSerialiser;
 import plugins.Library.serial.Translator;
 import plugins.Library.serial.DataFormatException;
@@ -72,10 +72,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** for now using option 2, will probably implement option 1 at some point..
 	*/
 
-	protected Archiver<SkeletonNode> nsrl;
+	protected IterableSerialiser<SkeletonNode> nsrl;
 	protected MapSerialiser<K, V> vsrl;
 
-	public void setSerialiser(Archiver<SkeletonNode> n, MapSerialiser<K, V> v) {
+	public void setSerialiser(IterableSerialiser<SkeletonNode> n, MapSerialiser<K, V> v) {
 		if ((nsrl != null || vsrl != null) && !isLive()) {
 			throw new IllegalStateException("Cannot change the serialiser when the structure is not live.");
 		}
@@ -116,6 +116,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		@Override public Object getMeta() { return null; }
 		@Override public void setMeta(Object m) { }
+		@Override public IterableSerialiser<SkeletonNode> getSerialiser() { return nsrl; }
 
 		@Override public boolean isLive() {
 			if (ghosts > 0 || !((SkeletonTreeMap<K, V>)entries).isLive()) { return false; }
@@ -316,6 +317,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	@Override public Object getMeta() { return null; }
 	@Override public void setMeta(Object m) { }
+	@Override public MapSerialiser getSerialiser() { return null; }
 
 	@Override public boolean isLive() {
 		return ((SkeletonNode)root).isLive();

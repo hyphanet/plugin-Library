@@ -11,6 +11,7 @@ import plugins.Library.util.DataNotLoadedException;
 import plugins.Library.serial.Serialiser;
 import plugins.Library.serial.TaskAbortException;
 import plugins.Library.serial.Progress;
+import plugins.Library.serial.ProgressTracker;
 
 import freenet.keys.FreenetURI;
 
@@ -62,13 +63,6 @@ public class ProtoIndex {
 
 
 
-	final public static int TTAB_KEYS = 0;
-	final public static int TTAB_DATA = 1;
-	final public static int UTAB_KEYS = 2;
-	final public static int UTAB_DATA = 3;
-	final protected Serialiser.Trackable[] trackables = new Serialiser.Trackable[4];
-
-
 	final protected SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab;
 	final protected SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab;
 
@@ -101,14 +95,6 @@ public class ProtoIndex {
 
 
 
-/* might be needed in the future...?
-	public void setSerialiser(Archiver<ProtoIndex> arx) {
-
-	}
-*/
-
-
-
 	private Map<String, Request<Collection<TermEntry>>> getTermEntriesProgress = new
 	HashMap<String, Request<Collection<TermEntry>>>();
 
@@ -135,17 +121,10 @@ public class ProtoIndex {
 	public class getTermEntriesHandler extends AbstractRequest<Collection<TermEntry>> implements Runnable {
 
 		final Stack<Object> objects = new Stack<Object>();
+		final Stack<ProgressTracker> trackers = new Stack<ProgressTracker>();
 
 		protected getTermEntriesHandler(String t) {
 			super(t);
-		}
-
-		protected Progress selectProgress(Object o) {
-			if (o instanceof SkeletonBTreeMap.GhostNode) {
-				return trackables[TTAB_KEYS].getTracker().getPullProgress(o);
-			} else {
-				return trackables[TTAB_DATA].getTracker().getPullProgress(o);
-			}
 		}
 
 		@Override public int partsDone() {
@@ -171,7 +150,8 @@ public class ProtoIndex {
 		** This implementation returns an immutable collection backed by the
 		** data stored in the Library.
 		*/
-		@Override public Collection<TermEntry> getResult() {
+		@Override public Collection<TermEntry> getResult() throws TaskAbortException {
+			if (error != null) { throw error; }
 			if (result != null && resultreturn == null) {
 				resultreturn = Collections.unmodifiableCollection(result);
 			}
@@ -180,13 +160,13 @@ public class ProtoIndex {
 
 		@Override public String getCurrentStatus() {
 			if (objects.size() == 0) { return "nothing yet"; }
-			Progress p = selectProgress(objects.peek());
+			Progress p = trackers.peek().getPullProgress(objects.peek());
 			return (p == null)? "waiting for next stage to start": p.getStatus();
 		}
 
 		@Override public String getCurrentStage() {
 			if (objects.size() == 0) { return "nothing yet"; }
-			Progress p = selectProgress(objects.peek());
+			Progress p = trackers.peek().getPullProgress(objects.peek());
 			return (p == null)? "waiting for next stage to start": p.getName();
 		}
 
@@ -198,9 +178,9 @@ public class ProtoIndex {
 					root = ttab.get(subject);
 					break;
 				} catch (DataNotLoadedException d) {
-					System.out.println(d);
 					Skeleton p = d.getParent();
 					objects.push(d.getValue());
+					trackers.push(((Serialiser.Trackable)p.getSerialiser()).getTracker());
 					try {
 						p.inflate(d.getKey());
 					} catch (TaskAbortException e) {
@@ -210,15 +190,18 @@ public class ProtoIndex {
 				}
 			}
 			// get the container contents
-			// TODO progress tracking does not yet work
 			Collection<TermEntry> tmp = new TreeSet<TermEntry>();
-			/*for (Iterator<TermEntry> it = root.iterator(); it.hasNext();) {
+			for (Iterator<TermEntry> it = root.iterator(); it.hasNext();) {
+				// OPTIMISE atm this iterations through the entries and inflates
+				// them in turn; need to parallelise this
+				// (the below code will be extended to allow retrieving a *subset*
+				// of the all the entries, not just inflate() everything)
 				try {
 					tmp.add(it.next());
 				} catch (DataNotLoadedException d) {
-					System.out.println(d);
 					Skeleton p = d.getParent();
 					objects.push(d.getValue());
+					trackers.push(((Serialiser.Trackable)p.getSerialiser()).getTracker());
 					try {
 						p.inflate(d.getKey());
 					} catch (TaskAbortException e) {
@@ -226,7 +209,7 @@ public class ProtoIndex {
 						return;
 					}
 				}
-			}*/
+			}
 			result = tmp;
 		}
 

@@ -28,6 +28,9 @@ public interface Skeleton<K> {
 	*/
 	public boolean isBare();
 
+	// TODO use type parameter
+	public Serialiser getSerialiser();
+
 	/**
 	** Get the meta data associated with this skeleton.
 	*/

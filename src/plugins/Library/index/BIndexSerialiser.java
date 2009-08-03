@@ -245,11 +245,6 @@ implements Archiver<ProtoIndex>,
 		);
 		index.utab.setSerialiser(utab_keys, utab_data);
 
-		// set index trackables
-		index.trackables[ProtoIndex.TTAB_KEYS] = ttab_keys;
-		index.trackables[ProtoIndex.TTAB_DATA] = ttab_data;
-		index.trackables[ProtoIndex.UTAB_KEYS] = utab_keys;
-		index.trackables[ProtoIndex.UTAB_DATA] = utab_data;
 		return index;
 	}
 
