@@ -841,7 +841,7 @@ implements MapSerialiser<K, T>,
 	**
 	** @author infinity0
 	*/
-	public static class BinInfo {
+	public static class BinInfo implements Cloneable {
 
 		protected Object id;
 		protected int weight;

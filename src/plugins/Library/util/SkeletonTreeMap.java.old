@@ -32,6 +32,11 @@ public class SkeletonTreeMap<K, V>
 extends TreeMap<K, V>
 implements SkeletonMap<K, V> {
 
+	static {
+		// DEBUG
+		System.out.println("Using the OLD SkeletonTreeMap implementation");
+	}
+
 	/**
 	** A TreeMap of objects tracking the load status of each key. This map
 	** always contains the same keys as the main map, and for all keys k:
@@ -85,7 +90,7 @@ implements SkeletonMap<K, V> {
 	/**
 	** DOCUMENT
 	*/
-	public Object putDummy(K key, Object o) {
+	public Object putGhost(K key, Object o) {
 		if (o == null) {
 			throw new IllegalArgumentException("Cannot put a null dummy into the map. Use put(K, V) to mark an object as loaded.");
 		}
@@ -155,7 +160,7 @@ implements SkeletonMap<K, V> {
 		//}
 
 		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
-			putDummy(en.getKey(), en.getValue().meta);
+			putGhost(en.getKey(), en.getValue().meta);
 		}
 	}
 
@@ -212,7 +217,7 @@ implements SkeletonMap<K, V> {
 
 		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
 			if (en.getValue().data != null) {
-				putDummy(en.getKey(), en.getValue().meta);
+				putGhost(en.getKey(), en.getValue().meta);
 			}
 		}
 	}
@@ -269,14 +274,14 @@ implements SkeletonMap<K, V> {
 			if (ktr == null) {
 				try {
 					for (Map.Entry<String, Object> en: intm.entrySet()) {
-						map.putDummy((K)en.getKey(), en.getValue());
+						map.putGhost((K)en.getKey(), en.getValue());
 					}
 				} catch (ClassCastException e) {
 					throw new DataFormatException("TreeMapTranslator: reverse translation failed. Try supplying a non-null key-translator.", e, intm, null, null);
 				}
 			} else {
 				for (Map.Entry<String, Object> en: intm.entrySet()) {
-					map.putDummy(ktr.rev(en.getKey()), en.getValue());
+					map.putGhost(ktr.rev(en.getKey()), en.getValue());
 				}
 			}
 			return map;
@@ -329,7 +334,7 @@ implements SkeletonMap<K, V> {
 	**
 	** TODO: could code a setStrictChecksMode() or something to have this
 	** method throw {@link DataNotLoadedException} in such circumstances, at
-	** the user's discretion.
+	** the user's discretion. This applies for CombinedEntry.setValue() too.
 	*/
 	@Override public V put(K key, V value) {
 		Object o = loaded.put(key, null);
@@ -508,6 +513,14 @@ implements SkeletonMap<K, V> {
 	** next value will fail with {@link IllegalStateException} with the cause
 	** set to the {@link DataNotLoadedException} that was thrown.
 	**
+	** URGENT PRIORITY PRIORITY
+	** rewrite behaviour:
+	**
+	** * keySet() never throws DNLEx
+	** * entrySet() never throws DNLEx, but its getValue() will throw DNLEx if
+	**   data not loaded.
+	** * values() throws DNLEx if value is not loaded **and advances to next**
+	**
 	** @author infinity0
 	*/
 	private class CombinedIterator<T> implements Iterator<T> {
@@ -556,6 +569,58 @@ implements SkeletonMap<K, V> {
 		public void remove() {
 			iterloaded.remove();
 			iter.remove();
+		}
+
+		private class CombinedEntry<K, V> implements Map.Entry<K, V> {
+
+			final Map.Entry<K, V> entry;
+			final Map.Entry<K, Object> loaden;
+
+			protected CombinedEntry(Map.Entry<K, V> en, Map.Entry<K, Object> ln) {
+				assert(en.getKey() == ln.getKey());
+				entry = en;
+				loaden = ln;
+			}
+
+			private void verifyLoaded() {
+				if (loaden.getValue() != null) {
+					throw new DataNotLoadedException("SkeletonTreeMap: Data not loaded for key " + loaden.getKey() + ": " + loaden.getValue(), SkeletonTreeMap.this, loaden.getKey(), loaden.getValue());
+				}
+			}
+
+			public K getKey() {
+				return entry.getKey();
+			}
+
+			public V getValue() {
+				verifyLoaded();
+				return entry.getValue();
+			}
+
+			/**
+			** See also TODO note in for {@link SkeletonTreeMap#put(Object,
+			** Object)}.
+			*/
+			public V setValue(V value) {
+				Object o = loaden.setValue(null);
+				if (o != null) { --dummyCount; }
+				return entry.setValue(value);
+			}
+
+			public int hashCode() {
+				verifyLoaded();
+				return (entry.getKey()==null? 0: entry.getKey().hashCode()) ^
+				       (entry.getValue()==null? 0: entry.getValue().hashCode());
+			}
+
+			public boolean equals(Object o) {
+				if (!(o instanceof Map.Entry)) { return false; }
+				verifyLoaded();
+				Map.Entry<K, V> en = (Map.Entry<K, V>)o;
+				return (entry.getKey()==null? en.getKey()==null: entry.getKey().equals(en.getKey())) &&
+				       (entry.getValue()==null? en.getValue()==null: entry.getValue().equals(en.getValue()));
+			}
+
 		}
 
 	}

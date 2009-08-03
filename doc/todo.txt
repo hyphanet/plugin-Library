@@ -9,6 +9,8 @@
 == Index semantics ==
 
 - PRIORITY work out semantics for getting a subset of a collection of entries
+  - as a pre-requisite to this, must change SkeletonTreeMap iterator to
+    support loading data **in place**, during an iteration.
 
 - TODO index: "suggested tokens" - suggest what other people should tag this
   index as; they are free to ignore this suggestion (very low priority for now)
@@ -22,9 +24,9 @@
 
 == TermEntry semantics ==
 
-- TODO there should be only one entry per URI per Token (enforce this in the code at some point)
-- TODO make TokenEntries immutable, and make Yaml stuff to create/uncreate these...
 - PRIORITY merge URIWrapper with TermPageEntry
+- PRIORITY make TokenEntries immutable, and make Yaml stuff to create/uncreate these...
+- TODO there should be only one entry per URI per Token (enforce this in the code at some point)
 
 == Request/Progress reporting ==
 

@@ -1401,11 +1401,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/* provided by AbstractMap
+	** OPTIMISE - the default clear() method is inefficient
 	@Override public Set<K> keySet() {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
 	/* provided by AbstractMap
+	** OPTIMISE - the default clear() method is inefficient
 	@Override public Collection<V> values() {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
@@ -1436,14 +1438,29 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		}
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** Not yet implemented - throws {@link UnsupportedOperationException}
+	*/
 	@Override public SortedMap<K, V> headMap(K rkey) {
 		throw new UnsupportedOperationException("not implemented");
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** Not yet implemented - throws {@link UnsupportedOperationException}
+	*/
 	@Override public SortedMap<K, V> tailMap(K lkey) {
 		throw new UnsupportedOperationException("not implemented");
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** Not yet implemented - throws {@link UnsupportedOperationException}
+	*/
 	@Override public SortedMap<K, V> subMap(K lkey, K rkey) {
 		throw new UnsupportedOperationException("not implemented");
 	}

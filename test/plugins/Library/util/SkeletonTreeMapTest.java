@@ -18,7 +18,7 @@ public class SkeletonTreeMapTest extends SortedMapTestSkeleton {
 	protected void setUp() {
 		skelmap = new SkeletonTreeMap<String, Integer>();
 		for (int i=0; i<1024; ++i) {
-			skelmap.putDummy(Generators.rndKey(), Boolean.FALSE);
+			skelmap.putGhost(Generators.rndKey(), Boolean.FALSE);
 		}
 	}
 
@@ -37,9 +37,9 @@ public class SkeletonTreeMapTest extends SortedMapTestSkeleton {
 
 	public void testBasic() {
 		skelmap = new SkeletonTreeMap<String, Integer>();
-		skelmap.putDummy("l0l", Boolean.FALSE);
-		skelmap.putDummy("l1l", Boolean.FALSE);
-		skelmap.putDummy("l2l", Boolean.FALSE);
+		skelmap.putGhost("l0l", Boolean.FALSE);
+		skelmap.putGhost("l1l", Boolean.FALSE);
+		skelmap.putGhost("l2l", Boolean.FALSE);
 
 		assertTrue(skelmap.firstKey().equals("l0l"));
 		assertTrue(skelmap.lastKey().equals("l2l"));

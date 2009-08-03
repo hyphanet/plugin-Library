@@ -21,9 +21,9 @@ import java.util.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 2;
+	final public static int it_basic = 4;
 	final public static int it_partial = 4;
-	final public static boolean disabled_progress = true;
+	final public static boolean disabled_progress = false;
 
 	static {
 		//plugins.Library.serial.YamlArchiver.setTestMode();
@@ -240,6 +240,7 @@ public class BIndexTest extends TestCase {
 		System.out.println("deflated in " + timeDiff() + " ms");
 		plugins.Library.serial.YamlArchiver.setTestMode();
 
+		System.out.println("requesting entries for term " + sterm);
 		Request<Collection<TermEntry>> rq1 = idx.getTermEntries(sterm);
 		Request<Collection<TermEntry>> rq2 = idx.getTermEntries(sterm);
 		Request<Collection<TermEntry>> rq3 = idx.getTermEntries(sterm);
@@ -248,10 +249,17 @@ public class BIndexTest extends TestCase {
 		assertTrue(rq2 == rq3);
 		assertTrue(rq3 == rq1);
 
-		while (rq1.getResult() == null) {
+		Collection<TermEntry> entries;
+		while ((entries = rq1.getResult()) == null) {
 			System.out.println(rq1.getCurrentStage() + ": " + rq1.getCurrentStatus());
 			try { Thread.sleep(1000); } catch (InterruptedException x) { }
 		}
+
+		/*
+		for (TermEntry en: entries) {
+			System.out.println("entry {relevance=" + en.getRelevance() + ", type=" + en.entryType() + "}");
+		}
+		*/
 
 	}
 
