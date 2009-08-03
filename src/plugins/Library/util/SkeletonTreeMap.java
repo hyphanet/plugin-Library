@@ -82,6 +82,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		for (Map.Entry<K, SkeletonValue<V>> en: m.skmap.entrySet()) {
 			skmap.put(en.getKey(), en.getValue().clone());
 		}
+		ghosts = m.ghosts;
 	}
 
 	/************************************************************************
@@ -700,7 +701,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			}
 
 			/**
-			** See also TODO note in for {@link SkeletonTreeMap#put(Object,
+			** See also TODO note for {@link SkeletonTreeMap#put(Object,
 			** Object)}.
 			*/
 			public V setValue(V value) {
