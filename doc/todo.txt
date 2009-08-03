@@ -9,8 +9,8 @@
 == Index semantics ==
 
 - PRIORITY work out semantics for getting a subset of a collection of entries
-  - as a pre-requisite to this, must change SkeletonTreeMap iterator to
-    support loading data **in place**, during an iteration.
+  - as a pre-requisite to this, must change SkeletonTreeMap & BTreeMap iterator
+    to support loading data **in place**, during an iteration.
 
 - TODO index: "suggested tokens" - suggest what other people should tag this
   index as; they are free to ignore this suggestion (very low priority for now)
@@ -25,7 +25,8 @@
 == TermEntry semantics ==
 
 - PRIORITY merge URIWrapper with TermPageEntry
-- PRIORITY make TokenEntries immutable, and make Yaml stuff to create/uncreate these...
+- TODO make TokenEntries immutable, and make Yaml stuff to create/uncreate these...
+  - this will be a PRIORITY after FredPluginAPI is properly implemented
 - TODO there should be only one entry per URI per Token (enforce this in the code at some point)
 
 == Request/Progress reporting ==
@@ -40,7 +41,7 @@
 
 == Packaging structure ==
 
-- PRIORITY do we want to merge the library/ and index/ subpackages? or shuffle
+- TODO do we want to merge the library/ and index/ subpackages? or shuffle
 things around?
 - TODO get rid of unnecessary Prefix* files
 - TODO restructure the Serialiser.* stuff
@@ -48,16 +49,14 @@ things around?
   - have a Skeleton<K> interface with deflate(K) methods so that
   SkeletonMap<K, V> extends Skeleton<K>
 
-
 == Misc ==
 
 - TODO use markdown-doclet instead of bliki-doclet
   - not yet - MarkdownJ has bugs relating to parsing of uppercase HTML tags,
-    which SJD generates, unfortunately :/
+    which Std Java Doclet generates, unfortunately :/
 - TODO make build.xml output test results better... atm either it has two modes:
   - print test stdout output out in real time, but not stderr
   - print stdout and stderr in a single go after the test is over :/
-
 
 
 

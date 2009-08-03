@@ -516,10 +516,10 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			verify(node.nodeSize() + 1 == node.rnodes.size());
 			verify(node.nodeSize() + 1 == node.lnodes.size());
 		}
-		if (node._size > 0 && node._size != s) {
+		/* DEBUG if (node._size > 0 && node._size != s) {
 			System.out.println(node._size + " vs " + s);
 			System.out.println(node.toTreeString("\t"));
-		}
+		}*/
 		verify(node._size < 0 || node._size == s);
 
 		verify(node.nodeSize() <= ENT_MAX);
@@ -1032,7 +1032,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** Start at the root node. At each stage of the algorithm, we restructure
 	** the tree so that the next node we reach has more than {@link #ENT_MIN}
-	** entries, and the deletion can occur withot breaking constraints.
+	** entries, and the deletion can occur without breaking constraints.
 	**
 	** (*) If the node is not the root, and if the number of entries is equal
 	** to {@link #ENT_MIN}, select its two siblings (L and R). Perform one of
@@ -1294,6 +1294,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 						Iterator<Map.Entry<K, V>> centit = cnode.entries.entrySet().iterator();
 
 						K lastkey = null;
+						boolean removeok = false;
 
 						// DEBUG ONLY, remove when unneeded
 						/*public String toString() {
@@ -1305,7 +1306,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 						}*/
 
 						@Override public boolean hasNext() {
-							// TODO should really iterate in the reverse order
+							// TODO ideally iterate in the reverse order
 							for (Iterator<Map.Entry<K, V>> it: itstack) {
 								if (it.hasNext()) { return true; }
 							}
@@ -1326,24 +1327,31 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 								}
 							} else {
 								while (!cnode.isLeaf()) {
-									nodestack.push(cnode);
-									itstack.push(centit);
 									// NULLNOTICE lastkey initialised to null, so this will get the right node
 									// even at the smaller edge of the map
-									cnode = cnode.rnodes.get(lastkey);
-									cnode.isLeaf(); // trigger DataNotLoadedException if cnode is a GhostNode
+									Node testnode = cnode.rnodes.get(lastkey);
+									testnode.isLeaf(); // trigger DataNotLoadedException if this is a GhostNode
+									// node OK, proceed
+									nodestack.push(cnode);
+									itstack.push(centit);
+									cnode = testnode;
 									centit = cnode.entries.entrySet().iterator();
 								}
 							}
 							Map.Entry<K, V> next = centit.next(); lastkey = next.getKey();
+							removeok = true;
 							return next;
 						}
 
 						@Override public void remove() {
+							if (!removeok) {
+								throw new IllegalStateException("Iteration has not yet begun, or the element has already been removed.");
+							}
+							// OPTIMISE this could probably be a *lot* more efficient...
 							BTreeMap.this.remove(lastkey);
+
 							// we need to find our position in the tree again, since there may have
 							// been structural modifications to it.
-
 							// OPTIMISE have a "structual modifications counter" that is incremented by
 							// split, merge, rotateL, rotateR, and do the below only if it changes
 							nodestack.clear();
@@ -1363,6 +1371,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 							}
 
 							lastkey = findstopkey(stopkey);
+							removeok = false;
 						}
 
 						private K findstopkey(K stopkey) {

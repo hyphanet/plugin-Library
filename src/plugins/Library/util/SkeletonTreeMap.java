@@ -592,8 +592,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	**   load ''and retrieve'' the data during the middle of an iteration, by
 	**   polling the {@code getValue()} method of the entry.
 	** * The value iterator will throw an exception if the value is not loaded,
-	**   '''and pass onto the next value''' (making it impossible to retrieve
-	**   the value should you choose to load it during the iteration).
+	**   and keep throwing this exception for subsequent method calls, pausing
+	**   the iteration until the value is loaded.
 	**
 	** The {@link #remove()} method will set the {@link #ghosts} field
 	** correctly as long as (and only if) access to (the {@link SkeletonValue}
@@ -615,6 +615,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		final protected static int KEY = 0;
 		final protected static int VALUE = 1;
 		final protected static int ENTRY = 2;
+
+		protected boolean gotvalue;
 
 		/**
 		** Type of iterator.
@@ -644,24 +646,26 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 
 		public T next() {
-			last = iter.next();
 			switch (type) {
 			case KEY:
+				last = iter.next();
 				return (T)last.getKey();
 			case VALUE:
+				if (last == null || gotvalue) { last = iter.next(); }
 				SkeletonValue<V> skel = last.getValue();
-				if (!skel.isLoaded) {
+				if (!(gotvalue = skel.isLoaded)) {
 					throw new DataNotLoadedException("SkeletonTreeMap: Data not loaded for key " + last.getKey() + ": " + skel.meta, SkeletonTreeMap.this, last.getKey(), skel.meta);
 				}
 				return (T)skel.data;
 			case ENTRY:
+				last = iter.next();
 				return (T)new UnwrappingEntry(last);
 			}
 			throw new AssertionError();
 		}
 
 		public void remove() {
-			if (last == null) { throw new IllegalStateException("Iteration has not begun yet, or the element has already been removed."); }
+			if (last == null) { throw new IllegalStateException("Iteration has not yet begun, or the element has already been removed."); }
 			if (!last.getValue().isLoaded) { --ghosts; }
 			iter.remove();
 			last = null;

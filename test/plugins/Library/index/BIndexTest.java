@@ -255,11 +255,9 @@ public class BIndexTest extends TestCase {
 			try { Thread.sleep(1000); } catch (InterruptedException x) { }
 		}
 
-		/*
 		for (TermEntry en: entries) {
 			System.out.println("entry {relevance=" + en.getRelevance() + ", type=" + en.entryType() + "}");
 		}
-		*/
 
 	}
 

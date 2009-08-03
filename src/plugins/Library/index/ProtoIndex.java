@@ -15,6 +15,7 @@ import plugins.Library.serial.Progress;
 import freenet.keys.FreenetURI;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.TreeSet;
 import java.util.Stack;
 import java.util.Date;
 
@@ -189,21 +191,43 @@ public class ProtoIndex {
 		}
 
 		@Override public void run() {
+			// get the root container
+			SkeletonBTreeSet<TermEntry> root;
 			for (;;) {
 				try {
-					result = ttab.get(subject);
+					root = ttab.get(subject);
 					break;
 				} catch (DataNotLoadedException d) {
+					System.out.println(d);
 					Skeleton p = d.getParent();
 					objects.push(d.getValue());
 					try {
-						p.inflate((String)d.getKey());
+						p.inflate(d.getKey());
 					} catch (TaskAbortException e) {
 						error = e;
-						break;
+						return;
 					}
 				}
 			}
+			// get the container contents
+			// TODO progress tracking does not yet work
+			Collection<TermEntry> tmp = new TreeSet<TermEntry>();
+			/*for (Iterator<TermEntry> it = root.iterator(); it.hasNext();) {
+				try {
+					tmp.add(it.next());
+				} catch (DataNotLoadedException d) {
+					System.out.println(d);
+					Skeleton p = d.getParent();
+					objects.push(d.getValue());
+					try {
+						p.inflate(d.getKey());
+					} catch (TaskAbortException e) {
+						error = e;
+						return;
+					}
+				}
+			}*/
+			result = tmp;
 		}
 
 	}
