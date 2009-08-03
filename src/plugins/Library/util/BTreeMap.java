@@ -75,6 +75,8 @@ import java.util.ConcurrentModificationException;
 ** the places in the code which are affected by this logic, as well as all
 ** occurences of /\.[lr]key == null/.
 **
+** Note: this implementation, like {@link TreeMap}, is not thread-safe.
+**
 ** * '''TODO {@link ConcurrentModificationException} for the entrySet
 **   iterator''' (can do this when we do the commit algorithm for indexes)
 ** * '''TODO better distribution algorithm for putAll'''

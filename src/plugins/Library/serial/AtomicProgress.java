@@ -12,7 +12,7 @@ package plugins.Library.serial;
 */
 public class AtomicProgress implements Progress {
 
-	protected String name = "";
+	protected String name = "???";
 
 	protected boolean done;
 

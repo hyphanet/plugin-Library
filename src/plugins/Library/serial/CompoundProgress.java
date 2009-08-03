@@ -16,7 +16,7 @@ package plugins.Library.serial;
 */
 public class CompoundProgress implements Progress {
 
-	protected String name = "";
+	protected String name = "???";
 
 	Iterable<? extends Progress> subprogress;
 

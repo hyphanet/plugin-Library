@@ -40,7 +40,7 @@ package plugins.Library.serial;
 */
 public class SimpleProgress implements Progress {
 
-	protected String name = "";
+	protected String name = "???";
 
 	protected int pdone;
 
