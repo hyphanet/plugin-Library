@@ -221,7 +221,7 @@ implements MapSerialiser<K, T>,
 		}
 
 		for (Map.Entry<Object, Set<K>> en: binincubator.entrySet()) {
-			bins.add(new Bin(BIN_CAP, inv, gen.registerID(en.getKey()), en.getValue()));
+			bins.add(new Bin<K>(BIN_CAP, inv, gen.registerID(en.getKey()), en.getValue()));
 		}
 
 		return bins;
@@ -253,7 +253,7 @@ implements MapSerialiser<K, T>,
 			//
 			Bin<K> heaviest = bins.first();
 			if (heaviest.filled() > BIN_CAP) {
-				Bin<K> second = new Bin(BIN_CAP, inv, gen.nextID(), null);
+				Bin<K> second = new Bin<K>(BIN_CAP, inv, gen.nextID(), null);
 				bins.remove(heaviest);
 				while (second.filled() < BIN_CAPHF) {
 					K key = heaviest.last();
@@ -283,11 +283,11 @@ implements MapSerialiser<K, T>,
 			int weight = inv.getWeight(key);
 
 			// get all bins that can fit the key; tailSet() should do this efficiently
-			SortedSet<Bin<K>> subbins = bins.tailSet(new DummyBin(BIN_CAP, BIN_CAP - weight));
+			SortedSet<Bin<K>> subbins = bins.tailSet(new DummyBin<K>(BIN_CAP, BIN_CAP - weight));
 
 			if (subbins.isEmpty()) {
 				// if no bin can fit it, then start a new bin
-				Bin<K> bin = new Bin(BIN_CAP, inv, gen.nextID(), null);
+				Bin<K> bin = new Bin<K>(BIN_CAP, inv, gen.nextID(), null);
 				bin.add(key);
 				bins.add(bin);
 
@@ -457,7 +457,7 @@ implements MapSerialiser<K, T>,
 	@Override public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) throws TaskAbortException {
 
 		try {
-			Inventory<K, T> inv = new Inventory(this, tasks);
+			Inventory<K, T> inv = new Inventory<K, T>(this, tasks);
 			Map<Object, PullTask<Map<K, T>>> bintasks = new HashMap<Object, PullTask<Map<K, T>>>();
 
 			// form the list of bin-tasks from the bins referred to by the map-tasks
@@ -545,7 +545,7 @@ implements MapSerialiser<K, T>,
 			int agg = getAggression();
 
 			IDGenerator gen = generator();
-			Inventory<K, T> inv = new Inventory(this, tasks);
+			Inventory<K, T> inv = new Inventory<K, T>(this, tasks);
 			SortedSet<Bin<K>> bins = new TreeSet<Bin<K>>();
 
 			// initialise the binset based on the aggression setting

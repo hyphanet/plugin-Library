@@ -81,6 +81,7 @@
 		<javac srcdir="src/" destdir="${build}" classpathref="lib.path"
 		debug="on" optimize="on" source="${source-version}" target="${target-version}">
 			<include name="**/*.java"/>
+			<!--<compilerarg value="-Xlint:unchecked"/>-->
 		</javac>
 	</target>
 

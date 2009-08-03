@@ -170,7 +170,7 @@ implements Archiver<ProtoIndex>,
 	** value.
 	*/
 	final protected static BTreePacker<String, SkeletonBTreeSet<TermEntry>, EntryGroupSerialiser<String, SkeletonBTreeSet<TermEntry>>>
-	ttab_data = new BTreePacker(
+	ttab_data = new BTreePacker<String, SkeletonBTreeSet<TermEntry>, EntryGroupSerialiser<String, SkeletonBTreeSet<TermEntry>>>(
 		new EntryGroupSerialiser<String, SkeletonBTreeSet<TermEntry>>(
 			null,
 			new SkeletonBTreeSet.TreeTranslator<TermEntry, TermEntry>(null, term_data_mtr) {
@@ -209,7 +209,7 @@ implements Archiver<ProtoIndex>,
 	** to the value.
 	*/
 	final protected static BTreePacker<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>, EntryGroupSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>>
-	utab_data = new BTreePacker(
+	utab_data = new BTreePacker<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>, EntryGroupSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>>(
 		new EntryGroupSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(
 			null,
 			new SkeletonBTreeMap.TreeTranslator<FreenetURI, URIEntry>(null, null) {
@@ -232,14 +232,14 @@ implements Archiver<ProtoIndex>,
 	*/
 	public static ProtoIndex setSerialiserFor(ProtoIndex index) {
 		// set serialisers on the ttab
-		BTreeNodeSerialiser ttab_keys = new BTreeNodeSerialiser<String, SkeletonBTreeSet<TermEntry>>(
+		BTreeNodeSerialiser<String, SkeletonBTreeSet<TermEntry>> ttab_keys = new BTreeNodeSerialiser<String, SkeletonBTreeSet<TermEntry>>(
 			"term listings",
 			index.ttab.makeNodeTranslator(null, ttab_keys_mtr)
 		);
 		index.ttab.setSerialiser(ttab_keys, ttab_data);
 
 		// set serialisers on the utab
-		BTreeNodeSerialiser utab_keys = new BTreeNodeSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(
+		BTreeNodeSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab_keys = new BTreeNodeSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(
 			"uri listings",
 			index.utab.makeNodeTranslator(utab_keys_ktr, utab_keys_mtr)
 		);
@@ -265,7 +265,7 @@ implements Archiver<ProtoIndex>,
 	** mappings'' for a ''urikey''.
 	*/
 	public static SkeletonBTreeMap<FreenetURI, URIEntry> setSerialiserFor(SkeletonBTreeMap<FreenetURI, URIEntry> entries) {
-		BTreeNodeSerialiser uri_keys = new BTreeNodeSerialiser<FreenetURI, URIEntry>(
+		BTreeNodeSerialiser<FreenetURI, URIEntry> uri_keys = new BTreeNodeSerialiser<FreenetURI, URIEntry>(
 			"uri entries",
 			entries.makeNodeTranslator(null, null) // no translator needed as FreenetURI and URIEntry are both directly serialisable by YamlArchiver
 		);
@@ -285,7 +285,7 @@ implements Archiver<ProtoIndex>,
 	** for a ''term''.
 	*/
 	public static SkeletonBTreeSet<TermEntry> setSerialiserFor(SkeletonBTreeSet<TermEntry> entries) {
-		BTreeNodeSerialiser term_keys = new BTreeNodeSerialiser<TermEntry, TermEntry>(
+		BTreeNodeSerialiser<TermEntry, TermEntry> term_keys = new BTreeNodeSerialiser<TermEntry, TermEntry>(
 			"term entries",
 			entries.makeNodeTranslator(null, term_data_mtr)
 		);
@@ -403,7 +403,7 @@ implements Archiver<ProtoIndex>,
 
 		public BTreePacker(S s, Packer.Scale<V> sc, int cap) {
 			super(s, sc, cap);
-			subsrl = (S)super.subsrl;
+			subsrl = s;
 			tracker = new ProgressTracker<V, CompoundProgress>(CompoundProgress.class);
 		}
 

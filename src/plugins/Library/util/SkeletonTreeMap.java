@@ -389,7 +389,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	@Override public V get(Object key) {
 		SkeletonValue<V> sk = skmap.get(key);
 		if (sk == null) { return null; }
-		if (!sk.isLoaded) { throw new DataNotLoadedException("Data not loaded for key " + key + ": " + sk.meta, this, (K)key, sk.meta); }
+		if (!sk.isLoaded) { throw new DataNotLoadedException("Data not loaded for key " + key + ": " + sk.meta, this, key, sk.meta); }
 		return sk.data;
 	}
 
@@ -442,7 +442,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 				public int size() { return skmap.size(); }
 
 				public Iterator<Map.Entry<K, V>> iterator() {
-					return new <Map.Entry<K, V>>UnwrappingIterator(skmap.entrySet().iterator(), UnwrappingIterator.ENTRY);
+					return new UnwrappingIterator<Map.Entry<K, V>>(skmap.entrySet().iterator(), UnwrappingIterator.ENTRY);
 				}
 
 				public void clear() {
@@ -478,7 +478,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 				public int size() { return skmap.size(); }
 
 				public Iterator<K> iterator() {
-					return new <K>UnwrappingIterator(skmap.entrySet().iterator(), UnwrappingIterator.KEY);
+					return new UnwrappingIterator<K>(skmap.entrySet().iterator(), UnwrappingIterator.KEY);
 				}
 
 				public void clear() { SkeletonTreeMap.this.clear(); }
@@ -506,7 +506,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 				public int size() { return SkeletonTreeMap.this.size(); }
 
 				public Iterator<V> iterator() {
-					return new <V>UnwrappingIterator(skmap.entrySet().iterator(), UnwrappingIterator.VALUE);
+					return new UnwrappingIterator<V>(skmap.entrySet().iterator(), UnwrappingIterator.VALUE);
 				}
 
 				public void clear() { SkeletonTreeMap.this.clear(); }
@@ -531,8 +531,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** functionality, and will throw {@link UnsupportedOperationException} for
 	** most of its methods. For details, see {@link UnwrappingSortedSubMap}.
 	*/
-	@Override public SortedMap<K,V> subMap(K fr, K to) {
-		return new UnwrappingSortedSubMap(skmap.subMap(fr, to));
+	@Override public SortedMap<K, V> subMap(K fr, K to) {
+		return new UnwrappingSortedSubMap<K, V>(skmap.subMap(fr, to));
 	}
 
 	/**
@@ -542,8 +542,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** functionality, and will throw {@link UnsupportedOperationException} for
 	** most of its methods. For details, see {@link UnwrappingSortedSubMap}.
 	*/
-	@Override public SortedMap<K,V> headMap(K to) {
-		return new UnwrappingSortedSubMap(skmap.headMap(to));
+	@Override public SortedMap<K, V> headMap(K to) {
+		return new UnwrappingSortedSubMap<K, V>(skmap.headMap(to));
 	}
 
 	/**
@@ -553,8 +553,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** functionality, and will throw {@link UnsupportedOperationException} for
 	** most of its methods. For details, see {@link UnwrappingSortedSubMap}.
 	*/
-	@Override public SortedMap<K,V> tailMap(K fr) {
-		return new UnwrappingSortedSubMap(skmap.tailMap(fr));
+	@Override public SortedMap<K, V> tailMap(K fr) {
+		return new UnwrappingSortedSubMap<K, V>(skmap.tailMap(fr));
 	}
 
 
@@ -575,7 +575,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	}*/
 
 	@Override public Object clone() {
-		return new SkeletonTreeMap(this);
+		return new SkeletonTreeMap<K, V>(this);
 	}
 
 	// public String toString() { return super.toString(); }
@@ -635,7 +635,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** @param it The backing iterator
 		** @param t The {@link #type} of iterator
 		*/
-		protected <T>UnwrappingIterator(Iterator<Map.Entry<K, SkeletonValue<V>>> it, int t) {
+		protected UnwrappingIterator(Iterator<Map.Entry<K, SkeletonValue<V>>> it, int t) {
 			assert(t == KEY || t == VALUE || t == ENTRY);
 			type = t;
 			iter = it;
@@ -679,7 +679,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		**
 		** @author infinity0
 		*/
-		protected class UnwrappingEntry<K, V> implements Map.Entry<K, V> {
+		protected class UnwrappingEntry implements Map.Entry<K, V> {
 
 			final K key;
 			final SkeletonValue<V> skel;
@@ -741,7 +741,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	**
 	** @author infinity0
 	*/
-	protected class UnwrappingSortedSubMap<K, V>
+	protected static class UnwrappingSortedSubMap<K, V>
 	extends AbstractMap<K, V>
 	implements Map<K, V>, SortedMap<K, V> {
 
@@ -777,8 +777,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** NOTE: the sorted map returned by this method has the {@link
 		** UnwrappingSortedSubMap same limitations} as this class.
 		*/
-		@Override public SortedMap<K,V> subMap(K fr, K to) {
-			return new UnwrappingSortedSubMap(bkmap.subMap(fr, to));
+		@Override public SortedMap<K, V> subMap(K fr, K to) {
+			return new UnwrappingSortedSubMap<K, V>(bkmap.subMap(fr, to));
 		}
 
 		/**
@@ -787,8 +787,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** NOTE: the sorted map returned by this method has the {@link
 		** UnwrappingSortedSubMap same limitations} as this class.
 		*/
-		@Override public SortedMap<K,V> headMap(K to) {
-			return new UnwrappingSortedSubMap(bkmap.headMap(to));
+		@Override public SortedMap<K, V> headMap(K to) {
+			return new UnwrappingSortedSubMap<K, V>(bkmap.headMap(to));
 		}
 
 		/**
@@ -797,8 +797,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** NOTE: the sorted map returned by this method has the {@link
 		** UnwrappingSortedSubMap same limitations} as this class.
 		*/
-		@Override public SortedMap<K,V> tailMap(K fr) {
-			return new UnwrappingSortedSubMap(bkmap.tailMap(fr));
+		@Override public SortedMap<K, V> tailMap(K fr) {
+			return new UnwrappingSortedSubMap<K, V>(bkmap.tailMap(fr));
 		}
 
 	}

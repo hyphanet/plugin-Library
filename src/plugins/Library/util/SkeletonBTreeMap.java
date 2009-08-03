@@ -338,6 +338,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	}
 
 	@Override public void inflate(K key) throws TaskAbortException {
+		// TODO tidy up
 		for (;;) {
 			try {
 				get(key);
@@ -359,7 +360,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** equals() and hashCode() for that
 	*/
 	public <Q, R> NodeTranslator<Q, R> makeNodeTranslator(Translator<K, Q> ktr, Translator<SkeletonTreeMap<K, V>, R> mtr) {
-		return new NodeTranslator(ktr, mtr);
+		return new NodeTranslator<Q, R>(ktr, mtr);
 	}
 
 	/**

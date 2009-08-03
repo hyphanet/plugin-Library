@@ -51,7 +51,7 @@ implements Archiver<T>,
 	**
 	** @see ThreadLocal
 	*/
-	final private static ThreadLocal<Yaml> yaml = new ThreadLocal() {
+	final private static ThreadLocal<Yaml> yaml = new ThreadLocal<Yaml>() {
 		protected synchronized Yaml initialValue() {
 			DumperOptions opt = new DumperOptions();
 			opt.setWidth(Integer.MAX_VALUE);
@@ -223,7 +223,7 @@ implements Archiver<T>,
 		private class RepresentPackerBinInfo implements Represent {
 			@Override public Node representData(Object data) {
 				Packer.BinInfo inf = (Packer.BinInfo)data;
-				Map map = Collections.singletonMap(inf.id, inf.weight);
+				Map<Object, Object> map = Collections.<Object, Object>singletonMap(inf.id, inf.weight);
 				return representMapping("!BinInfo", map, true);
 			}
 		}
