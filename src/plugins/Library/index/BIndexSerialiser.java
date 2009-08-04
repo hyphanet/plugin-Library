@@ -151,6 +151,13 @@ implements Archiver<ProtoIndex>,
 	 ========================================================================*/
 
 	/**
+	** YAML serialiser.
+	**
+	** TODO actually make it save to a CHK...
+	*/
+	final protected static LiveArchiver<Map<String, Object>, SimpleProgress> yaml_CHK_srl = new YamlArchiver<Map<String, Object>>(true);
+
+	/**
 	** Translator for the local entries of a node of the ''term table''.
 	*/
 	final protected static Translator<SkeletonTreeMap<String, SkeletonBTreeSet<TermEntry>>, Map<String, Object>>
@@ -172,6 +179,7 @@ implements Archiver<ProtoIndex>,
 	final protected static BTreePacker<String, SkeletonBTreeSet<TermEntry>, EntryGroupSerialiser<String, SkeletonBTreeSet<TermEntry>>>
 	ttab_data = new BTreePacker<String, SkeletonBTreeSet<TermEntry>, EntryGroupSerialiser<String, SkeletonBTreeSet<TermEntry>>>(
 		new EntryGroupSerialiser<String, SkeletonBTreeSet<TermEntry>>(
+			yaml_CHK_srl,
 			null,
 			new SkeletonBTreeSet.TreeTranslator<TermEntry, TermEntry>(null, term_data_mtr) {
 				@Override public SkeletonBTreeSet<TermEntry> rev(Map<String, Object> tree) {
@@ -211,6 +219,7 @@ implements Archiver<ProtoIndex>,
 	final protected static BTreePacker<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>, EntryGroupSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>>
 	utab_data = new BTreePacker<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>, EntryGroupSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>>(
 		new EntryGroupSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(
+			yaml_CHK_srl,
 			null,
 			new SkeletonBTreeMap.TreeTranslator<FreenetURI, URIEntry>(null, null) {
 				@Override public SkeletonBTreeMap<FreenetURI, URIEntry> rev(Map<String, Object> tree) {
@@ -234,6 +243,7 @@ implements Archiver<ProtoIndex>,
 		// set serialisers on the ttab
 		BTreeNodeSerialiser<String, SkeletonBTreeSet<TermEntry>> ttab_keys = new BTreeNodeSerialiser<String, SkeletonBTreeSet<TermEntry>>(
 			"term listings",
+			yaml_CHK_srl,
 			index.ttab.makeNodeTranslator(null, ttab_keys_mtr)
 		);
 		index.ttab.setSerialiser(ttab_keys, ttab_data);
@@ -241,6 +251,7 @@ implements Archiver<ProtoIndex>,
 		// set serialisers on the utab
 		BTreeNodeSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab_keys = new BTreeNodeSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(
 			"uri listings",
+			yaml_CHK_srl,
 			index.utab.makeNodeTranslator(utab_keys_ktr, utab_keys_mtr)
 		);
 		index.utab.setSerialiser(utab_keys, utab_data);
@@ -262,6 +273,7 @@ implements Archiver<ProtoIndex>,
 	public static SkeletonBTreeMap<FreenetURI, URIEntry> setSerialiserFor(SkeletonBTreeMap<FreenetURI, URIEntry> entries) {
 		BTreeNodeSerialiser<FreenetURI, URIEntry> uri_keys = new BTreeNodeSerialiser<FreenetURI, URIEntry>(
 			"uri entries",
+			yaml_CHK_srl,
 			entries.makeNodeTranslator(null, null) // no translator needed as FreenetURI and URIEntry are both directly serialisable by YamlArchiver
 		);
 		entries.setSerialiser(uri_keys, uri_dummy);
@@ -282,6 +294,7 @@ implements Archiver<ProtoIndex>,
 	public static SkeletonBTreeSet<TermEntry> setSerialiserFor(SkeletonBTreeSet<TermEntry> entries) {
 		BTreeNodeSerialiser<TermEntry, TermEntry> term_keys = new BTreeNodeSerialiser<TermEntry, TermEntry>(
 			"term entries",
+			yaml_CHK_srl,
 			entries.makeNodeTranslator(null, term_data_mtr)
 		);
 		entries.setSerialiser(term_keys, term_dummy);
@@ -345,9 +358,9 @@ implements Archiver<ProtoIndex>,
 		** @param t Translator for the node - create this using {@link
 		**        SkeletonBTreeMap#makeNodeTranslator(Translator, Translator)}.
 		*/
-		public BTreeNodeSerialiser(String n, SkeletonBTreeMap<K, V>.NodeTranslator<?, ?> t) {
+		public BTreeNodeSerialiser(String n, LiveArchiver<Map<String, Object>, SimpleProgress> s, SkeletonBTreeMap<K, V>.NodeTranslator<?, ?> t) {
 			super(new ProgressTracker<SkeletonBTreeMap<K, V>.SkeletonNode, SimpleProgress>(SimpleProgress.class));
-			subsrl = new YamlArchiver<Map<String, Object>>(true);
+			subsrl = s;
 			trans = t;
 			name = n;
 		}
@@ -450,9 +463,9 @@ implements Archiver<ProtoIndex>,
 		final protected Translator<K, String> ktr;
 		final protected Translator<V, Map<String, Object>> btr;
 
-		public EntryGroupSerialiser(Translator<K, String> k, Translator<V, Map<String, Object>> b) {
+		public EntryGroupSerialiser(LiveArchiver<Map<String, Object>, SimpleProgress> s, Translator<K, String> k, Translator<V, Map<String, Object>> b) {
 			super(new ProgressTracker<Map<K, V>, SimpleProgress>(SimpleProgress.class));
-			subsrl = new YamlArchiver<Map<String, Object>>(true);
+			subsrl = s;
 			ktr = k;
 			btr = b;
 		}

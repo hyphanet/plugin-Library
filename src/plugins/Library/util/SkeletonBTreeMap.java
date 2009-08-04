@@ -220,7 +220,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			} catch (TaskCompleteException e) {
 				assert(node.entries == null);
 			} catch (RuntimeException e) {
-				throw new TaskAbortException("Could not deflate BTreeMap Node " + node.lkey + "-" + node.rkey, e);
+				throw new TaskAbortException("Could not deflate BTreeMap Node " + node.getRange(), e);
 			}
 		}
 
@@ -254,7 +254,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			} catch (TaskCompleteException e) {
 				assert(rnodes.get(key).entries != null);
 			} catch (RuntimeException e) {
-				throw new TaskAbortException("Could not inflate BTreeMap Node " + node.lkey + "-" + node.rkey, e);
+				throw new TaskAbortException("Could not inflate BTreeMap Node " + node.getRange(), e);
 			}
 		}
 

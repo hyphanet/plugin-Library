@@ -37,12 +37,10 @@
 
 == Packaging structure ==
 
->>> PRIORITY implementation of progress tracking code has made this a clutter; sort it out:
-  - have a Skeleton<K> interface with deflate(K) methods so that
-    SkeletonMap<K, V> extends Skeleton<K>
 - TODO do we want to merge the library/ and index/ subpackages? or shuffle things around?
 - TODO get rid of unnecessary Prefix* files
 - TODO restructure the Serialiser.* stuff
+- TODO Skeleton/SkeletonMap is does what we need for now, but might able to be generalised a bit
 
 == Misc ==
 

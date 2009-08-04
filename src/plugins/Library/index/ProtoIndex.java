@@ -234,12 +234,17 @@ public class ProtoIndex {
 						new Thread () {
 							@Override public void run() {
 								// put details onto the trackers and metas stacks
-								n.deflate(k);
-								assert(n.subnode(k) is loaded);
-								// save memory by testing isLeaf here rather than waiting for the loop to
-								// pop it off the queue then do nothing since subKeys(fr, to) is empty
-								if (!n.subnode(k).isLeaf()) { waiting.push(n.subnode(k)); }
-								inprogress.pop(k);
+								try {
+									n.deflate(k);
+									assert(n.subnode(k) is loaded);
+									// save memory by testing isLeaf here rather than waiting for the loop to
+									// pop it off the queue then do nothing since subKeys(fr, to) is empty
+									if (!n.subnode(k).isLeaf()) { waiting.push(n.subnode(k)); }
+								} catch (TaskCompleteException e) {
+									// ignore
+								} finally {
+									inprogress.pop(k);
+								}
 							}
 						}.start();
 					}

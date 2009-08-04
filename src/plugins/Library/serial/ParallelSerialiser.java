@@ -105,6 +105,7 @@ implements IterableSerialiser<T>,
 	 ========================================================================*/
 
 	@Override public void pull(PullTask<T> task) throws TaskAbortException {
+		// OPTIMISE just make this do it without using YetAnotherThread
 		List<PullTask<T>> thetask = new ArrayList<PullTask<T>>(1);
 		thetask.add(task);
 		pull(thetask);
@@ -112,6 +113,7 @@ implements IterableSerialiser<T>,
 	}
 
 	@Override public void push(PushTask<T> task) throws TaskAbortException {
+		// OPTIMISE just make this do it without using YetAnotherThread
 		List<PushTask<T>> thetask = new ArrayList<PushTask<T>>(1);
 		thetask.add(task);
 		push(thetask);
