@@ -127,7 +127,7 @@ public interface Serialiser<T> {
 	**
 	** TODO find a tidy way to make this extend Serialiser<T>...
 	*/
-	public interface Composite<S extends Serialiser> /*extends Serialiser<T>*/ {
+	public interface Composite<S extends Serialiser<?>> /*extends Serialiser<T>*/ {
 
 		public S getChildSerialiser();
 

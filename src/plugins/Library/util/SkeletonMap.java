@@ -3,8 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.serial.Serialiser.*;
-import plugins.Library.serial.Serialiser;
+import plugins.Library.serial.MapSerialiser;
 import plugins.Library.serial.TaskAbortException;
 
 import java.util.Map;
@@ -14,7 +13,7 @@ import java.util.Map;
 **
 ** @author infinity0
 */
-public interface SkeletonMap<K, V> extends Map<K, V>, Skeleton<K> {
+public interface SkeletonMap<K, V> extends Map<K, V>, Skeleton<K, MapSerialiser<K, V>> {
 
 	/**
 	** {@inheritDoc}
@@ -22,7 +21,7 @@ public interface SkeletonMap<K, V> extends Map<K, V>, Skeleton<K> {
 	** In other words, for all keys k: {@link Map#get(Object) get(k)} must
 	** return the appropriate value.
 	*/
-	public boolean isLive();
+	@Override public boolean isLive();
 
 	/**
 	** {@inheritDoc}
@@ -30,7 +29,9 @@ public interface SkeletonMap<K, V> extends Map<K, V>, Skeleton<K> {
 	** In other words, for all keys k: {@link Map#get(Object) get(k)} must
 	** throw {@link DataNotLoadedException}.
 	*/
-	public boolean isBare();
+	@Override public boolean isBare();
+
+	@Override public MapSerialiser<K, V> getSerialiser();
 
 	/**
 	** {@inheritDoc}
@@ -41,7 +42,7 @@ public interface SkeletonMap<K, V> extends Map<K, V>, Skeleton<K> {
 	**
 	** @param key The key for whose value to inflate.
 	*/
-	public void inflate(K key) throws TaskAbortException;
+	@Override public void inflate(K key) throws TaskAbortException;
 
 	/**
 	** {@inheritDoc}
@@ -52,6 +53,6 @@ public interface SkeletonMap<K, V> extends Map<K, V>, Skeleton<K> {
 	**
 	** @param key The key for whose value to deflate.
 	*/
-	public void deflate(K key) throws TaskAbortException;
+	@Override public void deflate(K key) throws TaskAbortException;
 
 }

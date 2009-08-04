@@ -81,7 +81,7 @@ import java.util.ConcurrentModificationException;
 **   iterator''' (can do this when we do the commit algorithm for indexes)
 ** * '''TODO better distribution algorithm for putAll'''
 **
-** PRIORITY DOCUMENT SkeletonBTreeMap dependency on use of size() & isLeaf()...
+** PRIORITY DOCUMENT SkeletonBTreeMap dependency on use of nodeSize() & isLeaf()...
 **
 ** @author infinity0
 ** @see TreeMap
@@ -860,7 +860,14 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			}
 
 			// PRIORITY OPTIMISE better way to do this than linear iteration through the entries.
-			// this performs badly for large nodes. perhaps cache the sums?
+			// this performs badly when large nodes are accessed repeatedly.
+			//
+			// one way would be to insert the last sum-key pair we calculate at each node, into
+			// a cache of SoftReference<TreeSet<Integer, K>> for that node. then, next time we visit
+			// the same node, we can use this cache to generate a submap - ie.
+			//   node.entries.tailMap(cache.get(cache.tailMap(index).firstKey())) // firstEntry().getValue() is Java 6 only :(
+			// - and iterate only over this submap (don't forget to set "current" to the right value)
+			//
 			Node nextnode = node.rnodes.get(node.lkey);
 			int next = current + nextnode.totalSize();
 			if (index < next) { node = nextnode; continue; }

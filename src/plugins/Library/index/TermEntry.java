@@ -27,6 +27,7 @@ import plugins.Library.util.IdentityComparator;
 */
 abstract public class TermEntry implements Comparable<TermEntry> {
 
+	// TODO maybe turn this into an enum at some point
 	final public static int TYPE_URI = 0x00;
 	final public static int TYPE_INDEX = 0xF1;
 	final public static int TYPE_TERM = 0xF2;
@@ -84,12 +85,14 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 	** Compares two entries, based on how useful they might be to the end user.
 	**
 	** This implementation sorts by order of descending relevance, then by
-	** order of ascending {@link #entryType()}. It '''must be overridden'' to
-	** use information specific to the type of the entry too.
+	** order of ascending {@link #entryType()}.
+	**
+	** Subclasses '''must overridde this method'' to also use information
+	** specific to the subclass.
 	**
 	** @throws IllegalArgumentException if the entries have different subjects
 	*/
-	public int compareTo(TermEntry o) {
+	@Override public int compareTo(TermEntry o) {
 		if (!subj.equals(o.subj)) {
 			throw new IllegalArgumentException("Entries for different subjects cannot be compared.");
 		}
@@ -107,17 +110,30 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 	** This implementation tests whether the run-time classes of the argument
 	** is identical to the run-time class of this object. If they are, then
 	** it tests the relevance and subject fields.
+	**
+	** Subclasses '''must overridde this method'' to also use information
+	** specific to the subclass.
 	*/
-	public boolean equals(Object o) {
+	@Override public boolean equals(Object o) {
 		if (getClass() != o.getClass()) { return false; }
 		TermEntry en = (TermEntry)o;
 		return rel == en.rel && subj.equals(en.subj);
 	}
 
 	/**
+	** {@inheritDoc}
+	**
+	** This implementation XORs the hashcode of {@link #subj} and {@link #rel}.
+	**
+	** Subclasses '''must overridde this method'' to also use information
+	** specific to the subclass.
 	*/
-	public int hashCode() {
+	@Override public int hashCode() {
 		return subj.hashCode() ^ Float.floatToIntBits(rel);
+	}
+
+	@Override public String toString() {
+		return subj + ":" + rel;
 	}
 
 

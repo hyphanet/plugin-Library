@@ -120,7 +120,7 @@ public class ProtoIndex {
 
 	public class getTermEntriesHandler extends AbstractRequest<Collection<TermEntry>> implements Runnable {
 
-		final Stack<Object> objects = new Stack<Object>();
+		final Stack<Object> metas = new Stack<Object>();
 		final Stack<ProgressTracker> trackers = new Stack<ProgressTracker>();
 
 		protected getTermEntriesHandler(String t) {
@@ -159,14 +159,14 @@ public class ProtoIndex {
 		}
 
 		@Override public String getCurrentStatus() {
-			if (objects.size() == 0) { return "nothing yet"; }
-			Progress p = trackers.peek().getPullProgress(objects.peek());
+			if (metas.size() == 0) { return "nothing yet"; }
+			Progress p = trackers.peek().getPullProgress(metas.peek());
 			return (p == null)? "waiting for next stage to start": p.getStatus();
 		}
 
 		@Override public String getCurrentStage() {
-			if (objects.size() == 0) { return "nothing yet"; }
-			Progress p = trackers.peek().getPullProgress(objects.peek());
+			if (metas.size() == 0) { return "nothing yet"; }
+			Progress p = trackers.peek().getPullProgress(metas.peek());
 			return (p == null)? "waiting for next stage to start": p.getName();
 		}
 
@@ -179,7 +179,7 @@ public class ProtoIndex {
 					break;
 				} catch (DataNotLoadedException d) {
 					Skeleton p = d.getParent();
-					objects.push(d.getValue());
+					metas.push(d.getValue());
 					trackers.push(((Serialiser.Trackable)p.getSerialiser()).getTracker());
 					try {
 						p.inflate(d.getKey());
@@ -200,7 +200,7 @@ public class ProtoIndex {
 					tmp.add(it.next());
 				} catch (DataNotLoadedException d) {
 					Skeleton p = d.getParent();
-					objects.push(d.getValue());
+					metas.push(d.getValue());
 					trackers.push(((Serialiser.Trackable)p.getSerialiser()).getTracker());
 					try {
 						p.inflate(d.getKey());

@@ -3,7 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.serial.Serialiser.*;
 import plugins.Library.serial.Serialiser;
 import plugins.Library.serial.TaskAbortException;
 
@@ -16,7 +15,7 @@ import plugins.Library.serial.TaskAbortException;
 ** @see Serialiser
 ** @see DataNotLoadedException
 */
-public interface Skeleton<K> {
+public interface Skeleton<K, S extends Serialiser<?>> {
 
 	/**
 	** Whether the skeleton is fully loaded and has no data missing.
@@ -28,8 +27,10 @@ public interface Skeleton<K> {
 	*/
 	public boolean isBare();
 
-	// TODO use type parameter
-	public Serialiser getSerialiser();
+	/**
+	** Get the serialiser for this skeleton.
+	*/
+	public S getSerialiser();
 
 	/**
 	** Get the meta data associated with this skeleton.

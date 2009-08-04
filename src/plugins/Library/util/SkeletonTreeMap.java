@@ -302,6 +302,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** Task#meta metadata} of the values).
 	**
 	** TODO atm this can't handle custom comparators
+	**
+	** @author infinity0
 	*/
 	abstract public static class TreeMapTranslator<K, V>
 	implements Translator<SkeletonTreeMap<K, V>, Map<String, Object>> {
@@ -635,7 +637,6 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** Construct an iterator backed by the given iterator over the entries
 		** of the backing map.
 		**
-		** @param <T> Type of the items being iterated over
 		** @param it The backing iterator
 		** @param t The {@link #type} of iterator
 		*/

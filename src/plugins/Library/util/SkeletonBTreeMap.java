@@ -72,7 +72,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** for now using option 2, will probably implement option 1 at some point..
 	*/
 
+	/**
+	** Serialiser for the node objects.
+	*/
 	protected IterableSerialiser<SkeletonNode> nsrl;
+
+	/**
+	** Serialiser for the value objects.
+	*/
 	protected MapSerialiser<K, V> vsrl;
 
 	public void setSerialiser(IterableSerialiser<SkeletonNode> n, MapSerialiser<K, V> v) {
@@ -84,7 +91,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		((SkeletonNode)root).setSerialiser();
 	}
 
-	public class SkeletonNode extends Node implements Skeleton<K> {
+	public class SkeletonNode extends Node implements Skeleton<K, IterableSerialiser<SkeletonNode>> {
 
 		int ghosts = 0;
 
@@ -97,6 +104,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			this(leaf, new SkeletonTreeMap<K, V>(comparator));
 		}
 
+		/**
+		** Set the value-serialiser for this node and all subnodes to match
+		** the one assigned for the entire tree.
+		*/
 		public void setSerialiser() {
 			((SkeletonTreeMap<K, V>)entries).setSerialiser(vsrl);
 			if (!isLeaf()) {
@@ -108,6 +119,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 		}
 
+		/**
+		** Create a {@link GhostNode} object that represents this node.
+		*/
 		public GhostNode makeGhost(Object meta) {
 			GhostNode ghost = new GhostNode(lkey, rkey, totalSize());
 			ghost.setMeta(meta);
@@ -115,7 +129,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		@Override public Object getMeta() { return null; }
+
 		@Override public void setMeta(Object m) { }
+
 		@Override public IterableSerialiser<SkeletonNode> getSerialiser() { return nsrl; }
 
 		@Override public boolean isLive() {
@@ -138,7 +154,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return ((SkeletonTreeMap<K, V>)entries).isBare();
 		}
 
-		// TODO make this parallel
+		// OPTIMISE make this parallel
 		@Override public void deflate() throws TaskAbortException {
 			if (!isLeaf()) {
 				for (K k: lnodes.keySet()) {
@@ -149,6 +165,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			assert(isBare());
 		}
 
+		// OPTIMISE make this parallel
 		@Override public void inflate() throws TaskAbortException {
 			((SkeletonTreeMap<K, V>)entries).inflate();
 			if (!isLeaf()) {
@@ -296,8 +313,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	}
 
-
-
 	public SkeletonBTreeMap(Comparator<? super K> cmp, int node_min) {
 		super(cmp, node_min);
 	}
@@ -306,18 +321,19 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		super(node_min);
 	}
 
-
-
 	@Override protected Node newNode(boolean leaf) {
 		return new SkeletonNode(leaf);
 	}
 
-
-
+	/*========================================================================
+	  public interface SkeletonMap
+	 ========================================================================*/
 
 	@Override public Object getMeta() { return null; }
+
 	@Override public void setMeta(Object m) { }
-	@Override public MapSerialiser getSerialiser() { return null; }
+
+	@Override public MapSerialiser<K, V> getSerialiser() { return vsrl; }
 
 	@Override public boolean isLive() {
 		return ((SkeletonNode)root).isLive();
@@ -336,11 +352,16 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	}
 
 	@Override public void deflate(K key) throws TaskAbortException {
-		// TODO code this, deflate(K)
+		// TODO code this
+		throw new UnsupportedOperationException("not implemented");
 	}
 
 	@Override public void inflate(K key) throws TaskAbortException {
 		// TODO tidy up
+		// OPTIMISE could write a more efficient version by keeping track of the
+		// already-inflated nodes so get() doesn't keep traversing down the tree
+		// - would only improve performance from O(log(n)^2) to O(log(n)) so not
+		// that big a priority
 		for (;;) {
 			try {
 				get(key);
@@ -353,19 +374,23 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 
 	/**
-	** This is necessary because {@link NodeTranslator} is a non-static class.
+	** Creates a translator for the nodes of the B-tree. This method is
+	** necessary because {@link NodeTranslator} is a non-static class.
 	**
 	** For an in-depth discussion on why that class is not static, see the
 	** class description for {@link BTreeMap.Node}.
 	**
-	** TODO store these in a WeakHashSet or something... will need to code
-	** equals() and hashCode() for that
+	** TODO maybe store these in a WeakHashSet or something... will need to
+	** code equals() and hashCode() for that
+	**
+	** @param ktr Translator for the keys
+	** @param mtr Translator for each node's local entries map
 	*/
 	public <Q, R> NodeTranslator<Q, R> makeNodeTranslator(Translator<K, Q> ktr, Translator<SkeletonTreeMap<K, V>, R> mtr) {
 		return new NodeTranslator<Q, R>(ktr, mtr);
 	}
 
-	/**
+	/************************************************************************
 	** DOCUMENT.
 	**
 	** For an in-depth discussion on why this class is not static, see the
@@ -373,6 +398,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	**
 	** @param <Q> Target type of key-translator
 	** @param <R> Target type of map-translater
+	** @author infinity0
 	*/
 	public class NodeTranslator<Q, R> implements Translator<SkeletonNode, Map<String, Object>> {
 
@@ -382,7 +408,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final Translator<K, Q> ktr;
 
 		/**
-		** An optional translator for the entries map.
+		** An optional translator for each node's local entries map.
 		*/
 		final Translator<SkeletonTreeMap<K, V>, R> mtr;
 
@@ -447,6 +473,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	}
 
+
+	/************************************************************************
+	** {@link Translator} with access to the members of {@link BTreeMap}.
+	** DOCUMENT.
+	**
+	** @author infinity0
+	*/
 	public static class TreeTranslator<K, V> implements Translator<SkeletonBTreeMap<K, V>, Map<String, Object>> {
 
 		final Translator<K, ?> ktr;

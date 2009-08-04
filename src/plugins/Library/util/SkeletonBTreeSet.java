@@ -17,11 +17,12 @@ import java.util.ArrayList;
 /**
 ** {@link Skeleton} of a {@link BTreeSet}. DOCUMENT
 **
-** TODO deflate(Integer) etc methods. or something.
+** TODO make this implement Skeleton<Pair<Integer, Integer>, ?> ? - ie.
+** deflate(int, int) to get the relevant subset?
 **
 ** @author infinity0
 */
-public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ {
+public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, MapSerialiser<E, E>>*/ {
 
 	// TODO when we implement internal_entries in SkeletonBTreeMap, then
 	// we can have it automatically set to TRUE here.
@@ -42,6 +43,10 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 		super(m);
 	}
 
+	/*========================================================================
+	  public interface Skeleton TODO actually implement this...
+	 ========================================================================*/
+
 	public boolean isBare() {
 		return ((SkeletonBTreeMap<E, E>)bkmap).isBare();
 	}
@@ -59,16 +64,25 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 	}
 
 
+	/**
+	** Creates a translator for the nodes of the B-tree. This method just calls
+	** the {@link SkeletonBTreeMap#makeNodeTranslator(Translator, Translator)
+	** corresponding method} for the map backing this set.
+	**
+	** @param ktr Translator for the keys
+	** @param mtr Translator for each node's local entries map
+	*/
 	public <Q, R> SkeletonBTreeMap<E, E>.NodeTranslator<Q, R> makeNodeTranslator(Translator<E, Q> ktr, Translator<SkeletonTreeMap<E, E>, R> mtr) {
 		return ((SkeletonBTreeMap<E, E>)bkmap).makeNodeTranslator(ktr, mtr);
 	}
 
 
-
-
-
-
-
+	/************************************************************************
+	** {@link Translator} between a {@link Collection} and a {@link Map} of
+	** keys to themselves. Used by {@link TreeSetTranslator}.
+	**
+	** @author infinity0
+	*/
 	abstract public static class MapCollectionTranslator<E, M extends Map<E, E>, C extends Collection<E>>
 	implements Translator<M, C> {
 
@@ -85,12 +99,14 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 	}
 
 
-	/**
-	** Translator for the TreeMap backing a TreeSet. This will turn a map into
-	** a list and vice versa, so that the serialised representation doesn't
-	** store duplicates.
+	/************************************************************************
+	** Translator for the {@link TreeMap} backing a {@link TreeSet}. This will
+	** turn a map into a list and vice versa, so that the serialised
+	** representation doesn't store duplicates.
 	**
 	** maybe this belongs in a SkeletonTreeSet? if that's ever implemented..
+	**
+	** @author infinity0
 	*/
 	public static class TreeSetTranslator<E>
 	extends MapCollectionTranslator<E, SkeletonTreeMap<E, E>, Collection<E>> {
@@ -111,6 +127,14 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E>*/ 
 
 	}
 
+
+	/************************************************************************
+	** {@link Translator} with access to the members of {@link BTreeSet}.
+	**
+	** This implementation just serialises the map backing the set.
+	**
+	** @author infinity0
+	*/
 	public static class TreeTranslator<E, T> implements Translator<SkeletonBTreeSet<E>, Map<String, Object>> {
 
 		final SkeletonBTreeMap.TreeTranslator<E, E> trans;
