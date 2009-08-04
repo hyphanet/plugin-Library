@@ -28,9 +28,29 @@ public class TermPageEntry extends TermEntry {
 	protected Map<Integer, String> pos;
 
 	/**
+	** Here for backwards-compatibility with {@link URIWrapper}
+	*/
+	protected String title;
+
+	/**
 	** Empty constructor for the JavaBean convention.
 	*/
 	public TermPageEntry() { }
+
+	/**
+	** Constructor for all the fields
+	**
+	** @param s Subject of the entry
+	** @param u {@link FreenetURI} of the page
+	** @param t Title or description of the page
+	** @param p List of positions of where the term occurs on the page
+	*/
+	public TermPageEntry(String s, FreenetURI u, String t, List<Integer> p) {
+		super(s);
+		setURI(u);
+		title = t;
+		pos = p;
+	}
 
 	public TermPageEntry(String s, FreenetURI u) {
 		super(s);
