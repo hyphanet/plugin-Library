@@ -43,9 +43,10 @@ public class TermPageEntry extends TermEntry {
 	** @param s Subject of the entry
 	** @param u {@link FreenetURI} of the page
 	** @param t Title or description of the page
-	** @param p List of positions of where the term occurs on the page
+	** @param p Map of positions (where the term appears) to context (fragment
+	**          surrounding it).
 	*/
-	public TermPageEntry(String s, FreenetURI u, String t, List<Integer> p) {
+	public TermPageEntry(String s, FreenetURI u, String t, Map<Integer, String> p) {
 		super(s);
 		setURI(u);
 		title = t;
