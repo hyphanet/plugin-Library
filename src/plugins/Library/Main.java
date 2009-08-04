@@ -10,7 +10,6 @@ import plugins.Library.ui.WebUI;
 
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginHTTP;
-import freenet.pluginmanager.FredPluginAPI;
 import freenet.pluginmanager.FredPluginL10n;
 import freenet.pluginmanager.FredPluginRealVersioned;
 import freenet.pluginmanager.FredPluginThreadless;
@@ -28,7 +27,7 @@ import plugins.Library.ui.WebInterface;
  * @author MikeB
  */
 public class Main implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
-		FredPluginRealVersioned, FredPluginThreadless, FredPluginAPI, FredPluginL10n {
+		FredPluginRealVersioned, FredPluginThreadless, FredPluginL10n {
 	private static PluginRespirator pr;
 	private Library library;
 	private WebInterface webinterface;
@@ -103,13 +102,6 @@ public class Main implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	/**
-	 * @return the Library API for other plugins
-	 */
-	public Object getPluginAPI() {
-		return library;
 	}
 
 	public String getString(String key) {
