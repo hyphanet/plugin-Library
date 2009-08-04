@@ -427,7 +427,7 @@ implements Archiver<ProtoIndex>,
 
 			for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
 				CompoundProgress p = tracker.addPullProgress(en.getValue().meta);
-				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPull(mib)); }
+				if (p != null) { p.setSubprogress(CompoundProgress.makeProgressIterable(subsrl.getTracker(), mib, true)); }
 				p.setName("Pulling root container for " + en.getKey());
 			}
 		}
@@ -440,7 +440,7 @@ implements Archiver<ProtoIndex>,
 
 			for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
 				CompoundProgress p = tracker.addPushProgress(en.getValue().data);
-				if (p != null) { p.setSubprogress(subsrl.getTracker().iterableOfPush(dib)); }
+				if (p != null) { p.setSubprogress(CompoundProgress.makeProgressIterable(subsrl.getTracker(), dib, false)); }
 				p.setName("Pushing root container for " + en.getKey());
 			}
 		}

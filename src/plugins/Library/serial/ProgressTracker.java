@@ -104,7 +104,8 @@ public class ProgressTracker<T, P extends Progress> {
 
 	/**
 	** Creates a new pull progress and keeps track of it. If there is already a
-	** progress for the metadata, returns null.
+	** progress for the metadata, returns null. This ensures that the object
+	** returned from this method has not been seen by any other threads.
 	*/
 	public P addPullProgress(Object meta) {
 		synchronized (pullProgress) {
@@ -115,6 +116,11 @@ public class ProgressTracker<T, P extends Progress> {
 		}
 	}
 
+	/**
+	** Creates a new pull progress and keeps track of it. If there is already a
+	** progress for the metadata, returns null. This ensures that the object
+	** returned from this method has not been seen by any other threads.
+	*/
 	public P addPushProgress(T data) {
 		synchronized (pushProgress) {
 			if (pushProgress.containsKey(data)) { return null; }
@@ -130,83 +136,9 @@ public class ProgressTracker<T, P extends Progress> {
 		}
 	}
 
-	public P remPushProgress(T data) {
+	public P remPushProgress(Object data) { // Object, not T, to match map.remove(Object)
 		synchronized (pushProgress) {
 			return pushProgress.remove(data);
-		}
-	}
-
-	public Iterable<P> iterableOfPull(Iterable<Object> mib) {
-		return new PullProgressIterable(mib);
-	}
-
-	public Iterable<P> iterableOfPush(Iterable<T> dib) {
-		return new PushProgressIterable(dib);
-	}
-
-	/************************************************************************
-	** An {@link Iterator} view over the {@link Progress} objects corresponding
-	** to the given group of metadata.
-	*/
-	public class PullProgressIterable implements Iterable<P> {
-		final private Iterable<Object> ib;
-
-		public PullProgressIterable(Iterable<Object> mib) {
-			ib = mib;
-		}
-
-		public Iterator<P> iterator() {
-			final Iterator<Object> it = ib.iterator();
-			return new Iterator<P>() {
-				private Object last;
-
-				@Override public boolean hasNext() {
-					return it.hasNext();
-				}
-
-				@Override public P next() {
-					last = it.next();
-					return getPullProgress(last);
-				}
-
-				@Override public void remove() {
-					it.remove();
-					remPullProgress(last);
-				}
-			};
-		}
-	}
-
-	/************************************************************************
-	** An {@link Iterator} view over the {@link Progress} objects corresponding
-	** to the given group of data.
-	*/
-	public class PushProgressIterable implements Iterable<P> {
-		final private Iterable<T> ib;
-
-		public PushProgressIterable(Iterable<T> dib) {
-			ib = dib;
-		}
-
-		public Iterator<P> iterator() {
-			final Iterator<T> it = ib.iterator();
-			return new Iterator<P>() {
-				private T last;
-
-				@Override public boolean hasNext() {
-					return it.hasNext();
-				}
-
-				@Override public P next() {
-					last = it.next();
-					return getPushProgress(last);
-				}
-
-				@Override public void remove() {
-					it.remove();
-					remPushProgress(last);
-				}
-			};
 		}
 	}
 
