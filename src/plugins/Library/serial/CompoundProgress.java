@@ -3,6 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.serial;
 
+import java.util.Iterator;
+import java.util.Map;
+
 /**
 ** A progress that accumulates its data from the given group of progresses.
 **
@@ -18,11 +21,19 @@ public class CompoundProgress implements Progress {
 
 	protected String name = "???";
 
-	Iterable<? extends Progress> subprogress;
+	protected Iterable<? extends Progress> subprogress;
 
-	public CompoundProgress() {
-	}
+	public CompoundProgress() { }
 
+	/**
+	** Sets the iterable to accumulate progress information from. There are
+	** several static helper methods you can use to create progress iterables
+	** that are backed by a collection of tracker ids - see {@link
+	** #makeProgressIterable(ProgressTracker, Iterable, boolean)} and {@link
+	** #makeProgressIterable(Map, boolean)}.
+	**
+	** @param subs The subprogresses to accumulating information from
+	*/
 	public void setSubprogress(Iterable<? extends Progress> subs) {
 		subprogress = subs;
 	}
@@ -108,6 +119,74 @@ public class CompoundProgress implements Progress {
 		/*for (Progress p: subprogress) {
 			// URGENT join()
 		}*/
+	}
+
+
+	/**
+	** Creates an iterable over the {@link Progress} objects corresponding to
+	** the given tracking ids, which are all tracked by the given tracker.
+	**
+	** @param tracker The single tracker for all the ids
+	** @param ids The ids to track
+	** @param pull Whether these are pull progresses or push progresses
+	*/
+	public static <P extends Progress> Iterable<P> makeProgressIterable(final ProgressTracker<?, P> tracker, final Iterable<?> ids, final boolean pull) {
+		return (pull)?
+		new Iterable<P>() {
+			public Iterator<P> iterator() {
+				final Iterator<?> it = ids.iterator();
+				return new Iterator<P>() {
+					private Object last;
+					@Override public boolean hasNext() { return it.hasNext(); }
+					@Override public P next() { return tracker.getPullProgress(last = it.next()); }
+					@Override public void remove() { it.remove(); tracker.remPullProgress(last); }
+				};
+			}
+		}:
+		new Iterable<P>() {
+			public Iterator<P> iterator() {
+				final Iterator<?> it = ids.iterator();
+				return new Iterator<P>() {
+					private Object last;
+					@Override public boolean hasNext() { return it.hasNext(); }
+					@Override public P next() { return tracker.getPushProgress(last = it.next()); }
+					@Override public void remove() { it.remove(); tracker.remPushProgress(last); }
+				};
+			}
+		};
+	}
+
+	/**
+	** Creates an iterable over the {@link Progress} objects corresponding to
+	** the given tracking ids, which are each tracked by its own tracker.
+	**
+	** @param ids Map of tracking ids to their respective trackers
+	** @param pull Whether these are pull progresses or push progresses
+	*/
+	public static <P extends Progress> Iterable<P> makeProgressIterable(final Map<Object, ProgressTracker<?, P>> ids, final boolean pull) {
+		return (pull)?
+		new Iterable<P>() {
+			@Override public Iterator<P> iterator() {
+				final Iterator<Map.Entry<Object, ProgressTracker<?, P>>> it = ids.entrySet().iterator();
+				return new Iterator<P>() {
+					private Map.Entry<Object, ProgressTracker<?, P>> last;
+					@Override public boolean hasNext() { return it.hasNext(); }
+					@Override public P next() { last = it.next(); return last.getValue().getPullProgress(last.getKey()); }
+					@Override public void remove() { it.remove(); last.getValue().remPullProgress(last.getKey()); }
+				};
+			}
+		}:
+		new Iterable<P>() {
+			@Override public Iterator<P> iterator() {
+				final Iterator<Map.Entry<Object, ProgressTracker<?, P>>> it = ids.entrySet().iterator();
+				return new Iterator<P>() {
+					private Map.Entry<Object, ProgressTracker<?, P>> last;
+					@Override public boolean hasNext() { return it.hasNext(); }
+					@Override public P next() { last = it.next(); return last.getValue().getPushProgress(last.getKey()); }
+					@Override public void remove() { it.remove(); last.getValue().remPushProgress(last.getKey()); }
+				};
+			}
+		};
 	}
 
 }
