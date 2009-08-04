@@ -7,7 +7,7 @@ import plugins.Library.Library;
 import plugins.Library.index.Request.RequestState;
 import plugins.Library.index.Request;
 import plugins.Library.index.AbstractRequest;
-import plugins.Library.index.URIWrapper;
+import plugins.Library.index.TermPageEntry;
 import plugins.Library.serial.TaskAbortException;
 
 import freenet.support.Logger;
@@ -25,8 +25,8 @@ import java.util.Map;
  * Performs asynchronous searches over many index or with many terms and search logic
  * @author MikeB
  */
-public class Search extends AbstractRequest<Collection<URIWrapper>>
-implements Request<Collection<URIWrapper>> {
+public class Search extends AbstractRequest<Collection<TermPageEntry>>
+implements Request<Collection<TermPageEntry>> {
 
 	private static Library library;
 
@@ -135,7 +135,7 @@ implements Request<Collection<URIWrapper>> {
 	private Search(String query, String indexURI, Request request){
 		super(makeString(query, indexURI));
 		if(request == null)
-			throw new NullPointerException("Search cannot encapsulate null");
+			throw new NullPointerException("Search cannot encapsulate null (query=\""+query+"\" indexURI=\""+indexURI+"\")");
 		query = query.toLowerCase(Locale.US).trim();
 		subsearches = new ArrayList();
 		subsearches.add(request);
@@ -154,9 +154,13 @@ implements Request<Collection<URIWrapper>> {
 	 * @return Set of subsearches or null if theres only one search
 	 */
 	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException{
-		if(query.matches("\\A\\w*\\Z"))
+		if(query.matches("\\A\\w*\\Z")) {
 			// single search term
-			return new Search(query, indexuri, library.getIndex(indexuri).getTermEntries(query));
+			Request request = library.getIndex(indexuri).getTermEntries(query);
+			if (request == null)
+				throw new InvalidSearchException( "Something wrong with query=\""+query+"\" or indexURI=\""+indexuri+"\", maybe something is wrong with the index or it's uri is wrong." );
+			return new Search(query, indexuri, request );
+		}
 
 		// Make phrase search
 		if(query.matches("\\A\".*\"\\Z")){
@@ -427,14 +431,14 @@ implements Request<Collection<URIWrapper>> {
 	 * Perform an intersection on results of all subsearches and return <br />
 	 * @return Set of URIWrappers
 	 */
-	@Override public Collection<URIWrapper> getResult() throws TaskAbortException {
+	@Override public Collection<TermPageEntry> getResult() throws TaskAbortException {
 		if(getState() != Request.RequestState.FINISHED)
 			return null;
 
 		ResultSet result = new ResultSet();
 		switch(resultOperation){
 			case UNION:
-				for(Request<Set<URIWrapper>> r : subsearches)
+				for(Request<Set<TermPageEntry>> r : subsearches)
 					if(r.getResult()==null)
 						Logger.error(this, "the result of "+r +" was null");
 					else
@@ -442,7 +446,7 @@ implements Request<Collection<URIWrapper>> {
 				break;
 			case INTERSECTION:
 				Iterator<Request> it = subsearches.iterator();
-				Request<Set<URIWrapper>> r = it.next();
+				Request<Set<TermPageEntry>> r = it.next();
 				result.addAll(r.getResult());
 				while (it.hasNext()) {
 					r = it.next();
@@ -450,8 +454,8 @@ implements Request<Collection<URIWrapper>> {
 				}
 				break;
 			case REMOVE:
-				result.addAll((Set<URIWrapper>)subsearches.get(0).getResult());
-				result.removeAll((Set<URIWrapper>)subsearches.get(1).getResult());
+				result.addAll((Set<TermPageEntry>)subsearches.get(0).getResult());
+				result.removeAll((Set<TermPageEntry>)subsearches.get(1).getResult());
 				break;
 			case PHRASE:
 				Logger.minor(this, "Getting results for phrase");

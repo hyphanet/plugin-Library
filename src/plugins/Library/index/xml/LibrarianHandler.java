@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index.xml;
 
+import freenet.keys.FreenetURI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
@@ -18,7 +19,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import plugins.Library.index.Request.RequestState;
-import plugins.Library.index.URIWrapper;
+import plugins.Library.index.TermPageEntry;
 
 /**
  * Required for using SAX parser on XML indices
@@ -35,7 +36,7 @@ public class LibrarianHandler extends DefaultHandler {
 	private HashMap<String, String> titles;
 	private List<FindRequest> requests;
 	private List<FindRequest> wordMatches;
-	private URIWrapper inFile;
+	private TermPageEntry inFile;
 	private StringBuilder characters;
 
 
@@ -47,7 +48,7 @@ public class LibrarianHandler extends DefaultHandler {
 	public LibrarianHandler(List<FindRequest> requests) {
 		this.requests = new ArrayList(requests);
 		for (FindRequest r : requests)
-			r.setResult(new HashSet<URIWrapper>());
+			r.setResult(new HashSet<TermPageEntry>());
 	}
 
 	public void setDocumentLocator(Locator value) {
@@ -104,23 +105,24 @@ public class LibrarianHandler extends DefaultHandler {
 		if (elt_name.equals("file")) {
 			if (processingWord == true &&  wordMatches!=null) {
 				try{
-					URIWrapper uri = new URIWrapper();
-					uri.URI = uris.get(attrs.getValue("id"));
+					String suri = uris.get(attrs.getValue("id"));
+					FreenetURI uri = new FreenetURI(suri);
 					synchronized(this){
+						String title;
 						if(titles.containsKey(attrs.getValue("id")))
 						{
-							uri.descr = titles.get(attrs.getValue("id"));
-							if ((uri.URI).equals(uri.descr))
-								uri.descr = "not available";
+							title = titles.get(attrs.getValue("id"));
+							if ((suri).equals(title))
+								title = "not available";
 						}
 						else
-							uri.descr = "not available";
+							title = "not available";
 						//Logger.minor(this, "adding to all in "+wordMatches);
-						for(FindRequest<Set<URIWrapper>> match : wordMatches){
-							Set<URIWrapper> result = match.getResult();
+						for(FindRequest<Set<TermPageEntry>> match : wordMatches){
+							Set<TermPageEntry> result = match.getResult();
 							if (result == null)
-								match.setResult(result = new HashSet<URIWrapper>());
-							result.add(uri);
+								match.setResult(result = new HashSet<TermPageEntry>());
+							result.add(new TermPageEntry(match.getSubject(), uri, title, null));
 							match.setStage(RequestState.PARTIALRESULT, 3);
 							// removed these as they use lots of memory and are only used for phrase search which doesnt work
 							//inFile = uri;
@@ -159,24 +161,24 @@ public class LibrarianHandler extends DefaultHandler {
 	}
 
 	public void characters(char[] ch, int start, int length) {
-		if(characters!=null){
-			characters.append(ch, start, length);
-		}
+//		if(characters!=null){		// Commented out until i get phrase searching again
+//			characters.append(ch, start, length);
+//		}
 	}
 
 	public void endElement(String namespaceURI, String localName, String qName) {
-		if(inFile!=null){
-			String[] termposs = characters.toString().split(",");
-			ArrayList<Integer> termpositions = new ArrayList();
-			for (String pos : termposs) {
-				try{
-					termpositions.add(Integer.valueOf(pos));
-				}catch(NumberFormatException e){
-				}
-			}
-			inFile.termpositions = termpositions;
-			inFile = null;
-			characters = null;
-		}
+//		if(inFile!=null){			// Commented out until i get phrase searching again
+//			String[] termposs = characters.toString().split(",");
+//			HashMap<Integer, String> termpositions = new HashMap<Integer, String>(); // TODO should this be a hashmap? , is null ok?
+//			for (String pos : termposs) {
+//				try{
+//					termpositions.put(Integer.valueOf(pos), null);
+//				}catch(NumberFormatException e){
+//				}
+//			}
+//			inFile.setPositions(termpositions);
+//			inFile = null;
+//			characters = null;
+//		}
 	}
 }

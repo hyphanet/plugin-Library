@@ -62,6 +62,10 @@ public class TermPageEntry extends TermEntry {
 		return uri;
 	}
 
+	public String getTitle() {
+		return title;
+	}
+
 	public void setURI(FreenetURI u) {
 		// OPTIMISE make the translator use the same URI object as from the URI table
 		// actually, nah, not that important

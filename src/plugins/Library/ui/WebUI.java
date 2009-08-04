@@ -9,7 +9,7 @@ import plugins.Library.Library;
 import plugins.Library.index.Request;
 import plugins.Library.index.Request.RequestState;
 import plugins.Library.search.Search;
-import plugins.Library.index.URIWrapper;
+import plugins.Library.index.TermPageEntry;
 
 import freenet.keys.FreenetURI;
 import freenet.pluginmanager.PluginHTTPException;
@@ -194,24 +194,17 @@ public class WebUI {
 	 * @param showold whether to display results from older SSK versions
 	 * @param js whether js can be used to display results
 	 */
-	public static HTMLNode resultNodeGrouped(Request<Collection<URIWrapper>> request, boolean showold, boolean js) throws TaskAbortException {
+	public static HTMLNode resultNodeGrouped(Request<Collection<TermPageEntry>> request, boolean showold, boolean js) throws TaskAbortException {
 		// Output results
 		int results = 0;
 		// Loop to separate results into SSK groups
 		HTMLNode resultsNode = new HTMLNode("div", "id", "results");
-		HashMap<String, SortedMap<Long, Set<URIWrapper>>> groupmap = new HashMap();
-		Iterator<URIWrapper> it = request.getResult().iterator();
+		HashMap<String, SortedMap<Long, Set<TermPageEntry>>> groupmap = new HashMap();
+		Iterator<TermPageEntry> it = request.getResult().iterator();
 		while(it.hasNext()){
-			URIWrapper o = it.next();
+			TermPageEntry o = it.next();
 			// Get the key and name
-			FreenetURI uri;
-			try{
-				uri = new FreenetURI(o.URI);
-				o.URI=uri.toString();
-			}catch(MalformedURLException e){
-				Logger.error(WebUI.class, "URI in results is not a Freenet URI : "+o.URI, e);
-				continue;
-			}
+			FreenetURI uri = o.getURI();
 			Long uskVersion=Long.MIN_VALUE;
 			// convert usk's
 			if(uri.isSSKForUSK()){
@@ -224,8 +217,8 @@ public class WebUI {
 			Logger.minor(WebUI.class, sitebase);
 			// Add site
 			if(!groupmap.containsKey(sitebase))
-				groupmap.put(sitebase, new TreeMap<Long, Set<URIWrapper>>());
-			TreeMap<Long, Set<URIWrapper>> sitemap = (TreeMap<Long, Set<URIWrapper>>)groupmap.get(sitebase);
+				groupmap.put(sitebase, new TreeMap<Long, Set<TermPageEntry>>());
+			TreeMap<Long, Set<TermPageEntry>> sitemap = (TreeMap<Long, Set<TermPageEntry>>)groupmap.get(sitebase);
 			// Add Edition
 			if(!sitemap.containsKey(uskVersion))
 				sitemap.put(uskVersion, new HashSet());
@@ -236,7 +229,7 @@ public class WebUI {
 		Iterator<String> it2 = groupmap.keySet().iterator();
 		while (it2.hasNext()) {
 			String keybase = it2.next();
-			SortedMap<Long, Set<URIWrapper>> siteMap = groupmap.get(keybase);
+			SortedMap<Long, Set<TermPageEntry>> siteMap = groupmap.get(keybase);
 			HTMLNode siteNode = resultsNode.addChild("div", "style", "padding: 6px;");
 			// Create a block for old versions of this SSK
 			HTMLNode siteBlockOldOuter = siteNode.addChild("div", new String[]{"id", "style"}, new String[]{"result-hiddenblock-"+keybase, (!showold?"display:none":"")});
@@ -271,31 +264,26 @@ public class WebUI {
 				}else
 					versionCell = oldEditionContainer;
 				// loop over each result in this version
-				Iterator<URIWrapper> it4 = siteMap.get(version).iterator();
+				Iterator<TermPageEntry> it4 = siteMap.get(version).iterator();
 				while(it4.hasNext()){
-					try {
-						URIWrapper u = it4.next();
-						FreenetURI uri = new FreenetURI(u.URI);
-						String showtitle = u.descr;
-						String showurl = uri.toShortString();
-						if (showtitle.trim().length() == 0 || showtitle.equals("not available")) {
-							showtitle = showurl;
-						}
-						String realurl = "/" + uri.toString();
-						HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-title", ""});
-						pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: " + (newestVersion ? "Blue" : "LightBlue"), u.URI}, showtitle);
-						// create usk url
-						if (uri.isSSKForUSK()) {
-							String realuskurl = "/" + uri.uskForSSK().toString();
-							pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "result-uskbutton"}, "[ USK ]");
-						}
-						pageNode.addChild("br");
-						pageNode.addChild("a", new String[]{"href", "class", "style"}, new String[]{realurl, "result-url", "color: " + (newestVersion ? "Green" : "LightGreen")}, showurl);
-						results++;
-					} catch (MalformedURLException ex) {
-						// Invalid URL in result, maybe should display?
-						Logger.normal(WebUI.class, "Invalid URL in result "+ex.toString());
+					TermPageEntry u = it4.next();
+					FreenetURI uri = u.getURI();
+					String showtitle = u.getTitle();
+					String showurl = uri.toShortString();
+					if (showtitle.trim().length() == 0 || showtitle.equals("not available")) {
+						showtitle = showurl;
 					}
+					String realurl = "/" + uri.toString();
+					HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-title", ""});
+					pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: " + (newestVersion ? "Blue" : "LightBlue"), uri.toString()}, showtitle);
+					// create usk url
+					if (uri.isSSKForUSK()) {
+						String realuskurl = "/" + uri.uskForSSK().toString();
+						pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "result-uskbutton"}, "[ USK ]");
+					}
+					pageNode.addChild("br");
+					pageNode.addChild("a", new String[]{"href", "class", "style"}, new String[]{realurl, "result-url", "color: " + (newestVersion ? "Green" : "LightGreen")}, showurl);
+					results++;
 				}
 			}
 		}
