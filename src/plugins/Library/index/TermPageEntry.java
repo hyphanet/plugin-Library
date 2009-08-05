@@ -106,8 +106,29 @@ public class TermPageEntry extends TermEntry {
 		return super.equals(o) && uri.equals(((TermPageEntry)o).uri);
 	}
 
+	public boolean equalsIgnoreSubject(TermEntry entry) {
+		return (entry instanceof TermPageEntry) && uri.equals(((TermPageEntry)entry).uri);
+	}
+
 	@Override public int hashCode() {
 		return super.hashCode() ^ uri.hashCode();
+	}
+
+	/**
+	 * {@inheritDoc}
+	 *
+	 * Takes title from entry if this has none
+	 * Takes term positions from entry if this has none, adds both together if both have term positions
+	 */
+	@Override public void combine(TermEntry entry) {
+		super.combine(entry);
+		TermPageEntry pageEntry = (TermPageEntry)entry;
+		if(title==null)
+			title = pageEntry.title;
+		if(pos==null)
+			pos = pageEntry.pos;
+		else if(pageEntry.pos!=null)
+			pos.putAll(pageEntry.pos);
 	}
 
 }

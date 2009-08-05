@@ -67,8 +67,11 @@ public class TermTermEntry extends TermEntry {
 		return super.equals(o) && term.equals(((TermTermEntry)o).term);
 	}
 
+	public boolean equalsIgnoreSubject(TermEntry entry) {
+		return (entry instanceof TermPageEntry) && term.equals(((TermTermEntry)entry).term);
+	}
+
 	@Override public int hashCode() {
 		return super.hashCode() ^ term.hashCode();
 	}
-
 }

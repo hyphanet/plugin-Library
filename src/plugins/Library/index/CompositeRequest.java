@@ -10,7 +10,7 @@ import java.util.List;
  *
  * @author MikeB
  */
-public interface CompositeRequest<R> extends Request {
+public interface CompositeRequest<R> extends Request<R> {
 	/**
 	 ** To be overridden by subclasses which depend on subrequests.
 	 **

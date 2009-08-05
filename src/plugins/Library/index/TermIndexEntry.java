@@ -56,8 +56,11 @@ public class TermIndexEntry extends TermEntry {
 		return super.equals(o) && index.equals(((TermIndexEntry)o).index);
 	}
 
+	public boolean equalsIgnoreSubject(TermEntry entry) {
+		return (entry instanceof TermIndexEntry) && index.equals(((TermIndexEntry)entry).index);
+	}
+
 	@Override public int hashCode() {
 		return super.hashCode() ^ index.hashCode();
 	}
-
 }
