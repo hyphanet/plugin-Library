@@ -7,7 +7,6 @@ import plugins.Library.Library;
 import plugins.Library.index.Request.RequestState;
 import plugins.Library.index.Request;
 import plugins.Library.index.AbstractRequest;
-import plugins.Library.index.TermPageEntry;
 import plugins.Library.serial.TaskAbortException;
 
 import freenet.support.Logger;
@@ -15,31 +14,26 @@ import freenet.support.Logger;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Set;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import plugins.Library.index.CompositeRequest;
+import plugins.Library.index.TermEntry;
+import plugins.Library.search.ResultSet.ResultOperation;
 
 /**
  * Performs asynchronous searches over many index or with many terms and search logic
+ * TODO review documentation
  * @author MikeB
  */
-public class Search extends AbstractRequest<Collection<TermPageEntry>>
-implements Request<Collection<TermPageEntry>> {
+public class Search extends AbstractRequest<Set<TermEntry>>
+				implements CompositeRequest<Set<TermEntry>> {
 
 	private static Library library;
 
-	/**
-	 * What should be done with the results of subsearches\n
-	 * INTERSECTION : result is common results of subsearches\n
-	 * UNION : result is all results of subsearches\n
-	 * REMOVE : (only 2 subsearches alowd) result is the results of the first subsearch with the second search removed
-	 */
-	public enum ResultOperation{INTERSECTION, UNION, REMOVE, PHRASE};
 	private ResultOperation resultOperation;
 
-	private ArrayList<Request> subsearches;
+	private ArrayList<Request<Set<TermEntry>>> subsearches;
 
 	private String query;
 	private String indexURI;
@@ -87,7 +81,7 @@ implements Request<Collection<TermPageEntry>> {
 			ArrayList<Request> indexrequests = new ArrayList(indices.length);
 			for (String index : indices)
 				indexrequests.add(startSearch(search, index));
-			return new Search(search, indexuri, indexrequests, ResultOperation.UNION);
+			return new Search(search, indexuri, indexrequests, ResultOperation.DIFFERENTINDEXES);
 		}
 	}
 
@@ -104,6 +98,8 @@ implements Request<Collection<TermPageEntry>> {
 	private Search(String query, String indexURI, List<Request> requests, ResultOperation resultOperation)
 	throws InvalidSearchException{
 		super(makeString(query, indexURI));
+		if(resultOperation==ResultOperation.SINGLE && requests.size()!=1)
+			throw new InvalidSearchException(requests.size() + " requests supplied with SINGLE operation");
 		if(resultOperation==ResultOperation.REMOVE && requests.size()!=2)
 			throw new InvalidSearchException("Negative operations can only have 2 parameters");
 		if(resultOperation==ResultOperation.PHRASE && requests.size()<=2)
@@ -142,7 +138,7 @@ implements Request<Collection<TermPageEntry>> {
 
 		this.query = query;
 		this.indexURI = indexURI;
-		this.resultOperation = ResultOperation.UNION;
+		this.resultOperation = ResultOperation.SINGLE;
 		storeSearch(this);
 	}
 
@@ -309,7 +305,7 @@ implements Request<Collection<TermPageEntry>> {
 	/**
 	 * @return List of Requests this search depends on
 	 */
-	@Override public List<Request> getSubRequests(){
+	@Override public List<Request<Set<TermEntry>>> getSubRequests(){
 		return subsearches;
 	}
 
@@ -431,48 +427,12 @@ implements Request<Collection<TermPageEntry>> {
 	 * Perform an intersection on results of all subsearches and return <br />
 	 * @return Set of URIWrappers
 	 */
-	@Override public Collection<TermPageEntry> getResult() throws TaskAbortException {
+	@Override public Set<TermEntry> getResult() throws TaskAbortException {
 		if(getState() != Request.RequestState.FINISHED)
 			return null;
 
-		ResultSet result = new ResultSet();
-		switch(resultOperation){
-			case UNION:
-				for(Request<Set<TermPageEntry>> r : subsearches)
-					if(r.getResult()==null)
-						Logger.error(this, "the result of "+r +" was null");
-					else
-						result.addAll(r.getResult());
-				break;
-			case INTERSECTION:
-				Iterator<Request> it = subsearches.iterator();
-				Request<Set<TermPageEntry>> r = it.next();
-				result.addAll(r.getResult());
-				while (it.hasNext()) {
-					r = it.next();
-					result.retainAll(r.getResult());
-				}
-				break;
-			case REMOVE:
-				result.addAll((Set<TermPageEntry>)subsearches.get(0).getResult());
-				result.removeAll((Set<TermPageEntry>)subsearches.get(1).getResult());
-				break;
-			case PHRASE:
-				Logger.minor(this, "Getting results for phrase");
-				it = subsearches.iterator();
-				r = it.next();
-				result.addAll(r.getResult());
-				while (it.hasNext()) {
-					r = it.next();
-					try {
-						result.retainFollowed(r.getResult());
-					} catch (Exception ex) {
-						throw new TaskAbortException("All the data was fetched, but the query could not be completed.",
-						      new InvalidSearchException("Unable to determine term positions on these requests and thus unable to determine Phrase matches", ex));
-					}
-				}
-				break;
-		}
+		ResultSet result;
+		result = new ResultSet(subject, resultOperation, subsearches);
 
 		allsearches.remove(subject);
 		return result;
