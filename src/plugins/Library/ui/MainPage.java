@@ -15,8 +15,10 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import plugins.Library.Library;
+import plugins.Library.index.CompositeRequest;
 import plugins.Library.index.Request;
 import plugins.Library.index.Request.RequestState;
+import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermPageEntry;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.search.Search;
@@ -163,7 +165,7 @@ class MainPage implements WebPage {
         // Show any errors
 		HTMLNode errorDiv = new HTMLNode("div", "id", "errors");
 		for (Exception exception : exceptions) {
-			addError(errorDiv, exception);
+			WebUI.addError(errorDiv, exception);
 		}
 		contentNode.addChild(errorDiv);
 
@@ -178,27 +180,13 @@ class MainPage implements WebPage {
 				try{
 					contentNode.addChild(resultNodeGrouped());
 				}catch(TaskAbortException ex){
-					addError(errorDiv, ex);
+					WebUI.addError(errorDiv, ex);
 				}catch(RuntimeException ex){
-					addError(errorDiv, ex);
+					WebUI.addError(errorDiv, ex);
 				}
 			else
 				contentNode.addChild("div", "id", "results").addChild("#");
         }
-	}
-
-
-	/**
-	 * Put an error on the page, under node, also draws a big grey box around the error
-	 */
-	public void addError(HTMLNode node, Throwable error){
-		HTMLNode error1 = node.addChild("div", "style", "padding:10px;border:5px solid gray;margin:10px", error.toString());
-		for (StackTraceElement ste : error.getStackTrace()){
-			error1.addChild("br");
-			error1.addChild("#", " -- "+ste.toString());
-		}
-		if(error.getCause()!=null)
-			addError(error1, error.getCause());
 	}
 
 
@@ -313,7 +301,7 @@ class MainPage implements WebPage {
 	private HTMLNode progressBar(Request request) {
 		HTMLNode bar;
 		// If it doesn't have subrequests, draw it's progress
-		if(request.getSubRequests()==null){
+		if(! ( request instanceof CompositeRequest ) ){
 			bar = new HTMLNode("tr");
 			// search term
 			bar.addChild("td", request.getSubject());
@@ -335,22 +323,25 @@ class MainPage implements WebPage {
 
 			}
 		// if request separates indexes, show their names
-		}else if(request.getSubject().matches(".+%.+[ ;].+")){
-			bar = new HTMLNode("tbody");
-			Iterator it=request.getSubRequests().iterator();
-			while( it.hasNext()){
-				Request r = (Request)it.next();
-				HTMLNode indexrow = bar.addChild("tr");
-				indexrow.addChild("td", r.getSubject().split("%")[1]);
-				indexrow.addChild("td").addChild("table", "class", "progress-table").addChild(progressBar((Request)r));
-			}
-		// get progress for subrequests
-		}else{
-			bar = new HTMLNode("#");
-			Iterator it=request.getSubRequests().iterator();
-			while( it.hasNext()){
-				Request r = (Request)it.next();
-				bar.addChild(progressBar((Request)r));
+		} else {
+			CompositeRequest compRequest = (CompositeRequest) request;
+			if(request.getSubject().matches(".+%.+[ ;].+")){
+				bar = new HTMLNode("tbody");
+				Iterator it = compRequest.getSubRequests().iterator();
+				while( it.hasNext()){
+					Request r = (Request)it.next();
+					HTMLNode indexrow = bar.addChild("tr");
+					indexrow.addChild("td", r.getSubject().split("%")[1]);
+					indexrow.addChild("td").addChild("table", "class", "progress-table").addChild(progressBar((Request)r));
+				}
+			// get progress for subrequests
+			}else{
+				bar = new HTMLNode("#");
+				Iterator it = compRequest.getSubRequests().iterator();
+				while( it.hasNext()){
+					Request r = (Request)it.next();
+					bar.addChild(progressBar((Request)r));
+				}
 			}
 		}
 		return bar;
@@ -368,9 +359,9 @@ class MainPage implements WebPage {
 		// Loop to separate results into SSK groups
 		HTMLNode resultsNode = new HTMLNode("div", "id", "results");
 		HashMap<String, SortedMap<Long, Set<TermPageEntry>>> groupmap = new HashMap();
-		Iterator<TermPageEntry> it = search.getResult().iterator();
+		Iterator<TermEntry> it = search.getResult().iterator();
 		while(it.hasNext()){
-			TermPageEntry o = it.next();
+			TermPageEntry o = (TermPageEntry)it.next();		// TODO need to separate out the different types of TermEntrys and handle them separately
 			// Get the key and name
 			FreenetURI uri;
 			uri = o.getURI();
@@ -439,7 +430,7 @@ class MainPage implements WebPage {
 					FreenetURI uri = u.getURI();
 					String showtitle = u.getTitle();
 					String showurl = uri.toShortString();
-					if (showtitle.trim().length() == 0 || showtitle.equals("not available")) {
+					if (showtitle == null || showtitle.trim().length() == 0 || showtitle.equals("not available")) {
 						showtitle = showurl;
 					}
 					String realurl = "/" + uri.toString();

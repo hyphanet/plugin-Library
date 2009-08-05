@@ -28,6 +28,8 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import plugins.Library.index.CompositeRequest;
+import plugins.Library.index.TermEntry;
 import plugins.Library.library.Index;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.serial.TaskAbortException;
@@ -188,21 +190,20 @@ public class WebUI {
 
 		return pageNode.generate();
     }
-
-	/**
+/**
 	 * Return a HTMLNode for this result
 	 * @param showold whether to display results from older SSK versions
 	 * @param js whether js can be used to display results
 	 */
-	public static HTMLNode resultNodeGrouped(Request<Collection<TermPageEntry>> request, boolean showold, boolean js) throws TaskAbortException {
+	public static HTMLNode resultNodeGrouped(Request<Set<TermEntry>> request, boolean showold, boolean js) throws TaskAbortException {
 		// Output results
 		int results = 0;
 		// Loop to separate results into SSK groups
 		HTMLNode resultsNode = new HTMLNode("div", "id", "results");
 		HashMap<String, SortedMap<Long, Set<TermPageEntry>>> groupmap = new HashMap();
-		Iterator<TermPageEntry> it = request.getResult().iterator();
+		Iterator<TermEntry> it = request.getResult().iterator();
 		while(it.hasNext()){
-			TermPageEntry o = it.next();
+			TermPageEntry o = (TermPageEntry)it.next();	// FIXME
 			// Get the key and name
 			FreenetURI uri = o.getURI();
 			Long uskVersion=Long.MIN_VALUE;
@@ -268,14 +269,14 @@ public class WebUI {
 				while(it4.hasNext()){
 					TermPageEntry u = it4.next();
 					FreenetURI uri = u.getURI();
-					String showtitle = u.getTitle();
+					String showtitle = u.getTitle(); // FIXME need title
 					String showurl = uri.toShortString();
 					if (showtitle.trim().length() == 0 || showtitle.equals("not available")) {
 						showtitle = showurl;
 					}
 					String realurl = "/" + uri.toString();
 					HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-title", ""});
-					pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: " + (newestVersion ? "Blue" : "LightBlue"), uri.toString()}, showtitle);
+					pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: " + (newestVersion ? "Blue" : "LightBlue"), u.getURI().toString()}, showtitle);
 					// create usk url
 					if (uri.isSSKForUSK()) {
 						String realuskurl = "/" + uri.uskForSSK().toString();
@@ -447,13 +448,14 @@ public class WebUI {
 
 	/**
 	 * Draw progress bars and describe progress
+	 * FIXME doesnt seem to be displaying index names for multi searches
 	 * @param request
 	 * @return
 	 */
-	private static HTMLNode progressBar(Request request) {
+	public static HTMLNode progressBar(Request request) {
 		HTMLNode bar;
 		// If it doesn't have subrequests, draw it's progress
-		if(request.getSubRequests()==null){
+		if( !(request instanceof CompositeRequest)){
 			bar = new HTMLNode("tr");
 			// search term
 			bar.addChild("td", request.getSubject());
@@ -475,22 +477,25 @@ public class WebUI {
 
 			}
 		// if request separates indexes, show their names
-		}else if(request.getSubject().matches(".+%.+[ ;].+")){
-			bar = new HTMLNode("tbody");
-			Iterator it=request.getSubRequests().iterator();
-			while( it.hasNext()){
-				Request r = (Request)it.next();
-				HTMLNode indexrow = bar.addChild("tr");
-				indexrow.addChild("td", r.getSubject().split("%")[1]);
-				indexrow.addChild("td").addChild("table", "class", "progress-table").addChild(progressBar((Request)r));
-			}
-		// get progress for subrequests
 		}else{
-			bar = new HTMLNode("#");
-			Iterator it=request.getSubRequests().iterator();
-			while( it.hasNext()){
-				Request r = (Request)it.next();
-				bar.addChild(progressBar((Request)r));
+			CompositeRequest composite = (CompositeRequest)request;
+			if(request.getSubject().matches(".+%.+[ ;].+")){
+				bar = new HTMLNode("tbody");
+				Iterator it=composite.getSubRequests().iterator();
+				while( it.hasNext()){
+					Request r = (Request)it.next();
+					HTMLNode indexrow = bar.addChild("tr");
+					indexrow.addChild("td", r.getSubject().split("%")[1]);
+					indexrow.addChild("td").addChild("table", "class", "progress-table").addChild(progressBar((Request)r));
+				}
+			// get progress for subrequests
+			}else{
+				bar = new HTMLNode("#");
+				Iterator it=composite.getSubRequests().iterator();
+				while( it.hasNext()){
+					Request r = (Request)it.next();
+					bar.addChild(progressBar((Request)r));
+				}
 			}
 		}
 		return bar;
@@ -500,6 +505,7 @@ public class WebUI {
 	 * Put an error on the page, under node, also draws a big grey box around the error
 	 */
 	public static void addError(HTMLNode node, Throwable error){
+		Logger.error(WebUI.class, "Exception caught by interface : "+error.getMessage(), error);
 		HTMLNode error1 = node.addChild("div", "style", "padding:10px;border:5px solid gray;margin:10px", error.toString());
 		for (StackTraceElement ste : error.getStackTrace()){
 			error1.addChild("br");
