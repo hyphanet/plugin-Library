@@ -73,13 +73,6 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	}
 
 	/**
-	 * @return null, FindRequest is atomic
-	 */
-	@Override public List<Request> getSubRequests() {
-		return null;
-	}
-
-	/**
 	 * Log Exception for this request, marks status as ERROR
 	 */
 	public void setError(TaskAbortException e) {

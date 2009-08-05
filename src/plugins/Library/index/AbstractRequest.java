@@ -6,7 +6,6 @@ package plugins.Library.index;
 import plugins.Library.index.Request.RequestState;
 import plugins.Library.serial.TaskAbortException;
 
-import java.util.List;
 import java.util.Date;
 
 /**
@@ -147,15 +146,4 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	@Override public boolean isDone() {
 		return state==RequestState.FINISHED;
 	}
-
-
-	/**
-	** {@inheritDoc}
-	**
-	** This implementation returns {@code null}.
-	*/
-	@Override public List<Request> getSubRequests() {
-		return null;
-	}
-
 }

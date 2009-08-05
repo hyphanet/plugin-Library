@@ -7,7 +7,6 @@ import plugins.Library.serial.TaskAbortException;
 import plugins.Library.serial.Progress;
 
 import java.util.Date;
-import java.util.List;
 
 /**
 ** Interface for a request being handled asynchronously from the threads which
@@ -73,17 +72,6 @@ public interface Request<T> extends Progress {
 	** Returns the current stage of the operation.
 	*/
 	public String getCurrentStage();
-
-	/**
-	** To be overridden by subclasses which depend on subrequests.
-	**
-	** TODO: infinity0: I wasn't sure how to remove this functionality from
-	** your other classes (FindRequest, Search) - can you do this part?
-	**
-	** @deprecated
-	** @return List of Requests, or null
-	*/
-	public List<Request> getSubRequests();
 
 	/**
 	** Records the general state of the operation.
