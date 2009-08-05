@@ -130,13 +130,13 @@ public class CompoundProgress implements Progress {
 	** @param ids The ids to track
 	** @param pull Whether these are pull progresses or push progresses
 	*/
-	public static <P extends Progress> Iterable<P> makeProgressIterable(final ProgressTracker<?, P> tracker, final Iterable<?> ids, final boolean pull) {
+	public static <T, P extends Progress> Iterable<P> makeProgressIterable(final ProgressTracker<?, P> tracker, final Iterable<T> ids, final boolean pull) {
 		return (pull)?
 		new Iterable<P>() {
 			public Iterator<P> iterator() {
-				final Iterator<?> it = ids.iterator();
+				final Iterator<T> it = ids.iterator();
 				return new Iterator<P>() {
-					private Object last;
+					private T last;
 					@Override public boolean hasNext() { return it.hasNext(); }
 					@Override public P next() { return tracker.getPullProgress(last = it.next()); }
 					@Override public void remove() { it.remove(); tracker.remPullProgress(last); }
@@ -145,9 +145,9 @@ public class CompoundProgress implements Progress {
 		}:
 		new Iterable<P>() {
 			public Iterator<P> iterator() {
-				final Iterator<?> it = ids.iterator();
+				final Iterator<T> it = ids.iterator();
 				return new Iterator<P>() {
-					private Object last;
+					private T last;
 					@Override public boolean hasNext() { return it.hasNext(); }
 					@Override public P next() { return tracker.getPushProgress(last = it.next()); }
 					@Override public void remove() { it.remove(); tracker.remPushProgress(last); }
@@ -163,13 +163,13 @@ public class CompoundProgress implements Progress {
 	** @param ids Map of tracking ids to their respective trackers
 	** @param pull Whether these are pull progresses or push progresses
 	*/
-	public static <P extends Progress> Iterable<P> makeProgressIterable(final Map<Object, ProgressTracker<?, P>> ids, final boolean pull) {
+	public static <T, N, P extends Progress> Iterable<P> makeProgressIterable(final Map<T, ProgressTracker<N, P>> ids, final boolean pull) {
 		return (pull)?
 		new Iterable<P>() {
 			@Override public Iterator<P> iterator() {
-				final Iterator<Map.Entry<Object, ProgressTracker<?, P>>> it = ids.entrySet().iterator();
+				final Iterator<Map.Entry<T, ProgressTracker<N, P>>> it = ids.entrySet().iterator();
 				return new Iterator<P>() {
-					private Map.Entry<Object, ProgressTracker<?, P>> last;
+					private Map.Entry<T, ProgressTracker<N, P>> last;
 					@Override public boolean hasNext() { return it.hasNext(); }
 					@Override public P next() { last = it.next(); return last.getValue().getPullProgress(last.getKey()); }
 					@Override public void remove() { it.remove(); last.getValue().remPullProgress(last.getKey()); }
@@ -178,9 +178,9 @@ public class CompoundProgress implements Progress {
 		}:
 		new Iterable<P>() {
 			@Override public Iterator<P> iterator() {
-				final Iterator<Map.Entry<Object, ProgressTracker<?, P>>> it = ids.entrySet().iterator();
+				final Iterator<Map.Entry<T, ProgressTracker<N, P>>> it = ids.entrySet().iterator();
 				return new Iterator<P>() {
-					private Map.Entry<Object, ProgressTracker<?, P>> last;
+					private Map.Entry<T, ProgressTracker<N, P>> last;
 					@Override public boolean hasNext() { return it.hasNext(); }
 					@Override public P next() { last = it.next(); return last.getValue().getPushProgress(last.getKey()); }
 					@Override public void remove() { it.remove(); last.getValue().remPushProgress(last.getKey()); }

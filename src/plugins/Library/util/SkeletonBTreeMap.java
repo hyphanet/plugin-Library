@@ -18,6 +18,17 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 
+// URGENT tidy this
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.TimeUnit;
+import plugins.Library.serial.TaskCompleteException;
+import plugins.Library.serial.CompoundProgress;
+import plugins.Library.serial.Serialiser;
+import plugins.Library.serial.Progress;
+import plugins.Library.serial.ProgressTracker;
+
 /**
 ** {@link Skeleton} of a {@link BTreeMap}. DOCUMENT
 **
@@ -36,9 +47,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	**
 	** Eg. a {@code BTreeMap<String, BTreeSet<TermEntry>>} would have this
 	** {@code true} for the map, and {@code false} for the map backing the set.
-	*/
+
 	//final protected boolean internal_entries;
-	/* TODO disable for now, since I can't think of a good way to implement
+
+	TODO disable for now, since I can't think of a good way to implement
 	** this tidily.
 	**
 	** three options:
@@ -239,7 +251,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			try {
 				nsrl.pull(task);
 
-				if (compare2(node.lkey, task.data.lkey) != 0 || compare2(node.rkey, task.data.rkey) != 0) {
+				if (!compare0(node.lkey, task.data.lkey) || !compare0(node.rkey, task.data.rkey)) {
 					throw new DataFormatException("BTreeMap Node lkey/rkey does not match", task.data);
 				}
 
@@ -371,6 +383,72 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 		}
 	}
+
+
+	// URGENT tidy this; this should proboably go in a serialiser
+	CompoundProgress ppp = new CompoundProgress();
+	public CompoundProgress getPPP() { return ppp; }
+
+	public void inflate2() throws TaskAbortException {
+
+		final BlockingQueue<SkeletonNode> waiting = new PriorityBlockingQueue<SkeletonNode>();
+		final BlockingQueue<Object> inprogress = new LinkedBlockingQueue<Object>(0x10);
+		final Map<GhostNode, ProgressTracker<SkeletonNode, Progress>> ids = new LinkedHashMap<GhostNode, ProgressTracker<SkeletonNode, Progress>>();
+
+		ppp.setSubprogress(CompoundProgress.makeProgressIterable(ids, true));
+		ppp.setName("all entries in B-tree");
+
+		try {
+			// TODO track partial loads of SkTreeMaps too...
+			if (root.isLeaf()) { ((SkeletonNode)root).inflate(); return; }
+			waiting.put((SkeletonNode)root);
+			while (!waiting.isEmpty() || !inprogress.isEmpty()) {
+				final SkeletonNode n = waiting.poll(1, TimeUnit.SECONDS); // block until one pops
+				if (n == null) { continue; }
+				// only non-leaf nodes are ever added to the queue
+				for (final K k: n.rnodes.keySet()) { // SUBSET here
+					Node next = n.rnodes.get(k);
+					if (next.entries != null) {
+						waiting.put((SkeletonNode)next);
+						continue;
+					}
+					// wait until inprogress.size() is below a certain limit, maybe
+					final GhostNode ghost = (GhostNode)next;
+					final Object lock = new Object();
+					inprogress.put(lock);
+					new Thread() {
+						@Override public void run() {
+							try {
+								// put details onto the trackers and metas stacks
+								ids.put(ghost, ((Serialiser.Trackable)n.getSerialiser()).getTracker());
+								n.inflate(k);
+								assert(n.rnodes.get(k) != null);
+								SkeletonNode next = (SkeletonNode)n.rnodes.get(k);
+								// save memory by testing isLeaf here rather than waiting for the loop to
+								// pop it off the queue then do nothing since subKeys(fr, to) is empty
+								if (!next.isLeaf()) { waiting.put(next); }
+								else { next.inflate(); }
+							} catch (TaskCompleteException e) {
+								// ignore
+							} catch (Exception e) {
+								// TaskAbortException
+								// InterruptedException
+								// URGENT deal with this appropriately...
+								throw new RuntimeException(e);
+							} finally {
+								inprogress.remove(lock);
+							}
+						}
+					}.start();
+				}
+			}
+		} catch (InterruptedException e) {
+			throw new TaskAbortException("interrupted", e);
+		}
+
+	}
+
+
 
 
 	/**

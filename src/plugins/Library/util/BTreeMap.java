@@ -206,7 +206,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** @author infinity0
 	*/
-	protected class Node {
+	protected class Node implements Comparable<Node> {
 
 		/**
 		** Whether this node is a leaf.
@@ -343,7 +343,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			assert(lnodes.get(node.rkey) == node
 			    && rnodes.get(node.lkey) == node);
 
-			return (compare2(lkey, node.lkey) == 0)? null: lnodes.get(node.lkey);
+			return (compare0(lkey, node.lkey))? null: lnodes.get(node.lkey);
 		}
 
 		/**
@@ -360,7 +360,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			assert(lnodes.get(node.rkey) == node
 			    && rnodes.get(node.lkey) == node);
 
-			return (compare2(node.rkey, rkey) == 0)? null: rnodes.get(node.rkey);
+			return (compare0(node.rkey, rkey))? null: rnodes.get(node.rkey);
 		}
 
 		/**
@@ -379,7 +379,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		**         its comparator does not tolerate {@code null} keys
 		*/
 		Node selectNode(K key) {
-			assert(compare2(lkey, key) < 0 && compare2(key, rkey) < 0);
+			assert(compareL(lkey, key) < 0 && compareR(key, rkey) < 0);
 
 			SortedMap<K, V> tailmap = entries.tailMap(key);
 			if (tailmap.isEmpty()) {
@@ -388,6 +388,43 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				K next = tailmap.firstKey();
 				return (compare(key, next) == 0)? null: lnodes.get(next);
 			}
+		}
+
+		/**
+		** Defines a total ordering on the nodes. This is useful for eg. deciding
+		** which nodes to visit first in a breadth-first search algorithm that uses
+		** a sorted queue ({@link java.util.concurrent.PriorityBlockingQueue})
+		** instead of a FIFO ({@link java.util.concurrent.LinkedBlockingQueue}).
+		**
+		** A node is "compare-equal" to another iff:
+		**
+		** * Both their corresponding endpoints are compare-equal.
+		**
+		** A node is "smaller" than another iff:
+		**
+		** * Its right endpoint is strictly smaller than the other's, or
+		** * Its right endpoint is compare-equal to the other's, and its left
+		**   endpoint is strictly greater than the other's. (Note that this case
+		**   would never be reached in a breadth-first search.)
+		**
+		** Or, equivalently, and perhaps more naturally (but less obvious why it
+		** is a total order):
+		**
+		** * Both its endpoints are strictly smaller than the other's corresponding
+		**   endpoints, or
+		** * Both of its endpoints are contained within the other's endpoints,
+		**   and one of them strictly so.
+		**
+		** @param n The other node to compare with
+		*/
+		@Override public int compareTo(Node n) {
+			int a = compareL(lkey, n.lkey);
+			int b = compareR(rkey, n.rkey);
+			return (b == 0)? ((a == 0)? 0: -a): b;
+			// the more "natural" version
+			// return (a == 0)? ((b == 0)?  0: (b < 0)? -1:  1)
+			//         (a < 0)? ((b == 0)?  1: (b < 0)? -1:  1):
+			//                  ((b == 0)? -1: (b < 0)? -1:  1);
 		}
 
 		public String toTreeString(String istr) {
@@ -436,20 +473,46 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/**
-	** A compare method with extend semantics, that takes into account the
-	** special meaning of {@code null} for the {@link Node#lkey lkey} and
-	** {@link Node#rkey rkey} fields.
+	** Tests for compare-equality. Two values are compare-equal if they are
+	** both {@code null}, or they {@link #compare()} to {@code 0}. We use this
+	** rather than {@link #equals(Object)} to maintain sorting order
+	** consistency in case the comparator is inconsistent with it.
 	**
-	** * If both keys are {@code null}, returns 0. Otherwise:
-	** * If {@code key1} is {@code null}, it is treated as an {@link Node#lkey
-	**   lkey} value, ie. smaller than all other values (method returns -1).
-	** * If {@code key2} is {@code null}, it is treated as an {@link Node#rkey
-	**   rkey} value, ie. greater than all other values (method returns -1).
-	** * Otherwise, neither keys are {@code null}, and are compared normally.
+	** @throws ClassCastException if the keys cannot be compared by the given
+	**         comparator, or if they cannot be compared naturally (ie. they
+	**         don't implement {@link Comparable})
 	*/
-	protected int compare2(K key1, K key2) {
-		return (key1 == null)? ((key2 == null)? 0: -1):
-		                       ((key2 == null)? -1: compare(key1, key2));
+	protected boolean compare0(K key1, K key2) {
+		return (key1 == null && key2 == null) ||
+		       ((comparator != null)? comparator.compare(key1, key2): ((Comparable<K>)key1).compareTo(key2)) == 0;
+	}
+
+	/**
+	** Comparison between {@link Node#lkey} values, where {@code null} means
+	** "a value smaller than any other". Use this when one of the operands is
+	** the {@code lkey} of some node.
+	**
+	** @throws ClassCastException if the keys cannot be compared by the given
+	**         comparator, or if they cannot be compared naturally (ie. they
+	**         don't implement {@link Comparable})
+	*/
+	protected int compareL(K lkey1, K lkey2) {
+		return (lkey1 == null)? ((lkey2 == null)? 0: -1):
+		                        ((lkey2 == null)? 1: compare(lkey1, lkey2));
+	}
+
+	/**
+	** Comparison between {@link Node#rkey} values, where {@code null} means
+	** "a value greater than any other". Use this when one of the operands is
+	** the {@code rkey} of some node.
+	**
+	** @throws ClassCastException if the keys cannot be compared by the given
+	**         comparator, or if they cannot be compared naturally (ie. they
+	**         don't implement {@link Comparable})
+	*/
+	protected int compareR(K rkey1, K rkey2) {
+		return (rkey2 == null)? ((rkey1 == null)? 0: -1):
+		                        ((rkey1 == null)? 1: compare(rkey1, rkey2));
 	}
 
 	/**
@@ -493,8 +556,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			return;
 		}
 
-		verify(compare2(node.lkey, node.entries.firstKey()) < 0);
-		verify(compare2(node.entries.lastKey(), node.rkey) < 0);
+		verify(compareL(node.lkey, node.entries.firstKey()) < 0);
+		verify(compareR(node.entries.lastKey(), node.rkey) < 0);
 
 		int s = node.nodeSize();
 		if (!node.isLeaf()) {
@@ -506,9 +569,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			while (curr != node.rkey || prev != node.rkey) {
 				Node node1 = node.rnodes.get(prev);
 				s += node1.totalSize();
-				verify(node1 != null && compare2(curr, node1.rkey) == 0);
+				verify(node1 != null && compare0(curr, node1.rkey));
 				Node node2 = node.lnodes.get(curr);
-				verify(node1 == node2 && compare2(node2.lkey, prev) == 0);
+				verify(node1 == node2 && compare0(node2.lkey, prev));
 				prev = curr;
 				curr = it.hasNext()? it.next(): node.rkey;
 			}
@@ -679,7 +742,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** @param rnode The greater subnode to merge
 	*/
 	private K merge(Node parent, Node lnode, Node rnode) {
-		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
+		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare0 since can't be at edges
 		assert(lnode.isLeaf() && rnode.isLeaf() || !lnode.isLeaf() && !rnode.isLeaf());
 		assert(lnode.nodeSize() == ENT_MIN);
 		assert(rnode.nodeSize() == ENT_MIN);
@@ -753,7 +816,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** @param rnode The greater subnode, which loses an entry to the parent
 	*/
 	private K rotateL(Node parent, Node lnode, Node rnode) {
-		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
+		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare0 since can't be at edges
 		assert(lnode.isLeaf() && rnode.isLeaf() || !lnode.isLeaf() && !rnode.isLeaf());
 		assert(rnode.nodeSize() >= lnode.nodeSize());
 		assert(rnode.nodeSize() > ENT_MIN);
@@ -804,7 +867,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** @param rnode The greater subnode, which accepts an entry from the parent
 	*/
 	private K rotateR(Node parent, Node lnode, Node rnode) {
-		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare2 since can't be at edges
+		assert(compare(lnode.rkey, rnode.lkey) == 0); // not compare0 since can't be at edges
 		assert(lnode.isLeaf() && rnode.isLeaf() || !lnode.isLeaf() && !rnode.isLeaf());
 		assert(lnode.nodeSize() >= rnode.nodeSize());
 		assert(lnode.nodeSize() > ENT_MIN);

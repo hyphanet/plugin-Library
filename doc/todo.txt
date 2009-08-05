@@ -20,14 +20,13 @@
 
 == TermEntry semantics ==
 
-- PRIORITY merge URIWrapper with TermPageEntry
 - TODO make TokenEntries immutable, and make Yaml stuff to create/uncreate these...
   - this will be a PRIORITY after FredPluginAPI is properly implemented
 - TODO there should be only one entry per URI per Token (enforce this in the code at some point)
 
 == Request/Progress reporting ==
 
-- PRIORITY make a CompoundRequest that extends CompoundProgress (and make CompondProgress better and more standard)
+>>> PRIORITY make a CompoundRequest that extends CompoundProgress (and make CompondProgress better and more standard)
   - and it will have equivalent functionality as "getSubRequests"
   - how to implement getSubStage* in Search, and put it back into FindRequest
 - implement nice version of finalTotalEstimate() in FindRequest and Search

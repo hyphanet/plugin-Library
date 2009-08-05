@@ -21,13 +21,13 @@ import java.util.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 0;
+	final public static int it_basic = 8;
 	final public static int it_partial = 0;
-	final public static boolean disabled_progress = false;
+	final public static boolean disabled_progress = true;//false;
 
 	static {
-		//plugins.Library.serial.YamlArchiver.setTestMode();
 		ProtoIndex.BTREE_NODE_MIN = 0x40; // DEBUG so we see tree splits
+		System.out.println("ProtoIndex B-tree node_min set to " + ProtoIndex.BTREE_NODE_MIN);
 	}
 
 	long time = 0;
@@ -203,7 +203,7 @@ public class BIndexTest extends TestCase {
 		int save = rand.nextInt(numterms);
 		String sterm = null;
 
-		System.out.println("Generating a shit load of entries to test progress polling. This may take a while...");
+		System.out.println("Generating a shit load (~200k) of entries to test progress polling. This may take a while...");
 		for (int i=0; i<numterms; ++i) {
 			String key = Generators.rndStr().substring(0,8);
 			if (i == save) { sterm = key; }
@@ -240,7 +240,7 @@ public class BIndexTest extends TestCase {
 		System.out.println("deflated in " + timeDiff() + " ms");
 		plugins.Library.serial.YamlArchiver.setTestMode();
 
-		System.out.println("requesting entries for term " + sterm);
+		System.out.println("Requesting entries for term " + sterm);
 		Request<Collection<TermEntry>> rq1 = idx.getTermEntries(sterm);
 		Request<Collection<TermEntry>> rq2 = idx.getTermEntries(sterm);
 		Request<Collection<TermEntry>> rq3 = idx.getTermEntries(sterm);
@@ -255,9 +255,12 @@ public class BIndexTest extends TestCase {
 			try { Thread.sleep(1000); } catch (InterruptedException x) { }
 		}
 
+		int count=0;
 		for (TermEntry en: entries) {
-			System.out.println("entry {relevance=" + en.getRelevance() + ", type=" + en.entryType() + "}");
+			++count;
 		}
+		assertTrue(count == entries.size());
+		System.out.println(count + " entries successfully got in " + rq1.getTimeElapsed() + "ms");
 
 	}
 

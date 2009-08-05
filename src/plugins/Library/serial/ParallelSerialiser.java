@@ -8,6 +8,8 @@ import plugins.Library.serial.Serialiser.*;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ArrayList;
+
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -203,6 +205,14 @@ implements IterableSerialiser<T>,
 			for (PushTask<T> t: tasks) { tracker.remPushProgress(t.data); }
 		}
 	}
+
+
+
+	public void pull(BlockingQueue<PullTask<T>> input, BlockingQueue<PullTask<T>> completed) {
+		// URGENT
+		throw new UnsupportedOperationException("not implemented");
+	}
+
 
 	protected class QueueHandler extends Thread {
 		public void run() {
