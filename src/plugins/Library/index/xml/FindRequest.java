@@ -29,15 +29,21 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	private int blocksTotal;
 	private boolean blocksfinalized;
 	private int expectedsize;
+	private boolean getPositions;
 
 	/**
 	 * Create Request of stated type & subject
 	 * @param subject
+	 * @param positions, should we look for positions?
 	 */
-	public FindRequest(String subject){
+	public FindRequest(String subject, boolean positions) {
 		super(subject);
+		getPositions = positions;
 	}
 
+	public boolean shouldGetPositions(){
+		return getPositions;
+	}
 
 	/**
 	 * @return blocks completed in SubStage

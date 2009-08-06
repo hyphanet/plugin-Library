@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import plugins.Library.index.CompositeRequest;
 import plugins.Library.index.TermEntry;
+import plugins.Library.index.xml.XMLIndex;
 import plugins.Library.search.ResultSet.ResultOperation;
 
 /**
@@ -164,12 +165,16 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		}
 
 		// Make phrase search
-		if(query.matches("\\A\".*\"\\Z")){
+		if(query.matches("\\A\"[^\"]*\"\\Z")){
 			ArrayList<Request> phrasesearches = new ArrayList();
 			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split(" ");
 			Logger.minor(Search.class, "Phrase split"+query);
-			for (String subquery : phrase)
-				phrasesearches.add(splitQuery(subquery, indexuri));
+			for (String subquery : phrase){
+				if(library.getIndex(indexuri) instanceof XMLIndex)
+					phrasesearches.add(new Search(subquery, indexuri, ((XMLIndex)library.getIndex(indexuri)).getTermEntries(subquery, true)));
+				else
+					phrasesearches.add(splitQuery(subquery, indexuri));
+			}
 			return new Search(query, indexuri, phrasesearches, ResultOperation.PHRASE);
 		}
 
