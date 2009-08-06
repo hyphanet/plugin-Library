@@ -320,24 +320,25 @@ public class ResultSet implements Set<TermEntry>{
 	 * @return
 	 */
 	private TermEntry mergeEntries(TermEntry... entries) {
-		for (int i = 1; i < entries.length; i++) {
+		for (int i = 1; i < entries.length; i++)
 			if(!entries[0].equalsIgnoreSubject(entries[i]))
 				throw new IllegalArgumentException("entries were not equal : "+entries[0].toString()+" & "+entries[i].toString());
-		}
+		
+		TermEntry combination = entries[0];
 
-		TermEntry combination;
-		if(entries[0] instanceof TermIndexEntry){
-			combination = new TermIndexEntry(subject, ((TermIndexEntry)entries[0]).getIndex());
-		} else if(entries[0] instanceof TermPageEntry){
-			combination = new TermPageEntry(subject, ((TermPageEntry)entries[0]).getURI());
-		} else if(entries[0] instanceof TermTermEntry){
-			combination = new TermTermEntry(subject, ((TermTermEntry)entries[0]).getTerm());
+		// This mess could be replaced by a method in the TermEntrys which returns a new TermEntry with a changed subject
+		if(combination instanceof TermIndexEntry){
+			combination = new TermIndexEntry(subject, ((TermIndexEntry)combination).getIndex());
+		} else if(combination instanceof TermPageEntry){
+			combination = new TermPageEntry(subject, ((TermPageEntry)combination).getURI(), ((TermPageEntry)combination).getTitle(), ((TermPageEntry)combination).getPositions());
+		} else if(combination instanceof TermTermEntry){
+			combination = new TermTermEntry(subject, ((TermTermEntry)combination).getTerm());
 		} else
-			throw new IllegalArgumentException("Unknown type : "+entries[0].getClass().toString());
-
+			throw new IllegalArgumentException("Unknown type : "+combination.getClass().toString());
+		
 		for (int i = 1; i < entries.length; i++) {
 			TermEntry termEntry = entries[i];
-			combination.combine(termEntry);
+			combination = combination.combine(termEntry);
 		}
 
 		return combination;

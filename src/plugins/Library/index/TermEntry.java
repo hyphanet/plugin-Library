@@ -132,15 +132,7 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 	** @param entry which must be equalsIgnoreSubject
 	** @throws IllegalArgumentException if not this.equalsIgnoreSubject(entry)
 	**/
-	public void combine(TermEntry entry){
-		if(!equalsIgnoreSubject(entry))
-			throw new IllegalArgumentException("Combine can only be performed on equal TermEntrys");
-		
-		if(rel == 0)	// combine relevances
-			rel = entry.rel;
-		else
-			rel *= entry.rel;
-	}
+	public abstract TermEntry combine(TermEntry entry);
 
 	/**
 	** {@inheritDoc}
