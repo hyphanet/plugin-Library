@@ -4,6 +4,7 @@
 package plugins.Library.search;
 
 import freenet.support.Logger;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,6 +12,7 @@ import plugins.Library.index.Request;
 import plugins.Library.index.TermPageEntry;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermIndexEntry;
@@ -71,29 +73,17 @@ public class ResultSet implements Set<TermEntry>{
 				break;
 			case DIFFERENTINDEXES:	// Same as UNION currently
 			case UNION:	// Add every one without overwriting
-				for(Request<Set<TermEntry>> r : subRequests)
-					if(r.getResult()==null)
-						Logger.error(this, "the result of "+r +" was null");
-					else
-						addAllInternal(r.getResult());
+				unite(getResultSets(subRequests));
 				break;
 			case INTERSECTION:	// Add one then retain the others
 				intersect(getResultSets(subRequests));
 				break;
 			case REMOVE:	// Add one then remove the other
-				addAllInternal((Set<TermEntry>)subRequests.get(0).getResult());
-				removeAllInternal((Set<TermEntry>)subRequests.get(1).getResult());
+				exclude(subRequests.get(0).getResult(), subRequests.get(1).getResult());
 				break;
-//			case PHRASE:	// ?? TODO
-//				Logger.minor(this, "Getting results for phrase");
-//				it = subRequests.iterator();
-//				r = it.next();
-//				addAllToEmptyInternal(r.getResult());
-//				while (it.hasNext()) {
-//					r = it.next();
-//					retainAllFollowedInternal(r.getResult());
-//				}
-//				break;
+			case PHRASE:
+				phrase(getResultSets(subRequests));
+				break;
 		}
 	}
 
@@ -192,6 +182,8 @@ public class ResultSet implements Set<TermEntry>{
 
 
 
+	
+	
 	// Private internal functions for changing the set
 	// TODO relevences, metadata extra, check copy constructors
 
@@ -213,26 +205,32 @@ public class ResultSet implements Set<TermEntry>{
 	}
 
 	/**
-	 * Merge add all entries in result to the internal Set converted to this
-	 * ResultSet's subject. If both Sets have any of the same entries those will
-	 * be merged
+	 * Add all entries in the first collection but not in the second
 	 * @param result
 	 */
-	private void addAllInternal(Collection<? extends TermEntry> result) {
-		for (TermEntry termEntry : result) {
-			TermEntry entry = convertEntry(termEntry);
-			if(contains(entry))
-				addInternal(mergeEntries(internal.get(entry), entry));
-			else
-				addInternal(entry);
+	private void exclude(Collection<? extends TermEntry> add, Collection<? extends TermEntry> subtract) {
+		for (TermEntry termEntry : add){
+			if(getIgnoreSubject(termEntry, subtract)==null)
+				addInternal(termEntry);
 		}
 	}
 
-	private void removeAllInternal(Collection<? extends TermEntry> result) {
-		for (TermEntry termEntry : result) {
-			TermEntry entry = convertEntry(termEntry);
-			internal.remove(entry);
-		}
+	/**
+	 * Iterate over all the collections adding and merging all their entries
+	 * @param collections to be merged into this collection
+	 */
+	private void unite(Collection<? extends TermEntry>... collections) {
+		for(Collection<? extends TermEntry> c : collections)
+			if(c==null)
+				Logger.error(this, "the result was null");
+			else
+				for (TermEntry termEntry : c) {
+					TermEntry entry = convertEntry(termEntry);
+					if(contains(entry))
+						addInternal(mergeEntries(internal.get(entry), entry));
+					else
+						addInternal(entry);
+				}
 	}
 
 	/**
@@ -259,17 +257,11 @@ public class ResultSet implements Set<TermEntry>{
 
 				Collection<? extends TermEntry> collection = collections[i];
 				// See if collection contains termEntry
-				boolean thisContains = false;
-				for (TermEntry termEntry1 : collection) {
-					if(termEntry.equalsIgnoreSubject(termEntry1)){
-						// this collection contains the entry
-						thisContains = true;
-						// add it to the entries
-						entries.add(termEntry1);
-						break;
-					}
-				}
-				if(!thisContains)
+				TermEntry contains = getIgnoreSubject(termEntry, collection);
+				if(contains != null)
+					// add it to the entries
+					entries.add(contains);
+				else
 					break;
 			}
 			// If all contained this entry, merge them all
@@ -278,25 +270,34 @@ public class ResultSet implements Set<TermEntry>{
 		}
 	}
 
-//	// TODO : this doesnt do phrase, it is a version of the intersection code, with some errors
-//	private void retainAllFollowedInternal(Collection<? extends TermEntry> result) {
-//		ResultSet retainFrom = new ResultSet(subject, result);
-//		for (TermEntry termEntry : internal) {
-//			TermEntry entry = convertEntry(termEntry);
-//			boolean retainthis = false;
-//			for (TermEntry termEntry1 : result) {
-//				TermEntry entry1 = convertEntry(termEntry1);
-//				if(entry.equals(entry1)) {
-//					retainthis = true;
-//					break;
-//				}
-//			}
-//			if(retainthis)
-//				;	// TODO make sure all data on entries are retained
-//			else
-//				internal.remove(entry);
-//		}
-//	}
+	/**
+	 * Iterate over the first collection and add elements which appear are followed in the next collection, repeat this operation with the others
+	 * @param collections
+	 */
+	private void phrase(Collection<? extends TermEntry>... collections) {
+		Collection<? extends TermEntry> firstCollection = collections[0];
+		// Iterate over it
+		for (TermEntry termEntry : firstCollection) {
+			// if term entry is followed in all the others, add it to this
+			List<TermEntry> entries = new ArrayList<TermEntry>(collections.length);
+			entries.add(termEntry);
+
+			for (int i = 1; i < collections.length; i++) {
+				Collection<? extends TermEntry> collection = collections[i];
+				// See if collection follows termEntry
+				TermEntry follow = follows(entries.get(i-1), collection);
+				if(follow != null){
+					// add it to the entries
+					entries.add(i, follow);
+				}else
+					break;
+			}
+			// If all followed, merge them all
+			if(entries.size() == collections.length)
+				addInternal(mergeEntries(entries.toArray(new TermEntry[0])));
+		}
+		
+	}
 
 
 	private TermEntry convertEntry(TermEntry termEntry) {
@@ -356,6 +357,58 @@ public class ResultSet implements Set<TermEntry>{
 			sets[i] = subRequests.get(i).getResult();
 		}
 		return sets;
+	}
+
+	/**
+	 * Gets a TermEntry from the collection which is equal to entry ignoring subject
+	 * @param entry
+	 * @param collection
+	 * @return
+	 */
+	private TermEntry getIgnoreSubject(TermEntry entry, Collection<? extends TermEntry> collection){
+		TermEntry result = null;
+			for (TermEntry termEntry : collection) {
+				if (entry.equalsIgnoreSubject(termEntry)){
+					result = termEntry;
+					break;
+				}
+			}
+		return result;
+	}
+
+	/**
+	 * If entry is a TermPageEntry and there exists a TermPageEntry in collection
+	 * which is equal ignoring the subject and contains at least one position
+	 * which directly follows a position in entry, a new TermPageEntry is returned
+	 * being a copy of the TermPageEntry found in collection with it's positions
+	 * which do not directly follow positions in entry eliminated. Otherwise null
+	 *
+	 * @param entry
+	 * @param collection
+	 * @return
+	 */
+	private TermPageEntry follows(TermEntry entry, Collection<? extends TermEntry> collection){
+		if(!(entry instanceof TermPageEntry))
+			return null;
+		TermPageEntry result = (TermPageEntry)getIgnoreSubject(entry, collection);
+		if(result == null)
+			return null;
+
+		Map<Integer, String> pos1 = ((TermPageEntry)entry).getPositions();
+		Map<Integer, String> pos2 = result.getPositions();
+		if(pos1==null || pos2 == null)
+			throw new NullPointerException("This index does not have term position information and so cannot perform a phrase search, this should probably be a different type of exception, maybe an InvalidSearchException?");
+		Map<Integer, String> newPos = new HashMap();
+		for (Integer integer1 : pos1.keySet()) {
+			for (Integer integer2 : pos2.keySet()) {
+				if(integer1 == integer2+1)
+					newPos.put(integer2, pos2.get(integer2));
+			}
+		}
+		if(newPos.size()>0)
+			return new TermPageEntry(result.getSubject(), result.getURI(), result.getTitle(), newPos);
+		else
+			return null;
 	}
 
 

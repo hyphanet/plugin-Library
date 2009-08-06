@@ -102,8 +102,13 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 			throw new InvalidSearchException(requests.size() + " requests supplied with SINGLE operation");
 		if(resultOperation==ResultOperation.REMOVE && requests.size()!=2)
 			throw new InvalidSearchException("Negative operations can only have 2 parameters");
-		if(resultOperation==ResultOperation.PHRASE && requests.size()<=2)
-			throw new InvalidSearchException("Phrase operations need more than one term");
+		if(		(	resultOperation==ResultOperation.PHRASE
+					|| resultOperation == ResultOperation.INTERSECTION
+					|| resultOperation == ResultOperation.UNION
+					|| resultOperation == ResultOperation.DIFFERENTINDEXES )
+				&& requests.size()<2)
+			throw new InvalidSearchException(resultOperation.toString() + " operations need more than one term");
+		
 		query = query.toLowerCase(Locale.US).trim();
 		subsearches = new ArrayList();
 		for (Request request : requests) {
