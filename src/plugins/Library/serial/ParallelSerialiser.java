@@ -227,8 +227,8 @@ implements IterableSerialiser<T>,
 		** execute the tasks passed to it.
 		**
 		** In this mode, it is assumed that {@link Progress} objects are created by
-		** the thread that calls {@link #schedule()}. '''Failure to do this will
-		** result in deadlock.'''
+		** the thread that calls {@link #schedule(Object)}. '''Failure to do this
+		** will result in deadlock.'''
 		**
 		** @param e The {@link ThreadPoolExecutor} to handle task execution.
 		*/

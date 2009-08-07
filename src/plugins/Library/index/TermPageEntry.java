@@ -29,7 +29,7 @@ public class TermPageEntry extends TermEntry {
 	protected Map<Integer, String> pos;
 
 	/**
-	** Here for backwards-compatibility with {@link URIWrapper}
+	** Here for backwards-compatibility with the old URIWrapper class.
 	*/
 	protected String title;
 

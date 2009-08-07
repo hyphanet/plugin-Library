@@ -473,9 +473,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 	/**
 	** Tests for compare-equality. Two values are compare-equal if they are
-	** both {@code null}, or they {@link #compare()} to {@code 0}. We use this
-	** rather than {@link #equals(Object)} to maintain sorting order
-	** consistency in case the comparator is inconsistent with it.
+	** both {@code null} or they {@link #compare(Object, Object)} to {@code 0}.
+	** We use this rather than {@link #equals(Object)} to maintain sorting
+	** order consistency in case the comparator is inconsistent with equals.
 	**
 	** @throws ClassCastException if the keys cannot be compared by the given
 	**         comparator, or if they cannot be compared naturally (ie. they

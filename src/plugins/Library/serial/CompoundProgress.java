@@ -160,13 +160,13 @@ public class CompoundProgress implements Progress {
 
 	/**
 	** Creates an iterable over the {@link Progress} objects corresponding to
-	** the given pull tracking ids, all tracked by the given tracker.
+	** the given pull tasks, all tracked by the given tracker.
 	**
 	** @param tracker The single tracker for all the ids
-	** @param ids The ids to track
+	** @param tasks The tasks to track
 	*/
-	public static <T, P extends Progress> Iterable<P> makePullProgressIterable(final ProgressTracker<T, P> tracker, final Iterable<PullTask<T>> ids) {
-		return new CompositeIterable<PullTask<T>, P>(ids) {
+	public static <T, P extends Progress> Iterable<P> makePullProgressIterable(final ProgressTracker<T, P> tracker, final Iterable<PullTask<T>> tasks) {
+		return new CompositeIterable<PullTask<T>, P>(tasks) {
 			@Override public P nextFor(PullTask<T> next) {
 				return tracker.getPullProgress(next);
 			}
@@ -175,10 +175,10 @@ public class CompoundProgress implements Progress {
 
 	/**
 	** Creates an iterable over the {@link Progress} objects corresponding to
-	** the given push tracking ids, all tracked by the given tracker.
+	** the given push tasks, all tracked by the given tracker.
 	**
 	** @param tracker The single tracker for all the ids
-	** @param ids The ids to track
+	** @param tasks The tasks to track
 	*/
 	public static <T, P extends Progress> Iterable<P> makePushProgressIterable(final ProgressTracker<T, P> tracker, final Iterable<PushTask<T>> tasks) {
 		return new CompositeIterable<PushTask<T>, P>(tasks) {

@@ -102,9 +102,9 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 
 
 	/************************************************************************
-	** Translator for the {@link TreeMap} backing a {@link TreeSet}. This will
-	** turn a map into a list and vice versa, so that the serialised
-	** representation doesn't store duplicates.
+	** Translator for the {@link java.util.TreeMap} backing a {@link
+	** java.util.TreeSet}. This will turn a map into a list and vice versa,
+	** so that the serialised representation doesn't store duplicates.
 	**
 	** maybe this belongs in a SkeletonTreeSet? if that's ever implemented..
 	**
