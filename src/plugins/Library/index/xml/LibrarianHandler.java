@@ -33,17 +33,32 @@ import plugins.Library.serial.TaskAbortException;
 public class LibrarianHandler extends DefaultHandler {
 	private boolean processingWord;
 
+	// The data about the pages referenced in this subindex
 	/** file id -> uri */
 	private HashMap<String, String> uris;
 	/** file id -> title */
 	private HashMap<String, String> titles;
+	/** file id -> wordCount */
+	private HashMap<String, Integer> wordCounts;
+	
+	// About the whole index
+	private int totalFileCount;
+	
+	// Requests and matches being made
 	private List<FindRequest> requests;
 	private List<FindRequest> wordMatches;
+	
+	private int inWordFileCount;
+
+	// About the file tag being processed 
 	private StringBuilder characters;
 	private String inFileTitle;
 	private FreenetURI inFileURI;
+	private int inFileWordCount;
+	
+	// Setting for how this is being processed		// TODO Probably dont need this now
 	private boolean wantPositions=false;
-
+	
 
 	/**
 	 * Construct a LibrarianHandler to look for many terms
@@ -55,8 +70,9 @@ public class LibrarianHandler extends DefaultHandler {
 		this.requests = new ArrayList(requests);
 		for (FindRequest r : requests){
 			r.setResult(new HashSet<TermPageEntry>());
-			wantPositions = wantPositions || r.shouldGetPositions();
+//			wantPositions = wantPositions || r.shouldGetPositions();
 		}
+		wantPositions = true;
 	}
 
 	public void setDocumentLocator(Locator value) {
@@ -70,6 +86,7 @@ public class LibrarianHandler extends DefaultHandler {
 		if(uris==null || titles ==null){
 			uris = new HashMap<String, String>();
 			titles = new HashMap<String, String>();
+			wordCounts = new HashMap<String, Integer>();
 		}
 	}
 
@@ -82,8 +99,13 @@ public class LibrarianHandler extends DefaultHandler {
 		}
 		String elt_name = rawName;
 
-		if (elt_name.equals("files"))
+		if (elt_name.equals("files")){
 			processingWord = false;
+			String fileCount = attrs.getValue("", "totalFileCount");
+			if(fileCount != null)
+				this.totalFileCount = Integer.parseInt(fileCount);
+			Logger.minor(this, "totalfilecount = "+this.totalFileCount);
+		}
 		if (elt_name.equals("keywords"))
 			processingWord = true;
 		/*
@@ -104,6 +126,8 @@ public class LibrarianHandler extends DefaultHandler {
 							Logger.minor(this, "found word match "+wordMatches);
 						}
 					}
+					if (attrs.getValue("fileCount")!=null)
+						inWordFileCount = Integer.parseInt(attrs.getValue("fileCount"));
 				}
 			} catch (Exception e) {
 				throw new SAXException(e);
@@ -124,6 +148,10 @@ public class LibrarianHandler extends DefaultHandler {
 						}
 						else
 							inFileTitle = "not available";
+						if(wordCounts.containsKey(attrs.getValue("id")))
+							inFileWordCount = wordCounts.get(attrs.getValue("id")).intValue();
+						else
+							inFileWordCount = -1;
 						
 						for (FindRequest match : wordMatches) {
 							match.setStage(RequestState.PARTIALRESULT, 3);
@@ -149,6 +177,12 @@ public class LibrarianHandler extends DefaultHandler {
 								titles.put(id, title);
 							} catch (Exception e) {
 								Logger.error(this, "Index Format not compatible " + e.toString(), e);
+							}
+							try {
+								int wordCount = Integer.parseInt(attrs.getValue("wordCount"));
+								wordCounts.put(id, wordCount);
+							} catch (Exception e) {
+								//Logger.minor(this, "No wordcount found " + e.toString(), e);
 							}
 						}
 						uris.put(id, key);
@@ -193,7 +227,16 @@ public class LibrarianHandler extends DefaultHandler {
 						match.setResult(result = new HashSet<TermPageEntry>());
 					TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), inFileURI, inFileTitle, termpositions);
 					result.add(pageEntry);
-					Logger.minor(this, "added "+inFileURI+ " to "+ match);
+
+//					Logger.minor(this, "termcount "+termpositions.size()+" filewordcount = "+inFileWordCount);
+					if(termpositions!=null && termpositions.size()>0 && inFileWordCount>0 ){
+						float relevance = (float)(termpositions.size()/(float)inFileWordCount);
+						if( totalFileCount > 0 && inWordFileCount > 0)
+							relevance *=  Math.log( (float)totalFileCount/(float)inWordFileCount);
+						pageEntry.setRelevance( relevance );
+						Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.getRelevance()+" - "+pageEntry.toString());
+					}
+					//Logger.minor(this, "added "+inFileURI+ " to "+ match);
 				}catch(TaskAbortException e){
 					Logger.error(this, "A task abort exception was thrown where it shouldnt.", e);
 				}
