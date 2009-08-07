@@ -25,9 +25,10 @@ public class AtomicProgress implements Progress {
 		notifyAll();
 	}
 
-	public synchronized void setAbort(TaskAbortException e) {
+	public synchronized void abort(TaskAbortException e) throws TaskAbortException {
 		abort = e;
 		notifyAll();
+		throw e;
 	}
 
 	public void setName(String n) {

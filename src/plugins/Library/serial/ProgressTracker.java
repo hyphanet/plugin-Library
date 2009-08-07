@@ -6,36 +6,21 @@ package plugins.Library.serial;
 import plugins.Library.serial.Serialiser.*;
 
 import java.util.Iterator;
-import java.util.IdentityHashMap;
+import java.util.WeakHashMap;
 
 /**
-** Keeps track of each task's progress and provides methods to retrieve this
-** data. For this to function properly, the data/metadata for push/pull tasks
-** (respectively) MUST NOT be null, and MUST NOT be internally modified by the
-** parent {@link Serialiser} and (in the case of {@link Serialiser.Composite},
-** its child serialisers). This is because they are used as keys into {@link
-** IdentityHashMap}s.
+** Keeps track of a task's progress and provides methods to retrieve this data.
+** For this to function properly, the data/meta for push/pull tasks MUST NOT
+** be modified for as long as the task is in operation. This is because their
+** {@link #equals(Object)} method is defined in terms of those fields, so any
+** change to them would interfere with {@link WeakHashMap}'s ability to locate
+** the tasks within the map.
 **
-** (Can't think of reason for the 2nd condition, now... maybe I was confused)
+** TODO make those fields final? hmm..
 **
-** TODO possibly make this use WeakIdentityHashMap (google-collections'
-** MapMaker has an implementation). This will prevent the (rare and
-** non-problematic, just inefficient) case of:
-**
-** * Thread A: inflate:pull: task complete, so remove Progress from the tracker
-** * Thread B: inflate: checks condition of data - not loaded
-** * Thread A: inflate: load data from task into the structure
-** * Thread B: inflate:pull: tracker does not have Progress, re-pull the data
-**
-** But if we do this, we will have to require inflate() and deflate() to free
-** the meta/data after it is used... may not be a good thing when we want to
-** push data, but retain a copy of it in memory...
-**
-** On second thoughts, not freeing the data is fine, and will prevent it from
-** being pushed twice, because it is still in the tracker's progress map.
-**
-** On third thoughts, no, what if the data changes, then we will want to push
-** the same object twice... force deflate() to perform shallow clone?
+** The progress objects are stored in a {@link WeakHashMap} and are freed
+** automatically by the garbage collector if its corresponding task goes out of
+** scope '''and''' no other strong references to the progress object exist.
 **
 ** @author infinity0
 */
@@ -45,13 +30,13 @@ public class ProgressTracker<T, P extends Progress> {
 	** Keeps track of the progress of each {@link PullTask}. The key is the
 	** metadata of the task.
 	*/
-	protected IdentityHashMap<Object, P> pullProgress = new IdentityHashMap<Object, P>();
+	final protected WeakHashMap<PullTask<T>, P> pullProgress = new WeakHashMap<PullTask<T>, P>();
 
 	/**
 	** Keeps track of the progress of each {@link PushTask}. The key is the
 	** data of the task.
 	*/
-	protected IdentityHashMap<T, P> pushProgress = new IdentityHashMap<T, P>();
+	final protected WeakHashMap<PushTask<T>, P> pushProgress = new WeakHashMap<PushTask<T>, P>();
 
 	/**
 	** An element class which is used to instantiate new elements.
@@ -89,57 +74,119 @@ public class ProgressTracker<T, P extends Progress> {
 		}
 	}
 
+	// TODO there is probably a better way of doing this...
+	//final protected HashSet<PullTask<T>> pullWaiters() = new HashSet<PullTask<T>> pullWaiters();
+	//final protected HashSet<PullTask<T>> pushWaiters() = new HashSet<PullTask<T>> pushWaiters();
 
-	public P getPullProgress(Object meta) {
-		synchronized (pullProgress) {
-			return pullProgress.get(meta);
-		}
-	}
-
-	public P getPushProgress(Object data) { // Object, not T, to match map.get(Object)
-		synchronized (pushProgress) {
-			return pushProgress.get(data);
-		}
+	/**
+	** Get the progress of a {@link PullTask} by its metadata.
+	**
+	** NOTE: since progress is stored in a {@link WeakHashMap} this means that
+	** if the task has finished, then this will return null. (PRIORITY?)
+	**
+	** This doesn't have to be a major problem - when a task completes, detect
+	** this, and deny further attempts to retrieve the progress.
+	*/
+	public P getPullProgressFor(Object meta/*, boolean block*/) {
+		return getPullProgress(new PullTask<T>(meta)/*, block*/);
 	}
 
 	/**
-	** Creates a new pull progress and keeps track of it. If there is already a
-	** progress for the metadata, returns null. This ensures that the object
-	** returned from this method has not been seen by any other threads.
+	** Get the progress of a {@link PushTask} by its metadata.
+	**
+	** NOTE: since progress is stored in a {@link WeakHashMap} this means that
+	** if the task has finished, then this will return null. (PRIORITY?)
+	**
+	** This doesn't have to be a major problem - when a task completes, detect
+	** this, and deny further attempts to retrieve the progress.
 	*/
-	public P addPullProgress(Object meta) {
+	public P getPushProgressFor(T data/*, boolean block*/) {
+		return getPushProgress(new PushTask<T>(data)/*, block*/);
+	}
+
+	/**
+	** Get the progress of a {@link PullTask}.
+	*/
+	public P getPullProgress(PullTask<T> task/*, boolean block*/) {
 		synchronized (pullProgress) {
-			if (pullProgress.containsKey(meta)) { return null; }
-			P p = newProgress();
-			pullProgress.put(meta, p);
+			return pullProgress.get(task);
+			/*P prog = pullProgress.get(task);
+			if (prog != null || !block) { return prog; }
+
+			pullWaiters.add(task);
+			while ((prog = pullProgress.get(task)) == null) {
+				pullProgress.wait();
+			}
+			return prog;*/
+		}
+	}
+
+	/*public P getPullProgress(PullTask<T> task) {
+		return getPullProgress(task, false);
+	}*/
+
+	/**
+	** Get the progress of a {@link PushTask}.
+	*/
+	public P getPushProgress(PushTask<T> task/*, boolean block*/) {
+		synchronized (pushProgress) {
+			return pushProgress.get(task);
+			/*P prog = pushProgress.get(task);
+			if (prog != null || !block) { return prog; }
+
+			pushWaiters.add(task);
+			while ((prog = pushProgress.get(task)) == null) {
+				pushProgress.wait();
+			}
+			return prog;*/
+		}
+	}
+
+	/*public P getPushProgress(PushTask<T> task) {
+		return getPushProgress(task, false);
+	}*/
+
+	/**
+	** Creates a new pull progress and keeps track of it. If there is already a
+	** progress for the metadata, throws {@link TaskInProgressException}. This
+	** ensures that the object returned from this method has not been seen by
+	** any other threads.
+	**
+	** @throws TaskInProgressException
+	*/
+	public P addPullProgress(PullTask<T> task) throws TaskInProgressException {
+		synchronized (pullProgress) {
+			P p = pullProgress.get(task);
+			if (p != null) { throw new TaskInProgressException(p); }
+			pullProgress.put(task, p = newProgress());
+
+			/*if (pullWaiters.contains(task)) {
+				pullProgress.notifyAll();
+			}*/
 			return p;
 		}
 	}
 
 	/**
-	** Creates a new pull progress and keeps track of it. If there is already a
-	** progress for the metadata, returns null. This ensures that the object
-	** returned from this method has not been seen by any other threads.
+	** Creates a new push progress and keeps track of it. If there is already a
+	** progress for the metadata, throws {@link TaskInProgressException}. This
+	** ensures that the object returned from this method has not been seen by
+	** any other threads.
+	**
+	** @throws TaskInProgressException
 	*/
-	public P addPushProgress(T data) {
+	public P addPushProgress(PushTask<T> task) throws TaskInProgressException {
 		synchronized (pushProgress) {
-			if (pushProgress.containsKey(data)) { return null; }
-			P p = newProgress();
-			pushProgress.put(data, p);
+			P p = pushProgress.get(task);
+			if (p != null) { throw new TaskInProgressException(p); }
+			pushProgress.put(task, p = newProgress());
+
+			/*if (pushWaiters.remove(task)) {
+				pushProgress.notifyAll();
+			}*/
 			return p;
 		}
 	}
 
-	public P remPullProgress(Object meta) {
-		synchronized (pullProgress) {
-			return pullProgress.remove(meta);
-		}
-	}
-
-	public P remPushProgress(Object data) { // Object, not T, to match map.remove(Object)
-		synchronized (pushProgress) {
-			return pushProgress.remove(data);
-		}
-	}
 
 }

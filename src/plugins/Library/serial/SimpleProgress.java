@@ -80,10 +80,11 @@ public class SimpleProgress implements Progress {
 		}
 	}
 
-	public synchronized void setAbort(TaskAbortException e) {
+	public synchronized void abort(TaskAbortException e) throws TaskAbortException {
 		abort = e;
 		inprogress = false;
 		notifyAll();
+		throw e;
 	}
 
 	public void setName(String n) {

@@ -5,9 +5,6 @@ package plugins.Library.serial;
 
 import plugins.Library.serial.Serialiser.*;
 
-import java.util.Collection;
-import java.util.Map;
-
 /**
 ** An interface that handles a single {@link Serialiser.Task} and sends live
 ** updates of its {@link Progress}.
@@ -28,7 +25,7 @@ public interface LiveArchiver<T, P extends Progress> extends Archiver<T> {
 	**
 	** '''If this does not occur, deadlock will result'''.
 	*/
-	public void pullLive(PullTask<T> task, P p);
+	public void pullLive(PullTask<T> task, P p) throws TaskAbortException;
 
 	/**
 	** Executes a {@link PushTask} and update the progress associated with it.
@@ -42,6 +39,6 @@ public interface LiveArchiver<T, P extends Progress> extends Archiver<T> {
 	**
 	** '''If this does not occur, deadlock will result'''.
 	*/
-	public void pushLive(PushTask<T> task, P p);
+	public void pushLive(PushTask<T> task, P p) throws TaskAbortException;
 
 }

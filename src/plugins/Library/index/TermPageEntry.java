@@ -29,7 +29,7 @@ public class TermPageEntry extends TermEntry {
 	protected Map<Integer, String> pos;
 
 	/**
-	** Here for backwards-compatibility with {@link URIWrapper}
+	** Here for backwards-compatibility with the old URIWrapper class.
 	*/
 	protected String title;
 
@@ -63,8 +63,12 @@ public class TermPageEntry extends TermEntry {
 		return uri;
 	}
 
+	// TODO rm this in SnakeYAML representation
 	public String getTitle() {
 		return title;
+	}
+
+	public void setTitle(String s) {
 	}
 
 	public void setURI(FreenetURI u) {
@@ -74,7 +78,6 @@ public class TermPageEntry extends TermEntry {
 	}
 
 	transient protected Map<Integer, String> pos_immutable;
-
 	public Map<Integer, String> getPositions() {
 		if (pos_immutable == null && pos != null) {
 			pos_immutable = Collections.unmodifiableMap(pos);

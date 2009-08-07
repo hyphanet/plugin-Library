@@ -63,6 +63,8 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 		((SkeletonBTreeMap<E, E>)bkmap).inflate();
 	}
 
+	// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
+	public plugins.Library.serial.CompoundProgress getPPP() { return ((SkeletonBTreeMap<E, E>)bkmap).ppp; }
 
 	/**
 	** Creates a translator for the nodes of the B-tree. This method just calls
@@ -100,9 +102,9 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 
 
 	/************************************************************************
-	** Translator for the {@link TreeMap} backing a {@link TreeSet}. This will
-	** turn a map into a list and vice versa, so that the serialised
-	** representation doesn't store duplicates.
+	** Translator for the {@link java.util.TreeMap} backing a {@link
+	** java.util.TreeSet}. This will turn a map into a list and vice versa,
+	** so that the serialised representation doesn't store duplicates.
 	**
 	** maybe this belongs in a SkeletonTreeSet? if that's ever implemented..
 	**

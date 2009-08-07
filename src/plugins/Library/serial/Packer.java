@@ -46,7 +46,11 @@ import java.util.TreeSet;
 ** * {@link #preprocessPushBins(Map, Collection)}
 **
 ** Note that this class effectively '''disables''' the "duplicate" detection of
-** {@link ProgressTracker}: that class uses {@link IdentityHashMap}s to keep
+** {@link ProgressTracker}; tasks are
+*
+*
+*
+*  that class uses {@link IdentityHashMap}s to keep
 ** track of pull/push requests for given meta/data; but this class dynamically
 ** generates the meta/data for each bin on each pull/push request. This should
 ** not intefere with correctness (as long as the relevant locks in place); just

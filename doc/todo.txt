@@ -8,11 +8,14 @@
 
 == Index semantics ==
 
->>> PRIORITY work out semantics for getting a subset of a collection of entries
+- PRIORITY adapt SkeletonBTreeMap.inflate() to work for a submap range too. see
+  that class for more details.
 - TODO index: "suggested tokens" - suggest what other people should tag this
   index as; they are free to ignore this suggestion (very low priority for now)
 
 == Task handling ==
+
+separate interface for the startPull stuff
 
 - TODO maybe have deflate/inflate throw a different checked exception from
   TaskAbortException, forcing them to handle the TaskAbortException thrown by
@@ -20,16 +23,19 @@
 
 == TermEntry semantics ==
 
-- PRIORITY merge URIWrapper with TermPageEntry
 - TODO make TokenEntries immutable, and make Yaml stuff to create/uncreate these...
   - this will be a PRIORITY after FredPluginAPI is properly implemented
 - TODO there should be only one entry per URI per Token (enforce this in the code at some point)
 
 == Request/Progress reporting ==
 
-- PRIORITY make a CompoundRequest that extends CompoundProgress (and make CompondProgress better and more standard)
+>>> PRIORITY make a CompoundRequest that extends CompoundProgress (and make CompondProgress better and more standard)
   - and it will have equivalent functionality as "getSubRequests"
   - how to implement getSubStage* in Search, and put it back into FindRequest
+
+make the progress iterables blocking....
+
+
 - implement nice version of finalTotalEstimate() in FindRequest and Search
 - TODO probably should synchronize AtomicProgress, SimpleProgress, and
   CompoundProgress... although maybe unnecessary since these should all be

@@ -116,8 +116,6 @@ public class ProtoIndex {
 	}
 
 
-
-
 	public class getTermEntriesHandler extends AbstractRequest<Collection<TermEntry>> implements Runnable {
 
 		final Stack<Object> metas = new Stack<Object>();
@@ -143,7 +141,6 @@ public class ProtoIndex {
 			throw new UnsupportedOperationException("not implemented");
 		}
 
-		protected Collection<TermEntry> resultreturn;
 		/**
 		** {@inheritDoc}
 		**
@@ -152,107 +149,50 @@ public class ProtoIndex {
 		*/
 		@Override public Collection<TermEntry> getResult() throws TaskAbortException {
 			if (error != null) { throw error; }
-			if (result != null && resultreturn == null) {
-				resultreturn = Collections.unmodifiableCollection(result);
-			}
-			return resultreturn;
+			return result;
 		}
 
 		@Override public String getCurrentStatus() {
-			if (metas.size() == 0) { return "nothing yet"; }
-			Progress p = trackers.peek().getPullProgress(metas.peek());
-			return (p == null)? "waiting for next stage to start": p.getStatus();
+			if (error != null) { return error.getMessage(); }
+			if (result != null) { return "completed in " + getTimeTaken() + "ms"; }
+			if (metas.size() == 0) { return "please wait"; }
+			Progress p = last != null? last: trackers.peek().getPullProgressFor(metas.peek());
+			return (p == null)? "please wait": p.getStatus();
 		}
 
 		@Override public String getCurrentStage() {
-			if (metas.size() == 0) { return "nothing yet"; }
-			Progress p = trackers.peek().getPullProgress(metas.peek());
-			return (p == null)? "waiting for next stage to start": p.getName();
+			if (error != null) { return "Task aborted"; }
+			if (result != null) { return "Task completed"; }
+			if (metas.size() == 0) { return "Starting"; }
+			Progress p = last != null? last: trackers.peek().getPullProgressFor(metas.peek());
+			return (p == null)? "Starting next stage": p.getName();
 		}
 
+		// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
+		Progress last = null;
 		@Override public void run() {
-			// get the root container
-			SkeletonBTreeSet<TermEntry> root;
-			for (;;) {
-				try {
-					root = ttab.get(subject);
-					break;
-				} catch (DataNotLoadedException d) {
-					Skeleton p = d.getParent();
-					metas.push(d.getValue());
-					trackers.push(((Serialiser.Trackable)p.getSerialiser()).getTracker());
+			try {
+				// get the root container
+				SkeletonBTreeSet<TermEntry> root;
+				for (;;) {
 					try {
+						root = ttab.get(subject);
+						break;
+					} catch (DataNotLoadedException d) {
+						Skeleton p = d.getParent();
+						metas.push(d.getValue());
+						trackers.push(((Serialiser.Trackable)p.getSerialiser()).getTracker());
 						p.inflate(d.getKey());
-					} catch (TaskAbortException e) {
-						error = e;
-						return;
 					}
 				}
-			}
-			// get the container contents
-			Collection<TermEntry> tmp = new TreeSet<TermEntry>();
-			for (Iterator<TermEntry> it = root.iterator(); it.hasNext();) {
-				// OPTIMISE atm this iterations through the entries and inflates them in
-				// turn; need to parallelise this
+				last = root.getPPP(); // REMOVE ME
+				root.inflate();
+				setResult(Collections.unmodifiableSet(root));
 
-				// (TODO the below code will be extended to allow retrieving a *subset* of
-				// the all the entries, not just inflate() everything)
-				//
-				// a suitable algorithm is breadth-first search: start at the root set of
-				// nodes that contain the subset, and inflate (in parallel) all the ones
-				// not yet loaded. as each one is loaded, recurse down it and add all the
-				// subnodes that belong to the subset, and are not loaded, and add them to
-				// the queue.
-
-				// of course this means that "getCurrentStatus()" will need to see not just
-				// the top of the stack...
-				try {
-					tmp.add(it.next());
-				} catch (DataNotLoadedException d) {
-					Skeleton p = d.getParent();
-					metas.push(d.getValue());
-					trackers.push(((Serialiser.Trackable)p.getSerialiser()).getTracker());
-					try {
-						p.inflate(d.getKey());
-					} catch (TaskAbortException e) {
-						error = e;
-						return;
-					}
-				}
-				/* TODO
-				 * pseudocode for the algorithm mentioned above
-				Queue waiting = new Queue(root), Collection inprogress;
-				while (!waiting.isEmpty() || !inprogress.isEmpty()) {
-					Node n = waiting.pop(); // block until one pops
-					for (K k: n.subKeys(fr, to)) {
-						if (n.subnode(k) is loaded) {
-							waiting.push(n.subnode(k));
-							continue;
-						}
-						// wait until inprogress.size() is below a certain limit, maybe
-						inprogress.push(k);
-						new Thread () {
-							@Override public void run() {
-								// put details onto the trackers and metas stacks
-								try {
-									n.deflate(k);
-									assert(n.subnode(k) is loaded);
-									// save memory by testing isLeaf here rather than waiting for the loop to
-									// pop it off the queue then do nothing since subKeys(fr, to) is empty
-									if (!n.subnode(k).isLeaf()) { waiting.push(n.subnode(k)); }
-								} catch (TaskCompleteException e) {
-									// ignore
-								} finally {
-									inprogress.pop(k);
-								}
-							}
-						}.start();
-					}
-				}
-				* plus the relevant error-handling code, and appropriate synchronisation
-				*/
+			} catch (TaskAbortException e) {
+				setError(e);
+				return;
 			}
-			result = tmp;
 		}
 
 	}

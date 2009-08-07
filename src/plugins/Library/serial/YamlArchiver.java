@@ -20,7 +20,7 @@ import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.nodes.ScalarNode;
 import org.yaml.snakeyaml.nodes.MappingNode;
 import org.yaml.snakeyaml.constructor.Constructor;
-import org.yaml.snakeyaml.constructor.Construct;
+import org.yaml.snakeyaml.constructor.AbstractConstruct;
 import org.yaml.snakeyaml.constructor.ConstructorException;
 
 import java.util.Collections;
@@ -185,23 +185,23 @@ implements Archiver<T>,
 		}
 	}
 
-	@Override public void pullLive(PullTask<T> t, SimpleProgress p) {
+	@Override public void pullLive(PullTask<T> t, SimpleProgress p) throws TaskAbortException {
 		try {
 			pull(t);
 			if (testmode) { randomWait(p); }
 			else { p.addTotal(0, true); }
 		} catch (TaskAbortException e) {
-			p.setAbort(e);
+			p.abort(e);
 		}
 	}
 
-	@Override public void pushLive(PushTask<T> t, SimpleProgress p) {
+	@Override public void pushLive(PushTask<T> t, SimpleProgress p) throws TaskAbortException {
 		try {
 			push(t);
 			if (testmode) { randomWait(p); }
 			else { p.addTotal(0, true); }
 		} catch (TaskAbortException e) {
-			p.setAbort(e);
+			p.abort(e);
 		}
 	}
 
@@ -238,7 +238,7 @@ implements Archiver<T>,
 			this.yamlConstructors.put("!BinInfo", new ConstructPackerBinInfo());
 		}
 
-		private class ConstructFreenetURI implements Construct {
+		private class ConstructFreenetURI extends AbstractConstruct {
 			@Override public Object construct(Node node) {
 				String uri = (String) constructScalar((ScalarNode)node);
 				try {
@@ -247,11 +247,9 @@ implements Archiver<T>,
 					throw new ConstructorException("while constructing a FreenetURI", node.getStartMark(), "found malformed URI " + uri, null) {};
 				}
 			}
-			// TODO this might be removed in snakeYAML later
-			@Override public void construct2ndStep(Node node, Object object) { }
 		}
 
-		private class ConstructPackerBinInfo implements Construct {
+		private class ConstructPackerBinInfo extends AbstractConstruct {
 			@Override public Object construct(Node node) {
 				Map<?, ?> map = (Map) constructMapping((MappingNode)node);
 				if (map.size() != 1) {
@@ -262,8 +260,6 @@ implements Archiver<T>,
 				}
 				throw new AssertionError();
 			}
-			// TODO this might be removed in snakeYAML later
-			@Override public void construct2ndStep(Node node, Object object) { }
 		}
 	}
 
