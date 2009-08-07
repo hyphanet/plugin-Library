@@ -23,6 +23,7 @@ import plugins.Library.serial.CompoundProgress;
 import plugins.Library.serial.YamlArchiver;
 import plugins.Library.serial.DataFormatException;
 import plugins.Library.serial.TaskAbortException;
+import plugins.Library.serial.TaskInProgressException;
 
 import java.util.Collection;
 import java.util.List;
@@ -373,7 +374,7 @@ implements Archiver<ProtoIndex>,
 			return subsrl;
 		}
 
-		@Override public void pullLive(PullTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) {
+		@Override public void pullLive(PullTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) throws TaskAbortException {
 			SkeletonBTreeMap<K, V>.GhostNode ghost = (SkeletonBTreeMap.GhostNode)task.meta;
 			PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(ghost.getMeta());
 			p.setName("Pulling " + name + ": " + ghost.getRange());
@@ -383,7 +384,7 @@ implements Archiver<ProtoIndex>,
 			p.addPartDone();
 		}
 
-		@Override public void pushLive(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) {
+		@Override public void pushLive(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) throws TaskAbortException {
 			Map<String, Object> intermediate = trans.app(task.data);
 			PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(intermediate, task.meta);
 			p.setName("Pushing " + name + ": " + task.data.getRange());
@@ -420,28 +421,26 @@ implements Archiver<ProtoIndex>,
 		}
 
 		@Override protected void preprocessPullBins(Map<K, PullTask<V>> tasks, Collection<PullTask<Map<K, V>>> bintasks) {
-			List<Object> mib = new ArrayList<Object>(bintasks.size());
-			for (PullTask<Map<K, V>> t: bintasks) {
-				mib.add(t.meta);
-			}
-
 			for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
-				CompoundProgress p = tracker.addPullProgress(en.getValue().meta);
-				if (p != null) { p.setSubprogress(CompoundProgress.makeProgressIterable(subsrl.getTracker(), mib, true)); }
-				p.setName("Pulling root container for " + en.getKey());
+				try {
+					CompoundProgress p = tracker.addPullProgress(en.getValue());
+					p.setSubprogress(CompoundProgress.makePullProgressIterable(subsrl.getTracker(), bintasks));
+					p.setName("Pulling root container for " + en.getKey());
+				} catch (TaskInProgressException e) {
+					throw new AssertionError();
+				}
 			}
 		}
 
 		@Override protected void preprocessPushBins(Map<K, PushTask<V>> tasks, Collection<PushTask<Map<K, V>>> bintasks) {
-			List<Map<K, V>> dib = new ArrayList<Map<K, V>>(bintasks.size());
-			for (PushTask<Map<K, V>> t: bintasks) {
-				dib.add(t.data);
-			}
-
 			for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
-				CompoundProgress p = tracker.addPushProgress(en.getValue().data);
-				if (p != null) { p.setSubprogress(CompoundProgress.makeProgressIterable(subsrl.getTracker(), dib, false)); }
-				p.setName("Pushing root container for " + en.getKey());
+				try {
+					CompoundProgress p = tracker.addPushProgress(en.getValue());
+					p.setSubprogress(CompoundProgress.makePushProgressIterable(subsrl.getTracker(), bintasks));
+					p.setName("Pushing root container for " + en.getKey());
+				} catch (TaskInProgressException e) {
+					throw new AssertionError();
+				}
 			}
 		}
 
@@ -474,7 +473,7 @@ implements Archiver<ProtoIndex>,
 			return subsrl;
 		}
 
-		@Override public void pullLive(PullTask<Map<K, V>> task, SimpleProgress p) {
+		@Override public void pullLive(PullTask<Map<K, V>> task, SimpleProgress p) throws TaskAbortException {
 			PullTask<Map<String, Object>> t = new PullTask<Map<String, Object>>(task.meta);
 			p.setName("Pulling root container " + task.meta);
 			p.addTotal(1, false);
@@ -494,11 +493,11 @@ implements Archiver<ProtoIndex>,
 				task.data = map;
 				p.addPartDone();
 			} catch (RuntimeException e) {
-				p.setAbort(new TaskAbortException("Could not retrieve data from bin " + t.data.keySet(), e));
+				p.abort(new TaskAbortException("Could not retrieve data from bin " + t.data.keySet(), e));
 			}
 		}
 
-		@Override public void pushLive(PushTask<Map<K, V>> task, SimpleProgress p) {
+		@Override public void pushLive(PushTask<Map<K, V>> task, SimpleProgress p) throws TaskAbortException {
 			Map<String, Object> conv = new HashMap<String, Object>();
 			for (Map.Entry<K, V> mp: task.data.entrySet()) {
 				conv.put((ktr == null)? (String)mp.getKey(): ktr.app(mp.getKey()), btr.app(mp.getValue()));

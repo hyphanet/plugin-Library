@@ -5,7 +5,6 @@
 ** Contains implementations of the index interfaces from the library package,
 ** as well as classes representing data held within an index.
 **
-**
 ** @author infinity0
 */
 package plugins.Library.index;

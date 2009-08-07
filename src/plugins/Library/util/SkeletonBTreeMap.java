@@ -5,6 +5,7 @@ package plugins.Library.util;
 
 import plugins.Library.serial.Serialiser.*;
 import plugins.Library.serial.IterableSerialiser;
+import plugins.Library.serial.ScheduledSerialiser;
 import plugins.Library.serial.MapSerialiser;
 import plugins.Library.serial.Translator;
 import plugins.Library.serial.DataFormatException;
@@ -19,7 +20,11 @@ import java.util.LinkedHashMap;
 import java.util.ArrayList;
 
 // URGENT tidy this
+import java.util.Queue;
+import java.util.PriorityQueue;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +33,7 @@ import plugins.Library.serial.CompoundProgress;
 import plugins.Library.serial.Serialiser;
 import plugins.Library.serial.Progress;
 import plugins.Library.serial.ProgressTracker;
+import plugins.Library.util.concurrent.Scheduler;
 
 /**
 ** {@link Skeleton} of a {@link BTreeMap}. DOCUMENT
@@ -201,7 +207,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		** Expects metadata to be of type {@link GhostNode}.
 		**
-		** @param key the key
+		** @param key The key
 		** @param auto Whether to recursively deflate the node's subnodes.
 		*/
 		public void deflate(K key, boolean auto) throws TaskAbortException {
@@ -237,9 +243,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		/**
-		** Inflates the node to the left of the given key.
+		** Inflates the node to the immediate right of the given key.
 		**
-		** @param key the key
+		** Passes metadata of type {@link GhostNode}.
+		**
+		** @param key The key
 		** @param auto Whether to recursively inflate the node's subnodes.
 		*/
 		public void inflate(K key, boolean auto) throws TaskAbortException {
@@ -359,8 +367,127 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		((SkeletonNode)root).deflate();
 	}
 
+	// URGENT tidy this; this should proboably go in a serialiser
+	// and then we will access the Progress of a submap with a task whose
+	// metadata is (lkey, rkey), or something..(PROGRESS)
+	CompoundProgress ppp = new CompoundProgress();
+	public CompoundProgress getPPP() { return ppp; } // REMOVE ME
 	@Override public void inflate() throws TaskAbortException {
-		((SkeletonNode)root).inflate();
+
+		// TODO adapt the algorithm to track partial loads of submaps (SUBMAP)
+		// TODO if we do that, we'll also need to make it thread-safe. (THREAD)
+		// TODO and do the PROGRESS stuff whilst we're at it
+
+		if (!(nsrl instanceof ScheduledSerialiser)) {
+			// TODO could ideally use the below code, and since the Scheduler would be
+			// unavailable, just execute the tasks in the current thread. the priority
+			// queue's comparator would turn it into depth-first search automatically.
+			((SkeletonNode)root).inflate();
+			return;
+		}
+
+		Queue<SkeletonNode> nodequeue = new PriorityQueue<SkeletonNode>();
+		BlockingQueue<PullTask<SkeletonNode>> tasks = new LinkedBlockingQueue<PullTask<SkeletonNode>>(0x10);
+		BlockingQueue<PullTask<SkeletonNode>> inflated = new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10,
+			new Comparator<PullTask<SkeletonNode>>() {
+				@Override public int compare(PullTask<SkeletonNode> t1, PullTask<SkeletonNode> t2) {
+					return t1.data.compareTo(t2.data);
+				}
+			}
+		);
+		ConcurrentMap<PullTask<SkeletonNode>, TaskAbortException> error = new ConcurrentHashMap<PullTask<SkeletonNode>, TaskAbortException>();
+
+		Map<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ?>> ids = null;
+		ProgressTracker<SkeletonNode, ?> ntracker = null;;
+
+		if (nsrl instanceof Serialiser.Trackable) {
+			ids = new LinkedHashMap<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ?>>();
+			ntracker = ((Serialiser.Trackable)nsrl).getTracker();
+			// PROGRESS make a ProgressTracker track this instead of "ppp".
+			ppp.setSubprogress(CompoundProgress.makePullProgressIterable(ids));
+			ppp.setName("All entries in B-tree");
+		}
+
+		Scheduler pool = ((ScheduledSerialiser)nsrl).pullSchedule(tasks, inflated, error);
+		//System.out.println("Using scheduler");
+
+		try {
+			nodequeue.add((SkeletonNode)root);
+
+			do {
+
+				for (Map.Entry<PullTask<SkeletonNode>, TaskAbortException> en: error.entrySet()) {
+					assert(!(en.getValue() instanceof plugins.Library.serial.TaskInProgressException)); // by contract of ScheduledSerialiser
+					if (!(en.getValue() instanceof TaskCompleteException)) {
+						// TODO maybe dump it somewhere else and throw it at the end...
+						throw en.getValue();
+					} else {
+						// retrieve the inflated SkeletonNode and add it to the queue...
+						GhostNode ghost = (GhostNode)en.getKey().meta;
+						SkeletonNode parent = ghost.parent;
+						// THREAD race condition here... if another thread has inflated the task
+						// but not yet attached the inflated node to the tree, the assertion fails.
+						// could check to see if the Progress for the Task still exists, but the
+						// performance of this depends on the GC freeing weak referents quickly...
+						assert(parent.rnodes.get(ghost.lkey).entries != null);
+						nodequeue.add((SkeletonNode)parent.rnodes.get(ghost.lkey));
+					}
+				}
+
+				// handle the inflated tasks and attach them to the tree.
+				while (!inflated.isEmpty()) {
+					// THREAD progress tracker should prevent this from being run twice for the
+					// same node, but what if we didn't use a progress tracker? hmm...
+
+					// try until one pops, or we are done
+					final PullTask<SkeletonNode> task = inflated.poll(1, TimeUnit.SECONDS);
+					if (task == null) { continue; }
+
+					SkeletonNode node = task.data;
+					GhostNode ghost = (GhostNode)task.meta;
+					SkeletonNode parent = ghost.parent;
+
+					// attach task data into the parent
+					if (!compare0(ghost.lkey, node.lkey) || !compare0(ghost.rkey, node.rkey)) {
+						throw new DataFormatException("BTreeMap Node lkey/rkey does not match", task.data);
+					}
+					parent.lnodes.put(node.rkey, node);
+					parent.rnodes.put(node.lkey, node);
+					--parent.ghosts;
+
+					nodequeue.add(node);
+				}
+
+				// go through the nodequeue and add any child ghost nodes to the tasks queue
+				while (!nodequeue.isEmpty()) {
+					SkeletonNode node = nodequeue.remove();
+					((SkeletonTreeMap<K, V>)node.entries).inflate(); // SUBMAP here
+
+					if (node.isLeaf()) { continue; }
+					// add any ghost nodes to the task queue
+					for (Map.Entry<K, Node> en: node.rnodes.entrySet()) { // SUBMAP here
+						Node next = en.getValue();
+						if (next.entries != null) {
+							SkeletonNode skel = (SkeletonNode)next;
+							if (!skel.isLive()) { nodequeue.add(skel); }
+							continue;
+						}
+						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>((GhostNode)next);
+						if (ids != null) { ids.put(task, ntracker); }
+						tasks.put(task);
+					}
+				}
+
+				// nodequeue is empty, but tasks may have inflated in the meantime
+
+			// URGENT work out this condition properly
+			} while (pool.isActive() || !tasks.isEmpty() || !inflated.isEmpty() || !error.isEmpty());
+
+		} catch (InterruptedException e) {
+			throw new TaskAbortException("interrupted", e);
+		} finally {
+			pool.close();
+		}
 	}
 
 	@Override public void deflate(K key) throws TaskAbortException {
@@ -383,72 +510,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 		}
 	}
-
-
-	// URGENT tidy this; this should proboably go in a serialiser
-	CompoundProgress ppp = new CompoundProgress();
-	public CompoundProgress getPPP() { return ppp; }
-
-	public void inflate2() throws TaskAbortException {
-
-		final BlockingQueue<SkeletonNode> waiting = new PriorityBlockingQueue<SkeletonNode>();
-		final BlockingQueue<Object> inprogress = new LinkedBlockingQueue<Object>(0x10);
-		final Map<GhostNode, ProgressTracker<SkeletonNode, Progress>> ids = new LinkedHashMap<GhostNode, ProgressTracker<SkeletonNode, Progress>>();
-
-		ppp.setSubprogress(CompoundProgress.makeProgressIterable(ids, true));
-		ppp.setName("all entries in B-tree");
-
-		try {
-			// TODO track partial loads of SkTreeMaps too...
-			if (root.isLeaf()) { ((SkeletonNode)root).inflate(); return; }
-			waiting.put((SkeletonNode)root);
-			while (!waiting.isEmpty() || !inprogress.isEmpty()) {
-				final SkeletonNode n = waiting.poll(1, TimeUnit.SECONDS); // block until one pops
-				if (n == null) { continue; }
-				// only non-leaf nodes are ever added to the queue
-				for (final K k: n.rnodes.keySet()) { // SUBSET here
-					Node next = n.rnodes.get(k);
-					if (next.entries != null) {
-						waiting.put((SkeletonNode)next);
-						continue;
-					}
-					// wait until inprogress.size() is below a certain limit, maybe
-					final GhostNode ghost = (GhostNode)next;
-					final Object lock = new Object();
-					inprogress.put(lock);
-					new Thread() {
-						@Override public void run() {
-							try {
-								// put details onto the trackers and metas stacks
-								ids.put(ghost, ((Serialiser.Trackable)n.getSerialiser()).getTracker());
-								n.inflate(k);
-								assert(n.rnodes.get(k) != null);
-								SkeletonNode next = (SkeletonNode)n.rnodes.get(k);
-								// save memory by testing isLeaf here rather than waiting for the loop to
-								// pop it off the queue then do nothing since subKeys(fr, to) is empty
-								if (!next.isLeaf()) { waiting.put(next); }
-								else { next.inflate(); }
-							} catch (TaskCompleteException e) {
-								// ignore
-							} catch (Exception e) {
-								// TaskAbortException
-								// InterruptedException
-								// URGENT deal with this appropriately...
-								throw new RuntimeException(e);
-							} finally {
-								inprogress.remove(lock);
-							}
-						}
-					}.start();
-				}
-			}
-		} catch (InterruptedException e) {
-			throw new TaskAbortException("interrupted", e);
-		}
-
-	}
-
-
 
 
 	/**

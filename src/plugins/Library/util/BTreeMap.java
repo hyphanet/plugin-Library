@@ -45,8 +45,8 @@ import java.util.ConcurrentModificationException;
 ** A B-tree of order m (the maximum number of children for each node) is a tree
 ** which satisfies the following properties:
 **
-** * Every node has between m-1 and m/2-1 entries, except for the root node,
-**   which has between 1 and m/2-1 entries.
+** * Every node has between m/2-1 and m-1 entries, except for the root node,
+**   which has between 1 and m-1 entries.
 ** * All leaves are the same distance from the root.
 ** * Every non-leaf node with k entries has k+1 subnodes arranged in sorted
 **   order between the entries (for details, see {@link Node}).
@@ -393,7 +393,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		/**
 		** Defines a total ordering on the nodes. This is useful for eg. deciding
 		** which nodes to visit first in a breadth-first search algorithm that uses
-		** a sorted queue ({@link java.util.concurrent.PriorityBlockingQueue})
+		** a priority queue ({@link java.util.concurrent.PriorityBlockingQueue})
 		** instead of a FIFO ({@link java.util.concurrent.LinkedBlockingQueue}).
 		**
 		** A node is "compare-equal" to another iff:
@@ -418,9 +418,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** @param n The other node to compare with
 		*/
 		@Override public int compareTo(Node n) {
-			int a = compareL(lkey, n.lkey);
 			int b = compareR(rkey, n.rkey);
-			return (b == 0)? ((a == 0)? 0: -a): b;
+			return (b == 0)? compareL(n.lkey, lkey): b;
 			// the more "natural" version
 			// return (a == 0)? ((b == 0)?  0: (b < 0)? -1:  1)
 			//         (a < 0)? ((b == 0)?  1: (b < 0)? -1:  1):
@@ -483,8 +482,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         don't implement {@link Comparable})
 	*/
 	protected boolean compare0(K key1, K key2) {
-		return (key1 == null && key2 == null) ||
-		       ((comparator != null)? comparator.compare(key1, key2): ((Comparable<K>)key1).compareTo(key2)) == 0;
+		return key1 == null? key2 == null: key2 == null? false:
+			   ((comparator != null)? comparator.compare(key1, key2): ((Comparable<K>)key1).compareTo(key2)) == 0;
 	}
 
 	/**

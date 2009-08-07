@@ -23,7 +23,9 @@ import java.util.Date;
 ** * {@link Request#isTotalFinal()}
 **
 ** and make sure the {@link #state}, {@link #error}, and {@link #result} fields
-** are set appropriately during the course of the operation.
+** are set appropriately during the course of the operation. (You can use
+** {@link #setResult(Object)} and {@link #setError(TaskAbortException)} to do
+** this.)
 **
 ** The programmer might also wish to override the following:
 **
@@ -37,6 +39,7 @@ public abstract class AbstractRequest<T> implements Request<T> {
 
 	final protected String subject;
 	final protected Date start;
+	protected Date stop = null;
 
 	/**
 	** Holds the state of the operation. Returned by {@link #getState()}.
@@ -64,6 +67,30 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	public AbstractRequest(String subject){
 		this.subject = subject;
 		this.start = new Date();
+	}
+
+	protected void setResult(T res) {
+		if (stop != null) { throw new IllegalStateException("Task has already finished."); }
+		result = res;
+		state = RequestState.FINISHED;
+		stop = new Date();
+	}
+
+	protected void setError(TaskAbortException err) {
+		if (stop != null) { throw new IllegalStateException("Task has already finished."); }
+		error = err;
+		state = RequestState.FINISHED;
+		stop = new Date();
+	}
+
+	/**
+	** Get the time taken for the operation to finish.
+	**
+	** TODO put this into {@link Request}?
+	*/
+	public long getTimeTaken() {
+		if (stop == null) { throw new IllegalStateException("Task not yet finished."); }
+		return stop.getTime() - start.getTime();
 	}
 
 	/*========================================================================

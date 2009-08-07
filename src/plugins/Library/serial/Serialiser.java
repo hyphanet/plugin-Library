@@ -59,11 +59,24 @@ public interface Serialiser<T> {
 	**
 	** Consequently, {@code Serialiser}s should be implemented so that its
 	** push operations generate metadata for which this property holds.
+	**
+	** PRIORITY decide whether we want to make the meta field final - this
+	** would assist use of ProgressTracker.
 	*/
 	final public static class PullTask<T> extends Task<T> {
 
 		public PullTask(Object m) {
+			if (m == null) { throw new IllegalArgumentException("Cowardly refusing to make a PullTask with null metadata."); }
 			meta = m;
+		}
+
+		@Override public boolean equals(Object o) {
+			if (!(o instanceof PullTask)) { return false; }
+			return meta == ((PullTask)o).meta;
+		}
+
+		@Override public int hashCode() {
+			return System.identityHashCode(meta);
 		}
 
 	}
@@ -80,16 +93,30 @@ public interface Serialiser<T> {
 	**
 	** Consequently, {@code Serialiser}s may require that extra data is passed
 	** to its push operations such that it can...
+	**
+	** PRIORITY decide whether we want to make the data field final - this
+	** would assist use of ProgressTracker.
 	*/
 	final public static class PushTask<T> extends Task<T> {
 
 		public PushTask(T d) {
+			if (d == null) { throw new IllegalArgumentException("Cowardly refusing to make a PushTask with null data."); }
 			data = d;
 		}
 
 		public PushTask(T d, Object m) {
+			if (d == null) { throw new IllegalArgumentException("Cowardly refusing to make a PushTask with null data."); }
 			data = d;
 			meta = m;
+		}
+
+		@Override public boolean equals(Object o) {
+			if (!(o instanceof PushTask)) { return false; }
+			return data == ((PushTask)o).data;
+		}
+
+		@Override public int hashCode() {
+			return System.identityHashCode(data);
 		}
 
 	}

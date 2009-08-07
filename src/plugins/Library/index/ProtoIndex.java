@@ -116,8 +116,6 @@ public class ProtoIndex {
 	}
 
 
-
-
 	public class getTermEntriesHandler extends AbstractRequest<Collection<TermEntry>> implements Runnable {
 
 		final Stack<Object> metas = new Stack<Object>();
@@ -143,7 +141,6 @@ public class ProtoIndex {
 			throw new UnsupportedOperationException("not implemented");
 		}
 
-		protected Collection<TermEntry> resultreturn;
 		/**
 		** {@inheritDoc}
 		**
@@ -152,26 +149,27 @@ public class ProtoIndex {
 		*/
 		@Override public Collection<TermEntry> getResult() throws TaskAbortException {
 			if (error != null) { throw error; }
-			if (result != null && resultreturn == null) {
-				resultreturn = Collections.unmodifiableCollection(result);
-			}
-			return resultreturn;
+			return result;
 		}
 
 		@Override public String getCurrentStatus() {
-			if (metas.size() == 0) { return "nothing yet"; }
-			Progress p = last != null? last: trackers.peek().getPullProgress(metas.peek());
-			return (p == null)? "waiting for next stage to start": p.getStatus();
+			if (error != null) { return error.getMessage(); }
+			if (result != null) { return "completed in " + getTimeTaken() + "ms"; }
+			if (metas.size() == 0) { return "please wait"; }
+			Progress p = last != null? last: trackers.peek().getPullProgressFor(metas.peek());
+			return (p == null)? "please wait": p.getStatus();
 		}
 
 		@Override public String getCurrentStage() {
-			if (metas.size() == 0) { return "nothing yet"; }
-			Progress p = last != null? last: trackers.peek().getPullProgress(metas.peek());
-			return (p == null)? "waiting for next stage to start": p.getName();
+			if (error != null) { return "Task aborted"; }
+			if (result != null) { return "Task completed"; }
+			if (metas.size() == 0) { return "Starting"; }
+			Progress p = last != null? last: trackers.peek().getPullProgressFor(metas.peek());
+			return (p == null)? "Starting next stage": p.getName();
 		}
 
-		// DEBUG TEST only
-		Progress last = null; // REMOVE ME
+		// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
+		Progress last = null;
 		@Override public void run() {
 			try {
 				// get the root container
@@ -187,12 +185,12 @@ public class ProtoIndex {
 						p.inflate(d.getKey());
 					}
 				}
-				last = root.getPPP();
-				root.inflate2();
-				result = Collections.unmodifiableSet(root);
+				last = root.getPPP(); // REMOVE ME
+				root.inflate();
+				setResult(Collections.unmodifiableSet(root));
 
 			} catch (TaskAbortException e) {
-				error = e;
+				setError(e);
 				return;
 			}
 		}

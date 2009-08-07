@@ -63,12 +63,8 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 		((SkeletonBTreeMap<E, E>)bkmap).inflate();
 	}
 
-	// URGENT tidy this
+	// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
 	public plugins.Library.serial.CompoundProgress getPPP() { return ((SkeletonBTreeMap<E, E>)bkmap).ppp; }
-	public void inflate2() throws TaskAbortException {
-		((SkeletonBTreeMap<E, E>)bkmap).inflate2();
-	}
-
 
 	/**
 	** Creates a translator for the nodes of the B-tree. This method just calls

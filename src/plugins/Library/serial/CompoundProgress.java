@@ -3,7 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.serial;
 
-import java.util.Iterator;
+import plugins.Library.serial.Serialiser.*;
+import plugins.Library.util.CompositeIterable;
+
 import java.util.Map;
 
 /**
@@ -28,9 +30,8 @@ public class CompoundProgress implements Progress {
 	/**
 	** Sets the iterable to accumulate progress information from. There are
 	** several static helper methods you can use to create progress iterables
-	** that are backed by a collection of tracker ids - see {@link
-	** #makeProgressIterable(ProgressTracker, Iterable, boolean)} and {@link
-	** #makeProgressIterable(Map, boolean)}.
+	** that are backed by a collection of tracker ids; see the rest of the
+	** documentation for this class.
 	**
 	** @param subs The subprogresses to accumulating information from
 	*/
@@ -115,76 +116,102 @@ public class CompoundProgress implements Progress {
 	}
 
 	@Override public void join() throws InterruptedException, TaskAbortException {
-		throw new UnsupportedOperationException("not implemented");
-		/*for (Progress p: subprogress) {
-			// URGENT join()
-		}*/
+		int s = 1;
+		for (;;) {
+			boolean foundnull = false;
+			for (Progress p: subprogress) {
+				if (p == null) { foundnull = true; continue; }
+				p.join();
+			}
+			if (!foundnull) { break; }
+			// yes, this is a really shit way of doing this. but the best alternative I
+			// could come up with was the ugly commented-out stuff in ProgressTracker.
+
+			// anyhow, Progress objects are usually created very very soon after its
+			// tracking ID is added to the collection backing the Iterable<Progress>,
+			// so this shouldn't happen that often.
+
+			Thread.sleep(s*1000);
+			// extend the sleep time with reducing probability, or reset it to 1
+			if (s == 1 || Math.random() < 1/Math.log(s)/4) { ++s; } else { s = 1; }
+		}
 	}
+
+	/*
+	// moved here from ParallelSerialiser. might be useful.
+	protected void joinAll(Iterable<P> plist) throws InterruptedException, TaskAbortException {
+		Iterator<P> it = plist.iterator();
+		while (it.hasNext()) {
+			P p = it.next();
+			try {
+				p.join();
+			} catch (TaskAbortException e) {
+				if (e.isError()) {
+					throw e;
+				} else {
+					// TODO perhaps have a handleNonErrorAbort() that can be overridden
+					it.remove();
+				}
+			}
+		}
+	}
+	*/
 
 
 	/**
 	** Creates an iterable over the {@link Progress} objects corresponding to
-	** the given tracking ids, which are all tracked by the given tracker.
+	** the given pull tracking ids, all tracked by the given tracker.
 	**
 	** @param tracker The single tracker for all the ids
 	** @param ids The ids to track
-	** @param pull Whether these are pull progresses or push progresses
 	*/
-	public static <T, P extends Progress> Iterable<P> makeProgressIterable(final ProgressTracker<?, P> tracker, final Iterable<T> ids, final boolean pull) {
-		return (pull)?
-		new Iterable<P>() {
-			public Iterator<P> iterator() {
-				final Iterator<T> it = ids.iterator();
-				return new Iterator<P>() {
-					private T last;
-					@Override public boolean hasNext() { return it.hasNext(); }
-					@Override public P next() { return tracker.getPullProgress(last = it.next()); }
-					@Override public void remove() { it.remove(); tracker.remPullProgress(last); }
-				};
-			}
-		}:
-		new Iterable<P>() {
-			public Iterator<P> iterator() {
-				final Iterator<T> it = ids.iterator();
-				return new Iterator<P>() {
-					private T last;
-					@Override public boolean hasNext() { return it.hasNext(); }
-					@Override public P next() { return tracker.getPushProgress(last = it.next()); }
-					@Override public void remove() { it.remove(); tracker.remPushProgress(last); }
-				};
+	public static <T, P extends Progress> Iterable<P> makePullProgressIterable(final ProgressTracker<T, P> tracker, final Iterable<PullTask<T>> ids) {
+		return new CompositeIterable<PullTask<T>, P>(ids) {
+			@Override public P nextFor(PullTask<T> next) {
+				return tracker.getPullProgress(next);
 			}
 		};
 	}
 
 	/**
 	** Creates an iterable over the {@link Progress} objects corresponding to
-	** the given tracking ids, which are each tracked by its own tracker.
+	** the given push tracking ids, all tracked by the given tracker.
+	**
+	** @param tracker The single tracker for all the ids
+	** @param ids The ids to track
+	*/
+	public static <T, P extends Progress> Iterable<P> makePushProgressIterable(final ProgressTracker<T, P> tracker, final Iterable<PushTask<T>> tasks) {
+		return new CompositeIterable<PushTask<T>, P>(tasks) {
+			@Override public P nextFor(PushTask<T> next) {
+				return tracker.getPushProgress(next);
+			}
+		};
+	}
+
+	/**
+	** Creates an iterable over the {@link Progress} objects corresponding to
+	** the given pull tracking ids, each tracked by its own tracker.
 	**
 	** @param ids Map of tracking ids to their respective trackers
-	** @param pull Whether these are pull progresses or push progresses
 	*/
-	public static <T, N, P extends Progress> Iterable<P> makeProgressIterable(final Map<T, ProgressTracker<N, P>> ids, final boolean pull) {
-		return (pull)?
-		new Iterable<P>() {
-			@Override public Iterator<P> iterator() {
-				final Iterator<Map.Entry<T, ProgressTracker<N, P>>> it = ids.entrySet().iterator();
-				return new Iterator<P>() {
-					private Map.Entry<T, ProgressTracker<N, P>> last;
-					@Override public boolean hasNext() { return it.hasNext(); }
-					@Override public P next() { last = it.next(); return last.getValue().getPullProgress(last.getKey()); }
-					@Override public void remove() { it.remove(); last.getValue().remPullProgress(last.getKey()); }
-				};
+	public static <T, P extends Progress> Iterable<P> makePullProgressIterable(final Map<PullTask<T>, ProgressTracker<T, ? extends P>> ids) {
+		return new CompositeIterable<Map.Entry<PullTask<T>, ProgressTracker<T, ? extends P>>, P>(ids.entrySet()) {
+			@Override public P nextFor(Map.Entry<PullTask<T>, ProgressTracker<T, ? extends P>> next) {
+				return next.getValue().getPullProgress(next.getKey());
 			}
-		}:
-		new Iterable<P>() {
-			@Override public Iterator<P> iterator() {
-				final Iterator<Map.Entry<T, ProgressTracker<N, P>>> it = ids.entrySet().iterator();
-				return new Iterator<P>() {
-					private Map.Entry<T, ProgressTracker<N, P>> last;
-					@Override public boolean hasNext() { return it.hasNext(); }
-					@Override public P next() { last = it.next(); return last.getValue().getPushProgress(last.getKey()); }
-					@Override public void remove() { it.remove(); last.getValue().remPushProgress(last.getKey()); }
-				};
+		};
+	}
+
+	/**
+	** Creates an iterable over the {@link Progress} objects corresponding to
+	** the given push tracking ids, each tracked by its own tracker.
+	**
+	** @param ids Map of tracking ids to their respective trackers
+	*/
+	public static <T, P extends Progress> Iterable<P> makePushProgressIterable(final Map<PushTask<T>, ProgressTracker<T, ? extends P>> ids) {
+		return new CompositeIterable<Map.Entry<PushTask<T>, ProgressTracker<T, ? extends P>>, P>(ids.entrySet()) {
+			@Override public P nextFor(Map.Entry<PushTask<T>, ProgressTracker<T, ? extends P>> next) {
+				return next.getValue().getPushProgress(next.getKey());
 			}
 		};
 	}
