@@ -66,7 +66,7 @@ public class ResultSet implements Set<TermEntry>{
 		this.subject = subject;
 		internal = new HashMap();
 
-
+		// Decide what to do
 		switch(resultOperation){
 			case SINGLE:	// Just add everything
 				addAllToEmptyInternal(subRequests.get(0).getResult());
@@ -99,7 +99,7 @@ public class ResultSet implements Set<TermEntry>{
 	}
 
 
-
+	// Set interface methods, folow the standard contract
 
 	public int size() {
 		return internal.size();
@@ -301,14 +301,18 @@ public class ResultSet implements Set<TermEntry>{
 
 
 	private TermEntry convertEntry(TermEntry termEntry) {
+		TermEntry entry;
 		if (termEntry instanceof TermTermEntry)
-			return new TermTermEntry( subject, ((TermTermEntry)termEntry).getTerm() );
+			entry = new TermTermEntry( subject, ((TermTermEntry)termEntry).getTerm() );
 		else if (termEntry instanceof TermPageEntry)
-			return new TermPageEntry( subject, ((TermPageEntry)termEntry).getURI(), ((TermPageEntry)termEntry).getTitle(), ((TermPageEntry)termEntry).getPositions() );
+			entry = new TermPageEntry( subject, ((TermPageEntry)termEntry).getURI(), ((TermPageEntry)termEntry).getTitle(), ((TermPageEntry)termEntry).getPositions() );
 		else if (termEntry instanceof TermIndexEntry)
-			return new TermIndexEntry( subject, ((TermIndexEntry)termEntry).getIndex() );
+			entry = new TermIndexEntry( subject, ((TermIndexEntry)termEntry).getIndex() );
 		else
 			throw new UnsupportedOperationException("The TermEntry type " + termEntry.getClass().getName() + " is not currently supported in ResultSet");
+		if(termEntry.getRelevance()>0)
+			entry.setRelevance(termEntry.getRelevance());
+		return entry;
 	}
 
 	/**
@@ -397,7 +401,7 @@ public class ResultSet implements Set<TermEntry>{
 		Map<Integer, String> pos1 = ((TermPageEntry)entry).getPositions();
 		Map<Integer, String> pos2 = result.getPositions();
 		if(pos1==null || pos2 == null)
-			throw new NullPointerException("This index does not have term position information and so cannot perform a phrase search, this should probably be a different type of exception, maybe an InvalidSearchException?");
+			throw new NullPointerException("This index does not have term position information and so cannot perform a phrase search, this should probably be a different type of exception, maybe an InvalidSearchException? : "+entry.toString()+" "+((TermPageEntry)entry).getPositions()+" / "+result.toString()+" "+result.getPositions());
 		Map<Integer, String> newPos = new HashMap();
 		for (Integer integer1 : pos1.keySet()) {
 			for (Integer integer2 : pos2.keySet()) {
