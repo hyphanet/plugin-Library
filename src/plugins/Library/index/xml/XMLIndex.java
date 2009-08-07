@@ -258,8 +258,16 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	 * Find the term in this Index
 	 */
 	public synchronized Request getTermEntries(String term){
+		return getTermEntries(term, false);
+	}
+
+	/**
+	 * Find the term in this Index
+	 * @param getPositions should the index get termpositions? there is an overhead to this but it allows phrase searching
+	 */
+	public synchronized Request getTermEntries(String term, boolean getPositions){
 		try {
-			FindRequest request = new FindRequest(term);
+			FindRequest request = new FindRequest(term, getPositions);
 			setdependencies(request);
 			notifyAll();
 			return request;

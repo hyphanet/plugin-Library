@@ -27,8 +27,9 @@ public class TestInterface{
 			String command;
 			String param;
 			String line;
-			String index = "../../Freenet/myindex7";
+			String index = "../../Freenet/index";
 			Library library = new Library(null);
+			Search.setup(library);
 
 			do{
 				line = br.readLine();

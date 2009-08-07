@@ -20,9 +20,12 @@ import java.util.Iterator;
 import java.util.Set;
 import plugins.Library.index.Request.RequestState;
 import plugins.Library.index.TermPageEntry;
+import plugins.Library.serial.TaskAbortException;
 
 /**
  * Required for using SAX parser on XML indices
+ *
+ * TODO tf-idf
  *
  * @author swati
  *
@@ -36,19 +39,24 @@ public class LibrarianHandler extends DefaultHandler {
 	private HashMap<String, String> titles;
 	private List<FindRequest> requests;
 	private List<FindRequest> wordMatches;
-	private TermPageEntry inFile;
 	private StringBuilder characters;
+	private String inFileTitle;
+	private FreenetURI inFileURI;
+	private boolean wantPositions=false;
 
 
 	/**
 	 * Construct a LibrarianHandler to look for many terms
 	 * @param requests the requests wanting to be resolved by this LibrarianHandler, results are written back to them
+	 * @param wantPositions should the positions be recorded? this has a performance impact but allows for phrase searching
 	 * @throws java.lang.Exception
 	 */
 	public LibrarianHandler(List<FindRequest> requests) {
 		this.requests = new ArrayList(requests);
-		for (FindRequest r : requests)
+		for (FindRequest r : requests){
 			r.setResult(new HashSet<TermPageEntry>());
+			wantPositions = wantPositions || r.shouldGetPositions();
+		}
 	}
 
 	public void setDocumentLocator(Locator value) {
@@ -106,28 +114,21 @@ public class LibrarianHandler extends DefaultHandler {
 			if (processingWord == true &&  wordMatches!=null) {
 				try{
 					String suri = uris.get(attrs.getValue("id"));
-					FreenetURI uri = new FreenetURI(suri);
+					inFileURI = new FreenetURI(suri);
 					synchronized(this){
-						String title;
 						if(titles.containsKey(attrs.getValue("id")))
 						{
-							title = titles.get(attrs.getValue("id"));
-							if ((suri).equals(title))
-								title = "not available";
+							inFileTitle = titles.get(attrs.getValue("id"));
+							if ((suri).equals(inFileTitle))
+								inFileTitle = "not available";
 						}
 						else
-							title = "not available";
-						//Logger.minor(this, "adding to all in "+wordMatches);
-						for(FindRequest<Set<TermPageEntry>> match : wordMatches){
-							Set<TermPageEntry> result = match.getResult();
-							if (result == null)
-								match.setResult(result = new HashSet<TermPageEntry>());
-							result.add(new TermPageEntry(match.getSubject(), uri, title, null));
+							inFileTitle = "not available";
+						
+						for (FindRequest match : wordMatches) {
 							match.setStage(RequestState.PARTIALRESULT, 3);
-							// removed these as they use lots of memory and are only used for phrase search which doesnt work
-							//inFile = uri;
-							//characters = new StringBuilder();
-							//Logger.minor(this, "added "+uri+ " to "+ match);
+							if(wantPositions)	// So the parsing of positions wil only occur if required
+								characters = new StringBuilder();
 						}
 					}
 				}
@@ -161,24 +162,42 @@ public class LibrarianHandler extends DefaultHandler {
 	}
 
 	public void characters(char[] ch, int start, int length) {
-//		if(characters!=null){		// Commented out until i get phrase searching again
-//			characters.append(ch, start, length);
-//		}
+		if(processingWord && wordMatches!= null && characters!=null){
+			characters.append(ch, start, length);
+		}
 	}
 
+	@Override
 	public void endElement(String namespaceURI, String localName, String qName) {
-//		if(inFile!=null){			// Commented out until i get phrase searching again
-//			String[] termposs = characters.toString().split(",");
-//			HashMap<Integer, String> termpositions = new HashMap<Integer, String>(); // TODO should this be a hashmap? , is null ok?
-//			for (String pos : termposs) {
-//				try{
-//					termpositions.put(Integer.valueOf(pos), null);
-//				}catch(NumberFormatException e){
-//				}
-//			}
-//			inFile.setPositions(termpositions);
-//			inFile = null;
-//			characters = null;
-//		}
+		if(processingWord && wordMatches != null){
+			HashMap<Integer, String> termpositions = null;
+			if(characters!=null){
+				String[] termposs = characters.toString().split(",");
+				termpositions = new HashMap<Integer, String>();
+				for (String pos : termposs) {
+					try{
+						termpositions.put(Integer.valueOf(pos), null);
+					}catch(NumberFormatException e){
+						Logger.error(this, "Position in index not an integer :"+pos, e);
+					}
+				}
+				characters = null;
+			}
+
+
+
+			for(FindRequest<Set<TermPageEntry>> match : wordMatches){
+				try{
+					Set<TermPageEntry> result = match.getResult();
+					if (result == null)
+						match.setResult(result = new HashSet<TermPageEntry>());
+					TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), inFileURI, inFileTitle, termpositions);
+					result.add(pageEntry);
+					Logger.minor(this, "added "+inFileURI+ " to "+ match);
+				}catch(TaskAbortException e){
+					Logger.error(this, "A task abort exception was thrown where it shouldnt.", e);
+				}
+			}
+		}
 	}
 }

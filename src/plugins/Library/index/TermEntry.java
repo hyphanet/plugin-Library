@@ -3,8 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.util.IdentityComparator;
-
 /**
 ** Represents data indexed by a {@link Token} and associated with a given
 ** subject {@link String} term.
@@ -38,7 +36,8 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 	protected String subj;
 
 	/**
-	** Relevance rating. Must be in the closed interval [0,1].
+	** Relevance rating. Must be in the half-closed interval (0,1].
+	** a relevance of 0 indicates that the relevance is unset
 	*/
 	protected float rel;
 
@@ -67,8 +66,8 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 	}
 
 	public void setRelevance(float r) {
-		if (r < 0 || r > 1) {
-			throw new IllegalArgumentException("Relevance must be in the closed interval [0,1].");
+		if (r <= 0 || r > 1) {
+			throw new IllegalArgumentException("Relevance must be in the half-closed interval (0,1].");
 		}
 		rel = r;
 	}
@@ -119,6 +118,21 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 		TermEntry en = (TermEntry)o;
 		return rel == en.rel && subj.equals(en.subj);
 	}
+
+	/**
+	** Returns whether the parts of this TermEntry other than the subject are equal
+	**
+	** Subclasses '''must overridde this method'' to use information
+	** specific to the subclass.
+	*/
+	public abstract boolean equalsIgnoreSubject(TermEntry entry);
+
+	/**
+	** if any optional fields in this TermEntry are empty, add those fields from this
+	** @param entry which must be equalsIgnoreSubject
+	** @throws IllegalArgumentException if not this.equalsIgnoreSubject(entry)
+	**/
+	public abstract TermEntry combine(TermEntry entry);
 
 	/**
 	** {@inheritDoc}
