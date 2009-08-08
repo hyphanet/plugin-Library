@@ -6,17 +6,13 @@ package plugins.Library;
 
 import freenet.l10n.L10n.LANGUAGE;
 import plugins.Library.search.Search;
-import plugins.Library.ui.WebUI;
 
 import freenet.pluginmanager.FredPlugin;
-import freenet.pluginmanager.FredPluginHTTP;
 import freenet.pluginmanager.FredPluginL10n;
 import freenet.pluginmanager.FredPluginRealVersioned;
 import freenet.pluginmanager.FredPluginThreadless;
 import freenet.pluginmanager.FredPluginVersioned;
-import freenet.pluginmanager.PluginHTTPException;
 import freenet.pluginmanager.PluginRespirator;
-import freenet.support.api.HTTPRequest;
 
 import java.security.MessageDigest;
 import plugins.Library.ui.WebInterface;
@@ -26,7 +22,7 @@ import plugins.Library.ui.WebInterface;
  * Library class is the api for others to use search facilities, it is used by the interfaces
  * @author MikeB
  */
-public class Main implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
+public class Main implements FredPlugin, FredPluginVersioned,
 		FredPluginRealVersioned, FredPluginThreadless, FredPluginL10n {
 	private static PluginRespirator pr;
 	private Library library;
@@ -45,26 +41,11 @@ public class Main implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
 
 
 
-	// FredPluginHTTP
-	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
-		try{
-			return WebUI.handleHTTPGet(request);
-		}catch(Exception e){
-			return WebUI.searchpage(null, null, false, request.isParameterSet("js"), false, e);
-		}
-	}
-
-	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException{
-        return WebUI.handleHTTPPost(request);
-    }
-
-
 	// FredPlugin
 	public void runPlugin(PluginRespirator pr) {
 		library = new Library(pr);
 		Main.pr = pr;
         Search.setup(library);
-		WebUI.setup(library);
 		webinterface = new WebInterface(library, pr);
 		webinterface.load();
 	}

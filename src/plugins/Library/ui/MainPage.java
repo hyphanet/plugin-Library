@@ -1,25 +1,17 @@
 package plugins.Library.ui;
 
 
-import freenet.keys.FreenetURI;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;
 import freenet.support.MultiValueTable;
 import freenet.support.api.HTTPRequest;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import plugins.Library.Library;
 import plugins.Library.index.CompositeRequest;
 import plugins.Library.index.Request;
 import plugins.Library.index.Request.RequestState;
-import plugins.Library.index.TermEntry;
-import plugins.Library.index.TermPageEntry;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.search.Search;
 import plugins.Library.serial.TaskAbortException;
@@ -165,7 +157,7 @@ class MainPage implements WebPage {
         // Show any errors
 		HTMLNode errorDiv = new HTMLNode("div", "id", "errors");
 		for (Exception exception : exceptions) {
-			WebUI.addError(errorDiv, exception);
+			addError(errorDiv, exception);
 		}
 		contentNode.addChild(errorDiv);
 
@@ -178,11 +170,12 @@ class MainPage implements WebPage {
             // If search is complete show results
             if (search.getState()==RequestState.FINISHED)
 				try{
-					contentNode.addChild(resultNodeGrouped());
+					ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), true);
+					contentNode.addChild(nodegenerator.generatePageEntryNode(showold, js));
 				}catch(TaskAbortException ex){
-					WebUI.addError(errorDiv, ex);
+					addError(errorDiv, ex);
 				}catch(RuntimeException ex){
-					WebUI.addError(errorDiv, ex);
+					addError(errorDiv, ex);
 				}
 			else
 				contentNode.addChild("div", "id", "results").addChild("#");
@@ -234,12 +227,12 @@ class MainPage implements WebPage {
 
 			HTMLNode optionsBox = searchForm.addChild("div", "style", "margin: 20px 0px 20px 20px; display: inline-table; text-align: left;", "Options");
 				HTMLNode optionsList = optionsBox.addChild("ul", "class", "options-list");
-					//optionsList.addChild("li")
-					//	.addChild("input", new String[]{"type"}, new String[]{"checkbox"}, "Group SSK Editions");
+//					optionsList.addChild("li")
+//						.addChild("input", new String[]{"name", "type"}, new String[]{"groupusk", "checkbox"}, "Group USK Editions");
 					optionsList.addChild("li")
 						.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", "1"}, "Show older editions");
-					//optionsList.addChild("li")
-					//	.addChild("input", new String[]{"type"}, new String[]{"checkbox"}, "Sort by relevence");
+//					optionsList.addChild("li")
+//						.addChild("input", new String[]{"name", "type"}, new String[]{"sort", "checkbox"}, "Sort by relevence");
 				HTMLNode newIndexInput = optionsBox.addChild("div", new String[]{"class", "style"}, new String[]{"index", "display: inline-table;"}, "Add an index:");
 					newIndexInput.addChild("br");
 					newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "Name:");
@@ -291,6 +284,20 @@ class MainPage implements WebPage {
 		return progressDiv;
 	}
 
+	/**
+	 * Put an error on the page, under node, also draws a big grey box around the error
+	 */
+	public static void addError(HTMLNode node, Throwable error){
+		Logger.error(MainPage.class, "Exception caught by interface : "+error.getMessage(), error);
+		HTMLNode error1 = node.addChild("div", "style", "padding:10px;border:5px solid gray;margin:10px", error.toString());
+		for (StackTraceElement ste : error.getStackTrace()){
+			error1.addChild("br");
+			error1.addChild("#", " -- "+ste.toString());
+		}
+		if(error.getCause()!=null)
+			addError(error1, error.getCause());
+	}
+
 	
 	/**
 	 * Draw progress bars and describe progress
@@ -298,7 +305,7 @@ class MainPage implements WebPage {
 	 * @param request
 	 * @return
 	 */
-	private HTMLNode progressBar(Request request) {
+	public static HTMLNode progressBar(Request request) {
 		HTMLNode bar;
 		// If it doesn't have subrequests, draw it's progress
 		if(! ( request instanceof CompositeRequest ) ){
@@ -347,109 +354,6 @@ class MainPage implements WebPage {
 		return bar;
 	}
 	
-
-	/**
-	 * Return a HTMLNode for this result
-	 * @param showold whether to display results from older SSK versions
-	 * @param js whether js can be used to display results
-	 */
-	public HTMLNode resultNodeGrouped() throws TaskAbortException {
-		// Output results
-		int results = 0;
-		// Loop to separate results into SSK groups
-		HTMLNode resultsNode = new HTMLNode("div", "id", "results");
-		HashMap<String, SortedMap<Long, Set<TermPageEntry>>> groupmap = new HashMap();
-		Iterator<TermEntry> it = search.getResult().iterator();
-		while(it.hasNext()){
-			TermPageEntry o = (TermPageEntry)it.next();		// TODO need to separate out the different types of TermEntrys and handle them separately
-			// Get the key and name
-			FreenetURI uri;
-			uri = o.getURI();
-			Long uskVersion=Long.MIN_VALUE;
-			// convert usk's
-			if(uri.isSSKForUSK()){
-				uri = uri.uskForSSK();
-				// Get the USK edition
-				uskVersion = uri.getEdition();
-			}
-			// Get the site base name, key + documentname - uskversion
-			String sitebase = uri.setMetaString(null).setSuggestedEdition(0).toString().replaceFirst("/0", "");
-			Logger.minor(WebUI.class, sitebase);
-			// Add site
-			if(!groupmap.containsKey(sitebase))
-				groupmap.put(sitebase, new TreeMap<Long, Set<TermPageEntry>>());
-			TreeMap<Long, Set<TermPageEntry>> sitemap = (TreeMap<Long, Set<TermPageEntry>>)groupmap.get(sitebase);
-			// Add Edition
-			if(!sitemap.containsKey(uskVersion))
-				sitemap.put(uskVersion, new HashSet());
-			// Add page
-			sitemap.get(uskVersion).add(o);
-		}
-		// Loop over keys
-		Iterator<String> it2 = groupmap.keySet().iterator();
-		while (it2.hasNext()) {
-			String keybase = it2.next();
-			SortedMap<Long, Set<TermPageEntry>> siteMap = groupmap.get(keybase);
-			HTMLNode siteNode = resultsNode.addChild("div", "style", "padding: 6px;");
-			// Create a block for old versions of this SSK
-			HTMLNode siteBlockOldOuter = siteNode.addChild("div", new String[]{"id", "style"}, new String[]{"result-hiddenblock-"+keybase, (!showold?"display:none":"")});
-			// put title on block if it has more than one version in it
-			if(siteMap.size()>1)
-				siteBlockOldOuter.addChild("a", new String[]{"onClick", "name"}, new String[]{"toggleResult('"+keybase+"')", keybase}).addChild("h3", "class", "result-grouptitle", keybase.replaceAll("\\b.*/(.*)", "$1"));
-			// inner block for old versions to be hidden
-			HTMLNode oldEditionContainer = siteBlockOldOuter.addChild("div", new String[]{"class", "style"}, new String[]{"result-hideblock", "border-left: thick black;"});
-			// Loop over all editions in this site
-			Iterator<Long> it3 = siteMap.keySet().iterator();
-			while(it3.hasNext()){
-				Long version = it3.next();
-				boolean newestVersion = !it3.hasNext();
-				if(newestVersion)	// put older versions in block, newest outside block
-					oldEditionContainer = siteNode;
-				HTMLNode versionCell;
-				HTMLNode versionNode;
-				if(siteMap.get(version).size()>1||siteMap.size()>1){
-					// table for this version
-					versionNode = oldEditionContainer.addChild("table", new String[]{"class"}, new String[]{"librarian-result"});
-					HTMLNode grouptitle = versionNode.addChild("tr").addChild("td", new String[]{"padding", "colspan"}, new String[]{"0", "3"});
-					grouptitle.addChild("h4", "class", (newestVersion?"result-editiontitle-new":"result-editiontitle-old"), keybase.replaceAll("\\b.*/(.*)", "$1")+(version.longValue()>=0 ? "-"+version.toString():""));
-					// Put link to show hidden older versions block if necessary
-					if(newestVersion && !showold && js && siteMap.size()>1)
-						grouptitle.addChild("a", new String[]{"href", "onClick"}, new String[]{"#"+keybase, "toggleResult('"+keybase+"')"}, "       ["+(siteMap.size()-1)+" older matching versions]");
-					HTMLNode versionrow = versionNode.addChild("tr");
-					versionrow.addChild("td", "width", "8px");
-					// draw black line down the side of the version
-					versionrow.addChild("td", new String[]{"class"}, new String[]{"sskeditionbracket"});
-
-					versionCell=versionrow.addChild("td", "style", "padding-left:15px");
-				}else
-					versionCell = oldEditionContainer;
-				// loop over each result in this version
-				Iterator<TermPageEntry> it4 = siteMap.get(version).iterator();
-				while(it4.hasNext()){
-					TermPageEntry u = it4.next();
-					FreenetURI uri = u.getURI();
-					String showtitle = u.getTitle();
-					String showurl = uri.toShortString();
-					if (showtitle == null || showtitle.trim().length() == 0 || showtitle.equals("not available")) {
-						showtitle = showurl;
-					}
-					String realurl = "/" + uri.toString();
-					HTMLNode pageNode = versionCell.addChild("div", new String[]{"class", "style"}, new String[]{"result-entry", ""});
-					pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: " + (newestVersion ? "Blue" : "LightBlue"), uri.toString()}, showtitle);
-					// create usk url
-					if (uri.isSSKForUSK()) {
-						String realuskurl = "/" + uri.uskForSSK().toString();
-						pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "result-uskbutton"}, "[ USK ]");
-					}
-					pageNode.addChild("br");
-					pageNode.addChild("a", new String[]{"href", "class", "style"}, new String[]{realurl, "result-url", "color: " + (newestVersion ? "Green" : "LightGreen")}, showurl);
-					results++;
-				}
-			}
-		}
-		resultsNode.addChild("p").addChild("span", "class", "librarian-summary-found", "Found"+results+"results");
-		return resultsNode;
-    }
 	
 	
 	

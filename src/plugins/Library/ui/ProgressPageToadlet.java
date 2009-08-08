@@ -77,18 +77,19 @@ class ProgressPageToadlet extends Toadlet {
 		// If search is happening, return it's progress
 		if(search!=null){
 			progress = new HTMLNode("table", new String[]{"id", "class"}, new String[]{"progress-table", "progress-table"});
-				progress.addChild(WebUI.progressBar(search));
+				progress.addChild(MainPage.progressBar(search));
 		}else
 			progress = new HTMLNode("#", "No search for this, something went wrong");
 		// If it's finished, return it's results
 		if(search != null && search.getState()==RequestState.FINISHED)
 			try {
-				resp.addChild("result").addChild(WebUI.resultNodeGrouped(search, showold, true));
+				ResultNodeGenerator nodeGenerator = new ResultNodeGenerator(search.getResult(), true);
+				resp.addChild("result").addChild(nodeGenerator.generatePageEntryNode(showold, true));
 				resp.addChild("progress", "RequestState", "FINISHED", "Search complete");
 			} catch (TaskAbortException ex) {
-				WebUI.addError(resp.addChild("error", "RequestState",  "ERROR"), ex.getCause());
+				MainPage.addError(resp.addChild("error", "RequestState",  "ERROR"), ex.getCause());
 			} catch (RuntimeException ex) {
-				WebUI.addError(resp.addChild("error", "RequestState",  "ERROR"), ex);
+				MainPage.addError(resp.addChild("error", "RequestState",  "ERROR"), ex);
 			}
 		else
 			resp.addChild("progress", "RequestState",  (search==null)?"":search.getState().toString()).addChild(progress);

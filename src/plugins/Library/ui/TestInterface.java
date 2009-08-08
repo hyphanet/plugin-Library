@@ -27,7 +27,7 @@ public class TestInterface{
 			String command;
 			String param;
 			String line;
-			String index = "../../Freenet/index";
+			String index = "../../Freenet/myindex8";
 			Library library = new Library(null);
 			Search.setup(library);
 
@@ -52,8 +52,8 @@ public class TestInterface{
 					System.out.println(requests.get(param).getResult());
 				if("i".equals(command))
 					System.out.println(library.getIndex(index));
-				if("w".equals(command))
-					WebUI.resultNodeGrouped(requests.get(param), true, true);
+//				if("w".equals(command))
+//					WebUI.resultNodeGrouped(requests.get(param), true, true);
 			}while(!"x".equals(command));
 		}catch(Exception e){
 			e.printStackTrace();
