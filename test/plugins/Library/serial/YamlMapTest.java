@@ -80,10 +80,12 @@ public class YamlMapTest extends TestCase {
 			str = s;
 		}
 		// the presence of this constructor causes 1.4-snapshot to fail
+		// fixed in 1.4-rc1
 		public Custom(Integer i) {
 			str = "";
 		}
-		// the absence of this construct causes 1.3 to fail
+		// the absence of this constructor causes 1.3 to fail
+		// fixed in 1.4-rc1
 		public Custom(Custom c) {
 			str = c.str;
 		}

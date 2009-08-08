@@ -30,11 +30,6 @@ public class TermEntryTest extends TestCase {
 
 		Map<String, Object> map = new HashMap<String, Object>();
 
-		Token nulltest1 = Token.intern((Token)null);
-		Token nulltest2 = Token.intern((String)null);
-		assertTrue(nulltest1 == null);
-		assertTrue(nulltest2 == null);
-
 		TermTermEntry w  = new TermTermEntry("test", "lol");
 		w.setRelevance(0.8f);
 		TermIndexEntry x = null;

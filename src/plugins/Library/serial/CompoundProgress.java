@@ -23,7 +23,7 @@ public class CompoundProgress implements Progress {
 
 	protected String name = "???";
 
-	protected Iterable<? extends Progress> subprogress;
+	protected Iterable<? extends Progress> subprogress = java.util.Collections.emptyList();
 
 	public CompoundProgress() { }
 
@@ -36,6 +36,9 @@ public class CompoundProgress implements Progress {
 	** @param subs The subprogresses to accumulating information from
 	*/
 	public void setSubprogress(Iterable<? extends Progress> subs) {
+		if (subs == null) {
+			throw new IllegalArgumentException("Can't set a null progress iterable");
+		}
 		subprogress = subs;
 	}
 

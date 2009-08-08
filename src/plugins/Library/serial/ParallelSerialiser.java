@@ -38,8 +38,8 @@ implements IterableSerialiser<T>,
 
 	final static protected ThreadPoolExecutor exec = new ThreadPoolExecutor(
 		0x40, 0x40, 1, TimeUnit.SECONDS,
-		new LinkedBlockingQueue<Runnable>()/*,
-		new ThreadPoolExecutor.CallerRunsPolicy()*/
+		new LinkedBlockingQueue<Runnable>(),
+		new ThreadPoolExecutor.CallerRunsPolicy() // easier than catching RejectedExecutionException, if it ever occurs
 	);
 
 	final protected ProgressTracker<T, P> tracker;
@@ -110,6 +110,8 @@ implements IterableSerialiser<T>,
 				}
 			}
 			for (Progress p: progs) { p.join(); }
+			// toad - if it fails, we won't necessarily know until all of the other tasks
+			// have completed ... is this acceptable?
 
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("ParallelSerialiser pull was interrupted", e, true);
@@ -135,6 +137,8 @@ implements IterableSerialiser<T>,
 				}
 			}
 			for (Progress p: progs) { p.join(); }
+			// toad - if it fails, we won't necessarily know until all of the other tasks
+			// have completed ... is this acceptable?
 
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("ParallelSerialiser pull was interrupted", e, true);
@@ -168,10 +172,10 @@ implements IterableSerialiser<T>,
 	** {@link Scheduler} that handles the tasks given to it. This is basically
 	** just a glorified wrapper around {@link ThreadPoolExecutor}.
 	**
-	** The scheduler can operation in two modes - {@link
-	** #ParallelSerialiser.TaskHandler(ThreadPoolExecutor) serial} or {@link
-	** #ParallelSerialiser.TaskHandler(BlockingQueue, BlockingQueue,
-	** ConcurrentMap, int) parallel}.
+	** Instances of this class can use one of two modes of operation -
+	** {@linkplain #ParallelSerialiser.TaskHandler(ThreadPoolExecutor) serial}
+	** or {@linkplain #ParallelSerialiser.TaskHandler(BlockingQueue,
+	** BlockingQueue, ConcurrentMap, int) parallel}.
 	**
 	** TODO maybe code a serial mode that can support out and error queues.
 	**

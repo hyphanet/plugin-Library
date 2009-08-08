@@ -59,7 +59,7 @@ import java.util.ConcurrentModificationException;
 ** this value is set such that each node takes up a full disk block or an
 ** analogous size in secondary storage.
 **
-** When {@link #NODE_MIN} is {@link #BTreeMap(int) set to} 2, the resulting
+** If {@link #NODE_MIN} is {@linkplain #BTreeMap(int) set to} 2, the resulting
 ** tree is structurally and algorithmically equivalent to a 2-3-4 tree, which
 ** is itself equivalent to a red-black tree, which is the implementation of
 ** {@link TreeMap} in the standard Java Class Library. This class has extra

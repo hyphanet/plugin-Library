@@ -38,7 +38,7 @@ public class ProtoIndex {
 	final static long serialVersionUID = 0xf82a9082681e5ba6L;
 
 	// DEBUG make final again later
-	/*final*/ public static int BTREE_NODE_MIN = 0x10000;
+	/*final*/ public static int BTREE_NODE_MIN = 0x1000;
 	final public static int BTREE_ENT_MAX = (BTREE_NODE_MIN<<1) - 1;
 
 	/**

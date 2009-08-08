@@ -15,8 +15,6 @@
 
 == Task handling ==
 
-separate interface for the startPull stuff
-
 - TODO maybe have deflate/inflate throw a different checked exception from
   TaskAbortException, forcing them to handle the TaskAbortException thrown by
   pull/push?
@@ -32,10 +30,6 @@ separate interface for the startPull stuff
 >>> PRIORITY make a CompoundRequest that extends CompoundProgress (and make CompondProgress better and more standard)
   - and it will have equivalent functionality as "getSubRequests"
   - how to implement getSubStage* in Search, and put it back into FindRequest
-
-make the progress iterables blocking....
-
-
 - implement nice version of finalTotalEstimate() in FindRequest and Search
 - TODO probably should synchronize AtomicProgress, SimpleProgress, and
   CompoundProgress... although maybe unnecessary since these should all be

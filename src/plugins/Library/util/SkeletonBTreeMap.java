@@ -405,7 +405,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			ntracker = ((Serialiser.Trackable)nsrl).getTracker();
 			// PROGRESS make a ProgressTracker track this instead of "ppp".
 			ppp.setSubprogress(CompoundProgress.makePullProgressIterable(ids));
-			ppp.setName("All entries in B-tree");
+			ppp.setName("Pulling all entries in B-tree");
 		}
 
 		Scheduler pool = ((ScheduledSerialiser)nsrl).pullSchedule(tasks, inflated, error);

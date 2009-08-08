@@ -21,12 +21,12 @@ import java.util.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 4;
-	final public static int it_partial = 4;
+	final public static int it_basic = 0;
+	final public static int it_partial = 0;
 	final public static boolean disabled_progress = false;
 
 	static {
-		ProtoIndex.BTREE_NODE_MIN = 0x40; // DEBUG so we see tree splits
+		ProtoIndex.BTREE_NODE_MIN = 0x1000; // DEBUG 0x40 so we see tree splits
 		System.out.println("ProtoIndex B-tree node_min set to " + ProtoIndex.BTREE_NODE_MIN);
 	}
 
@@ -199,11 +199,11 @@ public class BIndexTest extends TestCase {
 		newTestSkeleton();
 
 		int totalentries = 0;
-		int numterms = 0x100;
+		int numterms = 0x4000;
 		int save = rand.nextInt(numterms);
 		String sterm = null;
 
-		System.out.println("Generating a shit load (~200k) of entries to test progress polling. This may take a while...");
+		System.out.println("Generating a shit load of entries to test progress polling. This may take a while...");
 		for (int i=0; i<numterms; ++i) {
 			String key = Generators.rndStr().substring(0,8);
 			if (i == save) { sterm = key; }
@@ -211,7 +211,7 @@ public class BIndexTest extends TestCase {
 			SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
 			srl.setSerialiserFor(entries);
 
-			int n = rand.nextInt(0x200) + 0x200;
+			int n = rand.nextInt(0x10) + 0x10;
 			totalentries += n;
 
 			try {
@@ -236,8 +236,10 @@ public class BIndexTest extends TestCase {
 		idx.ttab.deflate();
 		assertTrue(idx.ttab.isBare());
 		assertFalse(idx.ttab.isLive());
+		PushTask<ProtoIndex> task = new PushTask<ProtoIndex>(idx);
+		srl.push(task);
 
-		System.out.println("deflated in " + timeDiff() + " ms");
+		System.out.print("deflated in " + timeDiff() + " ms, root at " + task.meta + ", ");
 		plugins.Library.serial.YamlArchiver.setTestMode();
 
 		System.out.println("Requesting entries for term " + sterm);
