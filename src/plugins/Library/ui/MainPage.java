@@ -378,4 +378,8 @@ class MainPage implements WebPage {
 	public String name() {
 		return "Search";
 	}
+
+	public String menu() {
+		return "FProxyToadlet.categoryBrowsing";
+	}
 }

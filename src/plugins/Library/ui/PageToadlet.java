@@ -109,4 +109,8 @@ class PageToadlet extends Toadlet {
 			Thread.currentThread().setContextClassLoader(origClassLoader);
 		}
 	}
+
+	String menu() {
+		return webpage.menu();
+	}
 }

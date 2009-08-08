@@ -13,6 +13,8 @@ interface WebPage {
 
 	public WebPage clone();
 
+	public String menu();
+
 	public String name();
 
 	public String path();
