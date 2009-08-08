@@ -67,7 +67,7 @@ public class TermTermEntry extends TermEntry {
 		return super.equals(o) && term.equals(((TermTermEntry)o).term);
 	}
 
-	public boolean equalsIgnoreSubject(TermEntry entry) {
+	public boolean equalsTarget(TermEntry entry) {
 		return (entry instanceof TermPageEntry) && term.equals(((TermTermEntry)entry).term);
 	}
 
@@ -77,7 +77,7 @@ public class TermTermEntry extends TermEntry {
 
 	@Override
 	public TermEntry combine(TermEntry entry) {
-		if(!equalsIgnoreSubject(entry))
+		if(!equalsTarget(entry))
 			throw new IllegalArgumentException("Combine can only be performed on equal TermEntrys");
 
 		TermTermEntry castEntry = (TermTermEntry) entry;

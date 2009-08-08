@@ -316,7 +316,7 @@ public class ResultSet implements Set<TermEntry>{
 	}
 
 	/**
-	 * Merge a group of TermEntries each pair of which(a, b) must be a.equalsIgnoreSubject
+	 * Merge a group of TermEntries each pair of which(a, b) must be a.equalsTarget
 	 * The new TermEntry created will have the subject of this ResultSet, it
 	 * will try to combine all the optional fields from the TermEntrys being merged,
 	 * with priority being put on those earliest in the arguments
@@ -326,7 +326,7 @@ public class ResultSet implements Set<TermEntry>{
 	 */
 	private TermEntry mergeEntries(TermEntry... entries) {
 		for (int i = 1; i < entries.length; i++)
-			if(!entries[0].equalsIgnoreSubject(entries[i]))
+			if(!entries[0].equalsTarget(entries[i]))
 				throw new IllegalArgumentException("entries were not equal : "+entries[0].toString()+" & "+entries[i].toString());
 		
 		TermEntry combination = entries[0];
@@ -372,7 +372,7 @@ public class ResultSet implements Set<TermEntry>{
 	private TermEntry getIgnoreSubject(TermEntry entry, Collection<? extends TermEntry> collection){
 		TermEntry result = null;
 			for (TermEntry termEntry : collection) {
-				if (entry.equalsIgnoreSubject(termEntry)){
+				if (entry.equalsTarget(termEntry)){
 					result = termEntry;
 					break;
 				}

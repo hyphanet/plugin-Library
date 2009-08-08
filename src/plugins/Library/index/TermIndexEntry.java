@@ -56,7 +56,7 @@ public class TermIndexEntry extends TermEntry {
 		return super.equals(o) && index.equals(((TermIndexEntry)o).index);
 	}
 
-	public boolean equalsIgnoreSubject(TermEntry entry) {
+	public boolean equalsTarget(TermEntry entry) {
 		return (entry instanceof TermIndexEntry) && index.equals(((TermIndexEntry)entry).index);
 	}
 
@@ -66,7 +66,7 @@ public class TermIndexEntry extends TermEntry {
 
 	@Override
 	public TermEntry combine(TermEntry entry) {
-		if(!equalsIgnoreSubject(entry))
+		if(!equalsTarget(entry))
 			throw new IllegalArgumentException("Combine can only be performed on equal TermEntrys");
 
 		TermIndexEntry castEntry = (TermIndexEntry) entry;

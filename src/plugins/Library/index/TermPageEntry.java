@@ -110,7 +110,7 @@ public class TermPageEntry extends TermEntry {
 		return super.equals(o) && uri.equals(((TermPageEntry)o).uri);
 	}
 
-	public boolean equalsIgnoreSubject(TermEntry entry) {
+	public boolean equalsTarget(TermEntry entry) {
 		return (entry instanceof TermPageEntry) && uri.equals(((TermPageEntry)entry).uri);
 	}
 
@@ -125,7 +125,7 @@ public class TermPageEntry extends TermEntry {
 	 * Takes term positions from entry if this has none, adds both together if both have term positions
 	 */
 	@Override public TermEntry combine(TermEntry entry) {
-		if(!equalsIgnoreSubject(entry))
+		if(!equalsTarget(entry))
 			throw new IllegalArgumentException("Combine can only be performed on equal TermEntrys");
 
 		TermPageEntry castEntry = (TermPageEntry) entry;
