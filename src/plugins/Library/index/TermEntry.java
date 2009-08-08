@@ -15,8 +15,7 @@ package plugins.Library.index;
 ** * {@link #equals(Object)}
 ** * {@link #hashCode()}
 **
-** TODO make these immutable and make YamlArchiver constructors/representers
-** for these.
+** TODO make these immutable and make Yaml constructors/representers for them
 **
 ** TODO better way to compare FreenetURIs than toString().compareTo() (this
 ** applies for TermIndexEntry, TokenPageEntry)

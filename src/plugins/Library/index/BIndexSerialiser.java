@@ -20,10 +20,11 @@ import plugins.Library.serial.Packer;
 import plugins.Library.serial.Progress;
 import plugins.Library.serial.SimpleProgress;
 import plugins.Library.serial.CompoundProgress;
-import plugins.Library.serial.YamlArchiver;
+import plugins.Library.serial.FileArchiver;
 import plugins.Library.serial.DataFormatException;
 import plugins.Library.serial.TaskAbortException;
 import plugins.Library.serial.TaskInProgressException;
+import plugins.Library.io.YamlReaderWriter;
 
 import java.util.Collection;
 import java.util.List;
@@ -51,6 +52,8 @@ implements Archiver<ProtoIndex>,
            Serialiser.Translate<ProtoIndex, Map<String, Object>>/*,
            Serialiser.Trackable<Index>*/ {
 
+	final protected static YamlReaderWriter yamlrw = new YamlReaderWriter();
+
 	/*========================================================================
 	  Serialisers and Translators - main Index
 	 ========================================================================*/
@@ -60,8 +63,8 @@ implements Archiver<ProtoIndex>,
 
 	public BIndexSerialiser() {
 		// for DEBUG use; the freenet version would save to SSK@key/my_index/index.yml
-		//subsrl = new YamlArchiver<Map<String, Object>>("index", "");
-		subsrl = new YamlArchiver<Map<String, Object>>(true);
+		//subsrl = new FileArchiver<Map<String, Object>>(yamlrw, "index", "", ".yml");
+		subsrl = new FileArchiver<Map<String, Object>>(yamlrw, true, ".yml");
 		//tmsrl = new BTreeMapSerialiser<String, SkeletonBTreeSet<TermEntry>>();
 		//usrl = new BTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKeyTranslator());
 		trans = new IndexTranslator();
@@ -156,7 +159,8 @@ implements Archiver<ProtoIndex>,
 	**
 	** TODO actually make it save to a CHK...
 	*/
-	final protected static LiveArchiver<Map<String, Object>, SimpleProgress> yaml_CHK_srl = new YamlArchiver<Map<String, Object>>(true);
+	final protected static LiveArchiver<Map<String, Object>, SimpleProgress>
+	yaml_CHK_srl = new FileArchiver<Map<String, Object>>(yamlrw, true, ".yml");
 
 	/**
 	** Translator for the local entries of a node of the ''term table''.
@@ -275,7 +279,7 @@ implements Archiver<ProtoIndex>,
 		BTreeNodeSerialiser<FreenetURI, URIEntry> uri_keys = new BTreeNodeSerialiser<FreenetURI, URIEntry>(
 			"uri entries",
 			yaml_CHK_srl,
-			entries.makeNodeTranslator(null, null) // no translator needed as FreenetURI and URIEntry are both directly serialisable by YamlArchiver
+			entries.makeNodeTranslator(null, null) // no translator needed as FreenetURI and URIEntry are both directly serialisable by YamlReaderWriter
 		);
 		entries.setSerialiser(uri_keys, uri_dummy);
 		return entries;

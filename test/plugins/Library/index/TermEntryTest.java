@@ -6,9 +6,11 @@ package plugins.Library.index;
 import junit.framework.TestCase;
 
 import plugins.Library.serial.Serialiser.*;
-import plugins.Library.serial.YamlArchiver;
+import plugins.Library.serial.FileArchiver;
 import plugins.Library.serial.TaskAbortException;
 import plugins.Library.serial.Packer;
+
+import plugins.Library.io.YamlReaderWriter;
 
 import freenet.keys.FreenetURI;
 
@@ -26,7 +28,7 @@ import java.net.MalformedURLException;
 public class TermEntryTest extends TestCase {
 
 	public void testBasic() throws TaskAbortException {
-		YamlArchiver<Map<String, Object>> ym = new YamlArchiver<Map<String, Object>>("test", null);
+		FileArchiver<Map<String, Object>> ym = new FileArchiver<Map<String, Object>>(new YamlReaderWriter(), "test", null, ".yml");
 
 		Map<String, Object> map = new HashMap<String, Object>();
 

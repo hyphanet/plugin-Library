@@ -21,12 +21,12 @@ import java.util.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 0;
-	final public static int it_partial = 0;
+	final public static int it_basic = 8;
+	final public static int it_partial = 8;
 	final public static boolean disabled_progress = false;
 
 	static {
-		ProtoIndex.BTREE_NODE_MIN = 0x1000; // DEBUG 0x40 so we see tree splits
+		ProtoIndex.BTREE_NODE_MIN = 0x40; // DEBUG 0x40 so we see tree splits
 		System.out.println("ProtoIndex B-tree node_min set to " + ProtoIndex.BTREE_NODE_MIN);
 	}
 
@@ -199,7 +199,7 @@ public class BIndexTest extends TestCase {
 		newTestSkeleton();
 
 		int totalentries = 0;
-		int numterms = 0x4000;
+		int numterms = 0x100;
 		int save = rand.nextInt(numterms);
 		String sterm = null;
 
@@ -211,7 +211,7 @@ public class BIndexTest extends TestCase {
 			SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
 			srl.setSerialiserFor(entries);
 
-			int n = rand.nextInt(0x10) + 0x10;
+			int n = rand.nextInt(0x200) + 0x200;
 			totalentries += n;
 
 			try {
@@ -240,7 +240,7 @@ public class BIndexTest extends TestCase {
 		srl.push(task);
 
 		System.out.print("deflated in " + timeDiff() + " ms, root at " + task.meta + ", ");
-		plugins.Library.serial.YamlArchiver.setTestMode();
+		plugins.Library.serial.FileArchiver.setTestMode();
 
 		System.out.println("Requesting entries for term " + sterm);
 		Request<Collection<TermEntry>> rq1 = idx.getTermEntries(sterm);
