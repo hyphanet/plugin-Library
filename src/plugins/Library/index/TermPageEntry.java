@@ -145,7 +145,7 @@ public class TermPageEntry extends TermEntry {
 		if(rel == 0)	// combine relevances
 			newRel = entry.rel;
 		else
-			newRel = rel * entry.rel;
+			newRel = (rel + entry.rel) / 2 ;
 		newTermEntry.rel = newRel;
 
 		return newTermEntry;

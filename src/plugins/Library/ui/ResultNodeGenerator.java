@@ -1,3 +1,6 @@
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
 
 package plugins.Library.ui;
 
@@ -23,7 +26,7 @@ import plugins.Library.index.TermTermEntry;
  * @author MikeB
  */
 public class ResultNodeGenerator {
-	TreeMap<String, SortedMap<Long, SortedSet<TermPageEntry>>> groupmap;
+	TreeMap<String, TermPageGroupEntry> groupmap;
 	TreeSet<TermPageEntry> pageset;
 	TreeSet<TermTermEntry> relatedTerms;
 	TreeSet<TermIndexEntry> relatedIndexes;
@@ -32,31 +35,30 @@ public class ResultNodeGenerator {
 	/**
 	 * Parse result into generator
 	 */
-	public ResultNodeGenerator(Set<TermEntry> result, boolean group){
-		if(group)
+	public ResultNodeGenerator(Set<TermEntry> result, boolean groupusk){
+		if(groupusk)
 			groupmap = new TreeMap();
 		else
-			pageset = new TreeSet();
-		relatedTerms = new TreeSet();
-		relatedIndexes = new TreeSet();
+			pageset = new TreeSet(RelevanceComparator.comparator);
+		relatedTerms = new TreeSet(RelevanceComparator.comparator);
+		relatedIndexes = new TreeSet(RelevanceComparator.comparator);
 
 		Iterator<TermEntry> it = result.iterator();
 		while(it.hasNext()){
 			TermEntry o = (TermEntry)it.next();
 			if(o instanceof TermPageEntry){
 				TermPageEntry pageEntry = (TermPageEntry)o;
-				if(group){
+				if(groupusk){	// Put pages into a group hirearchy : USK key/docnames --> USK editions --> Pages
 					String sitebase;
-					Long uskVersion = Long.valueOf(0);
+					long uskEdition = Long.MIN_VALUE;
 					// Get the key and name
 					FreenetURI uri;
 					uri = pageEntry.getURI();
-					uskVersion=Long.MIN_VALUE;
 					// convert usk's
 					if(uri.isSSKForUSK()){
 						uri = uri.uskForSSK();
 						// Get the USK edition
-						uskVersion = uri.getEdition();
+						uskEdition = uri.getEdition();
 					}
 					// Get the site base name, key + documentname - uskversion
 					sitebase = uri.setMetaString(null).setSuggestedEdition(0).toString().replaceFirst("/0", "");
@@ -64,14 +66,11 @@ public class ResultNodeGenerator {
 
 					// Add site
 					if(!groupmap.containsKey(sitebase))
-						groupmap.put(sitebase, new TreeMap<Long, SortedSet<TermPageEntry>>());
-					SortedMap<Long, SortedSet<TermPageEntry>> sitemap = (SortedMap<Long, SortedSet<TermPageEntry>>)groupmap.get(sitebase);
-					// Add Edition
-					if(!sitemap.containsKey(uskVersion))
-						sitemap.put(uskVersion, new TreeSet());
+						groupmap.put(sitebase, new TermPageGroupEntry(sitebase));
+					TermPageGroupEntry siteGroup = groupmap.get(sitebase);
 					// Add page
-					sitemap.get(uskVersion).add(pageEntry);
-				}else
+					siteGroup.addPage(uskEdition, pageEntry);
+				}else	// Just put all the pages into their own SortedSet
 					pageset.add(pageEntry);
 
 			}else if(o instanceof TermTermEntry){
@@ -102,11 +101,15 @@ public class ResultNodeGenerator {
 		// Loop to separate results into SSK groups
 		
 		if(groupmap != null){
+			SortedSet<TermPageGroupEntry> groupSet = new TreeSet(RelevanceComparator.comparator);
+			groupSet.addAll(groupmap.values());
+			
 			// Loop over keys
-			Iterator<String> it2 = groupmap.keySet().iterator();
+			Iterator<TermPageGroupEntry> it2 = groupSet.iterator();
 			while (it2.hasNext()) {
-				String keybase = it2.next();
-				SortedMap<Long, SortedSet<TermPageEntry>> siteMap = groupmap.get(keybase);
+				TermPageGroupEntry group = it2.next();
+				String keybase = group.getSubject();
+				SortedMap<Long, SortedSet<TermPageEntry>> siteMap = group.getEditions();
 				HTMLNode siteNode = pageListNode.addChild("div", "style", "padding: 6px;");
 				// Create a block for old versions of this SSK
 				HTMLNode siteBlockOldOuter = siteNode.addChild("div", new String[]{"id", "style"}, new String[]{"result-hiddenblock-"+keybase, (!showold?"display:none":"")});
@@ -118,7 +121,7 @@ public class ResultNodeGenerator {
 				// Loop over all editions in this site
 				Iterator<Long> it3 = siteMap.keySet().iterator();
 				while(it3.hasNext()){
-					Long version = it3.next();
+					long version = it3.next();
 					boolean newestVersion = !it3.hasNext();
 					if(newestVersion)	// put older versions in block, newest outside block
 						oldEditionContainer = siteNode;
@@ -128,7 +131,7 @@ public class ResultNodeGenerator {
 						// table for this version
 						versionNode = oldEditionContainer.addChild("table", new String[]{"class"}, new String[]{"librarian-result"});
 						HTMLNode grouptitle = versionNode.addChild("tr").addChild("td", new String[]{"padding", "colspan"}, new String[]{"0", "3"});
-						grouptitle.addChild("h4", "class", (newestVersion?"result-editiontitle-new":"result-editiontitle-old"), keybase.replaceAll("\\b.*/(.*)", "$1")+(version.longValue()>=0 ? "-"+version.toString():""));
+						grouptitle.addChild("h4", "class", (newestVersion?"result-editiontitle-new":"result-editiontitle-old"), keybase.replaceAll("\\b.*/(.*)", "$1")+(version>=0 ? "-"+version:""));
 						// Put link to show hidden older versions block if necessary
 						if(newestVersion && !showold && js && siteMap.size()>1)
 							grouptitle.addChild("a", new String[]{"href", "onClick"}, new String[]{"#"+keybase, "toggleResult('"+keybase+"')"}, "       ["+(siteMap.size()-1)+" older matching versions]");
@@ -144,6 +147,7 @@ public class ResultNodeGenerator {
 					Iterator<TermPageEntry> it4 = siteMap.get(version).iterator();
 					while(it4.hasNext()){
 						versionCell.addChild(termPageEntryNode(it4.next(), newestVersion));
+						results++;
 					}
 				}
 			}
@@ -151,6 +155,7 @@ public class ResultNodeGenerator {
 			for (Iterator<TermPageEntry> it = pageset.iterator(); it.hasNext();) {
 				TermPageEntry termPageEntry = it.next();
 				pageListNode.addChild("div").addChild(termPageEntryNode(termPageEntry, true));
+				results++;
 			}
 		}
 		pageListNode.addChild("p").addChild("span", "class", "librarian-summary-found", "Found"+results+"results");
@@ -166,14 +171,14 @@ public class ResultNodeGenerator {
 		}
 		String realurl = "/" + uri.toString();
 		HTMLNode pageNode = new HTMLNode("div", new String[]{"class", "style"}, new String[]{"result-entry", ""});
-		pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: " + (newestVersion ? "Blue" : "LightBlue"), uri.toString()}, showtitle);
+		pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: " + (newestVersion ? "Blue" : "LightBlue"), (entry.getRelevance()>0)?"Relevance : "+entry.getRelevance():"Relevance unknown"}, showtitle);
 		// create usk url
 		if (uri.isSSKForUSK()) {
 			String realuskurl = "/" + uri.uskForSSK().toString();
-			pageNode.addChild("a", new String[]{"href", "class"}, new String[]{realuskurl, "result-uskbutton"}, "[ USK ]");
+			pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realuskurl, "result-uskbutton", realuskurl}, "[ USK ]");
 		}
 		pageNode.addChild("br");
-		pageNode.addChild("a", new String[]{"href", "class", "style"}, new String[]{realurl, "result-url", "color: " + (newestVersion ? "Green" : "LightGreen")}, showurl);
+		pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-url", "color: " + (newestVersion ? "Green" : "LightGreen"), uri.toString()}, showurl);
 		
 		return pageNode;
 	}

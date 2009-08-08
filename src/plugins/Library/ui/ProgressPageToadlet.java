@@ -1,3 +1,7 @@
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
+
 package plugins.Library.ui;
 
 
@@ -29,6 +33,7 @@ class ProgressPageToadlet extends Toadlet {
 
 	private Search search = null;
 	private boolean showold = false;
+	private boolean groupusk;
 	
 
 	ProgressPageToadlet(HighLevelSimpleClient client, Library library, PluginRespirator pr) {
@@ -40,6 +45,8 @@ class ProgressPageToadlet extends Toadlet {
 	@Override
 	public void handleGet(URI uri, final HTTPRequest request, final ToadletContext ctx)
 	throws ToadletContextClosedException, IOException, RedirectException {
+		groupusk = request.isParameterSet("groupusk");
+		
 		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
 		Thread.currentThread().setContextClassLoader(Library.class.getClassLoader());
 		try {
@@ -83,7 +90,7 @@ class ProgressPageToadlet extends Toadlet {
 		// If it's finished, return it's results
 		if(search != null && search.getState()==RequestState.FINISHED)
 			try {
-				ResultNodeGenerator nodeGenerator = new ResultNodeGenerator(search.getResult(), true);
+				ResultNodeGenerator nodeGenerator = new ResultNodeGenerator(search.getResult(), groupusk);
 				resp.addChild("result").addChild(nodeGenerator.generatePageEntryNode(showold, true));
 				resp.addChild("progress", "RequestState", "FINISHED", "Search complete");
 			} catch (TaskAbortException ex) {

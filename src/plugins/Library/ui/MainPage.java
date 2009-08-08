@@ -1,3 +1,7 @@
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
+
 package plugins.Library.ui;
 
 
@@ -38,6 +42,7 @@ class MainPage implements WebPage {
 	private ArrayList<String> selectedBMIndexes = new ArrayList();
 	/** Any other indexes which are not bookmarks seperated by spaces */
 	private String etcIndexes ="";
+	private boolean groupusk;
 	
 	
 	/**
@@ -58,6 +63,7 @@ class MainPage implements WebPage {
 	public void processGetRequest(HTTPRequest request){
 		js = request.isParameterSet("js");
 		showold = request.isParameterSet("showold");
+		groupusk = request.isParameterSet("groupusk");
 
 		if (request.isParameterSet("request")){
 			search = Search.getSearch(request.getIntParam("request"));
@@ -86,6 +92,7 @@ class MainPage implements WebPage {
 	public void processPostRequest(HTTPRequest request, HTMLNode contentNode, boolean userAccess ) {
 		js = request.isPartSet("js");
 		showold = request.isPartSet("showold");
+		groupusk = request.isPartSet("groupusk");
 
 
 		// Get index list
@@ -144,7 +151,7 @@ class MainPage implements WebPage {
 		if(search!=null && !"".equals(search.getQuery()) && !search.isDone() && exceptions.size()<=0){
 			// refresh will GET so use a request id
 			if(!js)
-				headers.put("Refresh", "2;url="+path()+"?request="+search.hashCode() + (showold?"&showold=on":""));
+				headers.put("Refresh", "2;url="+path()+"?request="+search.hashCode() + (showold?"&showold=on":"") + (groupusk?"&groupusk=on":""));
 			// The JS isn't working again, so it's disabled again
 			//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
 		}
@@ -170,7 +177,7 @@ class MainPage implements WebPage {
             // If search is complete show results
             if (search.getState()==RequestState.FINISHED)
 				try{
-					ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), true);
+					ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk);
 					contentNode.addChild(nodegenerator.generatePageEntryNode(showold, js));
 				}catch(TaskAbortException ex){
 					addError(errorDiv, ex);
@@ -227,12 +234,10 @@ class MainPage implements WebPage {
 
 			HTMLNode optionsBox = searchForm.addChild("div", "style", "margin: 20px 0px 20px 20px; display: inline-table; text-align: left;", "Options");
 				HTMLNode optionsList = optionsBox.addChild("ul", "class", "options-list");
-//					optionsList.addChild("li")
-//						.addChild("input", new String[]{"name", "type"}, new String[]{"groupusk", "checkbox"}, "Group USK Editions");
+					optionsList.addChild("li")
+						.addChild("input", new String[]{"name", "type", groupusk?"checked":"size"}, new String[]{"groupusk", "checkbox", "1"}, "Group USK Editions");
 					optionsList.addChild("li")
 						.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", "1"}, "Show older editions");
-//					optionsList.addChild("li")
-//						.addChild("input", new String[]{"name", "type"}, new String[]{"sort", "checkbox"}, "Sort by relevence");
 				HTMLNode newIndexInput = optionsBox.addChild("div", new String[]{"class", "style"}, new String[]{"index", "display: inline-table;"}, "Add an index:");
 					newIndexInput.addChild("br");
 					newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "Name:");
