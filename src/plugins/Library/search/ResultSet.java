@@ -29,7 +29,6 @@ import plugins.Library.serial.TaskAbortException;
  */
 public class ResultSet implements Set<TermEntry>{
 
-
 	/**
 	 * What should be done with the results of subsearches\n
 	 * INTERSECTION : ( >2 subRequests) result is common results of subsearches\n
@@ -299,7 +298,6 @@ public class ResultSet implements Set<TermEntry>{
 		
 	}
 
-
 	private TermEntry convertEntry(TermEntry termEntry) {
 		TermEntry entry;
 		if (termEntry instanceof TermTermEntry)
@@ -314,7 +312,7 @@ public class ResultSet implements Set<TermEntry>{
 			entry.setRelevance(termEntry.getRelevance());
 		return entry;
 	}
-
+	
 	/**
 	 * Merge a group of TermEntries each pair of which(a, b) must be a.equalsTarget
 	 * The new TermEntry created will have the subject of this ResultSet, it
@@ -340,13 +338,57 @@ public class ResultSet implements Set<TermEntry>{
 			combination = new TermTermEntry(subject, ((TermTermEntry)combination).getTerm());
 		} else
 			throw new IllegalArgumentException("Unknown type : "+combination.getClass().toString());
+
+		if(entries[0].getRelevance()>0)
+			combination.setRelevance(entries[0].getRelevance());
 		
 		for (int i = 1; i < entries.length; i++) {
 			TermEntry termEntry = entries[i];
-			combination = combination.combine(termEntry);
+			combination = combine(combination, termEntry);
 		}
 
 		return combination;
+	}
+
+	private TermEntry combine(TermEntry entry1, TermEntry entry2) {
+		if(!entry1.equalsTarget(entry2))
+			throw new IllegalArgumentException("Combine can only be performed on equal TermEntrys");
+
+		TermEntry newTermEntry;
+
+		if(entry1 instanceof TermPageEntry){
+			TermPageEntry pageentry1 = (TermPageEntry)entry1;
+			TermPageEntry pageentry2 = (TermPageEntry)entry2;
+			// Merge positions
+			Map newPos = null;
+			if(pageentry1.getPositions() == null && pageentry2.getPositions() != null)
+				newPos = new HashMap(pageentry2.getPositions());
+			else if(pageentry1.getPositions() != null){
+				newPos = new HashMap(pageentry1.getPositions());
+				if(pageentry2.getPositions() != null)
+					newPos.putAll(pageentry2.getPositions());
+			}
+
+			newTermEntry = new TermPageEntry(pageentry1.getSubject(), pageentry1.getURI(), (pageentry1.getTitle()!=null)?pageentry1.getTitle():pageentry2.getTitle(), newPos);
+		} else if(entry1 instanceof TermIndexEntry){
+			TermIndexEntry castEntry = (TermIndexEntry) entry1;
+			// nothing to merge, no optional fields	except relevance
+			newTermEntry = new TermIndexEntry(castEntry.getSubject(), castEntry.getIndex());
+		} else if(entry1 instanceof TermTermEntry){
+			// nothing to merge, no optional fields	except relevance
+			TermTermEntry castEntry = (TermTermEntry) entry1;
+
+			newTermEntry = new TermTermEntry(castEntry.getSubject(), castEntry.getTerm());
+		} else
+			throw new UnsupportedOperationException("This type of TermEntry is not yet supported in the combine code : "+entry1.getClass().getName());
+
+
+		// Merge rel
+		float newRel = entry1.getRelevance() / ((entry2.getRelevance() == 0)? 1 : 2 ) + entry2.getRelevance() / ((entry1.getRelevance() == 0)? 1 : 2 );
+		if(newRel>0)
+			newTermEntry.setRelevance(newRel);
+
+		return newTermEntry;
 	}
 
 	/**

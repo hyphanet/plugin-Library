@@ -63,23 +63,4 @@ public class TermIndexEntry extends TermEntry {
 	@Override public int hashCode() {
 		return super.hashCode() ^ index.hashCode();
 	}
-
-	@Override
-	public TermEntry combine(TermEntry entry) {
-		if(!equalsTarget(entry))
-			throw new IllegalArgumentException("Combine can only be performed on equal TermEntrys");
-
-		TermIndexEntry castEntry = (TermIndexEntry) entry;
-		// Merge subj, index
-		TermIndexEntry newTermEntry = new TermIndexEntry(subj, index);
-		// Merge rel
-		float newRel;
-		if(rel == 0)	// combine relevances
-			newRel = entry.rel;
-		else
-			newRel = rel * entry.rel;
-		newTermEntry.setRelevance(newRel);
-		
-		return newTermEntry;
-	}
 }

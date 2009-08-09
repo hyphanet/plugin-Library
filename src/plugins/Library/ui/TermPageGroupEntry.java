@@ -30,11 +30,6 @@ public class TermPageGroupEntry extends TermEntry {
 		throw new UnsupportedOperationException("Not supported yet.");
 	}
 
-	@Override
-	public TermEntry combine(TermEntry entry) {
-		throw new UnsupportedOperationException("Not supported yet.");
-	}
-
 	public void addPage(long uskEdition, TermPageEntry pageEntry) {
 		// Add Edition
 		if(!editions.containsKey(uskEdition))

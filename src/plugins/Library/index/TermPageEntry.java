@@ -118,37 +118,4 @@ public class TermPageEntry extends TermEntry {
 		return super.hashCode() ^ uri.hashCode();
 	}
 
-	/**
-	 * {@inheritDoc}
-	 *
-	 * Takes title from entry if this has none
-	 * Takes term positions from entry if this has none, adds both together if both have term positions
-	 */
-	@Override public TermEntry combine(TermEntry entry) {
-		if(!equalsTarget(entry))
-			throw new IllegalArgumentException("Combine can only be performed on equal TermEntrys");
-
-		TermPageEntry castEntry = (TermPageEntry) entry;
-		// Merge positions
-		Map newPos = null;
-		if(pos == null && castEntry.pos != null)
-			newPos = new HashMap(castEntry.pos);
-		else if(pos != null){
-			newPos = new HashMap(pos);
-			if(castEntry.pos != null)
-				newPos.putAll(castEntry.pos);
-		}
-		// Merge subj, uri, title
-		TermPageEntry newTermEntry = new TermPageEntry(subj, uri, (title!=null)?title:castEntry.title, newPos);
-		// Merge rel
-		float newRel;
-		if(rel == 0)	// combine relevances
-			newRel = entry.rel;
-		else
-			newRel = (rel + entry.rel) / 2 ;
-		newTermEntry.rel = newRel;
-
-		return newTermEntry;
-	}
-
 }
