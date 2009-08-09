@@ -110,8 +110,13 @@ class StaticToadlet extends Toadlet {
 			".result-entry { margin-bottom: 10px; }\n" +
 			".result-sitename {color:black; font-weight:bold}\n" +
 			".result-table { border-spacing : 5px; }\n" +
-			".result-url {color:green; font-size:small; padding-left:15px}\n" +
-			".result-uskbutton {color: #480000; font-variant: small-caps; font-size: small; padding-left: 20px}\n" +
+			"a.result-title-new:link { color: Blue } \n" +
+			"a.result-title-new:visited { color: Purple } \n" +
+			"a.result-title-old:link { color: LightBlue } \n" +
+			"a.result-title-old:visited { color: Orchid } \n" +
+			"a.result-url-new {color:Green; font-size:small; padding-left:15px}\n" +
+			"a.result-url-old {color:LightGreen; font-size:small; padding-left:15px}\n" +
+			"a.result-uskbutton {color: #480000; font-variant: small-caps; font-size: small; padding-left: 20px}\n" +
 			".progress-table {border-spacing:10px 0px;}\n" +
 			".progress-bar-outline { width:300px; border:1px solid grey; height : 20px; border-spacing: 0px; }\n" +
 			".progress-bar-inner-final { background-color: red; height:15px; z-index:-1; border-spacing: 0px; }\n" +

@@ -171,14 +171,14 @@ public class ResultNodeGenerator {
 		}
 		String realurl = "/" + uri.toString();
 		HTMLNode pageNode = new HTMLNode("div", new String[]{"class", "style"}, new String[]{"result-entry", ""});
-		pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-title", "color: " + (newestVersion ? "Blue" : "LightBlue"), (entry.getRelevance()>0)?"Relevance : "+entry.getRelevance():"Relevance unknown"}, showtitle);
+		pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realurl, (newestVersion ? "result-title-new" : "result-title-old"), (entry.getRelevance()>0)?"Relevance : "+entry.getRelevance():"Relevance unknown"}, showtitle);
 		// create usk url
 		if (uri.isSSKForUSK()) {
 			String realuskurl = "/" + uri.uskForSSK().toString();
 			pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realuskurl, "result-uskbutton", realuskurl}, "[ USK ]");
 		}
 		pageNode.addChild("br");
-		pageNode.addChild("a", new String[]{"href", "class", "style", "title"}, new String[]{realurl, "result-url", "color: " + (newestVersion ? "Green" : "LightGreen"), uri.toString()}, showurl);
+		pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realurl, (newestVersion ? "result-url-new" : "result-url-old"), uri.toString()}, showurl);
 		
 		return pageNode;
 	}
