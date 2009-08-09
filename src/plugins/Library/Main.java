@@ -22,7 +22,7 @@ import plugins.Library.ui.WebInterface;
  * Library class is the api for others to use search facilities, it is used by the interfaces
  * @author MikeB
  */
-public class Main implements FredPlugin, FredPluginVersioned,
+public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmanager.FredPluginHTTP, // TODO remove this later
 		FredPluginRealVersioned, FredPluginThreadless, FredPluginL10n {
 
 	private static PluginRespirator pr;
@@ -44,23 +44,12 @@ public class Main implements FredPlugin, FredPluginVersioned,
 	}
 
 	// FredPluginHTTP
-	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
-		try{
-			// DEBUGGING START
-			String test = request.getParam("plugins.Library.Tester");
-			if (!test.equals("")) {
-				return Tester.runTest(test);
-			}
-			// DEBUGGING END
-			return WebUI.handleHTTPGet(request);
-		}catch(Exception e){
-			return WebUI.searchpage(null, null, false, request.isParameterSet("js"), false, e);
-		}
+	// TODO remove this later
+	public String handleHTTPGet(freenet.support.api.HTTPRequest request) {
+		return Tester.runTest(request.getParam("plugins.Library.Tester"));
 	}
-
-	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException{
-		return WebUI.handleHTTPPost(request);
-	}
+	// TODO remove this later
+	public String handleHTTPPost(freenet.support.api.HTTPRequest request) { return null; }
 
 	// FredPlugin
 	public void runPlugin(PluginRespirator pr) {

@@ -92,7 +92,7 @@ public class Tester {
 	volatile static Throwable push_index_error;
 	volatile static Set<String> push_index_words = new TreeSet<String>(Arrays.asList(
 		"Lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipisicing",
-		"elit", "sed", "do", "eiusmod", "tempor", "incididunt", "ut", "labore"/*,
+		"elit", "sed", "do", "eiusmod", "tempor", "incididunt", "ut", "labore",
 		"et", "dolore", "magna", "aliqua.", "Ut", "enim", "ad", "minim",
 		"veniam", "quis", "nostrud", "exercitation", "ullamco", "laboris", "nisi",
 		"ut", "aliquip", "ex", "ea", "commodo", "consequat.", "Duis", "aute",
@@ -100,7 +100,7 @@ public class Tester {
 		"esse", "cillum", "dolore", "eu", "fugiat", "nulla", "pariatur.",
 		"Excepteur", "sint", "occaecat", "cupidatat", "non", "proident", "sunt",
 		"in", "culpa", "qui", "officia", "deserunt", "mollit", "anim", "id", "est",
-		"laborum."*/
+		"laborum."
 	));
 	public static String testPushIndex() {
 		if (push_index_thread == null) {
@@ -121,7 +121,7 @@ public class Tester {
 					for (String key: push_index_words) {
 						SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
 						srl.setSerialiserFor(entries);
-						int n = rand.nextInt(0x20) + 0x20;
+						int n = rand.nextInt(0x200) + 0x200;
 						try {
 							for (int j=0; j<n; ++j) {
 								TermEntry e = new TermPageEntry(key, new FreenetURI("CHK@fake~~~~" + UUID.randomUUID().toString().replace('-','~')));
