@@ -48,8 +48,8 @@ public class YamlReaderWriter
 implements ObjectStreamReader, ObjectStreamWriter {
 
 	/**
-	** The default yaml processor. This one does not wrap long lines and
-	** always uses block-level elements.
+	** The default {@link Yaml} processor. This one does not wrap long lines
+	** and always uses block-level elements.
 	*/
 	final protected static ThreadLocal<Yaml> DEFAULT_YAML = new ThreadLocal<Yaml>() {
 		protected synchronized Yaml initialValue() {
@@ -62,7 +62,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	};
 
 	/**
-	** Thread local yaml processor. ({@link Yaml} is not thread-safe.)
+	** Thread local {@link Yaml} processor. ({@code Yaml} is not thread-safe.)
 	**
 	** @see ThreadLocal
 	** @see Yaml

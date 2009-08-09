@@ -31,7 +31,7 @@ import java.nio.channels.FileLock;
 ** @see Dumper
 ** @author infinity0
 */
-public class FileArchiver<T extends Map<String, Object>>
+public class FileArchiver<T extends Map<String, ? extends Object>> // TODO maybe get rid of type restriction
 implements Archiver<T>,
            LiveArchiver<T, SimpleProgress> {
 
@@ -40,7 +40,7 @@ implements Archiver<T>,
 	public static void setTestMode() { System.out.println("FileArchiver will now randomly pause 5-10s for each task, to simulate network speeds"); testmode = true; }
 	public static void randomWait(SimpleProgress p) {
 		int t = (int)(Math.random()*5+5);
-		p.addTotal(t, true);
+		p.addPartKnown(t, true);
 		for (int i=0; i<t; ++i) {
 			try {
 				Thread.sleep(1000);
@@ -75,11 +75,11 @@ implements Archiver<T>,
 	final protected ObjectStreamReader reader;
 	final protected ObjectStreamWriter writer;
 
-	public <S extends ObjectStreamReader & ObjectStreamWriter> FileArchiver(S rw, String pre, String suf, String ext) {
+	public <S extends ObjectStreamWriter & ObjectStreamReader> FileArchiver(S rw, String pre, String suf, String ext) {
 		this(rw, rw, pre, suf, ext);
 	}
 
-	public <S extends ObjectStreamReader & ObjectStreamWriter> FileArchiver(S rw, boolean rnd, String ext) {
+	public <S extends ObjectStreamWriter & ObjectStreamReader> FileArchiver(S rw, boolean rnd, String ext) {
 		this(rw, rw, rnd, ext);
 	}
 
@@ -178,7 +178,7 @@ implements Archiver<T>,
 		try {
 			pull(t);
 			if (testmode) { randomWait(p); }
-			else { p.addTotal(0, true); }
+			else { p.addPartKnown(0, true); }
 		} catch (TaskAbortException e) {
 			p.abort(e);
 		}
@@ -188,7 +188,7 @@ implements Archiver<T>,
 		try {
 			push(t);
 			if (testmode) { randomWait(p); }
-			else { p.addTotal(0, true); }
+			else { p.addPartKnown(0, true); }
 		} catch (TaskAbortException e) {
 			p.abort(e);
 		}

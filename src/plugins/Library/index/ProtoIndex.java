@@ -18,11 +18,9 @@ import freenet.keys.FreenetURI;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.Map;
 import java.util.SortedSet;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.TreeSet;
 import java.util.Stack;
@@ -63,7 +61,7 @@ public class ProtoIndex {
 
 
 
-	final protected SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab;
+	final public /* DEBUG URGENT protected*/ SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab;
 	final protected SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab;
 
 

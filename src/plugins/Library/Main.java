@@ -28,10 +28,14 @@ import plugins.Library.ui.WebInterface;
  */
 public class Main implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
 		FredPluginRealVersioned, FredPluginThreadless, FredPluginL10n {
+
 	private static PluginRespirator pr;
 	private Library library;
 	private WebInterface webinterface;
 
+	public static PluginRespirator getPluginRespirator() {
+		return pr;
+	}
 
 	// FredPluginVersioned
 	public String getVersion() {
@@ -43,11 +47,15 @@ public class Main implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
 		return library.getVersion();
 	}
 
-
-
 	// FredPluginHTTP
 	public String handleHTTPGet(HTTPRequest request) throws PluginHTTPException{
 		try{
+			// DEBUGGING START
+			String test = request.getParam("plugins.Library.Tester");
+			if (!test.equals("")) {
+				return Tester.runTest(test);
+			}
+			// DEBUGGING END
 			return WebUI.handleHTTPGet(request);
 		}catch(Exception e){
 			return WebUI.searchpage(null, null, false, request.isParameterSet("js"), false, e);
@@ -55,15 +63,14 @@ public class Main implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
 	}
 
 	public String handleHTTPPost(HTTPRequest request) throws PluginHTTPException{
-        return WebUI.handleHTTPPost(request);
-    }
-
+		return WebUI.handleHTTPPost(request);
+	}
 
 	// FredPlugin
 	public void runPlugin(PluginRespirator pr) {
-		library = new Library(pr);
 		Main.pr = pr;
-        Search.setup(library);
+		library = new Library(pr);
+		Search.setup(library);
 		WebUI.setup(library);
 		webinterface = new WebInterface(library, pr);
 		webinterface.load();
@@ -73,7 +80,13 @@ public class Main implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
 		webinterface.unload();
 	}
 
+	public String getString(String key) {
+		return key;
+	}
 
+	public void setLanguage(LANGUAGE newLanguage) {
+
+	}
 
 	private static String convertToHex(byte[] data) {
 		StringBuilder buf = new StringBuilder();
@@ -104,11 +117,8 @@ public class Main implements FredPlugin, FredPluginHTTP, FredPluginVersioned,
 		}
 	}
 
-	public String getString(String key) {
-		return key;
-	}
 
-	public void setLanguage(LANGUAGE newLanguage) {
-		
-	}
+
+
+
 }

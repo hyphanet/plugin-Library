@@ -49,6 +49,7 @@ public class TermIndexEntry extends TermEntry {
 	@Override public int compareTo(TermEntry o) {
 		int a = super.compareTo(o);
 		if (a != 0) { return a; }
+		// OPTIMISE find a more efficient way than this
 		return index.toString().compareTo(((TermIndexEntry)o).index.toString());
 	}
 
@@ -79,7 +80,7 @@ public class TermIndexEntry extends TermEntry {
 		else
 			newRel = rel * entry.rel;
 		newTermEntry.setRelevance(newRel);
-		
+
 		return newTermEntry;
 	}
 }

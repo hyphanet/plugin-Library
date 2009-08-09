@@ -15,7 +15,6 @@ import java.util.Set;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.ArrayList;
-import java.util.IdentityHashMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeSet;
@@ -46,16 +45,12 @@ import java.util.TreeSet;
 ** * {@link #preprocessPushBins(Map, Collection)}
 **
 ** Note that this class effectively '''disables''' the "duplicate" detection of
-** {@link ProgressTracker}; tasks are
-*
-*
-*
-*  that class uses {@link IdentityHashMap}s to keep
-** track of pull/push requests for given meta/data; but this class dynamically
-** generates the meta/data for each bin on each pull/push request. This should
-** not intefere with correctness (as long as the relevant locks in place); just
-** be slightly inefficient when requests for the same bin are given to any
-** child serialisers that use {@link ProgressTracker} to detect duplicates.
+** {@link ProgressTracker}; pull/push tasks are deemed to be equal if their
+** meta/data point to the same object, but this class dynamically generates the
+** meta/data for each bin on each pull/push request. This should not intefere
+** with correctness (as long as the relevant locks in place); just be slightly
+** inefficient when requests for the same bin are given to a child serialiser
+** that uses {@link ProgressTracker} to detect duplicates.
 **
 ** If you plan on using a child serialiser that uses some other method to
 ** detect duplicates, bear in mind that {@link #pullUnloaded(Map, Object)}
@@ -427,9 +422,9 @@ implements MapSerialiser<K, T>,
 			PullTask<T> newtask = newtasks.get(en.getKey());
 			if (task.data != null) { continue; }
 			if (newtask == null) {
-				// this part of the code should never be reached because ProgressTracker
-				// uses IdentityHashMaps, and the object representing the metadata of each
-				// bin is re-created from scratch upon each push/pull operation. so a
+				// this part of the code should never be reached because pull/push tasks
+				// are deemed equal if their meta/data point to the same object; and these
+				// object are re-created from scratch upon each push/pull operation. so a
 				// child serialiser that extends Serialiser.Trackable should never discard
 				// a pull/push task for a bin as a "duplicate" of another task already in
 				// progress, and hence newtask should never be null.

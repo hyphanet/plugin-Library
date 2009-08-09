@@ -172,11 +172,31 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return ((SkeletonTreeMap<K, V>)entries).isBare();
 		}
 
-		// OPTIMISE make this parallel
 		@Override public void deflate() throws TaskAbortException {
 			if (!isLeaf()) {
-				for (K k: rnodes.keySet()) {
-					deflate(k, true);
+				List<PushTask<SkeletonNode>> tasks = new ArrayList<PushTask<SkeletonNode>>(nodeSize() - ghosts);
+				for (Map.Entry<K, Node> en: rnodes.entrySet()) {
+					Node node = en.getValue();
+					if (node.entries == null) { continue; } // ghost node
+					if (!((SkeletonNode)node).isBare()) {
+						((SkeletonNode)node).deflate();
+					}
+					tasks.add(new PushTask<SkeletonNode>((SkeletonNode)node));
+				}
+
+				nsrl.push(tasks);
+				for (PushTask<SkeletonNode> task: tasks) {
+					try {
+						GhostNode ghost = (GhostNode)task.meta;
+						ghost.parent = this;
+
+						lnodes.put(ghost.rkey, ghost);
+						rnodes.put(ghost.lkey, ghost);
+						++ghosts;
+
+					} catch (RuntimeException e) {
+						throw new TaskAbortException("Could not deflate BTreeMap Node " + getRange(), e);
+					}
 				}
 			}
 			((SkeletonTreeMap<K, V>)entries).deflate();
@@ -194,10 +214,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			assert(isLive());
 		}
 
-		@Override public void deflate(K key) throws TaskAbortException {
-			deflate(key, false);
-		}
-
 		@Override public void inflate(K key) throws TaskAbortException {
 			inflate(key, false);
 		}
@@ -210,24 +226,20 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		** @param key The key
 		** @param auto Whether to recursively deflate the node's subnodes.
 		*/
-		public void deflate(K key, boolean auto) throws TaskAbortException {
+		@Override public void deflate(K key) throws TaskAbortException {
 			if (isLeaf()) { return; }
 			Node node = rnodes.get(key);
 			if (node.entries == null) { return; } // ghost node
 
 			if (!((SkeletonNode)node).isBare()) {
-				if (auto) {
-					((SkeletonNode)node).deflate();
-				} else {
-					throw new IllegalStateException("Cannot deflate non-bare BTreeMap node");
-				}
+				throw new IllegalStateException("Cannot deflate non-bare BTreeMap node");
 			}
 
 			PushTask<SkeletonNode> task = new PushTask<SkeletonNode>((SkeletonNode)node);
 			try {
 				nsrl.push(task);
 
-				GhostNode ghost = (GhostNode)task.meta;// new GhostNode(this, node.lkey, node.rkey);
+				GhostNode ghost = (GhostNode)task.meta;
 				ghost.parent = this;
 
 				lnodes.put(ghost.rkey, ghost);

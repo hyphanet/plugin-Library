@@ -26,11 +26,11 @@ import plugins.Library.serial.TaskAbortException;
 import plugins.Library.serial.TaskInProgressException;
 import plugins.Library.io.YamlReaderWriter;
 
+import plugins.Library.client.FreenetArchiver;
+
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 import java.util.Map;
-import java.util.ArrayList;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.LinkedHashMap;
@@ -48,9 +48,11 @@ import freenet.keys.FreenetURI;
 */
 public class BIndexSerialiser
 implements Archiver<ProtoIndex>,
-           Serialiser.Composite<Archiver<Map<String, Object>>>,
+           Serialiser.Composite<Archiver<Map<String, Object>>>, // PRIORITY make this a LiveArchiver
            Serialiser.Translate<ProtoIndex, Map<String, Object>>/*,
            Serialiser.Trackable<Index>*/ {
+
+	final protected static boolean testmode = false;
 
 	final protected static YamlReaderWriter yamlrw = new YamlReaderWriter();
 
@@ -58,16 +60,17 @@ implements Archiver<ProtoIndex>,
 	  Serialisers and Translators - main Index
 	 ========================================================================*/
 
-	final protected Archiver<Map<String, Object>> subsrl;
-	final protected Translator<ProtoIndex, Map<String, Object>> trans;
+	final protected static Archiver<Map<String, Object>>
+	subsrl = (testmode)? new FileArchiver<Map<String, Object>>(yamlrw, true, ".yml"):
+	                     initFreenetArchiver(); // PRIORITY use USK
+
+	final protected static Translator<ProtoIndex, Map<String, Object>>
+	trans = new IndexTranslator();
 
 	public BIndexSerialiser() {
 		// for DEBUG use; the freenet version would save to SSK@key/my_index/index.yml
-		//subsrl = new FileArchiver<Map<String, Object>>(yamlrw, "index", "", ".yml");
-		subsrl = new FileArchiver<Map<String, Object>>(yamlrw, true, ".yml");
 		//tmsrl = new BTreeMapSerialiser<String, SkeletonBTreeSet<TermEntry>>();
 		//usrl = new BTreeMapSerialiser<URIKey, SortedMap<FreenetURI, URIEntry>>(new URIKeyTranslator());
-		trans = new IndexTranslator();
 	}
 
 	@Override public Archiver<Map<String, Object>> getChildSerialiser() {
@@ -156,11 +159,19 @@ implements Archiver<ProtoIndex>,
 
 	/**
 	** YAML serialiser.
-	**
-	** TODO actually make it save to a CHK...
 	*/
 	final protected static LiveArchiver<Map<String, Object>, SimpleProgress>
-	yaml_CHK_srl = new FileArchiver<Map<String, Object>>(yamlrw, true, ".yml");
+	yaml_CHK_srl = (testmode)? new FileArchiver<Map<String, Object>>(yamlrw, true, ".yml"):
+	                           initFreenetArchiver();
+
+	private static LiveArchiver<Map<String, Object>, SimpleProgress> initFreenetArchiver() {
+		freenet.pluginmanager.PluginRespirator pr = plugins.Library.Main.getPluginRespirator();
+		if (pr == null) {
+			throw new IllegalStateException("Cannot use this class without a fully live Library plugin connected to a freenet node.");
+		} else {
+			return new FreenetArchiver<Map<String, Object>>(pr.getNode().clientCore, yamlrw, null, "text/yaml", 0x10000);
+		}
+	}
 
 	/**
 	** Translator for the local entries of a node of the ''term table''.
@@ -382,20 +393,20 @@ implements Archiver<ProtoIndex>,
 			SkeletonBTreeMap<K, V>.GhostNode ghost = (SkeletonBTreeMap.GhostNode)task.meta;
 			PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(ghost.getMeta());
 			p.setName("Pulling " + name + ": " + ghost.getRange());
-			p.addTotal(1, false);
+			p.enteredSerialiser();
 			subsrl.pullLive(serialisable, p);
 			ghost.setMeta(serialisable.meta); task.data = trans.rev(serialisable.data);
-			p.addPartDone();
+			p.exitingSerialiser();
 		}
 
 		@Override public void pushLive(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) throws TaskAbortException {
 			Map<String, Object> intermediate = trans.app(task.data);
 			PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(intermediate, task.meta);
 			p.setName("Pushing " + name + ": " + task.data.getRange());
-			p.addTotal(1, false);
+			p.enteredSerialiser();
 			subsrl.pushLive(serialisable, p);
 			task.meta = task.data.makeGhost(serialisable.meta);
-			p.addPartDone();
+			p.exitingSerialiser();
 		}
 
 	}
@@ -480,7 +491,7 @@ implements Archiver<ProtoIndex>,
 		@Override public void pullLive(PullTask<Map<K, V>> task, SimpleProgress p) throws TaskAbortException {
 			PullTask<Map<String, Object>> t = new PullTask<Map<String, Object>>(task.meta);
 			p.setName("Pulling root container " + task.meta);
-			p.addTotal(1, false);
+			p.enteredSerialiser();
 			try {
 				subsrl.pullLive(t, p);
 
@@ -495,7 +506,7 @@ implements Archiver<ProtoIndex>,
 				}
 
 				task.data = map;
-				p.addPartDone();
+				p.exitingSerialiser();
 			} catch (RuntimeException e) {
 				p.abort(new TaskAbortException("Could not retrieve data from bin " + t.data.keySet(), e));
 			}
@@ -509,10 +520,10 @@ implements Archiver<ProtoIndex>,
 
 			PushTask<Map<String, Object>> t = new PushTask<Map<String, Object>>(conv, task.meta);
 			p.setName("Pushing root container for keys " + task.data.keySet());
-			p.addTotal(1, false);
+			p.enteredSerialiser();
 			subsrl.pushLive(t, p);
 			task.meta = t.meta;
-			p.addPartDone();
+			p.exitingSerialiser();
 		}
 
 	}

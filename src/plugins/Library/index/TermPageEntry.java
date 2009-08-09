@@ -103,6 +103,7 @@ public class TermPageEntry extends TermEntry {
 	@Override public int compareTo(TermEntry o) {
 		int a = super.compareTo(o);
 		if (a != 0) { return a; }
+		// OPTIMISE find a more efficient way than this
 		return uri.toString().compareTo(((TermPageEntry)o).uri.toString());
 	}
 
