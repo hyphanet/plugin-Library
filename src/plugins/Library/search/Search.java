@@ -440,11 +440,13 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	@Override public Set<TermEntry> getResult() throws TaskAbortException {
 		if(getState() != Request.RequestState.FINISHED)
 			return null;
+		
+		allsearches.remove(getSubject());
+		searchhashes.remove(hashCode());
 
 		ResultSet result;
 		result = new ResultSet(subject, resultOperation, subsearches);
 
-		allsearches.remove(subject);
 		return result;
 	}
 }
