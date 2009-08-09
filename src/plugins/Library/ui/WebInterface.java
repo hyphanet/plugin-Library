@@ -41,14 +41,14 @@ public class WebInterface {
 	 * Load the Library interface into the FProxy interface
 	 */
 	public void load() {
-		pageMaker.addNavigationCategory("/library/", "Library", "Library", new Main());
+		//pageMaker.addNavigationCategory("/library/", "Library", "Library", new Main());
 
 		toadlets  = new PageToadlet[]{
 			new PageToadlet(client, library, core, new MainPage(library, pr)),
 		};
 
 		for (PageToadlet toadlet : toadlets) {
-			toadletContainer.register(toadlet, "Library", toadlet.path(), true, toadlet.name(), toadlet.name(), true, null );
+			toadletContainer.register(toadlet, toadlet.menu(), toadlet.path(), true, toadlet.name(), toadlet.name(), true, null );
 		}
 		toadletContainer.register(new StaticToadlet(client), null, "/library/static/", true, false);
 		toadletContainer.register(new ProgressPageToadlet(client, library, pr), null, "/library/xml/", true, false);
@@ -61,7 +61,8 @@ public class WebInterface {
 	public void unload() {
 		for (PageToadlet pageToadlet : toadlets) {
 			toadletContainer.unregister(pageToadlet);
+			pageMaker.removeNavigationLink(pageToadlet.menu(), pageToadlet.name());
 		}
-		pageMaker.removeNavigationCategory("Library");
+		//pageMaker.removeNavigationCategory("Library");
 	}
 }

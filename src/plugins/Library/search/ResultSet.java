@@ -29,7 +29,6 @@ import plugins.Library.serial.TaskAbortException;
  */
 public class ResultSet implements Set<TermEntry>{
 
-
 	/**
 	 * What should be done with the results of subsearches\n
 	 * INTERSECTION : ( >2 subRequests) result is common results of subsearches\n
@@ -66,7 +65,7 @@ public class ResultSet implements Set<TermEntry>{
 		this.subject = subject;
 		internal = new HashMap();
 
-
+		// Decide what to do
 		switch(resultOperation){
 			case SINGLE:	// Just add everything
 				addAllToEmptyInternal(subRequests.get(0).getResult());
@@ -99,7 +98,7 @@ public class ResultSet implements Set<TermEntry>{
 	}
 
 
-
+	// Set interface methods, folow the standard contract
 
 	public int size() {
 		return internal.size();
@@ -299,20 +298,23 @@ public class ResultSet implements Set<TermEntry>{
 		
 	}
 
-
 	private TermEntry convertEntry(TermEntry termEntry) {
+		TermEntry entry;
 		if (termEntry instanceof TermTermEntry)
-			return new TermTermEntry( subject, ((TermTermEntry)termEntry).getTerm() );
+			entry = new TermTermEntry( subject, ((TermTermEntry)termEntry).getTerm() );
 		else if (termEntry instanceof TermPageEntry)
-			return new TermPageEntry( subject, ((TermPageEntry)termEntry).getURI(), ((TermPageEntry)termEntry).getTitle(), ((TermPageEntry)termEntry).getPositions() );
+			entry = new TermPageEntry( subject, ((TermPageEntry)termEntry).getURI(), ((TermPageEntry)termEntry).getTitle(), ((TermPageEntry)termEntry).getPositions() );
 		else if (termEntry instanceof TermIndexEntry)
-			return new TermIndexEntry( subject, ((TermIndexEntry)termEntry).getIndex() );
+			entry = new TermIndexEntry( subject, ((TermIndexEntry)termEntry).getIndex() );
 		else
 			throw new UnsupportedOperationException("The TermEntry type " + termEntry.getClass().getName() + " is not currently supported in ResultSet");
+		if(termEntry.getRelevance()>0)
+			entry.setRelevance(termEntry.getRelevance());
+		return entry;
 	}
-
+	
 	/**
-	 * Merge a group of TermEntries each pair of which(a, b) must be a.equalsIgnoreSubject
+	 * Merge a group of TermEntries each pair of which(a, b) must be a.equalsTarget
 	 * The new TermEntry created will have the subject of this ResultSet, it
 	 * will try to combine all the optional fields from the TermEntrys being merged,
 	 * with priority being put on those earliest in the arguments
@@ -322,7 +324,7 @@ public class ResultSet implements Set<TermEntry>{
 	 */
 	private TermEntry mergeEntries(TermEntry... entries) {
 		for (int i = 1; i < entries.length; i++)
-			if(!entries[0].equalsIgnoreSubject(entries[i]))
+			if(!entries[0].equalsTarget(entries[i]))
 				throw new IllegalArgumentException("entries were not equal : "+entries[0].toString()+" & "+entries[i].toString());
 		
 		TermEntry combination = entries[0];
@@ -336,13 +338,57 @@ public class ResultSet implements Set<TermEntry>{
 			combination = new TermTermEntry(subject, ((TermTermEntry)combination).getTerm());
 		} else
 			throw new IllegalArgumentException("Unknown type : "+combination.getClass().toString());
+
+		if(entries[0].getRelevance()>0)
+			combination.setRelevance(entries[0].getRelevance());
 		
 		for (int i = 1; i < entries.length; i++) {
 			TermEntry termEntry = entries[i];
-			combination = combination.combine(termEntry);
+			combination = combine(combination, termEntry);
 		}
 
 		return combination;
+	}
+
+	private TermEntry combine(TermEntry entry1, TermEntry entry2) {
+		if(!entry1.equalsTarget(entry2))
+			throw new IllegalArgumentException("Combine can only be performed on equal TermEntrys");
+
+		TermEntry newTermEntry;
+
+		if(entry1 instanceof TermPageEntry){
+			TermPageEntry pageentry1 = (TermPageEntry)entry1;
+			TermPageEntry pageentry2 = (TermPageEntry)entry2;
+			// Merge positions
+			Map newPos = null;
+			if(pageentry1.getPositions() == null && pageentry2.getPositions() != null)
+				newPos = new HashMap(pageentry2.getPositions());
+			else if(pageentry1.getPositions() != null){
+				newPos = new HashMap(pageentry1.getPositions());
+				if(pageentry2.getPositions() != null)
+					newPos.putAll(pageentry2.getPositions());
+			}
+
+			newTermEntry = new TermPageEntry(pageentry1.getSubject(), pageentry1.getURI(), (pageentry1.getTitle()!=null)?pageentry1.getTitle():pageentry2.getTitle(), newPos);
+		} else if(entry1 instanceof TermIndexEntry){
+			TermIndexEntry castEntry = (TermIndexEntry) entry1;
+			// nothing to merge, no optional fields	except relevance
+			newTermEntry = new TermIndexEntry(castEntry.getSubject(), castEntry.getIndex());
+		} else if(entry1 instanceof TermTermEntry){
+			// nothing to merge, no optional fields	except relevance
+			TermTermEntry castEntry = (TermTermEntry) entry1;
+
+			newTermEntry = new TermTermEntry(castEntry.getSubject(), castEntry.getTerm());
+		} else
+			throw new UnsupportedOperationException("This type of TermEntry is not yet supported in the combine code : "+entry1.getClass().getName());
+
+
+		// Merge rel
+		float newRel = entry1.getRelevance() / ((entry2.getRelevance() == 0)? 1 : 2 ) + entry2.getRelevance() / ((entry1.getRelevance() == 0)? 1 : 2 );
+		if(newRel>0)
+			newTermEntry.setRelevance(newRel);
+
+		return newTermEntry;
 	}
 
 	/**
@@ -368,7 +414,7 @@ public class ResultSet implements Set<TermEntry>{
 	private TermEntry getIgnoreSubject(TermEntry entry, Collection<? extends TermEntry> collection){
 		TermEntry result = null;
 			for (TermEntry termEntry : collection) {
-				if (entry.equalsIgnoreSubject(termEntry)){
+				if (entry.equalsTarget(termEntry)){
 					result = termEntry;
 					break;
 				}
@@ -397,7 +443,7 @@ public class ResultSet implements Set<TermEntry>{
 		Map<Integer, String> pos1 = ((TermPageEntry)entry).getPositions();
 		Map<Integer, String> pos2 = result.getPositions();
 		if(pos1==null || pos2 == null)
-			throw new NullPointerException("This index does not have term position information and so cannot perform a phrase search, this should probably be a different type of exception, maybe an InvalidSearchException?");
+			throw new NullPointerException("This index does not have term position information and so cannot perform a phrase search, this should probably be a different type of exception, maybe an InvalidSearchException? : "+entry.toString()+" "+((TermPageEntry)entry).getPositions()+" / "+result.toString()+" "+result.getPositions());
 		Map<Integer, String> newPos = new HashMap();
 		for (Integer integer1 : pos1.keySet()) {
 			for (Integer integer2 : pos2.keySet()) {

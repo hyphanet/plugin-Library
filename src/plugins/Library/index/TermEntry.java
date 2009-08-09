@@ -66,7 +66,7 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 
 	public void setRelevance(float r) {
 		if (r <= 0 || r > 1) {
-			throw new IllegalArgumentException("Relevance must be in the half-closed interval (0,1].");
+			throw new IllegalArgumentException("Relevance must be in the half-closed interval (0,1]. Supplied : "+r);
 		}
 		rel = r;
 	}
@@ -124,14 +124,7 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 	** Subclasses '''must overridde this method'' to use information
 	** specific to the subclass.
 	*/
-	public abstract boolean equalsIgnoreSubject(TermEntry entry);
-
-	/**
-	** if any optional fields in this TermEntry are empty, add those fields from this
-	** @param entry which must be equalsIgnoreSubject
-	** @throws IllegalArgumentException if not this.equalsIgnoreSubject(entry)
-	**/
-	public abstract TermEntry combine(TermEntry entry);
+	public abstract boolean equalsTarget(TermEntry entry);
 
 	/**
 	** {@inheritDoc}

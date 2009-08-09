@@ -57,7 +57,7 @@ public class TermIndexEntry extends TermEntry {
 		return super.equals(o) && index.equals(((TermIndexEntry)o).index);
 	}
 
-	public boolean equalsIgnoreSubject(TermEntry entry) {
+	public boolean equalsTarget(TermEntry entry) {
 		return (entry instanceof TermIndexEntry) && index.equals(((TermIndexEntry)entry).index);
 	}
 
@@ -65,22 +65,4 @@ public class TermIndexEntry extends TermEntry {
 		return super.hashCode() ^ index.hashCode();
 	}
 
-	@Override
-	public TermEntry combine(TermEntry entry) {
-		if(!equalsIgnoreSubject(entry))
-			throw new IllegalArgumentException("Combine can only be performed on equal TermEntrys");
-
-		TermIndexEntry castEntry = (TermIndexEntry) entry;
-		// Merge subj, index
-		TermIndexEntry newTermEntry = new TermIndexEntry(subj, index);
-		// Merge rel
-		float newRel;
-		if(rel == 0)	// combine relevances
-			newRel = entry.rel;
-		else
-			newRel = rel * entry.rel;
-		newTermEntry.setRelevance(newRel);
-
-		return newTermEntry;
-	}
 }
