@@ -72,11 +72,13 @@ implements Archiver<ProtoIndex>,
 	@Override public void pull(PullTask<ProtoIndex> task) throws TaskAbortException {
 		PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(task.meta);
 		subsrl.pull(serialisable);
-		task.meta = serialisable.meta; task.data = trans.rev(serialisable.data);
+		serialisable.data.put("reqID", task.meta = serialisable.meta);
+		task.data = trans.rev(serialisable.data);
 	}
 
 	@Override public void push(PushTask<ProtoIndex> task) throws TaskAbortException {
 		PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(trans.app(task.data));
+		serialisable.meta = serialisable.data.remove("insID");
 		subsrl.push(serialisable);
 		task.meta = serialisable.meta;
 	}
@@ -106,7 +108,7 @@ implements Archiver<ProtoIndex>,
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("serialVersionUID", idx.serialVersionUID);
 			map.put("serialFormatUID", idx.serialFormatUID);
-			map.put("id", idx.id);
+			map.put("insID", idx.insID);
 			map.put("name", idx.name);
 			map.put("modified", idx.modified);
 			map.put("extra", idx.extra);
@@ -121,14 +123,14 @@ implements Archiver<ProtoIndex>,
 			if (magic == ProtoIndex.serialVersionUID) {
 				try {
 					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"));
-					FreenetURI id = (FreenetURI)map.get("id");
+					FreenetURI reqID = (FreenetURI)map.get("reqID");
 					String name = (String)map.get("name");
 					Date modified = (Date)map.get("modified");
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
 					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
 					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>)map.get("ttab"));
 
-					return cmpsrl.setSerialiserFor(new ProtoIndex(id, name, modified, extra, utab, ttab));
+					return cmpsrl.setSerialiserFor(new ProtoIndex(reqID, name, modified, extra, utab, ttab));
 
 				} catch (ClassCastException e) {
 					// TODO maybe find a way to pass the actual bad data to the exception

@@ -33,7 +33,7 @@ import java.util.Date;
 */
 final public class ProtoIndex {
 
-	final static long serialVersionUID = 0xf82a9082681e5ba6L;
+	final static long serialVersionUID = 0xf82a40726c1e5ba6L;
 
 	final public static String MIME_TYPE = "text/yaml";
 	final public static String DEFAULT_FILE = "index.yml";
@@ -43,9 +43,14 @@ final public class ProtoIndex {
 	final public static int BTREE_ENT_MAX = (BTREE_NODE_MIN<<1) - 1;
 
 	/**
-	** Freenet ID for this index
+	** Request ID for this index
 	*/
-	protected FreenetURI id;
+	protected FreenetURI reqID;
+
+	/**
+	** Insert ID for this index
+	*/
+	protected FreenetURI insID; // TODO maybe move this to WriteableProtoIndex?
 
 	/**
 	** Name for this index.
@@ -68,23 +73,20 @@ final public class ProtoIndex {
 	final protected SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab;
 
 
-	public ProtoIndex(FreenetURI i, String n) {
-		id = i;
-		name = (n == null)? "": n;
-		modified = new Date();
-		extra = new HashMap<String, Object>();
-
-		utab = new SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(BTREE_NODE_MIN);
-		ttab = new SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>>(BTREE_NODE_MIN);
-		//filtab = new SkeletonPrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX);
+	public ProtoIndex(FreenetURI id, String n) {
+		this(id, n, new Date(), new HashMap<String, Object>(),
+			new SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(BTREE_NODE_MIN),
+			new SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>>(BTREE_NODE_MIN)/*,
+			//filtab = new SkeletonPrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX)*/
+		);
 	}
 
-	protected ProtoIndex(FreenetURI i, String n, Date m, Map<String, Object> x,
+	protected ProtoIndex(FreenetURI id, String n, Date m, Map<String, Object> x,
 		SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> u,
 		SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> t/*,
 		SkeletonMap<Token, TokenFilter> f*/
 		) {
-		id = i;
+		reqID = id;
 		name = (n == null)? "": n;
 		modified = m;
 		extra = x;

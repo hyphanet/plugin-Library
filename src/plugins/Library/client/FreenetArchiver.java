@@ -80,7 +80,7 @@ implements LiveArchiver<T, SimpleProgress> {
 				tempB.setReadOnly();
 
 				// PRIORITY do the USK_base next-suggested-edition thing. source in plugins.WoT.IdentityInserter
-				FreenetURI target = FreenetURI.EMPTY_CHK_URI;
+				FreenetURI target = (task.meta == null)? FreenetURI.EMPTY_CHK_URI: (FreenetURI)task.meta;
 				InsertBlock ib = new InsertBlock(tempB, new ClientMetadata(default_mime), target);
 				tempB = null; // let GC know we don't need to reference this again from this scope
 

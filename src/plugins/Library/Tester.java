@@ -9,11 +9,13 @@ import plugins.Library.io.*;
 import plugins.Library.serial.*;
 import plugins.Library.serial.Serialiser.*;
 import plugins.Library.util.*;
+import plugins.Library.Library;
 
 import freenet.keys.FreenetURI;
 
 import java.util.*;
 import java.io.*;
+import java.net.*;
 
 
 /**
@@ -43,7 +45,8 @@ public class Tester {
 		List<String> indexes = Arrays.asList(
 			"CHK@MIh5-viJQrPkde5gmRZzqjBrqOuh~Wbjg02uuXJUzgM,rKDavdwyVF9Z0sf5BMRZsXj7yiWPFUuewoe0CPesvXE,AAIC--8",
 			"SSK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search-20",
-			"USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/"
+			"USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/",
+			"USK@jzLqXo2AnlWw2CHWAkOB~LmbvowLXn9UhAyz7n3FuAs,PG6wEqQeWw2KNQ6ZbNJti1mn9iXSdIwdRkEK7IyfrlE,AQACAAE/testing/0"
 		);
 
 		StringBuilder s = new StringBuilder();
@@ -63,11 +66,12 @@ public class Tester {
 	volatile static Throwable push_progress_error;
 	volatile static Date push_progress_start;
 	volatile static FreenetURI push_progress_endURI;
+	volatile static FreenetURI push_progress_insertURI;
 	public static String testPushProgress() {
 		if (push_progress_thread == null) {
 			push_progress_thread = new Thread() {
 				YamlReaderWriter yamlrw = new YamlReaderWriter();
-				FreenetArchiver arx = new FreenetArchiver(Main.getPluginRespirator().getNode().clientCore, yamlrw, null, "text/yaml", 0x10000);
+				FreenetArchiver arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000);
 
 				public void run() {
 					push_progress_start = new Date();
@@ -76,10 +80,13 @@ public class Tester {
 						testmap.put(""+i, i);
 					}
 					try {
-						PushTask<Map<String, Integer>> task = new PushTask<Map<String, Integer>>(testmap);
+						push_progress_insertURI = new FreenetURI("USK@EArbDzzgEeTOgOn-I2BND0-tgH6ql-XqRYSvPxZhFHo,PG6wEqQeWw2KNQ6ZbNJti1mn9iXSdIwdRkEK7IyfrlE,AQECAAE/testing/0");
+						PushTask<Map<String, Integer>> task = new PushTask<Map<String, Integer>>(testmap, push_progress_insertURI);
 						arx.pushLive(task, push_progress_progress);
 						push_progress_endURI = (FreenetURI)task.meta;
 					} catch (TaskAbortException e) {
+						push_progress_error = e;
+					} catch (MalformedURLException e) {
 						push_progress_error = e;
 					}
 				}
@@ -95,6 +102,7 @@ public class Tester {
 		StringBuilder s = new StringBuilder();
 		s.append(PAGE_START);
 		appendTimeElapsed(s, push_progress_start);
+		if (push_progress_insertURI != null) { s.append("<p>Insert: ").append(push_progress_insertURI.toString()).append("</p>\n"); }
 		s.append("<p>").append(push_progress_progress.getStatus()).append("</p>\n");
 		appendError(s, push_progress_error);
 		appendResultURI(s, push_progress_endURI);
