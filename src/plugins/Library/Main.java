@@ -46,7 +46,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	// FredPluginHTTP
 	// TODO remove this later
 	public String handleHTTPGet(freenet.support.api.HTTPRequest request) {
-		return Tester.runTest(request.getParam("plugins.Library.Tester"));
+		return Tester.runTest(library, request.getParam("plugins.Library.Tester"));
 	}
 	// TODO remove this later
 	public String handleHTTPPost(freenet.support.api.HTTPRequest request) { return null; }

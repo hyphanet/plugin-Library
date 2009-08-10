@@ -24,18 +24,39 @@ import java.io.*;
 public class Tester {
 
 
-	public static String runTest(String test) {
+	public static String runTest(Library lib, String test) {
 		if (test.equals("push_index")) {
 			return testPushIndex();
 		} else if (test.equals("push_progress")) {
 			return testPushProgress();
+		} else if (test.equals("autodetect")) {
+			return testAutoDetect(lib);
 		}
-		return "tests: push_index, push_progress";
+		return "tests: push_index, push_progress, autodetect";
 	}
 
 	final public static String PAGE_START = "<html><head><meta http-equiv=\"refresh\" content=\"1\">\n<body>\n";
 	final public static String PAGE_END  = "</body></html>\n";
 
+
+	public static String testAutoDetect(Library library) {
+		List<String> indexes = Arrays.asList(
+			"CHK@MIh5-viJQrPkde5gmRZzqjBrqOuh~Wbjg02uuXJUzgM,rKDavdwyVF9Z0sf5BMRZsXj7yiWPFUuewoe0CPesvXE,AAIC--8",
+			"SSK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search-20",
+			"USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/"
+		);
+
+		StringBuilder s = new StringBuilder();
+		for (String index: indexes) {
+			try {
+				String t = library.getIndexType(index);
+				s.append("<p>").append(t).append(": ").append(index).append("</p>");
+			} catch (RuntimeException e) {
+				appendError(s, e);
+			}
+		}
+		return s.toString();
+	}
 
 	volatile static Thread push_progress_thread;
 	volatile static SimpleProgress push_progress_progress = new SimpleProgress();

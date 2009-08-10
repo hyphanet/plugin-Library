@@ -8,17 +8,30 @@ import freenet.keys.FreenetURI;
 import java.net.MalformedURLException;
 import plugins.Library.library.*;
 import plugins.Library.index.xml.XMLIndex;
+import plugins.Library.index.ProtoIndex;
+import plugins.Library.index.BIndexSerialiser;
 import plugins.Library.search.InvalidSearchException;
 
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Logger;
 
 import java.security.MessageDigest;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import plugins.KeyExplorer.KeyExplorerUtils;
+import plugins.KeyExplorer.GetResult;
+import freenet.client.ArchiveManager.ARCHIVE_TYPE;
+import freenet.client.FetchException;
+import freenet.client.Metadata;
+import freenet.client.MetadataParseException;
+import freenet.client.async.KeyListenerConstructionException;
+import freenet.node.LowLevelGetException;
+import freenet.support.io.BucketTools;
+import java.io.IOException;
 
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces
@@ -30,9 +43,6 @@ public class Library {
 	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "freenetindex";
 	private static int version = 1;
 	public final String plugName = "Library " + getVersion();
-
-
-
 
 	/**
 	** Holds all the read-indexes.
@@ -57,6 +67,100 @@ public class Library {
 	public long getVersion() {
 		return version;
 	}
+
+
+	public String getIndexType(String indexuri) {
+		List<String> errors = new ArrayList<String>();
+		try {
+			FreenetURI uri = KeyExplorerUtils.sanitizeURI(errors, indexuri);
+			GetResult getresult  = KeyExplorerUtils.simpleGet(pr, uri);
+			byte[] data = BucketTools.toByteArray(getresult.getData());
+
+			if (getresult.isMetaData()) {
+				try {
+					Metadata md = Metadata.construct(data);
+
+					if (md.isArchiveManifest()) {
+						if (md.getArchiveType() == ARCHIVE_TYPE.TAR) {
+							return getIndexTypeFromManifest(uri, false, true);
+
+						} else if (md.getArchiveType() == ARCHIVE_TYPE.ZIP) {
+							return getIndexTypeFromManifest(uri, true, false);
+
+						} else {
+							throw new UnsupportedOperationException("not implemented - unknown archive manifest");
+						}
+
+					} else if (md.isSimpleManifest()) {
+						return getIndexTypeFromManifest(uri, false, false);
+					}
+
+					return getIndexTypeFromSimpleMetadata(md);
+
+				} catch (MetadataParseException e) {
+					throw new RuntimeException(e);
+				}
+			} else {
+				throw new UnsupportedOperationException("Found data instead of metadata; I do not have enough intelligence to decode this.");
+			}
+
+		} catch (Exception e) {
+			//java.net.MalformedURLException
+			//freenet.node.LowLevelGetException
+			//java.io.IOException
+			throw new RuntimeException(e);
+		}
+	}
+
+	public String getIndexTypeFromSimpleMetadata(Metadata md) {
+		String mime = md.getMIMEType();
+		if (mime.equals(ProtoIndex.MIME_TYPE)) {
+			return "YAML index";
+		} else if (mime.equals(XMLIndex.MIME_TYPE)) {
+			return "XML index";
+		} else {
+			throw new UnsupportedOperationException("Unknown mime-type for index");
+		}
+	}
+
+	public String getIndexTypeFromManifest(FreenetURI furi, boolean zip, boolean tar)
+		throws MalformedURLException, FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
+
+		boolean automf = true, deep = true, ml = true;
+		Metadata md = null;
+
+		if (zip)
+			md = KeyExplorerUtils.zipManifestGet(pr, furi);
+		else if (tar)
+			md = KeyExplorerUtils.tarManifestGet(pr, furi, ".metadata");
+		else {
+			md = KeyExplorerUtils.simpleManifestGet(pr, furi);
+			if (ml) {
+				md = KeyExplorerUtils.splitManifestGet(pr, md);
+			}
+		}
+
+		if (md.isSimpleManifest()) {
+			// a subdir
+			HashMap<String, Metadata> docs = md.getDocuments();
+			Metadata defaultDoc = md.getDefaultDocument();
+
+			if (defaultDoc != null) {
+				return "(default doc method) " + getIndexTypeFromSimpleMetadata(defaultDoc);
+			}
+
+			if (docs.containsKey(ProtoIndex.DEFAULT_FILE)) {
+				return "(doclist method) YAML index";
+			} else if (docs.containsKey(XMLIndex.DEFAULT_FILE)) {
+				return "(doclist method) XML index";
+			} else {
+				throw new UnsupportedOperationException("Could not find a supported index in the document-listings for " + furi.toString());
+			}
+		}
+
+		throw new UnsupportedOperationException("Parsed metadata but did not reach a simple manifest: " + furi.toString());
+	}
+
 
 	/**
 	 * Add a new bookmark,

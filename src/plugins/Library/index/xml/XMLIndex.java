@@ -51,7 +51,10 @@ import plugins.Library.serial.TaskAbortException;
  * @author MikeB
  */
 public class XMLIndex implements Index, ClientGetCallback, RequestClient{
-	static final String DEFAULT_FILE = "index.xml";
+
+	final public static String MIME_TYPE = "application/xml";
+	final public static String DEFAULT_FILE = "index.xml";
+
 	private PluginRespirator pr;
 	private Executor executor;
 	public enum FetchStatus{UNFETCHED, FETCHING, FETCHED, FAILED}
