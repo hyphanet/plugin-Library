@@ -160,7 +160,7 @@ implements LiveArchiver<T, SimpleProgress> {
 				os.close(); os = null;
 				tempB.setReadOnly();
 
-				FreenetURI target = (task.meta == null)? FreenetURI.EMPTY_CHK_URI: (FreenetURI)task.meta;
+				FreenetURI target = (task.meta instanceof FreenetURI)? (FreenetURI)task.meta: FreenetURI.EMPTY_CHK_URI;
 				InsertBlock ib = new InsertBlock(tempB, new ClientMetadata(default_mime), target);
 				tempB = null; // let GC know we don't need to reference this again from this scope
 
