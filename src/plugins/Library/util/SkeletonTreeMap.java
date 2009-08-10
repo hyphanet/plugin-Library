@@ -247,7 +247,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 				// generated metadata match.
 				PullTask<V> t = en.getValue();
 				SkeletonValue<V> sk = skmap.get(en.getKey());
-				if (sk == null) { throw new DataFormatException("SkeletonTreeMap got unexpected extra data from the serialiser.", sk, tasks, en.getKey()); }
+				if (sk == null) { throw new DataFormatException("SkeletonTreeMap got unexpected extra data from the serialiser.", null, sk, tasks, en.getKey()); }
 				if (sk.meta.equals(t.meta)) {
 					if (!sk.isLoaded) { --ghosts; }
 					sk.set(t.data);

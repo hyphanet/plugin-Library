@@ -21,10 +21,9 @@ import java.util.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static boolean totally_disabled = true;
-	final public static int it_basic = 0;
-	final public static int it_partial = 0;
-	final public static boolean disabled_progress = true;
+	final public static int it_basic = 2;
+	final public static int it_partial = 2;
+	final public static boolean disabled_progress = false;
 
 	static {
 		ProtoIndex.BTREE_NODE_MIN = 0x40; // DEBUG 0x40 so we see tree splits
@@ -39,7 +38,8 @@ public class BIndexTest extends TestCase {
 		return time - oldtime;
 	}
 
-	ProtoIndexSerialiser srl = (totally_disabled)? null: new ProtoIndexSerialiser();
+	ProtoIndexSerialiser srl = new ProtoIndexSerialiser(true);
+	ProtoIndexComponentSerialiser csrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL);
 	ProtoIndex idx;
 
 	Random rand = new Random();
@@ -63,7 +63,7 @@ public class BIndexTest extends TestCase {
 		} catch (java.net.MalformedURLException e) {
 			// not gonna happen
 		}
-		srl.setSerialiserFor(idx);
+		csrl.setSerialiserFor(idx);
 		timeDiff();
 	}
 
@@ -75,7 +75,7 @@ public class BIndexTest extends TestCase {
 		for (int i=0; i<0x100; ++i) {
 			String key = Generators.rndKey();
 			SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
-			srl.setSerialiserFor(entries);
+			csrl.setSerialiserFor(entries);
 
 			int n = rand.nextInt(0xF0) + 0x10;
 			totalentries += n;
@@ -140,7 +140,7 @@ public class BIndexTest extends TestCase {
 
 		for (String word: randomWords) {
 			SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
-			srl.setSerialiserFor(entries);
+			csrl.setSerialiserFor(entries);
 
 			int n = rand.nextInt(0xF0) + 0x10;
 			totalentries += n;
@@ -210,7 +210,7 @@ public class BIndexTest extends TestCase {
 			if (i == save) { sterm = key; }
 
 			SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
-			srl.setSerialiserFor(entries);
+			csrl.setSerialiserFor(entries);
 
 			int n = rand.nextInt(0x200) + 0x200;
 			totalentries += n;

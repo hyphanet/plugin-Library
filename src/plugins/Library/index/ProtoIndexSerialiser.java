@@ -72,7 +72,7 @@ implements Archiver<ProtoIndex>,
 	@Override public void pull(PullTask<ProtoIndex> task) throws TaskAbortException {
 		PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(task.meta);
 		subsrl.pull(serialisable);
-		serialisable.data.put("reqID", task.meta = serialisable.meta);
+		serialisable.data.put("reqID", (task.meta = serialisable.meta) instanceof FreenetURI? task.meta: null); // so we can test on local files
 		task.data = trans.rev(serialisable.data);
 	}
 
@@ -134,15 +134,15 @@ implements Archiver<ProtoIndex>,
 
 				} catch (ClassCastException e) {
 					// TODO maybe find a way to pass the actual bad data to the exception
-					throw new DataFormatException("Badly formatted data: " + e, e, null);
+					throw new DataFormatException("Badly formatted data", e, null);
 
 				} catch (UnsupportedOperationException e) {
-					throw new DataFormatException("Unrecognised format ID: ", map.get("serialFormatUID"), map, "serialFormatUID");
+					throw new DataFormatException("Unrecognised format ID", e, map.get("serialFormatUID"), map, "serialFormatUID");
 
 				}
 
 			} else {
-				throw new DataFormatException("Unrecognised serial ID: ", magic, map, "serialVersionUID");
+				throw new DataFormatException("Unrecognised serial ID", null, magic, map, "serialVersionUID");
 			}
 		}
 

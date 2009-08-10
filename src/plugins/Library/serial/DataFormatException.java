@@ -33,20 +33,8 @@ public class DataFormatException extends RuntimeException {
 		key = k;
 	}
 
-	public DataFormatException(Throwable t, Object v, Object p, Object k) {
-		this(t==null? null: t.toString(), t, v, p, k);
-	}
-
-	public DataFormatException(String s, Object v, Object p, Object k) {
-		this(s, null, v, p, k);
-	}
-
-	public DataFormatException(String s, Object v, Object p) {
-		this(s, null, v, p, null);
-	}
-
-	public DataFormatException(String s, Object v) {
-		this(s, null, v, null, null);
+	public DataFormatException(String s, Throwable t, Object v) {
+		this(s, t, v, null, null);
 	}
 
 	public Object getParent() { return parent; }

@@ -174,7 +174,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		@Override public void deflate() throws TaskAbortException {
 			if (!isLeaf()) {
-				List<PushTask<SkeletonNode>> tasks = new ArrayList<PushTask<SkeletonNode>>(nodeSize() - ghosts);
+				List<PushTask<SkeletonNode>> tasks = new ArrayList<PushTask<SkeletonNode>>(rnodes.size() - ghosts);
 				for (Map.Entry<K, Node> en: rnodes.entrySet()) {
 					Node node = en.getValue();
 					if (node.entries == null) { continue; } // ghost node
@@ -272,7 +272,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				nsrl.pull(task);
 
 				if (!compare0(node.lkey, task.data.lkey) || !compare0(node.rkey, task.data.rkey)) {
-					throw new DataFormatException("BTreeMap Node lkey/rkey does not match", task.data);
+					throw new DataFormatException("BTreeMap Node lkey/rkey does not match", null, task.data);
 				}
 
 				lnodes.put(task.data.rkey, task.data);
@@ -461,7 +461,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					// attach task data into the parent
 					if (!compare0(ghost.lkey, node.lkey) || !compare0(ghost.rkey, node.rkey)) {
-						throw new DataFormatException("BTreeMap Node lkey/rkey does not match", task.data);
+						throw new DataFormatException("BTreeMap Node lkey/rkey does not match", null, task.data);
 					}
 					parent.lnodes.put(node.rkey, node);
 					parent.rnodes.put(node.lkey, node);
@@ -664,7 +664,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// map.put("rkey", null); // NULLNOTICE: get() gives null which matches
 				tree.root = tree.makeNodeTranslator(ktr, mtr).rev(map);
 				if (tree.size != tree.root.totalSize()) {
-					throw new DataFormatException("Mismatched sizes - tree: " + tree.size + "; root: " + tree.root.totalSize(), null);
+					throw new DataFormatException("Mismatched sizes - tree: " + tree.size + "; root: " + tree.root.totalSize(), null, null);
 				}
 				return tree;
 			} catch (ClassCastException e) {
