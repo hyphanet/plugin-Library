@@ -48,6 +48,7 @@
 		<mkdir dir="lib/"/>
 		<mkdir dir="${tmp}"/>
 		<ant target="SnakeYAML-get"/>
+		<ant target="KeyExplorer-get"/>
 		<delete dir="${tmp}"/>
 	</target>
 
@@ -73,6 +74,25 @@
 			</patternset>
 			<mapper type="flatten"/>
 		</unzip>
+	</target>
+
+	<property name="KeyExplorer.mirror" value="http://cloud.github.com/downloads/freenet/plugin-Library-staging/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" />
+	<property name="KeyExplorer.md5" value="be5f1ec860fe71c55d029ebe0350f129" />
+	<property name="KeyExplorer.sha" value="12bf9bc1b4d436424e43c6b509b87690ac887de1" />
+	<available property="KeyExplorer.exist" classname="plugins.KeyExplorer.KeyExplorerUtils" classpathref="lib.path"/>
+	<target name="KeyExplorer-get" unless="KeyExplorer.exist">
+		<get verbose="true" src="${KeyExplorer.mirror}" dest="${tmp}/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" />
+		<checksum file="${tmp}/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" algorithm="MD5" property="${KeyExplorer.md5}" verifyProperty="KeyExplorerMD5ok" />
+		<checksum file="${tmp}/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" algorithm="SHA" property="${KeyExplorer.sha}" verifyProperty="KeyExplorerSHAok" />
+		<fail message="KeyExplorer.jar checksum mismatch">
+			<condition>
+				<or>
+					<equals arg1="${KeyExplorerMD5ok}" arg2="false" />
+					<equals arg1="${KeyExplorerSHAok}" arg2="false" />
+				</or>
+			</condition>
+		</fail>
+		<move file="${tmp}/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" todir="lib/" />
 	</target>
 
 	<!-- ================================================== -->
