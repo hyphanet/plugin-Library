@@ -406,7 +406,7 @@ public class ProtoIndexComponentSerialiser {
 					p.setSubprogress(CompoundProgress.makePullProgressIterable(subsrl.getTracker(), bintasks));
 					p.setName("Pulling root container for " + en.getKey());
 				} catch (TaskInProgressException e) {
-					throw new AssertionError();
+					throw new AssertionError(e);
 				}
 			}
 		}
@@ -418,7 +418,7 @@ public class ProtoIndexComponentSerialiser {
 					p.setSubprogress(CompoundProgress.makePushProgressIterable(subsrl.getTracker(), bintasks));
 					p.setName("Pushing root container for " + en.getKey());
 				} catch (TaskInProgressException e) {
-					throw new AssertionError();
+					throw new AssertionError(e);
 				}
 			}
 		}

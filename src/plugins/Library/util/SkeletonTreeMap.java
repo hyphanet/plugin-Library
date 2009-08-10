@@ -128,7 +128,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			try {
 				return (SkeletonValue<V>)super.clone();
 			} catch (CloneNotSupportedException e) {
-				throw new AssertionError();
+				throw new AssertionError(e);
 			}
 		}
 

@@ -13,10 +13,15 @@ import com.db4o.ObjectContainer;
 
 import freenet.client.HighLevelSimpleClient;
 import freenet.client.ClientMetadata;
+//import freenet.client.FetchContext;
+import freenet.client.FetchException;
+import freenet.client.FetchResult;
+//import freenet.client.FetchWaiter;
 import freenet.client.InsertBlock;
 //import freenet.client.InsertContext;
 import freenet.client.InsertException;
 //import freenet.client.PutWaiter;
+//import freenet.client.async.ClientGetter;
 //import freenet.client.async.ClientPutter;
 import freenet.client.async.ClientContext;
 import freenet.client.events.ClientEventListener;
@@ -29,6 +34,7 @@ import freenet.support.Logger;
 import freenet.support.api.Bucket;
 import freenet.support.io.Closer;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.util.Map;
@@ -36,6 +42,8 @@ import java.util.List;
 import java.util.ArrayList;
 
 /**
+** DOCUMENT
+**
 ** @author infinity0
 */
 public class FreenetArchiver<T extends Map<String, ? extends Object>> // TODO maybe get rid of type restriction
@@ -63,10 +71,83 @@ implements LiveArchiver<T, SimpleProgress> {
 		this(c, rw, rw, mime, size);
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation expects metdata of type {@link FreenetURI}.
+	*/
 	@Override public void pullLive(PullTask<T> task, final SimpleProgress progress) throws TaskAbortException {
-		throw new UnsupportedOperationException("not implemented");
+		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+		Bucket tempB = null; InputStream is = null;
+
+		try {
+			try {
+
+				FreenetURI furi = (FreenetURI)task.meta;
+				if (progress != null) {
+					hlsc.addEventHook(new SimpleProgressUpdater(progress));
+				}
+
+				// code for async fetch - maybe be useful elsewhere
+				//ClientContext cctx = core.clientContext;
+				//FetchContext fctx = hlsc.getFetchContext(true);
+				//FetchWaiter fw = new FetchWaiter();
+				//ClientGetter gu = hlsc.fetch(furi, false, null, false, fctx, fw);
+				//gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
+				//FetchResult res = fw.waitForCompletion();
+
+				FetchResult res;
+
+				// bookkeeping. detects bugs in the SplitfileProgressEvent handler
+				if (progress != null) {
+					int partsdiff_old = progress.partsTotal() - progress.partsDone();
+					res = hlsc.fetch(furi);
+					int partsdiff_new = progress.partsTotal() - progress.partsDone();
+					if (partsdiff_old != partsdiff_new) {
+						// TODO if it turns out this happens a lot, maybe make it "continue anyway"
+						throw new TaskAbortException("Inconsistency when tracking split file progress", null, true);
+					}
+					progress.addPartKnown(0, true);
+				} else {
+					res = hlsc.fetch(furi);
+				}
+
+				tempB = res.asBucket();
+				is = tempB.getInputStream();
+				task.data = (T)reader.readObject(is);
+				is.close();
+
+			} catch (FetchException e) {
+				throw new TaskAbortException("Failed to insert content", e, true);
+
+			} catch (IOException e) {
+				throw new TaskAbortException("Failed to write content to local tempbucket", e, true);
+
+			} catch (RuntimeException e) {
+				throw new TaskAbortException("Failed to complete task: ", e);
+
+			}
+		} catch (TaskAbortException e) {
+			if (progress != null) { progress.abort(e); }
+			throw e;
+
+		} finally {
+			Closer.close(is);
+			Closer.close(tempB);
+		}
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation produces metdata of type {@link FreenetURI}.
+	**
+	** If the input metadata is an insert URI (SSK or USK), it will be replaced
+	** by its corresponding request URI. Otherwise, the data will be inserted
+	** as a CHK. Note that since {@link FreenetURI} is immutable, the {@link
+	** FreenetURI#suggestedEdition} of a USK is '''not''' automatically
+	** incremented.
+	*/
 	@Override public void pushLive(PushTask<T> task, final SimpleProgress progress) throws TaskAbortException {
 		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 		Bucket tempB = null; OutputStream os = null;
@@ -79,43 +160,12 @@ implements LiveArchiver<T, SimpleProgress> {
 				os.close(); os = null;
 				tempB.setReadOnly();
 
-				// PRIORITY do the USK_base next-suggested-edition thing. source in plugins.WoT.IdentityInserter
 				FreenetURI target = (task.meta == null)? FreenetURI.EMPTY_CHK_URI: (FreenetURI)task.meta;
 				InsertBlock ib = new InsertBlock(tempB, new ClientMetadata(default_mime), target);
 				tempB = null; // let GC know we don't need to reference this again from this scope
 
 				if (progress != null) {
-					final int[] splitfile_blocks = new int[2];
-					hlsc.addEventHook(new ClientEventListener() {
-						@Override public void onRemoveEventProducer(ObjectContainer container) { }
-						@Override public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
-							progress.setStatus(ce.getDescription());
-							if (!(ce instanceof SplitfileProgressEvent)) { return; }
-
-							// update the progress "parts" counters
-							SplitfileProgressEvent evt = (SplitfileProgressEvent)ce;
-							synchronized (splitfile_blocks) {
-								int old_succeeded = splitfile_blocks[0];
-								int old_total = splitfile_blocks[1];
-								try {
-									progress.addPartKnown(evt.totalBlocks - old_total, evt.finalizedTotal); // throws IllegalArgumentException
-									int n = evt.succeedBlocks - old_succeeded;
-									if (n == 1) {
-										progress.addPartDone();
-									} else if (n != 0) {
-										Logger.normal(this, "Received SplitfileProgressEvent out-of-order: " + evt.getDescription());
-										for (int i=0; i<n; ++i) {
-											progress.addPartDone();
-										}
-									}
-								} catch (IllegalArgumentException e) {
-									Logger.normal(this, "Received SplitfileProgressEvent out-of-order: " + evt.getDescription(), e);
-								}
-								splitfile_blocks[0] = evt.succeedBlocks;
-								splitfile_blocks[1] = evt.totalBlocks;
-							}
-						}
-					});
+					hlsc.addEventHook(new SimpleProgressUpdater(progress));
 				}
 
 				// code for async insert - maybe be useful elsewhere
@@ -170,6 +220,46 @@ implements LiveArchiver<T, SimpleProgress> {
 
 	@Override public void push(PushTask<T> task) throws TaskAbortException {
 		pushLive(task, null);
+	}
+
+	public static class SimpleProgressUpdater implements ClientEventListener {
+
+		final int[] splitfile_blocks = new int[2];
+		final SimpleProgress progress;
+
+		public SimpleProgressUpdater(SimpleProgress prog) {
+			progress = prog;
+		}
+
+		@Override public void onRemoveEventProducer(ObjectContainer container) { }
+
+		@Override public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
+			progress.setStatus(ce.getDescription());
+			if (!(ce instanceof SplitfileProgressEvent)) { return; }
+
+			// update the progress "parts" counters
+			SplitfileProgressEvent evt = (SplitfileProgressEvent)ce;
+			synchronized (splitfile_blocks) {
+				int old_succeeded = splitfile_blocks[0];
+				int old_total = splitfile_blocks[1];
+				try {
+					progress.addPartKnown(evt.totalBlocks - old_total, evt.finalizedTotal); // throws IllegalArgumentException
+					int n = evt.succeedBlocks - old_succeeded;
+					if (n == 1) {
+						progress.addPartDone();
+					} else if (n != 0) {
+						Logger.normal(this, "Received SplitfileProgressEvent out-of-order: " + evt.getDescription());
+						for (int i=0; i<n; ++i) {
+							progress.addPartDone();
+						}
+					}
+				} catch (IllegalArgumentException e) {
+					Logger.normal(this, "Received SplitfileProgressEvent out-of-order: " + evt.getDescription(), e);
+				}
+				splitfile_blocks[0] = evt.succeedBlocks;
+				splitfile_blocks[1] = evt.totalBlocks;
+			}
+		}
 	}
 
 }

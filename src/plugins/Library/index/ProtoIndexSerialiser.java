@@ -72,8 +72,15 @@ implements Archiver<ProtoIndex>,
 	@Override public void pull(PullTask<ProtoIndex> task) throws TaskAbortException {
 		PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(task.meta);
 		subsrl.pull(serialisable);
-		serialisable.data.put("reqID", (task.meta = serialisable.meta) instanceof FreenetURI? task.meta: null); // so we can test on local files
-		task.data = trans.rev(serialisable.data);
+		task.meta = serialisable.meta;
+		if (task.meta instanceof FreenetURI) { // if not FreenetURI, skip this silently so we can test on local files
+			serialisable.data.put("reqID", task.meta);
+		}
+		try {
+			task.data = trans.rev(serialisable.data);
+		} catch (RuntimeException e) {
+			throw new TaskAbortException("Could not construct index from data", e);
+		}
 	}
 
 	@Override public void push(PushTask<ProtoIndex> task) throws TaskAbortException {

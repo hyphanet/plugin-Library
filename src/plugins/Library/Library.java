@@ -8,10 +8,12 @@ import plugins.Library.library.WriteableIndex;
 import plugins.Library.index.xml.XMLIndex;
 import plugins.Library.index.ProtoIndex;
 import plugins.Library.index.ProtoIndexSerialiser;
-import plugins.Library.search.InvalidSearchException;
+import plugins.Library.serial.Serialiser.*;
+import plugins.Library.serial.TaskAbortException;
 import plugins.Library.client.FreenetArchiver;
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
+import plugins.Library.search.InvalidSearchException;
 
 import plugins.KeyExplorer.KeyExplorerUtils;
 import plugins.KeyExplorer.GetResult;
@@ -48,6 +50,8 @@ public class Library {
 	private static int version = 1;
 	public static final String plugName = "Library " + getVersion();
 
+	protected static ProtoIndexSerialiser proto_srl;
+
 	public static String getPlugName() {
 		return plugName;
 	}
@@ -65,7 +69,9 @@ public class Library {
 		if (lib != null) {
 			throw new IllegalStateException("Library already initialised");
 		}
-		return lib = new Library(pr);
+		lib = new Library(pr);
+		proto_srl = new ProtoIndexSerialiser(); // must go after lib.pr is loaded
+		return lib;
 	}
 
 	private PluginRespirator pr;
@@ -100,10 +106,8 @@ public class Library {
 	private Map<String, String> bookmarks = new HashMap<String, String>();
 
 	// PRIORITY make this throw a checked exception
-	public Class<?> getIndexType(String indexuri) {
-		List<String> errors = new ArrayList<String>();
+	public Class<?> getIndexType(FreenetURI uri) {
 		try {
-			FreenetURI uri = KeyExplorerUtils.sanitizeURI(errors, indexuri);
 			GetResult getresult  = KeyExplorerUtils.simpleGet(pr, uri);
 			byte[] data = BucketTools.toByteArray(getresult.getData());
 
@@ -136,7 +140,6 @@ public class Library {
 			}
 
 		} catch (Exception e) {
-			//java.net.MalformedURLException
 			//freenet.node.LowLevelGetException
 			//java.io.IOException
 			// PRIORITY make this throw a checked exception
@@ -158,7 +161,7 @@ public class Library {
 	}
 
 	public Class<?> getIndexTypeFromManifest(FreenetURI furi, boolean zip, boolean tar)
-		throws MalformedURLException, FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
+		throws FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
 
 		boolean automf = true, deep = true, ml = true;
 		Metadata md = null;
@@ -277,24 +280,41 @@ public class Library {
 		if (rtab.containsKey(indexuri))
 			return rtab.get(indexuri);
 
-		Index index;
+		try {
+			FreenetURI uri = KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri);
+			Index index;
+			// PRIORITY maybe make this non-blocking. though getting the top block(s) shouldn't take long?
+			Class<?> indextype = getIndexType(uri);
 
-		// PRIORITY maybe make this non-blocking. though getting the top block(s) shouldn't take long?
-		Class<?> indextype = getIndexType(indexuri);
-		if (indextype == ProtoIndex.class) {
-			throw new UnsupportedOperationException("YAML index not implemented yet");
+			if (indextype == ProtoIndex.class) {
+				try {
+					PullTask<ProtoIndex> task = new PullTask<ProtoIndex>(uri);
+					proto_srl.pull(task);
+					index = task.data;
 
-		} else if (indextype == XMLIndex.class) {
-			index = new XMLIndex(indexuri, pr);
+				} catch (TaskAbortException e) {
+					// PRIORITY use some appropriate checked exception
+					throw new RuntimeException("Error loading index", e);
+				}
 
-		} else {
-			throw new UnsupportedOperationException("Unrecognised index type.");
+			} else if (indextype == XMLIndex.class) {
+				index = new XMLIndex(indexuri, pr);
+
+			} else {
+				throw new UnsupportedOperationException("Unrecognised index type.");
+			}
+
+			rtab.put(indexuri, index);
+			Logger.normal(this, "Loaded index type " + indextype.getName() + " at " + indexuri);
+
+			return index;
+
+		} catch (MalformedURLException e) {
+			// parse local files here?
+
+			// PRIORITY use some appropriate checked exception
+			throw new RuntimeException("Could not parse index string", e);
 		}
-
-		rtab.put(indexuri, index);
-		Logger.normal(this, "Loaded index type " + indextype.getName() + " at " + indexuri);
-
-		return index;
 	}
 
 

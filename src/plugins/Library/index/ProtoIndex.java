@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
+import plugins.Library.library.Index;
 import plugins.Library.util.Skeleton;
 import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.util.SkeletonBTreeMap;
@@ -31,7 +32,7 @@ import java.util.Date;
 **
 ** @author infinity0
 */
-final public class ProtoIndex {
+final public class ProtoIndex implements Index {
 
 	final static long serialVersionUID = 0xf82a40726c1e5ba6L;
 
