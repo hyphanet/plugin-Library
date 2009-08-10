@@ -395,7 +395,7 @@ class MainPage implements WebPage {
 	}
 
 	public String name() {
-		return "Search";
+		return "WelcomeToadlet.searchFreenet";
 	}
 
 	public String menu() {
