@@ -10,6 +10,7 @@ import freenet.support.HTMLNode;
 import freenet.support.Logger;
 import freenet.support.MultiValueTable;
 import freenet.support.api.HTTPRequest;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import plugins.Library.Library;
@@ -43,6 +44,7 @@ class MainPage implements WebPage {
 	/** Any other indexes which are not bookmarks seperated by spaces */
 	private String etcIndexes ="";
 	private boolean groupusk;
+	private StringBuilder messages = new StringBuilder();
 	
 	
 	/**
@@ -94,6 +96,17 @@ class MainPage implements WebPage {
 		showold = request.isPartSet("showold");
 		groupusk = request.isPartSet("groupusk");
 
+
+		// Check for adding an index
+		// TODO make sure name is valid
+		// TODO allow freesites to do this with user permission
+		if(userAccess && request.isPartSet("indexname")){
+			try {
+				library.addBookmark(request.getPartAsString("indexname", 20), request.getPartAsString("index", 128));
+			} catch (MalformedURLException ex) {
+				messages.append("Could not add index to bookmarks, \""+request.getPartAsString("index", 128)+"\" is not a valid uri.\n");
+			}
+		}
 
 		// Get index list
 		indexstring = "";
@@ -167,6 +180,7 @@ class MainPage implements WebPage {
 			addError(errorDiv, exception);
 		}
 		contentNode.addChild(errorDiv);
+		contentNode.addChild("p", messages.toString());
 
 
         // If showing a search
@@ -241,7 +255,7 @@ class MainPage implements WebPage {
 				HTMLNode newIndexInput = optionsBox.addChild("div", new String[]{"class", "style"}, new String[]{"index", "display: inline-table;"}, "Add an index:");
 					newIndexInput.addChild("br");
 					newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "Name:");
-					newIndexInput.addChild("input", new String[]{"type", "class"}, new String[]{"text", "index"});
+					newIndexInput.addChild("input", new String[]{"name", "type", "class"}, new String[]{"indexname", "text", "index"});
 					newIndexInput.addChild("br");
 					newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "URI:");
 					newIndexInput.addChild("input", new String[]{"name", "type", "value", "class"}, new String[]{"index", "text", etcIndexes, "index"});

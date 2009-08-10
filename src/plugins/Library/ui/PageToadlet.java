@@ -85,13 +85,13 @@ class PageToadlet extends Toadlet {
 		Thread.currentThread().setContextClassLoader(Library.class.getClassLoader());
 
 		String formPassword = request.getPartAsString("formPassword", 32);
-		// If the form password is incorrect, redirect to this page
-		if((formPassword == null) || !formPassword.equals(core.formPassword)) {
-			MultiValueTable<String,String> headers = new MultiValueTable<String,String>();
-			headers.put("Location", path());
-			ctx.sendReplyHeaders(302, "Found", headers, null, 0);
-			return;
-		}
+//		// If the form password is incorrect, redirect to this page
+//		if((formPassword == null) || !formPassword.equals(core.formPassword)) {
+//			MultiValueTable<String,String> headers = new MultiValueTable<String,String>();
+//			headers.put("Location", path());
+//			ctx.sendReplyHeaders(302, "Found", headers, null, 0);
+//			return;
+//		}
 
 		try {
 			PageNode p = ctx.getPageMaker().getPageNode(library.plugName, ctx);
@@ -101,7 +101,7 @@ class PageToadlet extends Toadlet {
 			WebPage page = webpage.clone();
 			MultiValueTable<String, String> headers = new MultiValueTable();
 			// write reply
-			page.processPostRequest(request, contentNode, formPassword.equals(core.formPassword));
+			page.processPostRequest(request, contentNode, formPassword!=null && formPassword.equals(core.formPassword));
 			page.writeContent(contentNode, headers);
 			// write reply
 			writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
