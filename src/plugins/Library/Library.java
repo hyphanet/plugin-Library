@@ -69,7 +69,7 @@ public class Library {
 	}
 
 
-	public String getIndexType(String indexuri) {
+	public Class<?> getIndexType(String indexuri) {
 		List<String> errors = new ArrayList<String>();
 		try {
 			FreenetURI uri = KeyExplorerUtils.sanitizeURI(errors, indexuri);
@@ -108,22 +108,25 @@ public class Library {
 			//java.net.MalformedURLException
 			//freenet.node.LowLevelGetException
 			//java.io.IOException
+			// PRIORITY make this throw a checked exception
 			throw new RuntimeException(e);
 		}
 	}
 
-	public String getIndexTypeFromSimpleMetadata(Metadata md) {
+	public Class<?> getIndexTypeFromSimpleMetadata(Metadata md) {
 		String mime = md.getMIMEType();
 		if (mime.equals(ProtoIndex.MIME_TYPE)) {
-			return "YAML index";
+			//return "YAML index";
+			return ProtoIndex.class;
 		} else if (mime.equals(XMLIndex.MIME_TYPE)) {
-			return "XML index";
+			//return "XML index";
+			return XMLIndex.class;
 		} else {
 			throw new UnsupportedOperationException("Unknown mime-type for index");
 		}
 	}
 
-	public String getIndexTypeFromManifest(FreenetURI furi, boolean zip, boolean tar)
+	public Class<?> getIndexTypeFromManifest(FreenetURI furi, boolean zip, boolean tar)
 		throws MalformedURLException, FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
 
 		boolean automf = true, deep = true, ml = true;
@@ -146,13 +149,16 @@ public class Library {
 			Metadata defaultDoc = md.getDefaultDocument();
 
 			if (defaultDoc != null) {
-				return "(default doc method) " + getIndexTypeFromSimpleMetadata(defaultDoc);
+				//return "(default doc method) " + getIndexTypeFromSimpleMetadata(defaultDoc);
+				return getIndexTypeFromSimpleMetadata(defaultDoc);
 			}
 
 			if (docs.containsKey(ProtoIndex.DEFAULT_FILE)) {
-				return "(doclist method) YAML index";
+				//return "(doclist method) YAML index";
+				return ProtoIndex.class;
 			} else if (docs.containsKey(XMLIndex.DEFAULT_FILE)) {
-				return "(doclist method) XML index";
+				//return "(doclist method) XML index";
+				return XMLIndex.class;
 			} else {
 				throw new UnsupportedOperationException("Could not find a supported index in the document-listings for " + furi.toString());
 			}
@@ -217,7 +223,7 @@ public class Library {
 	 * @param indexuri index specifier
 	 * @return Index object
 	 */
-	public final Index getIndex(String indexuri) throws InvalidSearchException{
+	public final Index getIndex(String indexuri) throws InvalidSearchException, UnsupportedOperationException {
 		Logger.normal(this, "Getting index "+indexuri);
 		indexuri = indexuri.trim();
 		if (indexuri.startsWith(BOOKMARK_PREFIX)){
@@ -241,12 +247,22 @@ public class Library {
 
 		Index index;
 
-		//if(indexuri.startsWith("xml:")){
+		// PRIORITY maybe make this non-blocking. though getting the top block(s) shouldn't take long?
+		Class<?> indextype = getIndexType(indexuri);
+		if (indextype == ProtoIndex.class) {
+			throw new UnsupportedOperationException("YAML index not implemented yet");
+
+		} else if (indextype == XMLIndex.class) {
 			index = new XMLIndex(indexuri, pr);
-			rtab.put(indexuri, index);
-			return index;
-		//}
-		//throw new UnsupportedOperationException("Unrecognised index type, id format is <type>:<key> {"+indexuri+"}");
+
+		} else {
+			throw new UnsupportedOperationException("Unrecognised index type.");
+		}
+
+		rtab.put(indexuri, index);
+		Logger.normal(this, "Loaded index type " + indextype.getName() + " at " + indexuri);
+
+		return index;
 	}
 
 
