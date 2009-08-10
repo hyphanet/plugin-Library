@@ -21,9 +21,10 @@ import java.util.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 8;
-	final public static int it_partial = 8;
-	final public static boolean disabled_progress = false;
+	final public static boolean totally_disabled = true;
+	final public static int it_basic = 0;
+	final public static int it_partial = 0;
+	final public static boolean disabled_progress = true;
 
 	static {
 		ProtoIndex.BTREE_NODE_MIN = 0x40; // DEBUG 0x40 so we see tree splits
@@ -38,7 +39,7 @@ public class BIndexTest extends TestCase {
 		return time - oldtime;
 	}
 
-	BIndexSerialiser srl = new BIndexSerialiser();
+	BIndexSerialiser srl = (totally_disabled)? null: new BIndexSerialiser();
 	ProtoIndex idx;
 
 	Random rand = new Random();

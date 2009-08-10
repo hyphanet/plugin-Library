@@ -10,7 +10,9 @@
 
 - PRIORITY get pull (fetch) working
 - PRIORITY get USK pull/push working
-- PRIORITY have a Library method to load a ProtoIndex root into memory
+>>> PRIORITY have a Library method to load a ProtoIndex root into memory
+  - make BIndexSerialiser have a private constructor and static factory methods for
+    each serialVersionUID and address location.
 - PRIORITY use LiveArchiver for index root serialiser
 
 == Index semantics ==
