@@ -57,12 +57,8 @@ implements Archiver<ProtoIndex>,
 		subsrl = new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, ".yml");
 	}
 
-	public ProtoIndexSerialiser(FreenetURI usk_base) {
-		subsrl = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, usk_base, "text/yaml", 0x10000);
-	}
-
 	public ProtoIndexSerialiser() {
-		this((FreenetURI)null);
+		subsrl = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, "text/yaml", 0x10000);
 	}
 
 	@Override public Archiver<Map<String, Object>> getChildSerialiser() {

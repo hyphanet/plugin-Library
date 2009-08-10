@@ -45,28 +45,22 @@ implements LiveArchiver<T, SimpleProgress> {
 	final protected ObjectStreamReader reader;
 	final protected ObjectStreamWriter writer;
 
-	final protected FreenetURI USK_base;
-
 	final protected String default_mime;
 	final protected int expected_bytes;
 
-	public FreenetArchiver(NodeClientCore c, ObjectStreamReader r, ObjectStreamWriter w, FreenetURI uskbase, String mime, int size) {
+	public FreenetArchiver(NodeClientCore c, ObjectStreamReader r, ObjectStreamWriter w, String mime, int size) {
 		if (c == null) {
 			throw new IllegalArgumentException("Can't create a FreenetArchiver with a null NodeClientCore!");
-		}
-		if (uskbase != null) {
-			throw new UnsupportedOperationException("USK insert/fetch not yet implemented");
 		}
 		core = c;
 		reader = r;
 		writer = w;
-		USK_base = uskbase;
 		default_mime = mime;
 		expected_bytes = size;
 	}
 
-	public <S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver(NodeClientCore c, S rw, FreenetURI uskbase, String mime, int size) {
-		this(c, rw, rw, uskbase, mime, size);
+	public <S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver(NodeClientCore c, S rw, String mime, int size) {
+		this(c, rw, rw, mime, size);
 	}
 
 	@Override public void pullLive(PullTask<T> task, final SimpleProgress progress) throws TaskAbortException {
@@ -86,7 +80,7 @@ implements LiveArchiver<T, SimpleProgress> {
 				tempB.setReadOnly();
 
 				// PRIORITY do the USK_base next-suggested-edition thing. source in plugins.WoT.IdentityInserter
-				FreenetURI target = (USK_base == null)? FreenetURI.EMPTY_CHK_URI: new FreenetURI("TODO");
+				FreenetURI target = FreenetURI.EMPTY_CHK_URI;
 				InsertBlock ib = new InsertBlock(tempB, new ClientMetadata(default_mime), target);
 				tempB = null; // let GC know we don't need to reference this again from this scope
 

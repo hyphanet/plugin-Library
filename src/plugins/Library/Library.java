@@ -306,11 +306,11 @@ public class Library {
 	**         or if it does not have a respirator.
 	*/
 	public static <T extends Map<String, ? extends Object>> FreenetArchiver<T>
-	makeArchiver(ObjectStreamReader r, ObjectStreamWriter w, FreenetURI uskbase, String mime, int size) {
+	makeArchiver(ObjectStreamReader r, ObjectStreamWriter w, String mime, int size) {
 		if (lib == null || lib.pr == null) {
 			throw new IllegalStateException("Cannot archive to freenet without a fully live Library plugin connected to a freenet node.");
 		} else {
-			return new FreenetArchiver<T>(lib.pr.getNode().clientCore, r, w, uskbase, mime, size);
+			return new FreenetArchiver<T>(lib.pr.getNode().clientCore, r, w, mime, size);
 		}
 	}
 
@@ -322,8 +322,8 @@ public class Library {
 	**         or if it does not have a respirator.
 	*/
 	public static <T extends Map<String, ? extends Object>, S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver<T>
-	makeArchiver(S rw, FreenetURI uskbase, String mime, int size) {
-		return makeArchiver(rw, rw, uskbase, mime, size);
+	makeArchiver(S rw, String mime, int size) {
+		return makeArchiver(rw, rw, mime, size);
 	}
 
 	public static String convertToHex(byte[] data) {

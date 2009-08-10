@@ -192,7 +192,7 @@ public class ProtoIndexComponentSerialiser {
 	protected ProtoIndexComponentSerialiser(int fmtid) {
 		switch (fmtid) {
 		case FMT_FREENET_SIMPLE:
-			leaf_arx = Library.makeArchiver(yamlrw, null, "text/yaml", 0x10000);
+			leaf_arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000);
 			break;
 		case FMT_FILE_LOCAL:
 			leaf_arx = new FileArchiver<Map<String, Object>>(yamlrw, true, ".yml");
