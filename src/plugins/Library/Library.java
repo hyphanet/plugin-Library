@@ -105,45 +105,37 @@ public class Library {
 	*/
 	private Map<String, String> bookmarks = new HashMap<String, String>();
 
-	// PRIORITY make this throw a checked exception
-	public Class<?> getIndexType(FreenetURI uri) {
-		try {
-			GetResult getresult  = KeyExplorerUtils.simpleGet(pr, uri);
-			byte[] data = BucketTools.toByteArray(getresult.getData());
+	public Class<?> getIndexType(FreenetURI uri)
+	throws FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
+		GetResult getresult  = KeyExplorerUtils.simpleGet(pr, uri);
+		byte[] data = BucketTools.toByteArray(getresult.getData());
 
-			if (getresult.isMetaData()) {
-				try {
-					Metadata md = Metadata.construct(data);
+		if (getresult.isMetaData()) {
+			try {
+				Metadata md = Metadata.construct(data);
 
-					if (md.isArchiveManifest()) {
-						if (md.getArchiveType() == ARCHIVE_TYPE.TAR) {
-							return getIndexTypeFromManifest(uri, false, true);
+				if (md.isArchiveManifest()) {
+					if (md.getArchiveType() == ARCHIVE_TYPE.TAR) {
+						return getIndexTypeFromManifest(uri, false, true);
 
-						} else if (md.getArchiveType() == ARCHIVE_TYPE.ZIP) {
-							return getIndexTypeFromManifest(uri, true, false);
+					} else if (md.getArchiveType() == ARCHIVE_TYPE.ZIP) {
+						return getIndexTypeFromManifest(uri, true, false);
 
-						} else {
-							throw new UnsupportedOperationException("not implemented - unknown archive manifest");
-						}
-
-					} else if (md.isSimpleManifest()) {
-						return getIndexTypeFromManifest(uri, false, false);
+					} else {
+						throw new UnsupportedOperationException("not implemented - unknown archive manifest");
 					}
 
-					return getIndexTypeFromSimpleMetadata(md);
-
-				} catch (MetadataParseException e) {
-					throw new RuntimeException(e);
+				} else if (md.isSimpleManifest()) {
+					return getIndexTypeFromManifest(uri, false, false);
 				}
-			} else {
-				throw new UnsupportedOperationException("Found data instead of metadata; I do not have enough intelligence to decode this.");
-			}
 
-		} catch (Exception e) {
-			//freenet.node.LowLevelGetException
-			//java.io.IOException
-			// PRIORITY make this throw a checked exception
-			throw new RuntimeException(e);
+				return getIndexTypeFromSimpleMetadata(md);
+
+			} catch (MetadataParseException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			throw new UnsupportedOperationException("Found data instead of metadata; I do not have enough intelligence to decode this.");
 		}
 	}
 
@@ -161,7 +153,7 @@ public class Library {
 	}
 
 	public Class<?> getIndexTypeFromManifest(FreenetURI furi, boolean zip, boolean tar)
-		throws FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
+	throws FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
 
 		boolean automf = true, deep = true, ml = true;
 		Metadata md = null;
@@ -224,7 +216,7 @@ public class Library {
 	 * @param indexuris list of index specifiers separated by spaces
 	 * @return Set of Index objects
 	 */
-	public final ArrayList<Index> getIndices(String indexuris) throws InvalidSearchException{
+	public final ArrayList<Index> getIndices(String indexuris) throws InvalidSearchException, TaskAbortException {
 		String[] uris = indexuris.split("[ ;]");
 		ArrayList<Index> indices = new ArrayList<Index>(uris.length);
 
@@ -256,9 +248,7 @@ public class Library {
 	 * @param indexuri index specifier
 	 * @return Index object
 	 */
-	// PRIORITY make this throw a checked exception for when getIndexType fails, or
-	// to wrap around UnsupportedOperationException
-	public final Index getIndex(String indexuri) throws InvalidSearchException, UnsupportedOperationException {
+	public final Index getIndex(String indexuri) throws InvalidSearchException, TaskAbortException {
 		Logger.normal(this, "Getting index "+indexuri);
 		indexuri = indexuri.trim();
 		if (indexuri.startsWith(BOOKMARK_PREFIX)){
@@ -275,8 +265,6 @@ public class Library {
 				throw new InvalidSearchException("Index bookmark '"+indexuri+" does not exist");
 		}
 
-		if (!indexuri.endsWith("/"))
-			indexuri += "/";
 		if (rtab.containsKey(indexuri))
 			return rtab.get(indexuri);
 
@@ -287,15 +275,9 @@ public class Library {
 			Class<?> indextype = getIndexType(uri);
 
 			if (indextype == ProtoIndex.class) {
-				try {
-					PullTask<ProtoIndex> task = new PullTask<ProtoIndex>(uri);
-					proto_srl.pull(task);
-					index = task.data;
-
-				} catch (TaskAbortException e) {
-					// PRIORITY use some appropriate checked exception
-					throw new RuntimeException("Error loading index", e);
-				}
+				PullTask<ProtoIndex> task = new PullTask<ProtoIndex>(uri);
+				proto_srl.pull(task);
+				index = task.data;
 
 			} else if (indextype == XMLIndex.class) {
 				index = new XMLIndex(indexuri, pr);
@@ -312,8 +294,30 @@ public class Library {
 		} catch (MalformedURLException e) {
 			// parse local files here?
 
-			// PRIORITY use some appropriate checked exception
-			throw new RuntimeException("Could not parse index string", e);
+			// or InvalidSearchException - this is bad user input?
+			throw new TaskAbortException("Could not parse index string", e);
+
+		} catch (FetchException e) {
+			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
+
+		} catch (IOException e) {
+			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
+
+		} catch (LowLevelGetException e) {
+			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
+
+		} catch (KeyListenerConstructionException e) {
+			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
+
+		} catch (MetadataParseException e) {
+			throw new TaskAbortException("Failed to parse index  " + indexuri, e);
+
+		} catch (UnsupportedOperationException e) {
+			throw new TaskAbortException("Failed to parse index  " + indexuri, e);
+
+		} catch (RuntimeException e) {
+			throw new TaskAbortException("Failed to load index  " + indexuri, e);
+
 		}
 	}
 
