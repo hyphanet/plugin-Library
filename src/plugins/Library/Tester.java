@@ -49,8 +49,8 @@ public class Tester {
 		StringBuilder s = new StringBuilder();
 		for (String index: indexes) {
 			try {
-				String t = library.getIndexType(index);
-				s.append("<p>").append(t).append(": ").append(index).append("</p>");
+				Class<?> t = library.getIndexType(index);
+				s.append("<p>").append(t.getName()).append(": ").append(index).append("</p>");
 			} catch (RuntimeException e) {
 				appendError(s, e);
 			}
@@ -127,7 +127,7 @@ public class Tester {
 		if (push_index_thread == null) {
 			push_index_start = new Date();
 			push_index_thread = new Thread() {
-				BIndexSerialiser srl = new BIndexSerialiser();
+				ProtoIndexSerialiser srl = new ProtoIndexSerialiser();
 				ProtoIndex idx;
 				Random rand = new Random();
 
@@ -137,11 +137,11 @@ public class Tester {
 					} catch (java.net.MalformedURLException e) {
 						throw new AssertionError(e);
 					}
-					srl.setSerialiserFor(idx);
+					ProtoIndexComponentSerialiser.get().setSerialiserFor(idx);
 
 					for (String key: push_index_words) {
 						SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
-						srl.setSerialiserFor(entries);
+						ProtoIndexComponentSerialiser.get().setSerialiserFor(entries);
 						int n = rand.nextInt(0x200) + 0x200;
 						try {
 							for (int j=0; j<n; ++j) {

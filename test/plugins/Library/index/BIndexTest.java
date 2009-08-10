@@ -39,7 +39,7 @@ public class BIndexTest extends TestCase {
 		return time - oldtime;
 	}
 
-	BIndexSerialiser srl = (totally_disabled)? null: new BIndexSerialiser();
+	ProtoIndexSerialiser srl = (totally_disabled)? null: new ProtoIndexSerialiser();
 	ProtoIndex idx;
 
 	Random rand = new Random();

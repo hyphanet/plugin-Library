@@ -31,7 +31,7 @@ import java.util.Date;
 **
 ** @author infinity0
 */
-public class ProtoIndex {
+final public class ProtoIndex {
 
 	final static long serialVersionUID = 0xf82a9082681e5ba6L;
 
@@ -93,6 +93,21 @@ public class ProtoIndex {
 		ttab = t;
 		utab = u;
 	}
+
+	// TODO maybe have more general classs than ProtoIndexSerialiser
+
+	protected int serialFormatUID;
+	protected ProtoIndexComponentSerialiser serialiser;
+	public ProtoIndexComponentSerialiser getSerialiser() {
+		return serialiser;
+	}
+
+	public void setSerialiser(ProtoIndexComponentSerialiser srl) {
+		// TODO test for isLive() here... or something
+		serialFormatUID = srl.serialFormatUID;
+		serialiser = srl;
+	}
+
 
 
 

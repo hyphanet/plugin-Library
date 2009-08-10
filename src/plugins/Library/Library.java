@@ -1,37 +1,41 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-
 package plugins.Library;
 
-import freenet.keys.FreenetURI;
-import java.net.MalformedURLException;
-import plugins.Library.library.*;
+import plugins.Library.library.Index;
+import plugins.Library.library.WriteableIndex;
 import plugins.Library.index.xml.XMLIndex;
 import plugins.Library.index.ProtoIndex;
-import plugins.Library.index.BIndexSerialiser;
+import plugins.Library.index.ProtoIndexSerialiser;
 import plugins.Library.search.InvalidSearchException;
-
-import freenet.pluginmanager.PluginRespirator;
-import freenet.support.Logger;
-
-import java.security.MessageDigest;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import plugins.Library.client.FreenetArchiver;
+import plugins.Library.io.ObjectStreamReader;
+import plugins.Library.io.ObjectStreamWriter;
 
 import plugins.KeyExplorer.KeyExplorerUtils;
 import plugins.KeyExplorer.GetResult;
+
 import freenet.client.ArchiveManager.ARCHIVE_TYPE;
 import freenet.client.FetchException;
 import freenet.client.Metadata;
 import freenet.client.MetadataParseException;
 import freenet.client.async.KeyListenerConstructionException;
+import freenet.keys.FreenetURI;
 import freenet.node.LowLevelGetException;
+import freenet.pluginmanager.PluginRespirator;
 import freenet.support.io.BucketTools;
+import freenet.support.Logger;
+
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.security.MessageDigest;
+
 
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces
@@ -42,7 +46,43 @@ public class Library {
 	public static final String BOOKMARK_PREFIX = "bookmark:";
 	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "freenetindex";
 	private static int version = 1;
-	public final String plugName = "Library " + getVersion();
+	public static final String plugName = "Library " + getVersion();
+
+	public static String getPlugName() {
+		return plugName;
+	}
+
+	public static long getVersion() {
+		return version;
+	}
+
+	/**
+	** Library singleton.
+	*/
+	private static Library lib;
+
+	public synchronized static Library init(PluginRespirator pr) {
+		if (lib != null) {
+			throw new IllegalStateException("Library already initialised");
+		}
+		return lib = new Library(pr);
+	}
+
+	private PluginRespirator pr;
+
+	/**
+	 * Method to setup Library class so it has access to PluginRespirator, and load bookmarks
+	 * TODO pull bookmarks from disk
+	 */
+	private Library(PluginRespirator pr){
+		this.pr = pr;
+		try {
+			addBookmark("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/");
+			addBookmark("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/");
+		} catch (MalformedURLException ex) {
+			Logger.error(this, "Error putting bookmarks", ex);
+		}
+	}
 
 	/**
 	** Holds all the read-indexes.
@@ -58,17 +98,8 @@ public class Library {
 	** Holds all the bookmarks (aliases into the rtab).
 	*/
 	private Map<String, String> bookmarks = new HashMap<String, String>();
-	private PluginRespirator pr;
 
-	public String getPlugName() {
-		return plugName;
-	}
-
-	public long getVersion() {
-		return version;
-	}
-
-
+	// PRIORITY make this throw a checked exception
 	public Class<?> getIndexType(String indexuri) {
 		List<String> errors = new ArrayList<String>();
 		try {
@@ -167,7 +198,6 @@ public class Library {
 		throw new UnsupportedOperationException("Parsed metadata but did not reach a simple manifest: " + furi.toString());
 	}
 
-
 	/**
 	 * Add a new bookmark,
 	 * TODO there should be a separate version for untrusted adds from freesites which throws some Security Exception
@@ -223,6 +253,8 @@ public class Library {
 	 * @param indexuri index specifier
 	 * @return Index object
 	 */
+	// PRIORITY make this throw a checked exception for when getIndexType fails, or
+	// to wrap around UnsupportedOperationException
 	public final Index getIndex(String indexuri) throws InvalidSearchException, UnsupportedOperationException {
 		Logger.normal(this, "Getting index "+indexuri);
 		indexuri = indexuri.trim();
@@ -267,22 +299,34 @@ public class Library {
 
 
 	/**
-	 * Method to setup Index class so it has access to PluginRespirator, and load bookmarks
-	 * TODO pull bookmarks from disk
-	 */
-	public Library(PluginRespirator pr){
-		this.pr = pr;
-		try {
-			addBookmark("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/");
-			addBookmark("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/");
-		} catch (MalformedURLException ex) {
-			Logger.error(this, "Error putting bookmarks", ex);
+	** Create a {@link FreenetArchiver} connected to the core of the
+	** singleton's {@link PluginRespirator}.
+	**
+	** @throws IllegalStateException if the singleton has not been initialised
+	**         or if it does not have a respirator.
+	*/
+	public static <T extends Map<String, ? extends Object>> FreenetArchiver<T>
+	makeArchiver(ObjectStreamReader r, ObjectStreamWriter w, FreenetURI uskbase, String mime, int size) {
+		if (lib == null || lib.pr == null) {
+			throw new IllegalStateException("Cannot archive to freenet without a fully live Library plugin connected to a freenet node.");
+		} else {
+			return new FreenetArchiver<T>(lib.pr.getNode().clientCore, r, w, uskbase, mime, size);
 		}
 	}
 
+	/**
+	** Create a {@link FreenetArchiver} connected to the core of the
+	** singleton's {@link PluginRespirator}.
+	**
+	** @throws IllegalStateException if the singleton has not been initialised
+	**         or if it does not have a respirator.
+	*/
+	public static <T extends Map<String, ? extends Object>, S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver<T>
+	makeArchiver(S rw, FreenetURI uskbase, String mime, int size) {
+		return makeArchiver(rw, rw, uskbase, mime, size);
+	}
 
-
-	private static String convertToHex(byte[] data) {
+	public static String convertToHex(byte[] data) {
 		StringBuilder buf = new StringBuilder();
 		for (int i = 0; i < data.length; i++) {
 			int halfbyte = (data[i] >>> 4) & 0x0F;

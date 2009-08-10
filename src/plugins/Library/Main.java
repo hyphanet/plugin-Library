@@ -54,7 +54,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	// FredPlugin
 	public void runPlugin(PluginRespirator pr) {
 		Main.pr = pr;
-		library = new Library(pr);
+		library = Library.init(pr);
 		Search.setup(library);
 		webinterface = new WebInterface(library, pr);
 		webinterface.load();
