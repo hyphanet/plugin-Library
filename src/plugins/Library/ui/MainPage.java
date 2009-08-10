@@ -290,17 +290,22 @@ class MainPage implements WebPage {
 	}
 
 	/**
-	 * Put an error on the page, under node, also draws a big grey box around the error
+	 * Put an error on the page, under node, also draws a big grey box around
+	 * the error, unless it is an InvalidSearchException in which case it just shows the description
 	 */
 	public static void addError(HTMLNode node, Throwable error){
-		Logger.error(MainPage.class, "Exception caught by interface : "+error.getMessage(), error);
-		HTMLNode error1 = node.addChild("div", "style", "padding:10px;border:5px solid gray;margin:10px", error.toString());
-		for (StackTraceElement ste : error.getStackTrace()){
-			error1.addChild("br");
-			error1.addChild("#", " -- "+ste.toString());
+		if(error instanceof InvalidSearchException){	// Print description
+			node.addChild("p", error.getLocalizedMessage());
+			// TODO if there is a cause there should be some way to view this if needed for debugging
+		}else{	// Else print stack trace
+			HTMLNode error1 = node.addChild("div", "style", "padding:10px;border:5px solid gray;margin:10px", error.toString());
+			for (StackTraceElement ste : error.getStackTrace()){
+				error1.addChild("br");
+				error1.addChild("#", " -- "+ste.toString());
+			}
+			if(error.getCause()!=null)
+				addError(error1, error.getCause());
 		}
-		if(error.getCause()!=null)
-			addError(error1, error.getCause());
 	}
 
 	
