@@ -277,17 +277,19 @@ public class ResultSet implements Set<TermEntry>{
 		Collection<? extends TermEntry> firstCollection = collections[0];
 		// Iterate over it
 		for (TermEntry termEntry : firstCollection) {
+			if(!(termEntry instanceof TermPageEntry))
+				continue;
 			// if term entry is followed in all the others, add it to this
-			List<TermEntry> entries = new ArrayList<TermEntry>(collections.length);
-			entries.add(termEntry);
+			List<TermPageEntry> entries = new ArrayList<TermPageEntry>(collections.length);
+			entries.add((TermPageEntry)termEntry);
 
 			for (int i = 1; i < collections.length; i++) {
 				Collection<? extends TermEntry> collection = collections[i];
 				// See if collection follows termEntry
-				TermEntry follow = follows(entries.get(i-1), collection);
+				TermPageEntry follow = follows(entries.get(i-1), collection);
 				if(follow != null){
 					// add it to the entries
-					entries.add(i, follow);
+					entries.add(follow);
 				}else
 					break;
 			}
@@ -436,14 +438,15 @@ public class ResultSet implements Set<TermEntry>{
 	private TermPageEntry follows(TermEntry entry, Collection<? extends TermEntry> collection){
 		if(!(entry instanceof TermPageEntry))
 			return null;
-		TermPageEntry result = (TermPageEntry)getIgnoreSubject(entry, collection);
-		if(result == null)
+		TermPageEntry pageEntry1 = (TermPageEntry)entry;
+		TermPageEntry pageEntry2 = (TermPageEntry)getIgnoreSubject(entry, collection);
+		if(pageEntry1.getPositions() == null || pageEntry2 == null || pageEntry2.getPositions() == null)
 			return null;
 
-		Map<Integer, String> pos1 = ((TermPageEntry)entry).getPositions();
-		Map<Integer, String> pos2 = result.getPositions();
+		Map<Integer, String> pos1 = pageEntry1.getPositions();
+		Map<Integer, String> pos2 = pageEntry2.getPositions();
 		if(pos1==null || pos2 == null)
-			throw new NullPointerException("This index does not have term position information and so cannot perform a phrase search, this should probably be a different type of exception, maybe an InvalidSearchException? : "+entry.toString()+" "+((TermPageEntry)entry).getPositions()+" / "+result.toString()+" "+result.getPositions());
+			throw new NullPointerException("This index does not have term position information and so cannot perform a phrase search, this should probably be a different type of exception, maybe an InvalidSearchException? : "+pageEntry1.toString()+" "+pageEntry1.getPositions()+" / "+pageEntry2.toString()+" "+pageEntry2.getPositions());
 		Map<Integer, String> newPos = new HashMap();
 		for (Integer integer1 : pos1.keySet()) {
 			for (Integer integer2 : pos2.keySet()) {
@@ -452,7 +455,7 @@ public class ResultSet implements Set<TermEntry>{
 			}
 		}
 		if(newPos.size()>0)
-			return new TermPageEntry(result.getSubject(), result.getURI(), result.getTitle(), newPos);
+			return new TermPageEntry(pageEntry2.getSubject(), pageEntry2.getURI(), pageEntry2.getTitle(), newPos);
 		else
 			return null;
 	}
