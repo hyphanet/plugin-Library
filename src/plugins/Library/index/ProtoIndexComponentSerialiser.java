@@ -20,7 +20,7 @@ import plugins.Library.serial.ParallelSerialiser;
 import plugins.Library.serial.Packer;
 import plugins.Library.serial.Progress;
 import plugins.Library.serial.SimpleProgress;
-import plugins.Library.serial.CompoundProgress;
+import plugins.Library.serial.BaseCompositeProgress;
 import plugins.Library.serial.FileArchiver;
 import plugins.Library.serial.DataFormatException;
 import plugins.Library.serial.TaskAbortException;
@@ -356,7 +356,7 @@ public class ProtoIndexComponentSerialiser {
 		@Override public void pullLive(PullTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) throws TaskAbortException {
 			SkeletonBTreeMap<K, V>.GhostNode ghost = (SkeletonBTreeMap.GhostNode)task.meta;
 			PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(ghost.getMeta());
-			p.setName("Pulling " + name + ": " + ghost.getRange());
+			p.setSubject("Pulling " + name + ": " + ghost.getRange());
 			p.enteredSerialiser();
 			subsrl.pullLive(serialisable, p);
 			ghost.setMeta(serialisable.meta); task.data = trans.rev(serialisable.data);
@@ -366,7 +366,7 @@ public class ProtoIndexComponentSerialiser {
 		@Override public void pushLive(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) throws TaskAbortException {
 			Map<String, Object> intermediate = trans.app(task.data);
 			PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(intermediate, task.meta);
-			p.setName("Pushing " + name + ": " + task.data.getRange());
+			p.setSubject("Pushing " + name + ": " + task.data.getRange());
 			p.enteredSerialiser();
 			subsrl.pushLive(serialisable, p);
 			task.meta = task.data.makeGhost(serialisable.meta);
@@ -386,13 +386,13 @@ public class ProtoIndexComponentSerialiser {
 	implements MapSerialiser<K, V>,
 	           Serialiser.Trackable<V> {
 
-		final protected ProgressTracker<V, CompoundProgress> tracker;
+		final protected ProgressTracker<V, BaseCompositeProgress> tracker;
 		final protected S subsrl;
 
 		public BTreePacker(S s, Packer.Scale<V> sc, int cap) {
 			super(s, sc, cap);
 			subsrl = s;
-			tracker = new ProgressTracker<V, CompoundProgress>(CompoundProgress.class);
+			tracker = new ProgressTracker<V, BaseCompositeProgress>(BaseCompositeProgress.class);
 		}
 
 		@Override public ProgressTracker<V, ? extends Progress> getTracker() {
@@ -402,9 +402,10 @@ public class ProtoIndexComponentSerialiser {
 		@Override protected void preprocessPullBins(Map<K, PullTask<V>> tasks, Collection<PullTask<Map<K, V>>> bintasks) {
 			for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
 				try {
-					CompoundProgress p = tracker.addPullProgress(en.getValue());
-					p.setSubprogress(CompoundProgress.makePullProgressIterable(subsrl.getTracker(), bintasks));
-					p.setName("Pulling root container for " + en.getKey());
+					BaseCompositeProgress p = tracker.addPullProgress(en.getValue());
+					p.setSubProgress(ProgressTracker.makePullProgressIterable(subsrl.getTracker(), bintasks));
+					p.setEstimateType(BaseCompositeProgress.EstimateType.EQUAL_TO_KNOWN);
+					p.setSubject("Pulling root container for " + en.getKey());
 				} catch (TaskInProgressException e) {
 					throw new AssertionError(e);
 				}
@@ -414,9 +415,10 @@ public class ProtoIndexComponentSerialiser {
 		@Override protected void preprocessPushBins(Map<K, PushTask<V>> tasks, Collection<PushTask<Map<K, V>>> bintasks) {
 			for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
 				try {
-					CompoundProgress p = tracker.addPushProgress(en.getValue());
-					p.setSubprogress(CompoundProgress.makePushProgressIterable(subsrl.getTracker(), bintasks));
-					p.setName("Pushing root container for " + en.getKey());
+					BaseCompositeProgress p = tracker.addPushProgress(en.getValue());
+					p.setSubProgress(ProgressTracker.makePushProgressIterable(subsrl.getTracker(), bintasks));
+					p.setEstimateType(BaseCompositeProgress.EstimateType.EQUAL_TO_KNOWN);
+					p.setSubject("Pushing root container for " + en.getKey());
 				} catch (TaskInProgressException e) {
 					throw new AssertionError(e);
 				}
@@ -454,7 +456,7 @@ public class ProtoIndexComponentSerialiser {
 
 		@Override public void pullLive(PullTask<Map<K, V>> task, SimpleProgress p) throws TaskAbortException {
 			PullTask<Map<String, Object>> t = new PullTask<Map<String, Object>>(task.meta);
-			p.setName("Pulling root container " + task.meta);
+			p.setSubject("Pulling root container " + task.meta);
 			p.enteredSerialiser();
 			try {
 				subsrl.pullLive(t, p);
@@ -483,7 +485,7 @@ public class ProtoIndexComponentSerialiser {
 			}
 
 			PushTask<Map<String, Object>> t = new PushTask<Map<String, Object>>(conv, task.meta);
-			p.setName("Pushing root container for keys " + task.data.keySet());
+			p.setSubject("Pushing root container for keys " + task.data.keySet());
 			p.enteredSerialiser();
 			subsrl.pushLive(t, p);
 			task.meta = t.meta;

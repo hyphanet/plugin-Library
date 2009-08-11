@@ -4,15 +4,16 @@
 package plugins.Library.index;
 
 import plugins.Library.library.Index;
+import plugins.Library.serial.Serialiser;
+import plugins.Library.serial.TaskAbortException;
+import plugins.Library.serial.Progress;
+import plugins.Library.serial.ProgressParts;
+import plugins.Library.serial.ProgressTracker;
 import plugins.Library.util.Skeleton;
 import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.DataNotLoadedException;
-import plugins.Library.serial.Serialiser;
-import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.Progress;
-import plugins.Library.serial.ProgressTracker;
 
 import freenet.keys.FreenetURI;
 
@@ -122,7 +123,8 @@ final public class ProtoIndex implements Index {
 		if (request == null) {
 			request = new getTermEntriesHandler(term);
 			getTermEntriesProgress.put(term, request);
-			(new Thread((Runnable)request)).start();
+			// TODO use ThreadPoolExecutor
+			new Thread((Runnable)request).start();
 		}
 		return request;
 	}
@@ -144,20 +146,9 @@ final public class ProtoIndex implements Index {
 			super(t);
 		}
 
-		@Override public int partsDone() {
-			throw new UnsupportedOperationException("not implemented");
-		}
-
-		@Override public int partsTotal() {
-			throw new UnsupportedOperationException("not implemented");
-		}
-
-		@Override public int finalTotalEstimate() {
-			throw new UnsupportedOperationException("not implemented");
-		}
-
-		@Override public boolean isTotalFinal() {
-			throw new UnsupportedOperationException("not implemented");
+		@Override public ProgressParts getParts() {
+			// PRIORITY
+			throw new UnsupportedOperationException("not implemented 2457");
 		}
 
 		/**
@@ -171,20 +162,8 @@ final public class ProtoIndex implements Index {
 			return result;
 		}
 
-		@Override public String getCurrentStatus() {
-			if (error != null) { return error.getMessage(); }
-			if (result != null) { return "completed in " + getTimeTaken() + "ms"; }
-			if (metas.size() == 0) { return "please wait"; }
-			Progress p = last != null? last: trackers.peek().getPullProgressFor(metas.peek());
-			return (p == null)? "please wait": p.getStatus();
-		}
-
-		@Override public String getCurrentStage() {
-			if (error != null) { return "Task aborted"; }
-			if (result != null) { return "Task completed"; }
-			if (metas.size() == 0) { return "Starting"; }
-			Progress p = last != null? last: trackers.peek().getPullProgressFor(metas.peek());
-			return (p == null)? "Starting next stage": p.getName();
+		@Override public Progress getCurrentProgress() {
+			return last != null? last: trackers.isEmpty()? null: trackers.peek().getPullProgressFor(metas.peek());
 		}
 
 		// URGENT tidy this - see SkeletonBTreeMap.inflate() for details

@@ -11,9 +11,9 @@ package plugins.Library.serial;
 public interface Progress {
 
 	/**
-	** Returns the name of the task, if any.
+	** Returns the subject / name of the task, if any.
 	*/
-	public String getName();
+	public String getSubject();
 
 	/**
 	** Returns the current completion status.
@@ -21,31 +21,29 @@ public interface Progress {
 	public String getStatus();
 
 	/**
-	** Returns how many "parts" of the task is done.
+	** Get the details of this progress as a {@link ProgressParts} object, or
+	** throw an exception if the task has aborted.
 	*/
-	public int partsDone();
+	public ProgressParts getParts() throws TaskAbortException;
 
 	/**
-	** Returns how many "parts" of the task are known to exist.
+	** Whether the progress has completed successfully, or throw an exception
+	** if it has aborted.
 	*/
-	public int partsTotal();
-
-	/**
-	** Whether the total number of parts is the actual final total number.
-	*/
-	public boolean isTotalFinal();
-
-	/**
-	** An estimate of the final total. If {@link #isTotalFinal()} is {@code
-	** true}, this must be equal to {@link #partsTotal()}.
-	**
-	** Implementations should return -1 if they cannot make an estimate.
-	*/
-	public int finalTotalEstimate();
+	public boolean isDone() throws TaskAbortException;
 
 	/**
 	** Wait for the progress to finish.
 	*/
 	public void join() throws InterruptedException, TaskAbortException;
+
+	/*
+
+	display would look something like:
+
+	getName(): getStatus()
+	|        done|         started| known|                           estimate|
+
+	*/
 
 }

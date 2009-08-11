@@ -29,7 +29,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import plugins.Library.serial.TaskCompleteException;
-import plugins.Library.serial.CompoundProgress;
+import plugins.Library.serial.BaseCompositeProgress;
 import plugins.Library.serial.Serialiser;
 import plugins.Library.serial.Progress;
 import plugins.Library.serial.ProgressTracker;
@@ -382,8 +382,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	// URGENT tidy this; this should proboably go in a serialiser
 	// and then we will access the Progress of a submap with a task whose
 	// metadata is (lkey, rkey), or something..(PROGRESS)
-	CompoundProgress ppp = new CompoundProgress();
-	public CompoundProgress getPPP() { return ppp; } // REMOVE ME
+	BaseCompositeProgress ppp = new BaseCompositeProgress();
+	public BaseCompositeProgress getPPP() { return ppp; } // REMOVE ME
 	@Override public void inflate() throws TaskAbortException {
 
 		// TODO adapt the algorithm to track partial loads of submaps (SUBMAP)
@@ -416,8 +416,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			ids = new LinkedHashMap<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ?>>();
 			ntracker = ((Serialiser.Trackable)nsrl).getTracker();
 			// PROGRESS make a ProgressTracker track this instead of "ppp".
-			ppp.setSubprogress(CompoundProgress.makePullProgressIterable(ids));
-			ppp.setName("Pulling all entries in B-tree");
+			ppp.setSubProgress(ProgressTracker.makePullProgressIterable(ids));
+			ppp.setSubject("Pulling all entries in B-tree");
 		}
 
 		Scheduler pool = ((ScheduledSerialiser)nsrl).pullSchedule(tasks, inflated, error);

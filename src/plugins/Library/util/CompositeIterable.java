@@ -20,14 +20,39 @@ abstract public class CompositeIterable<S, T> implements Iterable<T> {
 	final protected Iterable<S> ib;
 
 	/**
-	** Create a new iterable backed by the given iterable.
+	** Whether the iterator supports {@link Iterator#remove()}.
+	*/
+	final public boolean immutable;
+
+	/**
+	** Create a new mutable iterable backed by the given iterable. Note that
+	** mutability will only have an effect if the backing iterator is also
+	** mutable.
 	*/
 	public CompositeIterable(Iterable<S> i) {
 		ib = i;
+		immutable = false;
+	}
+
+	/**
+	** Create a new iterable backed by the given iterable, with the given
+	** mutability setting. Note that mutability will only have an effect if the
+	** backing iterator is also mutable.
+	*/
+	public CompositeIterable(Iterable<S> i, boolean immute) {
+		ib = i;
+		immutable = immute;
 	}
 
 	@Override public Iterator<T> iterator() {
-		return new Iterator<T>() {
+		return immutable?
+		new Iterator<T>() {
+			final Iterator<S> it = ib.iterator();
+			@Override public boolean hasNext() { return it.hasNext(); }
+			@Override public T next() { return CompositeIterable.this.nextFor(it.next()); }
+			@Override public void remove() { throw new UnsupportedOperationException("Immutable iterator"); }
+		}:
+		new Iterator<T>() {
 			final Iterator<S> it = ib.iterator();
 			@Override public boolean hasNext() { return it.hasNext(); }
 			@Override public T next() { return CompositeIterable.this.nextFor(it.next()); }

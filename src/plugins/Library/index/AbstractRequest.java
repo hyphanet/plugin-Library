@@ -3,8 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.index.Request.RequestState;
 import plugins.Library.serial.TaskAbortException;
+import plugins.Library.serial.Progress;
+import plugins.Library.serial.ProgressParts;
 
 import java.util.Date;
 
@@ -15,20 +16,14 @@ import java.util.Date;
 ** To implement {@link Request} fully from this class, the programmer needs to
 ** implement the following methods:
 **
-** * {@link Request#getCurrentStage()}
-** * {@link Request#getCurrentStatus()}
-** * {@link Request#partsDone()}
-** * {@link Request#partsTotal()}
-** * {@link Request#isTotalFinal()}
+** * {@link Progress#getParts()}
+** * {@link ChainedProgress#getCurrentProgress()}
 **
-** and make sure the {@link #state}, {@link #error}, and {@link #result} fields
-** are set appropriately during the course of the operation. (You can use
-** {@link #setResult(Object)} and {@link #setError(TaskAbortException)} to do
-** this.)
+** and make sure the {@link #error}, and {@link #result} fields are set
+** appropriately during the course of the operation. (You can use {@link
+** #setResult(Object)} and {@link #setError(TaskAbortException)} to do this.)
 **
 ** The programmer might also wish to override the following:
-**
-** * {@link #finalTotalEstimate()}
 ** * {@link #join()}
 **
 ** @author MikeB
@@ -36,14 +31,10 @@ import java.util.Date;
 */
 public abstract class AbstractRequest<T> implements Request<T> {
 
-	final protected String subject;
 	final protected Date start;
 	protected Date stop = null;
 
-	/**
-	** Holds the state of the operation. Returned by {@link #getState()}.
-	*/
-	protected RequestState state = RequestState.UNSTARTED;
+	protected String subject;
 
 	/**
 	** Holds the error that caused the operation to abort, if any. If not
@@ -63,22 +54,20 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	**
 	** @param subject
 	*/
-	public AbstractRequest(String subject){
-		this.subject = subject;
+	public AbstractRequest(String sub){
+		this.subject = sub;
 		this.start = new Date();
 	}
 
 	protected void setResult(T res) {
 		if (stop != null) { throw new IllegalStateException("Task has already finished."); }
 		result = res;
-		state = RequestState.FINISHED;
 		stop = new Date();
 	}
 
 	protected void setError(TaskAbortException err) {
 		if (stop != null) { throw new IllegalStateException("Task has already finished."); }
 		error = err;
-		state = RequestState.FINISHED;
 		stop = new Date();
 	}
 
@@ -96,24 +85,22 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	  public interface Progress
 	 ========================================================================*/
 
-	@Override public String getName() {
-		return "Requesting " + getSubject();
+	@Override public String getSubject() {
+		return subject;
 	}
-
 
 	@Override public String getStatus() {
-		String s = partsDone() + "/" + partsTotal();
-		if (!isTotalFinal()) { s += "???"; }
-		return s;
+		Progress cur = getCurrentProgress();
+		return (cur == null)? "Starting next stage...": cur.getSubject() + ": " + cur.getStatus();
 	}
 
-	/**
-	** {@inheritDoc}
-	**
-	** This implementation does not give an estimate.
-	*/
-	@Override public int finalTotalEstimate() {
-		return -1;
+	@Override abstract public ProgressParts getParts() throws TaskAbortException;
+
+	@Override abstract public Progress getCurrentProgress();
+
+	@Override public boolean isDone() throws TaskAbortException {
+		if (error != null) { throw error; }
+		return result != null;
 	}
 
 	/**
@@ -134,11 +121,7 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	}
 
 	@Override public long getTimeElapsed() {
-		return (new Date()).getTime() - start.getTime();
-	}
-
-	@Override public String getSubject() {
-		return subject;
+		return System.currentTimeMillis() - start.getTime();
 	}
 
 	/**
@@ -148,29 +131,8 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	** null}, otherwise it throws it.
 	*/
 	@Override public T getResult() throws TaskAbortException {
-		if (error != null) {
-			throw error;
-		} else {
-			return result;
-		}
+		if (error != null) { throw error; }
+		return result;
 	}
 
-	/**
-	** {@inheritDoc}
-	**
-	** This implementation returns {@link #state}.
-	*/
-	@Override public RequestState getState() {
-		return state;
-	}
-
-	/**
-	** {@inheritDoc}
-	**
-	** This implementation returns true if RequestState is FINISHED
-	 * @deprecated now ERROR is gone this seems pointless
-	*/
-	@Override public boolean isDone() {
-		return state==RequestState.FINISHED;
-	}
 }

@@ -52,9 +52,9 @@ public class Tester {
 		StringBuilder s = new StringBuilder();
 		for (String index: indexes) {
 			try {
-				Class<?> t = library.getIndexType(index);
+				Class<?> t = library.getIndexType(new FreenetURI(index));
 				s.append("<p>").append(t.getName()).append(": ").append(index).append("</p>");
-			} catch (RuntimeException e) {
+			} catch (Exception e) {
 				appendError(s, e);
 			}
 		}
@@ -104,11 +104,15 @@ public class Tester {
 		appendTimeElapsed(s, push_progress_start);
 		if (push_progress_insertURI != null) { s.append("<p>Insert: ").append(push_progress_insertURI.toString()).append("</p>\n"); }
 		s.append("<p>").append(push_progress_progress.getStatus()).append("</p>\n");
-		appendError(s, push_progress_error);
 		appendResultURI(s, push_progress_endURI);
-		s.append("<p>").append(push_progress_progress.partsDone());
-		s.append(" ").append(push_progress_progress.partsTotal());
-		s.append(" ").append(push_progress_progress.isTotalFinal()).append("</p>\n");
+		try {
+			ProgressParts parts = push_progress_progress.getParts();
+			s.append("<p>").append(parts.done);
+			s.append(" ").append(parts.known);
+			s.append(" ").append(parts.finalizedTotal()).append("</p>\n");
+		} catch (TaskAbortException e) {
+			appendError(s, push_progress_error);
+		}
 		s.append(PAGE_END);
 		return s.toString();
 	}
@@ -210,7 +214,7 @@ public class Tester {
 
 	public static void appendTimeElapsed(StringBuilder s, Date start) {
 		if (start == null) { return; }
-		s.append("<p>").append((new Date()).getTime() - start.getTime()).append("ms elapsed</p>\n");
+		s.append("<p>").append(System.currentTimeMillis() - start.getTime()).append("ms elapsed</p>\n");
 	}
 
 	public static void appendResultURI(StringBuilder s, FreenetURI u) {

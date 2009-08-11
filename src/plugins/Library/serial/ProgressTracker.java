@@ -4,8 +4,10 @@
 package plugins.Library.serial;
 
 import plugins.Library.serial.Serialiser.*;
+import plugins.Library.util.CompositeIterable;
 
 import java.util.Iterator;
+import java.util.Map;
 import java.util.WeakHashMap;
 
 /**
@@ -188,5 +190,63 @@ public class ProgressTracker<T, P extends Progress> {
 		}
 	}
 
+
+	/**
+	** Creates an iterable over the {@link Progress} objects corresponding to
+	** the given pull tasks, all tracked by the given tracker.
+	**
+	** @param tracker The single tracker for all the ids
+	** @param tasks The tasks to track
+	*/
+	public static <T, P extends Progress> Iterable<P> makePullProgressIterable(final ProgressTracker<T, P> tracker, final Iterable<PullTask<T>> tasks) {
+		return new CompositeIterable<PullTask<T>, P>(tasks, true) {
+			@Override public P nextFor(PullTask<T> next) {
+				return tracker.getPullProgress(next);
+			}
+		};
+	}
+
+	/**
+	** Creates an iterable over the {@link Progress} objects corresponding to
+	** the given push tasks, all tracked by the given tracker.
+	**
+	** @param tracker The single tracker for all the ids
+	** @param tasks The tasks to track
+	*/
+	public static <T, P extends Progress> Iterable<P> makePushProgressIterable(final ProgressTracker<T, P> tracker, final Iterable<PushTask<T>> tasks) {
+		return new CompositeIterable<PushTask<T>, P>(tasks, true) {
+			@Override public P nextFor(PushTask<T> next) {
+				return tracker.getPushProgress(next);
+			}
+		};
+	}
+
+	/**
+	** Creates an iterable over the {@link Progress} objects corresponding to
+	** the given pull tracking ids, each tracked by its own tracker.
+	**
+	** @param ids Map of tracking ids to their respective trackers
+	*/
+	public static <T, P extends Progress> Iterable<P> makePullProgressIterable(final Map<PullTask<T>, ProgressTracker<T, ? extends P>> ids) {
+		return new CompositeIterable<Map.Entry<PullTask<T>, ProgressTracker<T, ? extends P>>, P>(ids.entrySet(), true) {
+			@Override public P nextFor(Map.Entry<PullTask<T>, ProgressTracker<T, ? extends P>> next) {
+				return next.getValue().getPullProgress(next.getKey());
+			}
+		};
+	}
+
+	/**
+	** Creates an iterable over the {@link Progress} objects corresponding to
+	** the given push tracking ids, each tracked by its own tracker.
+	**
+	** @param ids Map of tracking ids to their respective trackers
+	*/
+	public static <T, P extends Progress> Iterable<P> makePushProgressIterable(final Map<PushTask<T>, ProgressTracker<T, ? extends P>> ids) {
+		return new CompositeIterable<Map.Entry<PushTask<T>, ProgressTracker<T, ? extends P>>, P>(ids.entrySet(), true) {
+			@Override public P nextFor(Map.Entry<PushTask<T>, ProgressTracker<T, ? extends P>> next) {
+				return next.getValue().getPushProgress(next.getKey());
+			}
+		};
+	}
 
 }
