@@ -193,16 +193,16 @@ public class Library {
 
 		throw new UnsupportedOperationException("Parsed metadata but did not reach a simple manifest: " + furi.toString());
 	}
-	
+
 	public Class<?> getTypeFromFileName(String uri) {
 		File file;
 		file = new File(uri + "/" + ProtoIndex.DEFAULT_FILE);
-		if (file.exists() && file.canRead()) 
+		if (file.exists() && file.canRead())
 			return ProtoIndex.class;
 		file = new File(uri + "/" + XMLIndex.DEFAULT_FILE);
-		if (file.exists() && file.canRead()) 
+		if (file.exists() && file.canRead())
 			return XMLIndex.class;
-		
+
 		return null;
 	}
 
@@ -278,7 +278,7 @@ public class Library {
 		try {
 			FreenetURI uri = null;
 			Index index;
-			
+
 			Class<?> indextype = getTypeFromFileName(indexuri);
 			if(indextype == null){
 				uri = KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri);
@@ -288,6 +288,7 @@ public class Library {
 			}
 
 			if (indextype == ProtoIndex.class && uri != null) {	// Only starting ProtoIndex on remote indexs
+				// PRIORITY this *must* be non-blocking as it fetches the whole index root
 				PullTask<ProtoIndex> task = new PullTask<ProtoIndex>(uri);
 				proto_srl.pull(task);
 				index = task.data;

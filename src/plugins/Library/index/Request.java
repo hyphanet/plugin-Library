@@ -4,7 +4,7 @@
 package plugins.Library.index;
 
 import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.Progress;
+import plugins.Library.serial.ChainedProgress;
 
 import java.util.Date;
 
@@ -25,7 +25,7 @@ import java.util.Date;
 ** @author MikeB
 ** @author infinity0
 */
-public interface Request<T> extends Progress {
+public interface Request<T> extends ChainedProgress {
 
 	/**
 	** Returns the Date object representing the time at which this request was
@@ -39,48 +39,8 @@ public interface Request<T> extends Progress {
 	public long getTimeElapsed();
 
 	/**
-	** Returns the subject of this operation.
-	*/
-	public String getSubject();
-
-	/**
 	** Gets the result of this operation.
 	*/
 	public T getResult() throws TaskAbortException;
-
-
-	/**
-	** Whether the operation has completed.
-	**
-	** TODO perhaps make this part of Progress
-	*/
-	public boolean isDone();
-
-	/**
-	** Returns a RequestState describing the status of the operation.
-	**
-	** @see RequestState
-	*/
-	public RequestState getState();
-
-	/**
-	** Returns a {@link String} describing the status of the current stage.
-	*/
-	public String getCurrentStatus();
-
-	/**
-	** Returns the current stage of the operation.
-	*/
-	public String getCurrentStage();
-
-	/**
-	** Records the general state of the operation.
-	**
-	** ;UNSTARTED : Request initialised but not begun
-	** ;INPROGRESS : Request started
-	** ;PARTIALRESULT : Some result is availiable but not all
-	** ;FINISHED : Complete result availiable
-	*/
-	public enum RequestState { UNSTARTED, INPROGRESS, PARTIALRESULT, FINISHED };
 
 }

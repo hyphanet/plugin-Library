@@ -14,7 +14,7 @@ package plugins.Library.serial;
 **
 ** NOTE: this implementation considers the task to be '''done''' when a call to
 ** {@link #addPartDone()} triggers the condition {@code pdone == known} when
-** {@link #isTotalFinal()} is true. '''As soon as''' this is triggered, all
+** {@code known == estimate} is true. '''As soon as''' this is triggered, all
 ** threads blocked on {@link #join()} will unblock and assume the task has
 ** finished. To prevent this from happening unexpectedly, it is recommended
 ** that {@link #enteredSerialiser()} and {@link #exitingSerialiser()} be called
@@ -52,27 +52,7 @@ public class SimpleProgress implements Progress {
 	** let the leaf serialiser finalise the total.)
 	*/
 
-
-	// PRIORITY rename (here and in SimpleProgress)
-	// partsDone() -> getPartsDone()
-	// (none) -> getPartsStarted() -- in this class, same as getPartsKnown()
-	// partsTotal() -> getPartsKnown()
-	// isTotalFinal() -> isTotalFinal() - returns getPartsKnown() == getPartsEstimated()
-	// finalTotalEstimate() -> getPartsEstimated()
-	// getParts() returns int[done, started, known, estimated] -- this *must be thread-safe*
-
-	// getStatus does not need to be thread-safe
-
-	// contract: done <= started <= known && (known <= estimated || estimate == -1)
-	// when in doubt, update these fields in reverse order
-
-	final public static int PARTS_DONE = 0;
-	final public static int PARTS_STARTED = 1;
-	final public static int PARTS_KNOWN = 2;
-	final public static int PARTS_ESTIMATED = 3;
-	// PRIORITY move these into Progress. index into the Parts array
-
-	protected String name = "???";
+	protected String subject = "??";
 
 	/**
 	** Number of parts done.
@@ -93,21 +73,23 @@ public class SimpleProgress implements Progress {
 
 	protected String status = null;
 
-	protected boolean inprogress = true; // this variable is synchronized on so doesn't need to be volatile
+	protected boolean inprogress = true; // this variable is only used in synchronized blocks so doesn't need to be volatile
 
-	protected TaskAbortException abort = null; // synchronized except for a read in non-critical getStatus(), so ok to be non-volatile
+	protected volatile TaskAbortException abort = null;
 
 	public SimpleProgress() { }
 
 	/**
-	** Add a done part. If {@code pdone == known} is triggered while {@link
-	** #isTotalFinal()} is true, then the task is deemed to be completed and
+	** Add a done part. If {@code pdone == known} is triggered while {@code
+	** known == estimate} is true, then the task is deemed to be completed and
 	** all threads blocked on {@link #join()} will be released.
 	*/
 	public synchronized void addPartDone() {
+		if (pdone == known) {
+			throw new IllegalStateException("Can't increased parts done above parts known");
+		}
 		pdone++;
-		assert(pdone <= known);
-		if (isTotalFinal() && pdone == known) {
+		if (known == estimate && pdone == known) {
 			inprogress = false;
 			notifyAll();
 		}
@@ -121,14 +103,14 @@ public class SimpleProgress implements Progress {
 		if (parts < 0) {
 			throw new IllegalArgumentException("Can't decrease the number of parts done.");
 		} else if (finalise) {
-			if (isTotalFinal() && parts > 0) {
+			if (known == estimate && parts > 0) {
 				throw new IllegalArgumentException("Total already finalised");
 			}
 			// update estimate first to maintain known <= estimate || estimate == -1
 			estimate = known + parts;
 			known = estimate;
 		} else {
-			if (isTotalFinal()) {
+			if (known == estimate) {
 				throw new IllegalArgumentException("Cannot un-finalise a final total!");
 			}
 			estimate = -1;
@@ -174,11 +156,11 @@ public class SimpleProgress implements Progress {
 		throw e;
 	}
 
-	public void setName(String n) {
-		if (n == null) {
-			throw new IllegalArgumentException("Can't set a null progress name");
+	public void setSubject(String s) {
+		if (s == null) {
+			throw new IllegalArgumentException("Can't set a null progress subject");
 		}
-		name = n;
+		subject = s;
 	}
 
 	public void setStatus(String s) {
@@ -193,8 +175,8 @@ public class SimpleProgress implements Progress {
 	  public interface Progress
 	 ========================================================================*/
 
-	@Override public String getName() {
-		return name;
+	@Override public String getSubject() {
+		return subject;
 	}
 
 	/**
@@ -207,51 +189,31 @@ public class SimpleProgress implements Progress {
 	@Override public String getStatus() {
 		if (abort != null) { return abort.getMessage(); }
 		if (status != null) { return status; }
-		String s = pdone + "/" + known;
-		s += (estimate < 0)? "/???": (estimate == known)? "": "/" + estimate;
-		return s;
+		try {
+			return getParts().toString();
+		} catch (TaskAbortException e) {
+			// abort could have been set between lines 1 and 4
+			return abort.getMessage();
+		}
 	}
 
-	public synchronized int[] getParts() {
-		return new int[]{pdone, known, known, estimate};
+	@Override public ProgressParts getParts() throws TaskAbortException {
+		// updates are made such that the ProgressParts contract isn't broken even
+		// in mid-update so we don't need to synchronize here.
+		if (abort != null) { throw abort; }
+		return new ProgressParts(pdone, known, known, estimate);
 	}
 
-	@Override public int partsDone() {
-		return pdone;
-	}
-
-	// TODO see rename section up top
-	public int getPartsStarted() {
-		return known;
-	}
-
-	@Override public int partsTotal() {
-		return known;
-	}
-
-	/**
-	** {@inheritDoc}
-	**
-	** This implementation returns {@link #estimate}.
-	*/
-	@Override public int finalTotalEstimate() {
-		return estimate;
-	}
-
-	/**
-	** {@inheritDoc}
-	**
-	** This implementation returns {@link #estimate}{@code == }{@link #known}.
-	*/
-	@Override public boolean isTotalFinal() {
-		return known == estimate;
+	@Override public boolean isDone() throws TaskAbortException {
+		// updates are made such that the ProgressParts contract isn't broken even
+		// in mid-update so we don't need to synchronize here.
+		if (abort != null) { throw abort; }
+		return pdone == known && known == estimate;
 	}
 
 	@Override public synchronized void join() throws InterruptedException, TaskAbortException {
 		while (inprogress) { wait(); }
-		if (abort != null) {
-			throw abort;
-		}
+		if (abort != null) { throw abort; }
 	}
 
 }

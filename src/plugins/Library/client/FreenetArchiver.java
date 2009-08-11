@@ -6,6 +6,7 @@ package plugins.Library.client;
 import plugins.Library.serial.LiveArchiver;
 import plugins.Library.serial.TaskAbortException;
 import plugins.Library.serial.SimpleProgress;
+import plugins.Library.serial.ProgressParts;
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
 
@@ -43,6 +44,8 @@ import java.util.ArrayList;
 
 /**
 ** DOCUMENT
+**
+** URGENT fetch can g above 100%
 **
 ** @author infinity0
 */
@@ -100,10 +103,10 @@ implements LiveArchiver<T, SimpleProgress> {
 
 				// bookkeeping. detects bugs in the SplitfileProgressEvent handler
 				if (progress != null) {
-					int partsdiff_old = progress.partsTotal() - progress.partsDone();
+					ProgressParts prog_old = progress.getParts();
 					res = hlsc.fetch(furi);
-					int partsdiff_new = progress.partsTotal() - progress.partsDone();
-					if (partsdiff_old != partsdiff_new) {
+					ProgressParts prog_new = progress.getParts();
+					if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
 						// TODO if it turns out this happens a lot, maybe make it "continue anyway"
 						throw new TaskAbortException("Inconsistency when tracking split file progress", null, true);
 					}
@@ -180,10 +183,10 @@ implements LiveArchiver<T, SimpleProgress> {
 
 				// bookkeeping. detects bugs in the SplitfileProgressEvent handler
 				if (progress != null) {
-					int partsdiff_old = progress.partsTotal() - progress.partsDone();
+					ProgressParts prog_old = progress.getParts();
 					uri = hlsc.insert(ib, false, null);
-					int partsdiff_new = progress.partsTotal() - progress.partsDone();
-					if (partsdiff_old != partsdiff_new) {
+					ProgressParts prog_new = progress.getParts();
+					if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
 						// TODO if it turns out this happens a lot, maybe make it "continue anyway"
 						throw new TaskAbortException("Inconsistency when tracking split file progress", null, true);
 					}

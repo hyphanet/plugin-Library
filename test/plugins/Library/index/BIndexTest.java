@@ -254,7 +254,7 @@ public class BIndexTest extends TestCase {
 
 		Collection<TermEntry> entries;
 		while ((entries = rq1.getResult()) == null) {
-			System.out.println(rq1.getCurrentStage() + ": " + rq1.getCurrentStatus());
+			System.out.println(rq1.getStatus());
 			try { Thread.sleep(1000); } catch (InterruptedException x) { }
 		}
 
