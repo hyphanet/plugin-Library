@@ -29,6 +29,7 @@ import freenet.pluginmanager.PluginRespirator;
 import freenet.support.io.BucketTools;
 import freenet.support.Logger;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.List;
@@ -192,6 +193,18 @@ public class Library {
 
 		throw new UnsupportedOperationException("Parsed metadata but did not reach a simple manifest: " + furi.toString());
 	}
+	
+	public Class<?> getTypeFromFileName(String uri) {
+		File file;
+		file = new File(uri + "/" + ProtoIndex.DEFAULT_FILE);
+		if (file.exists() && file.canRead()) 
+			return ProtoIndex.class;
+		file = new File(uri + "/" + XMLIndex.DEFAULT_FILE);
+		if (file.exists() && file.canRead()) 
+			return XMLIndex.class;
+		
+		return null;
+	}
 
 	/**
 	 * Add a new bookmark,
@@ -253,12 +266,6 @@ public class Library {
 		indexuri = indexuri.trim();
 		if (indexuri.startsWith(BOOKMARK_PREFIX)){
 			indexuri = indexuri.substring(BOOKMARK_PREFIX.length());
-			if(indexuri.matches(".+\\(.+\\)"))
-				try {
-					indexuri = addBookmark(indexuri.split("[()]")[0], indexuri.split("[()]")[1]);
-				} catch (MalformedURLException ex) {
-					throw new InvalidSearchException("Bookmark target is not a valid Freenet URI", ex);
-				}
 			if (bookmarks.containsKey(indexuri))
 				return getIndex(bookmarks.get(indexuri));
 			else
@@ -269,12 +276,18 @@ public class Library {
 			return rtab.get(indexuri);
 
 		try {
-			FreenetURI uri = KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri);
+			FreenetURI uri = null;
 			Index index;
-			// PRIORITY maybe make this non-blocking. though getting the top block(s) shouldn't take long?
-			Class<?> indextype = getIndexType(uri);
+			
+			Class<?> indextype = getTypeFromFileName(indexuri);
+			if(indextype == null){
+				uri = KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri);
 
-			if (indextype == ProtoIndex.class) {
+				// PRIORITY maybe make this non-blocking. though getting the top block(s) shouldn't take long?
+				indextype = getIndexType(uri);
+			}
+
+			if (indextype == ProtoIndex.class && uri != null) {	// Only starting ProtoIndex on remote indexs
 				PullTask<ProtoIndex> task = new PullTask<ProtoIndex>(uri);
 				proto_srl.pull(task);
 				index = task.data;
