@@ -110,7 +110,7 @@ public class ResultNodeGenerator {
 				TermPageGroupEntry group = it2.next();
 				String keybase = group.getSubject();
 				SortedMap<Long, SortedSet<TermPageEntry>> siteMap = group.getEditions();
-				HTMLNode siteNode = pageListNode.addChild("div", "style", "padding: 6px;");
+				HTMLNode siteNode = pageListNode.addChild("div", "style", "padding-bottom: 6px;");
 				// Create a block for old versions of this SSK
 				HTMLNode siteBlockOldOuter = siteNode.addChild("div", new String[]{"id", "style"}, new String[]{"result-hiddenblock-"+keybase, (!showold?"display:none":"")});
 				// put title on block if it has more than one version in it
@@ -158,7 +158,7 @@ public class ResultNodeGenerator {
 				results++;
 			}
 		}
-		pageListNode.addChild("p").addChild("span", "class", "librarian-summary-found", "Found"+results+"results");
+		pageListNode.addChild("p").addChild("span", "class", "librarian-summary-found", "Found "+results+" results");
 		return pageListNode;
 	}
 	

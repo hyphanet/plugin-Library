@@ -10,7 +10,6 @@ import freenet.support.HTMLNode;
 import freenet.support.Logger;
 import freenet.support.MultiValueTable;
 import freenet.support.api.HTTPRequest;
-import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import plugins.Library.Library;
@@ -45,6 +44,11 @@ class MainPage implements WebPage {
 	private String etcIndexes ="";
 	private boolean groupusk;
 	private StringBuilder messages = new StringBuilder();
+
+	// For when a freesite requests that a bookmark be added, user authorization is needed
+	private boolean authorize;
+	private String addindexname;
+	private String addindexuri;
 	
 	
 	/**
@@ -70,6 +74,9 @@ class MainPage implements WebPage {
 		if (request.isParameterSet("request")){
 			search = Search.getSearch(request.getIntParam("request"));
 			if(search!=null){
+				if(request.isPartSet("indexname") && request.getPartAsString("indexname", 20).length() > 0){
+					library.addBookmark(request.getPartAsString("indexname", 20), request.getPartAsString("index", 128));
+				}
 				query = search.getQuery();
 				indexstring = search.getIndexURI();
 				String[] indexes = indexstring.split("[ ;]");
@@ -100,11 +107,13 @@ class MainPage implements WebPage {
 		// Check for adding an index
 		// TODO make sure name is valid
 		// TODO allow freesites to do this with user permission
-		if(userAccess && request.isPartSet("indexname")){
-			try {
+		if(request.isPartSet("indexname") && request.getPartAsString("indexname", 20).length() > 0){
+			if (userAccess){
 				library.addBookmark(request.getPartAsString("indexname", 20), request.getPartAsString("index", 128));
-			} catch (MalformedURLException ex) {
-				messages.append("Could not add index to bookmarks, \""+request.getPartAsString("index", 128)+"\" is not a valid uri.\n");
+			}else{
+				authorize = true;
+				addindexname = request.getPartAsString("indexname", 20);
+				addindexuri = request.getPartAsString("index", 128);
 			}
 		}
 
@@ -141,6 +150,8 @@ class MainPage implements WebPage {
 				search = Search.startSearch(query, indexstring);
 			} catch (InvalidSearchException ex) {
 				exceptions.add(ex);
+			} catch (TaskAbortException ex) {
+				exceptions.add(ex);		// TODO handle these exceptions separately
 			} catch (RuntimeException ex){
 				exceptions.add(ex);
 			}
@@ -159,18 +170,28 @@ class MainPage implements WebPage {
 	 */
 	public void writeContent(HTMLNode contentNode, MultiValueTable<String, String> headers) {
 		//Logger.normal(this, "Writing page for "+ query + " " + search + " " + indexuri);
-		
+
+		String refreshURL = path()+"?request="+search.hashCode() + (showold?"&showold=on":"") + (groupusk?"&groupusk=on":"");
 		// Don't refresh if there is no request option, if it is finished or there is an error to show or js is enabled
 		if(search!=null && !"".equals(search.getQuery()) && !search.isDone() && exceptions.size()<=0){
 			// refresh will GET so use a request id
-			if(!js)
-				headers.put("Refresh", "2;url="+path()+"?request="+search.hashCode() + (showold?"&showold=on":"") + (groupusk?"&groupusk=on":""));
+			if(!js && !authorize)
+				headers.put("Refresh", "2;url="+refreshURL);
 			// The JS isn't working again, so it's disabled again
 			//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
 		}
 
 		
         // Start of body
+		// authorization box, gives the user a choice of whther to authorize something
+		if(authorize){
+			HTMLNode authorizeBox = contentNode.addChild("div");
+			authorizeBox.addChild("h1", "Your authorization required :");
+			HTMLNode bookmarkBox = authorizeBox.addChild("div", "Whatever started this request is trying to add a bookmark you your index bookmarks, do you want to add a bookmark with the name \""+addindexname+"\" and uri \""+addindexuri+"\"?");
+			bookmarkBox.addChild("a", "href", refreshURL + "&indexname="+addindexname+"&index="+addindexuri, "yes");
+			bookmarkBox.addChild("br");
+			bookmarkBox.addChild("a", "href", refreshURL, "no");
+		}
 		contentNode.addChild(searchBox());
 
 
@@ -234,7 +255,7 @@ class MainPage implements WebPage {
 			HTMLNode searchBox = searchForm.addChild("div", "style", "display: inline-table; text-align: left; margin: 20px 20px 20px 0px;");
 				searchBox.addChild("#", "Search query:");
 				searchBox.addChild("br");
-				searchBox.addChild("input", new String[]{"name", "size", "type", "value"}, new String[]{"search", "40", "text", query});
+				searchBox.addChild("input", new String[]{"name", "size", "type", "value", "title"}, new String[]{"search", "40", "text", query, "Enter a search query. You can use standard search syntax such as 'and', 'or', 'not' and \"\" double quotes around phrases"});
 				searchBox.addChild("input", new String[]{"name", "type", "value", "tabindex"}, new String[]{"find", "submit", "Find!", "1"});
 				if(js)
 					searchBox.addChild("input", new String[]{"type","name"}, new String[]{"hidden","js"});
@@ -243,22 +264,23 @@ class MainPage implements WebPage {
 				for (String bm : library.bookmarkKeys()){
 					//Logger.normal(this, "Checking for bm="+Library.BOOKMARK_PREFIX+bm+" in \""+indexuri + " = " + selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm)+" "+indexuri.contains(Library.BOOKMARK_PREFIX+bm));
 					indexeslist.addChild("li")
-						.addChild("input", new String[]{"type", "name", "value", (selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"checkbox", "~"+bm, Library.BOOKMARK_PREFIX+bm, "1" } , bm);
+						.addChild("input", new String[]{"type", "name", "value", (selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"checkbox", "~"+bm, Library.BOOKMARK_PREFIX+bm, "1", } , bm);
 				}
 
 			HTMLNode optionsBox = searchForm.addChild("div", "style", "margin: 20px 0px 20px 20px; display: inline-table; text-align: left;", "Options");
 				HTMLNode optionsList = optionsBox.addChild("ul", "class", "options-list");
 					optionsList.addChild("li")
-						.addChild("input", new String[]{"name", "type", groupusk?"checked":"size"}, new String[]{"groupusk", "checkbox", "1"}, "Group USK Editions");
+						.addChild("input", new String[]{"name", "type", groupusk?"checked":"size", "title"}, new String[]{"groupusk", "checkbox", "1", "If set, the results are returned grouped by site and edition, this makes the results quicker to scan through but will disrupt ordering on relevance, if apllicable to the indexs you are using."}, "Group USK Editions");
 					optionsList.addChild("li")
-						.addChild("input", new String[]{"name", "type", showold?"checked":"size"}, new String[]{"showold", "checkbox", "1"}, "Show older editions");
+						.addChild("input", new String[]{"name", "type", showold?"checked":"size", "title"}, new String[]{"showold", "checkbox", "1", "If set, older editions are shown in the results greyed out, otherwise only the most recent are shown."}, "Show older editions");
+					
 				HTMLNode newIndexInput = optionsBox.addChild("div", new String[]{"class", "style"}, new String[]{"index", "display: inline-table;"}, "Add an index:");
 					newIndexInput.addChild("br");
 					newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "Name:");
-					newIndexInput.addChild("input", new String[]{"name", "type", "class"}, new String[]{"indexname", "text", "index"});
+					newIndexInput.addChild("input", new String[]{"name", "type", "class", "title"}, new String[]{"indexname", "text", "index", "If both a name and uri are entered, this index is added as a bookmark"});
 					newIndexInput.addChild("br");
 					newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "URI:");
-					newIndexInput.addChild("input", new String[]{"name", "type", "value", "class"}, new String[]{"index", "text", etcIndexes, "index"});
+					newIndexInput.addChild("input", new String[]{"name", "type", "value", "class", "title"}, new String[]{"index", "text", etcIndexes, "index", "URI or path of index to search on, if a name is given above, this index is stored in bookmarks"});
 
 
 

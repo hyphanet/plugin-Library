@@ -104,7 +104,9 @@ class StaticToadlet extends Toadlet {
 		stylecss("text/css",
 			//"body {font-family:sans-serif;\nbackground:white;}\n" +
 			"table.librarian-result { width: 95%; border: 0px 8px; cellspacing: 0; cellpadding 0; }\n" +
-			".result-grouptitle { font-size: large; font-weight: bold; margin-bottom: 0;  }\n" +
+			"#result { padding-left: left; }\n" +
+			".result-group { padding : 0px; padding-bottom: 6px; }\n" +
+			".result-grouptitle { font-size: large; font-weight: bold; margin-bottom: 0px; margin-top: 6px;  }\n" +
 			".result-editiontitle-new { display:inline; padding-top: 5px; font-size: medium; color: black; }\n" +
 			".result-editiontitle-old { display:inline; padding-top: 5px; font-size: medium; color: darkGrey }\n" +
 			".result-entry { margin-bottom: 10px; }\n" +
@@ -116,7 +118,8 @@ class StaticToadlet extends Toadlet {
 			"a.result-title-old:visited { color: Orchid } \n" +
 			"a.result-url-new {color:Green; font-size:small; padding-left:15px}\n" +
 			"a.result-url-old {color:LightGreen; font-size:small; padding-left:15px}\n" +
-			"a.result-uskbutton {color: #480000; font-variant: small-caps; font-size: small; padding-left: 20px}\n" +
+			"a.result-uskbutton-new {color: #480000; font-variant: small-caps; font-size: small; padding-left: 20px}\n" +
+			"a.result-uskbutton-old {color: #996666; font-variant: small-caps; font-size: small; padding-left: 20px}\n" +
 			".progress-table {border-spacing:10px 0px;}\n" +
 			".progress-bar-outline { width:300px; border:1px solid grey; height : 20px; border-spacing: 0px; }\n" +
 			".progress-bar-inner-final { background-color: red; height:15px; z-index:-1; border-spacing: 0px; }\n" +
@@ -126,11 +129,12 @@ class StaticToadlet extends Toadlet {
 			//"th, td { border: none; padding: 0; }\n" +
 			//"div#navbar ul li:hover ul, div#navbar ul li ul:hover { top: 1.1em; border: 1px solid #666633; background-color: #CCFFBB; }\n" +
 			//"h1, h2 { font-size: xx-large; font-weight: bold; }\n" +
-			"input.index { font-size: 0.63em; size: 25; }\n" +
+			"input.index { font-size: 0.63em; size: 25; height:1.1em }\n" +
 			"li.index {  }\n" +
 			"td.sskeditionbracket { background: black; width: 2px; padding: 0px; }\n" +
 			"ul.index-bookmark-list { list-style: none; }\n" +
-			"ul.options-list { list-style: none; }\n" +
+			"ul.options-list { list-style-type: none; margin-top: none; }\n" +
+			"" +
 			"div#content th, td { border: none; }\n"
 		);
 

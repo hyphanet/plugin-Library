@@ -83,12 +83,8 @@ public class Library {
 	 */
 	private Library(PluginRespirator pr){
 		this.pr = pr;
-		try {
-			addBookmark("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/");
-			addBookmark("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/");
-		} catch (MalformedURLException ex) {
-			Logger.error(this, "Error putting bookmarks", ex);
-		}
+		addBookmark("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/");
+		addBookmark("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/");
 	}
 
 	/**
@@ -210,12 +206,11 @@ public class Library {
 	 * Add a new bookmark,
 	 * TODO there should be a separate version for untrusted adds from freesites which throws some Security Exception
 	 * @param name of new bookmark
-	 * @param uri of new bookmark, must be FrenetURI
+	 * @param uri of new bookmark
 	 * @return reference of new bookmark
-	 * @throws java.net.MalformedURLException if uri is not a FreenetURI
 	 */
-	public String addBookmark(String name, String uri) throws MalformedURLException {
-		bookmarks.put(name, ( new FreenetURI(uri) ).toString());
+	public String addBookmark(String name, String uri) {
+		bookmarks.put(name, uri);
 		return name;
 	}
 	public Set<String> bookmarkKeys() {
