@@ -15,6 +15,7 @@ import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
 import plugins.Library.search.InvalidSearchException;
 
+/* KEYEXPLORER
 import plugins.KeyExplorer.KeyExplorerUtils;
 import plugins.KeyExplorer.GetResult;
 
@@ -23,15 +24,36 @@ import freenet.client.FetchException;
 import freenet.client.Metadata;
 import freenet.client.MetadataParseException;
 import freenet.client.async.KeyListenerConstructionException;
-import freenet.keys.FreenetURI;
 import freenet.node.LowLevelGetException;
-import freenet.pluginmanager.PluginRespirator;
 import freenet.support.io.BucketTools;
+*/
+
+import freenet.keys.FreenetURI;
+import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Logger;
+
+import com.db4o.ObjectContainer;
+
+import freenet.node.NodeClientCore;
+import freenet.client.HighLevelSimpleClient;
+import freenet.client.ClientMetadata;
+import freenet.client.FetchContext;
+import freenet.client.FetchException;
+import freenet.client.FetchResult;
+import freenet.client.FetchWaiter;
+import freenet.client.async.ClientGetter;
+import freenet.client.async.ClientContext;
+import freenet.client.events.ClientEventListener;
+import freenet.client.events.ClientEvent;
+import freenet.client.events.ExpectedMIMEEvent;
+import freenet.node.RequestStarter;
+import freenet.node.RequestClient;
+import freenet.node.NodeClientCore;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -100,11 +122,72 @@ public class Library {
 	private Map<String, String> bookmarks = new HashMap<String, String>();
 
 	/**
+	** Get the index type giving a {@code FreenetURI}. This must not contain
+	** a metastring (end with "/") or be a USK.
+	*/
+	public Class<?> getIndexType(FreenetURI indexuri) throws FetchException {
+
+		NodeClientCore core = pr.getNode().clientCore;
+		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+
+		List<FreenetURI> uris = Arrays.asList(indexuri,
+		indexuri.pushMetaString(""),
+		indexuri.pushMetaString(ProtoIndex.DEFAULT_FILE),
+		indexuri.pushMetaString(XMLIndex.DEFAULT_FILE));
+
+		for (FreenetURI uri: uris) {
+
+			ClientContext cctx = core.clientContext;
+			FetchContext fctx = hlsc.getFetchContext();
+			FetchWaiter fw = new FetchWaiter();
+			final ClientGetter gu = hlsc.fetch(uri, 0x10000, (RequestClient)hlsc, fw, fctx);
+			gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
+
+			final String[] mime = new String[1];
+			hlsc.addEventHook(new ClientEventListener() {
+				@Override public void onRemoveEventProducer(ObjectContainer container){ }
+				@Override public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
+					if (!(ce instanceof ExpectedMIMEEvent)) { return; }
+					mime[0] = ((ExpectedMIMEEvent)ce).expectedMIMEType;
+					gu.cancel(maybeContainer, context);
+				}
+			});
+
+			try {
+				FetchResult res = fw.waitForCompletion();
+				throw new RuntimeException("Could not get MIME type for " + indexuri);
+
+			} catch (FetchException e) {
+
+				if (e.getMode() == FetchException.CANCELLED) {
+
+					if (mime[0].equals(ProtoIndex.MIME_TYPE)) {
+						//return "YAML index";
+						return ProtoIndex.class;
+					} else if (mime[0].equals(XMLIndex.MIME_TYPE)) {
+						//return "XML index";
+						return XMLIndex.class;
+					} else {
+						throw new UnsupportedOperationException("Unknown mime-type for index");
+					}
+
+				}
+
+			}
+
+		}
+		throw new UnsupportedOperationException("Could not find appropriate data for index");
+	}
+
+/*
+	KEYEXPLORER slightly more efficient version that depends on KeyExplorer
+
+	/**
 	** Get the index type giving a {@code FreenetURI}. This should have been
 	** passed through {@link KeyExplorerUtils#sanitizeURI(List, String)} at
 	** some point - ie. it must not contain a metastring (end with "/") or be
 	** a USK.
-	*/
+	* /
 	public Class<?> getIndexType(FreenetURI uri)
 	throws FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
 		GetResult getresult  = KeyExplorerUtils.simpleGet(pr, uri);
@@ -192,7 +275,7 @@ public class Library {
 
 		throw new UnsupportedOperationException("Parsed metadata but did not reach a simple manifest: " + furi.toString());
 	}
-
+*/
 	public Class<?> getIndexType(File f) {
 		if (f.getName().endsWith(ProtoIndexSerialiser.FILE_EXTENSION))
 			return ProtoIndex.class;
@@ -204,7 +287,11 @@ public class Library {
 
 	public Object getKeyTypeFromString(String indexuri) {
 		try {
-			return KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri);
+			// return KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri); KEYEXPLORER
+			FreenetURI tempURI = new FreenetURI(indexuri);
+			if (tempURI.hasMetaStrings()) { tempURI = tempURI.setMetaString(null); }
+			if (tempURI.isUSK()) { tempURI = tempURI.sskForUSK(); }
+			return tempURI;
 		} catch (MalformedURLException e) {
 			File file = new File(indexuri);
 			if (file.canRead()) {
@@ -317,7 +404,7 @@ public class Library {
 
 		} catch (FetchException e) {
 			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
-
+/* KEYEXPLORER
 		} catch (IOException e) {
 			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
 
@@ -329,7 +416,7 @@ public class Library {
 
 		} catch (MetadataParseException e) {
 			throw new TaskAbortException("Failed to parse index  " + indexuri, e);
-
+*/
 		} catch (UnsupportedOperationException e) {
 			throw new TaskAbortException("Failed to parse index  " + indexuri, e);
 

@@ -95,7 +95,7 @@ implements LiveArchiver<T, SimpleProgress> {
 
 				// code for async fetch - maybe be useful elsewhere
 				//ClientContext cctx = core.clientContext;
-				//FetchContext fctx = hlsc.getFetchContext(true);
+				//FetchContext fctx = hlsc.getFetchContext();
 				//FetchWaiter fw = new FetchWaiter();
 				//ClientGetter gu = hlsc.fetch(furi, false, null, false, fctx, fw);
 				//gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
