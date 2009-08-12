@@ -299,7 +299,7 @@ implements IterableSerialiser<T>,
 		@Override public boolean isActive() {
 			// NOTE: this method is pointless when in serial mode
 			// URGENT verify this
-			return exec.getTaskCount() != exec.getCompletedTaskCount();
+			return exec.getTaskCount() > exec.getCompletedTaskCount();
 		}
 
 		// public class Object

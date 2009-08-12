@@ -35,6 +35,7 @@ import freenet.support.Logger;
 import freenet.support.api.Bucket;
 import freenet.support.io.Closer;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
@@ -43,13 +44,14 @@ import java.util.List;
 import java.util.ArrayList;
 
 /**
-** DOCUMENT
-**
-** URGENT fetch can g above 100%
+** Converts between a map of {@link String} to {@link Object}, and a freenet
+** key. An {@link ObjectStreamReader} and an {@link ObjectStreamWriter} is
+** used to do the hard work once the relevant streams have been established,
+** from temporary {@link Bucket}s.
 **
 ** @author infinity0
 */
-public class FreenetArchiver<T extends Map<String, ? extends Object>> // TODO maybe get rid of type restriction
+public class FreenetArchiver<T>
 implements LiveArchiver<T, SimpleProgress> {
 
 	final protected NodeClientCore core;
@@ -242,12 +244,16 @@ implements LiveArchiver<T, SimpleProgress> {
 
 			// update the progress "parts" counters
 			SplitfileProgressEvent evt = (SplitfileProgressEvent)ce;
+			int new_succeeded = evt.succeedBlocks;
+			int new_total = evt.totalBlocks;
+			// fetch can go over 100%
+			if (new_succeeded > new_total) { new_succeeded = new_total; }
 			synchronized (splitfile_blocks) {
 				int old_succeeded = splitfile_blocks[0];
 				int old_total = splitfile_blocks[1];
 				try {
-					progress.addPartKnown(evt.totalBlocks - old_total, evt.finalizedTotal); // throws IllegalArgumentException
-					int n = evt.succeedBlocks - old_succeeded;
+					progress.addPartKnown(new_total - old_total, evt.finalizedTotal); // throws IllegalArgumentException
+					int n = new_succeeded - old_succeeded;
 					if (n == 1) {
 						progress.addPartDone();
 					} else if (n != 0) {
@@ -259,8 +265,8 @@ implements LiveArchiver<T, SimpleProgress> {
 				} catch (IllegalArgumentException e) {
 					Logger.normal(this, "Received SplitfileProgressEvent out-of-order: " + evt.getDescription(), e);
 				}
-				splitfile_blocks[0] = evt.succeedBlocks;
-				splitfile_blocks[1] = evt.totalBlocks;
+				splitfile_blocks[0] = new_succeeded;
+				splitfile_blocks[1] = new_total;
 			}
 		}
 	}

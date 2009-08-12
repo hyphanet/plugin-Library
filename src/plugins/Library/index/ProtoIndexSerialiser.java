@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.Date;
+import java.io.File;
 
 import freenet.keys.FreenetURI;
 
@@ -43,6 +44,9 @@ implements Archiver<ProtoIndex>,
            Serialiser.Translate<ProtoIndex, Map<String, Object>>/*,
            Serialiser.Trackable<Index>*/ {
 
+	final public static String MIME_TYPE = YamlReaderWriter.MIME_TYPE;
+	final public static String FILE_EXTENSION = YamlReaderWriter.FILE_EXTENSION;
+
 	final protected static Translator<ProtoIndex, Map<String, Object>>
 	trans = new IndexTranslator();
 
@@ -53,12 +57,35 @@ implements Archiver<ProtoIndex>,
 		subsrl = s;
 	}
 
-	public ProtoIndexSerialiser(boolean test) {
-		subsrl = new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, ".yml");
+	final protected static HashMap<Class<?>, ProtoIndexSerialiser>
+	srl_cls = new HashMap<Class<?>, ProtoIndexSerialiser>();
+
+	public static ProtoIndexSerialiser forIndex(Object o) {
+		if (o instanceof FreenetURI) {
+			return forIndex((FreenetURI)o);
+		} else if (o instanceof File) {
+			return forIndex((File)o);
+		} else {
+			throw new UnsupportedOperationException("Don't know how to retrieve index for object " + o);
+		}
 	}
 
-	public ProtoIndexSerialiser() {
-		subsrl = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, "text/yaml", 0x10000);
+	public static ProtoIndexSerialiser forIndex(FreenetURI uri) {
+		ProtoIndexSerialiser srl = srl_cls.get(FreenetURI.class);
+		if (srl == null) {
+			// java's type-inference isn't that smart, see
+			FreenetArchiver<Map<String, Object>> arx = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN);
+			srl_cls.put(FreenetURI.class, srl = new ProtoIndexSerialiser(arx));
+		}
+		return srl;
+	}
+
+	public static ProtoIndexSerialiser forIndex(File f) {
+		ProtoIndexSerialiser srl = srl_cls.get(File.class);
+		if (srl == null) {
+			srl_cls.put(File.class, srl = new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION)));
+		}
+		return srl;
 	}
 
 	@Override public Archiver<Map<String, Object>> getChildSerialiser() {

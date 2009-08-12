@@ -422,6 +422,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		Scheduler pool = ((ScheduledSerialiser)nsrl).pullSchedule(tasks, inflated, error);
 		//System.out.println("Using scheduler");
+		//int DEBUG_pushed = 0, DEBUG_popped = 0;
 
 		try {
 			nodequeue.add((SkeletonNode)root);
@@ -443,6 +444,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						// performance of this depends on the GC freeing weak referents quickly...
 						assert(parent.rnodes.get(ghost.lkey).entries != null);
 						nodequeue.add((SkeletonNode)parent.rnodes.get(ghost.lkey));
+						//++DEBUG_popped; // not actually popped off the map, but we've "taken care" of it
 					}
 				}
 
@@ -454,6 +456,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					// try until one pops, or we are done
 					final PullTask<SkeletonNode> task = inflated.poll(1, TimeUnit.SECONDS);
 					if (task == null) { continue; }
+					//++DEBUG_popped;
 
 					SkeletonNode node = task.data;
 					GhostNode ghost = (GhostNode)task.meta;
@@ -487,18 +490,21 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>((GhostNode)next);
 						if (ids != null) { ids.put(task, ntracker); }
 						tasks.put(task);
+						//++DEBUG_pushed;
 					}
 				}
 
 				// nodequeue is empty, but tasks may have inflated in the meantime
 
-			// URGENT work out this condition properly
+			// URGENT there maybe is a race condition here... see BIndexTest.fullInflate() for details
 			} while (pool.isActive() || !tasks.isEmpty() || !inflated.isEmpty() || !error.isEmpty());
 
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("interrupted", e);
 		} finally {
 			pool.close();
+			//System.out.println("pushed: " + DEBUG_pushed + "; popped: " + DEBUG_popped);
+			//assert(DEBUG_pushed == DEBUG_popped);
 		}
 	}
 
@@ -602,6 +608,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					Map<Object, Integer> subnodes = (Map<Object, Integer>)map.get("subnodes");
 					K lastkey = node.lkey;
 					Iterator<K> keys = node.entries.keySet().iterator();
+					node.ghosts = subnodes.size();
 					for (Map.Entry<Object, Integer> en: subnodes.entrySet()) {
 						K thiskey = keys.hasNext()? keys.next(): node.rkey;
 						GhostNode ghost = new GhostNode(node, lastkey, thiskey, en.getValue());
@@ -610,7 +617,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						node.lnodes.put(thiskey, ghost);
 						lastkey = thiskey;
 						node._size += en.getValue();
-						++node.ghosts;
 					}
 				}
 				verifyNodeIntegrity(node);

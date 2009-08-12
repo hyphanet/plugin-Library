@@ -192,10 +192,10 @@ public class ProtoIndexComponentSerialiser {
 	protected ProtoIndexComponentSerialiser(int fmtid) {
 		switch (fmtid) {
 		case FMT_FREENET_SIMPLE:
-			leaf_arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000);
+			leaf_arx = Library.makeArchiver(yamlrw, ProtoIndex.MIME_TYPE, 0x180 * ProtoIndex.BTREE_NODE_MIN);
 			break;
 		case FMT_FILE_LOCAL:
-			leaf_arx = new FileArchiver<Map<String, Object>>(yamlrw, true, ".yml");
+			leaf_arx = new FileArchiver<Map<String, Object>>(yamlrw, true, YamlReaderWriter.FILE_EXTENSION);
 			break;
 		default:
 			throw new UnsupportedOperationException("Unknown serial format id");

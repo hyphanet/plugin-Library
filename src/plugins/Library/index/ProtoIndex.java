@@ -38,8 +38,8 @@ final public class ProtoIndex implements Index {
 
 	final static long serialVersionUID = 0xf82a40726c1e5ba6L;
 
-	final public static String MIME_TYPE = "text/yaml";
-	final public static String DEFAULT_FILE = "index.yml";
+	final public static String MIME_TYPE = ProtoIndexSerialiser.MIME_TYPE;
+	final public static String DEFAULT_FILE = "index" + ProtoIndexSerialiser.FILE_EXTENSION;
 
 	// DEBUG make final again later
 	/*final*/ public static int BTREE_NODE_MIN = 0x1000;
@@ -162,7 +162,7 @@ final public class ProtoIndex implements Index {
 			if (error != null) { throw error; }
 			return result;
 		}
-		
+
 		@Override public String getStatus() {
 			Progress cur = getCurrentProgress();
 			return (cur == null)? "Starting next stage...": cur.getSubject() + ": " + cur.getStatus();
@@ -188,6 +188,11 @@ final public class ProtoIndex implements Index {
 						trackers.push(((Serialiser.Trackable)p.getSerialiser()).getTracker());
 						p.inflate(d.getKey());
 					}
+				}
+
+				if (root == null) {
+					// PRIORITY better way to handle this
+					throw new TaskAbortException("Index does not contain term " + subject, null);
 				}
 				last = root.getPPP(); // REMOVE ME
 				root.inflate();

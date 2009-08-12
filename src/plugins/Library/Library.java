@@ -51,8 +51,6 @@ public class Library {
 	private static int version = 1;
 	public static final String plugName = "Library " + getVersion();
 
-	protected static ProtoIndexSerialiser proto_srl;
-
 	public static String getPlugName() {
 		return plugName;
 	}
@@ -71,8 +69,6 @@ public class Library {
 			throw new IllegalStateException("Library already initialised");
 		}
 		lib = new Library(pr);
-		if(pr!=null)
-			proto_srl = new ProtoIndexSerialiser(); // must go after lib.pr is loaded
 		return lib;
 	}
 
@@ -103,6 +99,12 @@ public class Library {
 	*/
 	private Map<String, String> bookmarks = new HashMap<String, String>();
 
+	/**
+	** Get the index type giving a {@code FreenetURI}. This should have been
+	** passed through {@link KeyExplorerUtils#sanitizeURI(List, String)} at
+	** some point - ie. it must not contain a metastring (end with "/") or be
+	** a USK.
+	*/
 	public Class<?> getIndexType(FreenetURI uri)
 	throws FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
 		GetResult getresult  = KeyExplorerUtils.simpleGet(pr, uri);
@@ -191,16 +193,26 @@ public class Library {
 		throw new UnsupportedOperationException("Parsed metadata but did not reach a simple manifest: " + furi.toString());
 	}
 
-	public Class<?> getTypeFromFileName(String uri) {
-		File file;
-		file = new File(uri + "/" + ProtoIndex.DEFAULT_FILE);
-		if (file.exists() && file.canRead())
+	public Class<?> getIndexType(File f) {
+		if (f.getName().endsWith(ProtoIndexSerialiser.FILE_EXTENSION))
 			return ProtoIndex.class;
-		file = new File(uri + "/" + XMLIndex.DEFAULT_FILE);
-		if (file.exists() && file.canRead())
+		if (f.isDirectory() && new File(f, XMLIndex.DEFAULT_FILE).canRead())
 			return XMLIndex.class;
 
-		return null;
+		throw new UnsupportedOperationException("Could not determine default index file under the path given: " + f);
+	}
+
+	public Object getKeyTypeFromString(String indexuri) {
+		try {
+			return KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri);
+		} catch (MalformedURLException e) {
+			File file = new File(indexuri);
+			if (file.canRead()) {
+				return file;
+			} else {
+				throw new UnsupportedOperationException("Could not recognise index type from string: " + indexuri);
+			}
+		}
 	}
 
 	/**
@@ -272,40 +284,36 @@ public class Library {
 			return rtab.get(indexuri);
 
 		try {
-			FreenetURI uri = null;
+			Object indexkey = getKeyTypeFromString(indexuri);
+			Class<?> indextype;
 			Index index;
 
-			Class<?> indextype = getTypeFromFileName(indexuri);
-			if(indextype == null){
-				uri = KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri);
-
+			if (indexkey instanceof File) {
+				indextype = getIndexType((File)indexkey);
+			} else if (indexkey instanceof FreenetURI) {
 				// PRIORITY maybe make this non-blocking. though getting the top block(s) shouldn't take long?
-				indextype = getIndexType(uri);
+				indextype = getIndexType((FreenetURI)indexkey);
+			} else {
+				throw new AssertionError();
 			}
 
-			if (indextype == ProtoIndex.class && uri != null) {	// Only starting ProtoIndex on remote indexs
+			if (indextype == ProtoIndex.class) {
 				// PRIORITY this *must* be non-blocking as it fetches the whole index root
-				PullTask<ProtoIndex> task = new PullTask<ProtoIndex>(uri);
-				proto_srl.pull(task);
+				PullTask<ProtoIndex> task = new PullTask<ProtoIndex>(indexkey);
+				ProtoIndexSerialiser.forIndex(indexkey).pull(task);
 				index = task.data;
 
 			} else if (indextype == XMLIndex.class) {
 				index = new XMLIndex(indexuri, pr);
 
 			} else {
-				throw new UnsupportedOperationException("Unrecognised index type.");
+				throw new AssertionError();
 			}
 
 			rtab.put(indexuri, index);
 			Logger.normal(this, "Loaded index type " + indextype.getName() + " at " + indexuri);
 
 			return index;
-
-		} catch (MalformedURLException e) {
-			// parse local files here?
-
-			// or InvalidSearchException - this is bad user input?
-			throw new TaskAbortException("Could not parse index string", e);
 
 		} catch (FetchException e) {
 			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
@@ -339,7 +347,7 @@ public class Library {
 	** @throws IllegalStateException if the singleton has not been initialised
 	**         or if it does not have a respirator.
 	*/
-	public static <T extends Map<String, ? extends Object>> FreenetArchiver<T>
+	public static <T> FreenetArchiver<T>
 	makeArchiver(ObjectStreamReader r, ObjectStreamWriter w, String mime, int size) {
 		if (lib == null || lib.pr == null) {
 			throw new IllegalStateException("Cannot archive to freenet without a fully live Library plugin connected to a freenet node.");
@@ -355,9 +363,9 @@ public class Library {
 	** @throws IllegalStateException if the singleton has not been initialised
 	**         or if it does not have a respirator.
 	*/
-	public static <T extends Map<String, ? extends Object>, S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver<T>
+	public static <T, S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver<T>
 	makeArchiver(S rw, String mime, int size) {
-		return makeArchiver(rw, rw, mime, size);
+		return Library.<T>makeArchiver(rw, rw, mime, size);
 	}
 
 	public static String convertToHex(byte[] data) {

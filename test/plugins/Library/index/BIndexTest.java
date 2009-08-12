@@ -13,6 +13,7 @@ import plugins.Library.index.*;
 import freenet.keys.FreenetURI;
 
 import java.util.*;
+import java.io.*;
 
 /**
 ** TODO most of this code needs to go into WriteableIndex at some point.
@@ -21,9 +22,9 @@ import java.util.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 2;
-	final public static int it_partial = 2;
-	final public static boolean disabled_progress = false;
+	final public static int it_basic = 36;
+	final public static int it_partial = 0;
+	final public static boolean disabled_progress = true; //false;
 
 	static {
 		ProtoIndex.BTREE_NODE_MIN = 0x40; // DEBUG 0x40 so we see tree splits
@@ -38,7 +39,7 @@ public class BIndexTest extends TestCase {
 		return time - oldtime;
 	}
 
-	ProtoIndexSerialiser srl = new ProtoIndexSerialiser(true);
+	ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex((File)null);
 	ProtoIndexComponentSerialiser csrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL);
 	ProtoIndex idx;
 
@@ -61,7 +62,7 @@ public class BIndexTest extends TestCase {
 		try {
 			idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test");
 		} catch (java.net.MalformedURLException e) {
-			// not gonna happen
+			assertTrue(false);
 		}
 		csrl.setSerialiserFor(idx);
 		timeDiff();
@@ -111,7 +112,10 @@ public class BIndexTest extends TestCase {
 		idx = task2.data;
 
 		idx.ttab.inflate();
-		assertTrue(idx.ttab.isLive());
+		assertTrue(idx.ttab.isLive()); // PRIORITY This has been observed to fail; fix it
+		// hard to reproduce; in the few times this has occurred, debugging code revealed
+		// that the root SkeletonNode was bare (all ghost subnodes) even after inflate()
+		// was just called on it...
 		assertFalse(idx.ttab.isBare());
 		System.out.print("inflated in " + timeDiff() + " ms, ");
 

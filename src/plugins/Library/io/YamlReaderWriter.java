@@ -21,6 +21,7 @@ import org.yaml.snakeyaml.constructor.ConstructorException;
 
 import java.util.Collections;
 import java.util.Map;
+import java.io.File;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.InputStream;
@@ -46,6 +47,9 @@ import freenet.keys.FreenetURI;
 */
 public class YamlReaderWriter
 implements ObjectStreamReader, ObjectStreamWriter {
+
+	final public static String MIME_TYPE = "text/yaml";
+	final public static String FILE_EXTENSION = ".yml";
 
 	/**
 	** The default {@link Yaml} processor. This one does not wrap long lines

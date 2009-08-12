@@ -31,7 +31,7 @@ import java.nio.channels.FileLock;
 ** @see Dumper
 ** @author infinity0
 */
-public class FileArchiver<T extends Map<String, ? extends Object>> // TODO maybe get rid of type restriction
+public class FileArchiver<T>
 implements Archiver<T>,
            LiveArchiver<T, SimpleProgress> {
 
@@ -100,20 +100,22 @@ implements Archiver<T>,
 		random = rnd;
 	}
 
-	protected String[] getFileParts(Object meta) {
-		String[] m = new String[]{"", ""};
+	protected File getFile(Object meta) {
+		if (meta instanceof File) { return (File)meta; }
+
+		String main = "", part = "";
 		if (meta instanceof String) {
-			m[0] = (String)(meta);
+			main = (String)(meta);
 		} else if (meta instanceof Object[]) {
 			Object[] arr = (Object[])meta;
 			if (arr.length > 0 && arr[0] instanceof String) {
-				m[0] = (String)arr[0];
+				main = (String)arr[0];
 				if (arr.length > 1) {
 					StringBuilder str = new StringBuilder(arr[1].toString());
 					for (int i=2; i<arr.length; ++i) {
 						str.append('.').append(arr[i].toString());
 					}
-					m[1] = str.toString();
+					part = str.toString();
 				}
 			} else {
 				throw new IllegalArgumentException("FileArchiver does not support such metadata: " + java.util.Arrays.deepToString(arr));
@@ -122,7 +124,7 @@ implements Archiver<T>,
 			throw new IllegalArgumentException("FileArchiver does not support such metadata: " + meta);
 		}
 
-		return m;
+		return new File(prefix + main + suffix + part + extension);
 	}
 
 	/*========================================================================
@@ -130,8 +132,7 @@ implements Archiver<T>,
 	 ========================================================================*/
 
 	@Override public void pull(PullTask<T> t) throws TaskAbortException {
-		String[] s = getFileParts(t.meta);
-		File file = new File(prefix + s[0] + suffix + s[1] + extension);
+		File file = getFile(t.meta);
 		try {
 			FileInputStream is = new FileInputStream(file);
 			try {
@@ -153,8 +154,7 @@ implements Archiver<T>,
 
 	@Override public void push(PushTask<T> t) throws TaskAbortException {
 		if (random) { t.meta = java.util.UUID.randomUUID().toString(); }
-		String[] s = getFileParts(t.meta);
-		File file = new File(prefix + s[0] + suffix + s[1] + extension);
+		File file = getFile(t.meta);
 		try {
 			FileOutputStream os = new FileOutputStream(file);
 			try {
