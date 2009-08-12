@@ -32,7 +32,7 @@ public class TaskInProgressException extends TaskAbortException {
 	*/
 	public TaskCompleteException join() throws InterruptedException, TaskAbortException {
 		prog.join();
-		return new TaskCompleteException("Completed task: " + prog.getName());
+		return new TaskCompleteException("Completed task: " + prog.getSubject());
 	}
 
 }

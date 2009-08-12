@@ -255,7 +255,7 @@ implements IterableSerialiser<T>,
 						try {
 							Progress p = e.getProgress();
 							p.join();
-							if (err != null) { err.put(task, new TaskCompleteException("Task complete: " + p.getName())); }
+							if (err != null) { err.put(task, new TaskCompleteException("Task complete: " + p.getSubject())); }
 						} catch (InterruptedException e) {
 							if (err != null) { err.put(task, new TaskAbortException("Progress join was interrupted", e, true)); }
 						} catch (TaskAbortException a) {

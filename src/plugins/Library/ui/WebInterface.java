@@ -11,7 +11,6 @@ import freenet.clients.http.ToadletContainer;
 import freenet.node.NodeClientCore;
 import freenet.pluginmanager.PluginRespirator;
 import plugins.Library.Library;
-import plugins.Library.Main;
 
 
 public class WebInterface {
@@ -51,7 +50,6 @@ public class WebInterface {
 			toadletContainer.register(toadlet, toadlet.menu(), toadlet.path(), true, toadlet.name(), toadlet.name(), true, null );
 		}
 		toadletContainer.register(new StaticToadlet(client), null, "/library/static/", true, false);
-		toadletContainer.register(new ProgressPageToadlet(client, library, pr), null, "/library/xml/", true, false);
 		
 	}
 

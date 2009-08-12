@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.TreeSet;
 import java.util.Stack;
 import java.util.Date;
+import plugins.Library.serial.ChainedProgress;
 
 /**
 ** Prototype B-tree based index. DOCUMENT
@@ -137,7 +138,7 @@ final public class ProtoIndex implements Index {
 	}
 
 
-	public class getTermEntriesHandler extends AbstractRequest<Collection<TermEntry>> implements Runnable {
+	public class getTermEntriesHandler extends AbstractRequest<Collection<TermEntry>> implements Runnable, ChainedProgress {
 
 		final Stack<Object> metas = new Stack<Object>();
 		final Stack<ProgressTracker> trackers = new Stack<ProgressTracker>();
@@ -160,6 +161,11 @@ final public class ProtoIndex implements Index {
 		@Override public Collection<TermEntry> getResult() throws TaskAbortException {
 			if (error != null) { throw error; }
 			return result;
+		}
+		
+		@Override public String getStatus() {
+			Progress cur = getCurrentProgress();
+			return (cur == null)? "Starting next stage...": cur.getSubject() + ": " + cur.getStatus();
 		}
 
 		@Override public Progress getCurrentProgress() {

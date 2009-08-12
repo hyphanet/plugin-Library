@@ -131,8 +131,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		 * Hears an event.
 		 **/
 		public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context){
-			String mainIndexDescription = ce.getDescription();
-			FindRequest.updateWithDescription(waitingOnMainIndex, mainIndexDescription);
+			FindRequest.updateWithEvent(waitingOnMainIndex, ce);
 		}
 
 		public void onRemoveEventProducer(ObjectContainer container){
@@ -261,16 +260,8 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	 * Find the term in this Index
 	 */
 	public synchronized Request getTermEntries(String term){
-		return getTermEntries(term, false);
-	}
-
-	/**
-	 * Find the term in this Index
-	 * @param getPositions should the index get termpositions? there is an overhead to this but it allows phrase searching
-	 */
-	public synchronized Request getTermEntries(String term, boolean getPositions){
 		try {
-			FindRequest request = new FindRequest(term, getPositions);
+			FindRequest request = new FindRequest(term);
 			setdependencies(request);
 			notifyAll();
 			return request;
@@ -297,7 +288,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	private synchronized void setdependencies(FindRequest request) throws FetchException, MalformedURLException{
 		if (fetchStatus!=FetchStatus.FETCHED){
 			waitingOnMainIndex.add(request);
-			request.setStage(FindRequest.RequestState.INPROGRESS,1);
+			request.setStage(0);
 			startFetch();
 		}else{
 			SubIndex subindex = getSubIndex(request.getSubject());
@@ -334,7 +325,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			 * Hears an event and updates those Requests waiting on this subindex fetch
 			 **/
 			public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context){
-				FindRequest.updateWithDescription(waitingOnSubindex, ce.getDescription());
+				FindRequest.updateWithEvent(waitingOnSubindex, ce);
 			}
 			public void onRemoveEventProducer(ObjectContainer container){
 				throw new UnsupportedOperationException();
@@ -365,9 +356,9 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		 */
 		void addRequest(FindRequest request){
 			if(fetchStatus==FetchStatus.FETCHED)
-				request.setStage(Request.RequestState.INPROGRESS, 3);
+				request.setStage(2);
 			else
-				request.setStage(Request.RequestState.INPROGRESS, 2);
+				request.setStage(1);
 			synchronized(waitingOnSubindex){
 				waitingOnSubindex.add(request);
 			}
@@ -389,7 +380,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 							bucket = Util.fetchBucket(indexuri + filename, hlsc);
 							fetchStatus = FetchStatus.FETCHED;
 
-						} catch (Exception e) {
+						} catch (Exception e) {		// TODO tidy the exceptions
 							//java.net.MalformedURLException
 							//freenet.client.FetchException
 							String msg = indexuri + filename + " could not be opened: " + e.toString();
@@ -398,7 +389,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 						}
 					}else if(fetchStatus==FetchStatus.FETCHED){
 						for(FindRequest r : waitingOnSubindex)
-							r.setStage(Request.RequestState.INPROGRESS, 3);
+							r.setStage(2);
 						SAXParserFactory factory = SAXParserFactory.newInstance();
 						try {
 							factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
@@ -407,8 +398,9 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 							///synchronized(waitingOnSubindex){
 								saxParser.parse(is, new LibrarianHandler(waitingOnSubindex));
 								Logger.minor(this, "parsing finished "+ waitingOnSubindex.toString());
-								for(FindRequest r : waitingOnSubindex)
-									r.setFinished();
+								for (FindRequest findRequest : waitingOnSubindex) {
+									findRequest.setFinished();
+								}
 								waitingOnSubindex.clear();
 							///}
 							is.close();

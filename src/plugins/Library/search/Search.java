@@ -4,9 +4,9 @@
 package plugins.Library.search;
 
 import plugins.Library.Library;
-import plugins.Library.index.Request.RequestState;
 import plugins.Library.index.Request;
 import plugins.Library.index.AbstractRequest;
+import plugins.Library.serial.ProgressParts;
 import plugins.Library.serial.TaskAbortException;
 
 import freenet.support.Logger;
@@ -61,7 +61,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * @param indexuri URI of index(s) to be used
 	 * @throws InvalidSearchException if any part of the search is invalid
 	 */
-	public static Search startSearch(String search, String indexuri) throws InvalidSearchException{
+	public static Search startSearch(String search, String indexuri) throws InvalidSearchException, TaskAbortException{
 		search = search.toLowerCase(Locale.US).trim();
 		if(search.length()==0)
 			throw new InvalidSearchException("Blank search");
@@ -155,7 +155,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * @param indexuri uri for one index
 	 * @return Set of subsearches or null if theres only one search
 	 */
-	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException{
+	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException, TaskAbortException{
 		if(query.matches("\\A\\w*\\Z")) {
 			// single search term
 			Request request = library.getIndex(indexuri).getTermEntries(query);
@@ -170,10 +170,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split(" ");
 			Logger.minor(Search.class, "Phrase split"+query);
 			for (String subquery : phrase){
-				if(library.getIndex(indexuri) instanceof XMLIndex)
-					phrasesearches.add(new Search(subquery, indexuri, ((XMLIndex)library.getIndex(indexuri)).getTermEntries(subquery, true)));
-				else
-					phrasesearches.add(splitQuery(subquery, indexuri));
+				phrasesearches.add(splitQuery(subquery, indexuri));
 			}
 			return new Search(query, indexuri, phrasesearches, ResultOperation.PHRASE);
 		}
@@ -315,7 +312,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	/**
 	 * @return List of Requests this search depends on
 	 */
-	@Override public List<Request<Set<TermEntry>>> getSubRequests(){
+	@Override public List<Request<Set<TermEntry>>> getSubProgress(){
 		return subsearches;
 	}
 
@@ -323,122 +320,54 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	/**
 	 * @return true if all are Finished, false otherwise
 	 */
-	@Override public boolean isDone(){
+	@Override public boolean isDone() throws TaskAbortException{
 		for(Request r : subsearches)
-			if(!r.isDone())	// FIXME got a NULLPointerException here on r i think, need to make sure this doesnt happen
-				return false;
-		return true;
-	}
-	/**
-	 * @return true if any have result, false otherwise
-	 */
-	protected boolean hasResult(){
-		for(Request r : subsearches) {
-			switch (r.getState()) {
-			case FINISHED:
-			case PARTIALRESULT:
-				return true;
-			default:
-			}
-		}
-		return false;
-	}
-
-	/**
-	 * @return a RequestState based on all subsearches in the following order
-	 * ERROR if any have an ERROR<br />
-	 * FINISHED if all are finished<br />
-	 * PARTIALRESULT if any have result or partialresult<br />
-	 * INPROGRESS otherwise
-	 */
-	@Override public RequestState getState(){
-		if (isDone())
-			return RequestState.FINISHED;
-		else if (hasResult())
-			return RequestState.PARTIALRESULT;
-		else
-			return RequestState.INPROGRESS;
-	}
-
-/*
-	PRIORITY temporarily disabled for now
-	protected int getSubStage(){
-//		if(progressAccessed())
-//			return stage;
-		stage=0;
-		for(Request r : subsearches)
-			stage+=r.getSubStage();
-		return stage;
-	}
-
-	protected int getSubStageCount() {
-//		if(progressAccessed())
-//			return stageCount;
-		stageCount=0;
-		for(Request r : subsearches)
-			stageCount+=r.getSubStageCount();
-		return stageCount;
-	}
-*/
-
-	/**
-	 * Array of names of stages, length should be equal to the result of getSubStageCount()
-	 * @return null if not used
-	 */
-	@Override public String getCurrentStage(){
-		//return "Stage: "+request.getSubStage()+"/"+request.getSubStageCount();
-		return "Stage: ???/???";
-	}
-
-	@Override public String getCurrentStatus() {
-		throw new UnsupportedOperationException("not implemented");
-	}
-
-	/**
-	 * @return sum of NumBlocksCompleted
-	 */
-	@Override public int partsDone() {
-//		if(progressAccessed())
-//			return blocksCompleted;
-		blocksCompleted=0;
-		for(Request r : subsearches)
-			blocksCompleted+=r.partsDone();
-		return blocksCompleted;
-	}
-
-	/**
-	 * @return sum of NumBlocksTotal
-	 * TODO record all these progress things to speed up
-	 */
-	@Override public int partsTotal() {
-//		if(progressAccessed())
-//			return blocksTotal;
-		blocksTotal=0;
-		for(Request r : subsearches)
-			blocksTotal+=r.partsTotal();
-		return blocksTotal;
-	}
-
-	/**
-	 * @return true if all subsearches numblocks are final
-	 */
-	@Override public boolean isTotalFinal() {
-		for(Request r : subsearches)
-			if(!r.isTotalFinal())
+			if(!r.isDone())
 				return false;
 		return true;
 	}
 
-	public int compareTo(Request right) {
-		return getSubject().compareTo(right.getSubject());
-	}
+//	/**
+//	 * @return sum of NumBlocksCompleted
+//	 */
+//	@Override public int partsDone() {
+////		if(progressAccessed())
+////			return blocksCompleted;
+//		blocksCompleted=0;
+//		for(Request r : subsearches)
+//			blocksCompleted+=r.partsDone();
+//		return blocksCompleted;
+//	}
+//
+//	/**
+//	 * @return sum of NumBlocksTotal
+//	 * TODO record all these progress things to speed up
+//	 */
+//	@Override public int partsTotal() {
+////		if(progressAccessed())
+////			return blocksTotal;
+//		blocksTotal=0;
+//		for(Request r : subsearches)
+//			blocksTotal+=r.partsTotal();
+//		return blocksTotal;
+//	}
+//
+//	/**
+//	 * @return true if all subsearches numblocks are final
+//	 */
+//	@Override public boolean isTotalFinal() {
+//		for(Request r : subsearches)
+//			if(!r.isTotalFinal())
+//				return false;
+//		return true;
+//	}
 
 	/**
-	 * Perform an intersection on results of all subsearches and return <br />
+	 * Use ResultSet to perform Set operations on subsearches <br />
 	 * @return Set of URIWrappers
 	 */
 	@Override public Set<TermEntry> getResult() throws TaskAbortException {
-		if(getState() != Request.RequestState.FINISHED)
+		if(!isDone())
 			return null;
 		
 		allsearches.remove(getSubject());
@@ -448,5 +377,19 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		result = new ResultSet(subject, resultOperation, subsearches);
 
 		return result;
+	}
+
+	@Override
+	public ProgressParts getParts() throws TaskAbortException {
+		throw new UnsupportedOperationException("Not supported yet.");	// PRIORITY
+	}
+
+	@Override
+	public String getStatus() {
+		throw new UnsupportedOperationException("Not supported yet.");
+	}
+
+	public boolean isPartiallyDone() {
+		throw new UnsupportedOperationException("Not supported yet.");
 	}
 }

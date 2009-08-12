@@ -18,9 +18,7 @@ import freenet.support.Logger;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import plugins.Library.index.Request.RequestState;
 import plugins.Library.index.TermPageEntry;
-import plugins.Library.serial.TaskAbortException;
 
 /**
  * Required for using SAX parser on XML indices
@@ -70,9 +68,7 @@ public class LibrarianHandler extends DefaultHandler {
 		this.requests = new ArrayList(requests);
 		for (FindRequest r : requests){
 			r.setResult(new HashSet<TermPageEntry>());
-//			wantPositions = wantPositions || r.shouldGetPositions();
 		}
-		wantPositions = true;
 	}
 
 	public void setDocumentLocator(Locator value) {
@@ -154,7 +150,7 @@ public class LibrarianHandler extends DefaultHandler {
 							inFileWordCount = -1;
 						
 						for (FindRequest match : wordMatches) {
-							match.setStage(RequestState.PARTIALRESULT, 3);
+							match.setStage(2);
 							if(wantPositions)	// So the parsing of positions wil only occur if required
 								characters = new StringBuilder();
 						}
@@ -221,25 +217,19 @@ public class LibrarianHandler extends DefaultHandler {
 
 
 			for(FindRequest<Set<TermPageEntry>> match : wordMatches){
-				try{
-					Set<TermPageEntry> result = match.getResult();
-					if (result == null)
-						match.setResult(result = new HashSet<TermPageEntry>());
-					TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), inFileURI, inFileTitle, termpositions);
-					result.add(pageEntry);
+				Set<TermPageEntry> result = match.getUnfinishedResult();
+				TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), inFileURI, inFileTitle, termpositions);
+				result.add(pageEntry);
 
 //					Logger.minor(this, "termcount "+termpositions.size()+" filewordcount = "+inFileWordCount);
-					if(termpositions!=null && termpositions.size()>0 && inFileWordCount>0 ){
-						float relevance = (float)(termpositions.size()/(float)inFileWordCount);
-						if( totalFileCount > 0 && inWordFileCount > 0)
-							relevance *=  Math.log( (float)totalFileCount/(float)inWordFileCount);
-						pageEntry.setRelevance( relevance );
-						Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.getRelevance()+" - "+pageEntry.toString());
-					}
-					//Logger.minor(this, "added "+inFileURI+ " to "+ match);
-				}catch(TaskAbortException e){
-					Logger.error(this, "A task abort exception was thrown where it shouldnt.", e);
+				if(termpositions!=null && termpositions.size()>0 && inFileWordCount>0 ){
+					float relevance = (float)(termpositions.size()/(float)inFileWordCount);
+					if( totalFileCount > 0 && inWordFileCount > 0)
+						relevance *=  Math.log( (float)totalFileCount/(float)inWordFileCount);
+					pageEntry.setRelevance( relevance );
+					Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.getRelevance()+" - "+pageEntry.toString());
 				}
+				//Logger.minor(this, "added "+inFileURI+ " to "+ match);
 			}
 		}
 	}

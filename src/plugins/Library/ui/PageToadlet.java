@@ -71,7 +71,7 @@ class PageToadlet extends Toadlet {
 			MultiValueTable<String, String> headers = new MultiValueTable();
 			// process the request
 			page.processGetRequest(request);
-			page.writeContent(contentNode, headers);
+			page.writeContent(contentNode, headers);		// TODO catch & handle exceptions up here
 			// write reply
 			writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
 		} finally {

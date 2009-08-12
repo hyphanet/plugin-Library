@@ -3,12 +3,12 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.serial.CompositeProgress;
+import plugins.Library.serial.ChainedProgress;
 
 /**
- * For Requests which are composed of multiple parallel subrequests
+ * For Requests which are composed of multiple serial subrequests
  *
  * @author MikeB
  */
-public interface CompositeRequest<R> extends Request<R>, CompositeProgress {
+public interface ChainedRequest<R> extends Request<R>, ChainedProgress {
 }

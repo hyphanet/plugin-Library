@@ -71,7 +71,8 @@ public class Library {
 			throw new IllegalStateException("Library already initialised");
 		}
 		lib = new Library(pr);
-		proto_srl = new ProtoIndexSerialiser(); // must go after lib.pr is loaded
+		if(pr!=null)
+			proto_srl = new ProtoIndexSerialiser(); // must go after lib.pr is loaded
 		return lib;
 	}
 

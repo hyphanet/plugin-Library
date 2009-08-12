@@ -3,10 +3,16 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index.xml;
 
-import java.util.List;
+import freenet.client.events.ClientEvent;
+import freenet.client.events.SplitfileProgressEvent;
+import java.util.ArrayList;
+import java.util.Set;
 import plugins.Library.index.AbstractRequest;
-import plugins.Library.index.Request.RequestState;
 import plugins.Library.index.Request;
+import plugins.Library.index.TermPageEntry;
+import plugins.Library.serial.ChainedProgress;
+import plugins.Library.serial.Progress;
+import plugins.Library.serial.ProgressParts;
 import plugins.Library.serial.TaskAbortException;
 
 
@@ -17,7 +23,7 @@ import plugins.Library.serial.TaskAbortException;
  * @author MikeB
  * @param <E> Return type
  */
-public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Request>, Request<E> {
+public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Request>, Request<E>, ChainedProgress {
 	protected int stage=0;
 	protected final String[] stageNames = new String[]{
 		"Nothing",
@@ -25,137 +31,111 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 		"Fetching Subindex",
 		"Parsing Subindex"
 	};
-	private int blocksCompleted;
-	private int blocksTotal;
-	private boolean blocksfinalized;
-	private int expectedsize;
-	private boolean getPositions;
+	private ArrayList<SubProgress> subProgresses;
+	private E resultnotfinished;
 
 	/**
 	 * Create Request of stated type & subject
 	 * @param subject
 	 * @param positions, should we look for positions?
 	 */
-	public FindRequest(String subject, boolean positions) {
+	public FindRequest(String subject) {
 		super(subject);
-		getPositions = positions;
-	}
-
-	public boolean shouldGetPositions(){
-		return getPositions;
-	}
-
-	/**
-	 * @return blocks completed in SubStage
-	 */
-	@Override public int partsDone(){
-		return blocksCompleted;
-	}
-
-	@Override public int partsTotal(){
-		return blocksTotal;
-	}
-
-	/**
-	 * TODO set finalized flag from eventDescription
-	 * @return true if NumBlocksTotal is known to be final
-	 */
-	@Override public boolean isTotalFinal(){
-		return blocksfinalized;
-	}
-
-
-
-	@Override public String getCurrentStage() {
-		return stageNames[stage];
-	}
-
-	@Override public String getCurrentStatus() {
-		// PRIORITY
-		// not sure if this is what it's supposed to do...
-		// getStatus is supposed to be the progress of the whole operation
-		// getCurrentStatus is supposed to be the progress of the current stage
-		return getStatus();
+		subProgresses = new ArrayList<SubProgress>(3);
 	}
 
 	/**
 	 * Log Exception for this request, marks status as ERROR
 	 */
+	@Override
 	public void setError(TaskAbortException e) {
-		error = e;
-	}
-
-	/**
-	 * Sets the current status to a particular RequestState and stage number
-	 * @param state
-	 * @param stage
-	 */
-	public void setStage(RequestState state, int stage){
-		this.state = state;
-		this.stage = stage;
+		super.setError(e);
 	}
 
 	/**
 	 * Stores a result and marks RequestState as PARTIALRESULT, call setFinished to mark FINISHED
 	 * @param result
 	 */
+	@Override
 	public void setResult(E result){
-		state = RequestState.PARTIALRESULT;
-		this.result = result;
+		resultnotfinished = result;
 	}
 
-	/**
-	 * Mark Request as FINISHED
-	 */
 	public void setFinished(){
-		state = RequestState.FINISHED;
+		super.setResult(resultnotfinished);
+		resultnotfinished = null;
 	}
-
 
 	public int compareTo(Request right){
 		return subject.compareTo(right.getSubject());
 	}
 
 	@Override
-	public String toString(){
-		return "Request subject="+subject+" status="+state.toString()+" stage="+stage+" progress="+blocksCompleted;
+	public ProgressParts getParts() throws TaskAbortException {
+		return ProgressParts.getParts(subProgresses, 3);
+	}
+
+	@Override
+	public Progress getCurrentProgress() {
+		return subProgresses.get(stage);
+	}
+
+	@Override
+	public String getStatus() {
+		return stageNames[stage];
+	}
+
+	E getUnfinishedResult() {
+		return resultnotfinished;
+	}
+
+	void setStage(int i) {
+		if(i < 3 && i >= 0){
+			stage = i;
+		}else
+			throw new IndexOutOfBoundsException("Valid stages for a FindRequest are 0 to 2 inclusive not " + i);
+	}
+
+	static void updateWithEvent(ArrayList<FindRequest> waitingOnMainIndex, ClientEvent ce) {
+		for (FindRequest findRequest : waitingOnMainIndex) {
+			findRequest.partsFromEvent(ce);
+		}
+	}
+
+	private void partsFromEvent(ClientEvent ce) {
+		subProgresses.get(stage).partsFromEvent(ce);
 	}
 
 
-	/**
-	 * Updates Request with progress from event
-	 * @param downloadProgress
-	 * @param downloadSize
-	 */
-	private void updateWithEvent(int downloadProgress, int downloadSize, boolean finalized) {
-		blocksCompleted = downloadProgress;
-		blocksTotal = downloadSize;
-		blocksfinalized = finalized;
-	}
+	class SubProgress implements Progress {	// TODO finish this
+		private ProgressParts parts;
 
-	/**
-	 * Updates a list of requests with download progress from an event description
-	 * TODO add more variables from parsing
-	 * @param requests List of Requests to be updated with this event
-	 * @param eventDescription Event.getDescription() for this event to be parsed
-	 */
-	public static void updateWithDescription(List<FindRequest> requests, String eventDescription){
-		//for(FindRequest request : requests)
-		//	request.eventDescription = eventDescription;
-		if(eventDescription.split(" ")[1].equals("MIME"))
-			return;
-		if(eventDescription.split(" ")[1].equals("file")){
-			for(FindRequest request : requests)
-				request.expectedsize = Integer.parseInt(eventDescription.split(" ")[3]);
-			return;
+		public String getSubject() {
+			throw new UnsupportedOperationException("Not supported yet.");
 		}
 
-		String download = eventDescription.split(" ")[2];
-		int downloadProgress = Integer.parseInt(download.split("/")[0]);
-		int downloadSize = Integer.parseInt(download.split("/")[1]);
-		boolean finalized = eventDescription.contains("(finalized total)");
-		for (FindRequest request : requests)
-			request.updateWithEvent(downloadProgress, downloadSize, finalized);
-	}
+		public String getStatus() {
+			throw new UnsupportedOperationException("Not supported yet.");
+		}
 
+		public ProgressParts getParts() throws TaskAbortException {
+			return parts;
+		}
+
+		public boolean isDone() throws TaskAbortException {
+			throw new UnsupportedOperationException("Not supported yet.");
+		}
+
+		public void join() throws InterruptedException, TaskAbortException {
+			throw new UnsupportedOperationException("Not supported yet.");
+		}
+
+		public void partsFromEvent(ClientEvent ce) {
+			if(ce instanceof SplitfileProgressEvent){
+				SplitfileProgressEvent spe = (SplitfileProgressEvent)ce;
+				parts = ProgressParts.normalise(spe.succeedBlocks, spe.totalBlocks);
+			}else
+				throw new UnsupportedOperationException("Not supported yet. : "+ce.getClass().getName());
+		}
+	}
 }

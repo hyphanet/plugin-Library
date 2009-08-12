@@ -89,14 +89,9 @@ public abstract class AbstractRequest<T> implements Request<T> {
 		return subject;
 	}
 
-	@Override public String getStatus() {
-		Progress cur = getCurrentProgress();
-		return (cur == null)? "Starting next stage...": cur.getSubject() + ": " + cur.getStatus();
-	}
+	@Override abstract public String getStatus();
 
 	@Override abstract public ProgressParts getParts() throws TaskAbortException;
-
-	@Override abstract public Progress getCurrentProgress();
 
 	@Override public boolean isDone() throws TaskAbortException {
 		if (error != null) { throw error; }

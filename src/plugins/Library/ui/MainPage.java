@@ -15,7 +15,6 @@ import java.util.Iterator;
 import plugins.Library.Library;
 import plugins.Library.index.CompositeRequest;
 import plugins.Library.index.Request;
-import plugins.Library.index.Request.RequestState;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.search.Search;
 import plugins.Library.serial.TaskAbortException;
@@ -171,14 +170,21 @@ class MainPage implements WebPage {
 	public void writeContent(HTMLNode contentNode, MultiValueTable<String, String> headers) {
 		//Logger.normal(this, "Writing page for "+ query + " " + search + " " + indexuri);
 
-		String refreshURL = path()+"?request="+search.hashCode() + (showold?"&showold=on":"") + (groupusk?"&groupusk=on":"");
-		// Don't refresh if there is no request option, if it is finished or there is an error to show or js is enabled
-		if(search!=null && !"".equals(search.getQuery()) && !search.isDone() && exceptions.size()<=0){
-			// refresh will GET so use a request id
-			if(!js && !authorize)
-				headers.put("Refresh", "2;url="+refreshURL);
-			// The JS isn't working again, so it's disabled again
-			//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
+		String refreshURL = null;
+		if ( search != null)
+			refreshURL = path()+"?request="+search.hashCode() + (showold?"&showold=on":"") + (groupusk?"&groupusk=on":"");
+		try {
+			// Don't refresh if there is no request option, if it is finished or there is an error to show or js is enabled
+			if (search != null && !"".equals(search.getQuery()) && !search.isDone() && exceptions.size() <= 0) {
+				// refresh will GET so use a request id
+				if (!js && !authorize) {
+					headers.put("Refresh", "2;url=" + refreshURL);
+					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
+					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
+				}
+			}
+		} catch (TaskAbortException ex) {
+			exceptions.add(ex);	// TODO do this much better
 		}
 
 		
@@ -206,21 +212,26 @@ class MainPage implements WebPage {
 
         // If showing a search
         if(search != null){
-			// show progress
-			contentNode.addChild(progressBox());
-
-            // If search is complete show results
-            if (search.getState()==RequestState.FINISHED)
-				try{
-					ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk);
-					contentNode.addChild(nodegenerator.generatePageEntryNode(showold, js));
-				}catch(TaskAbortException ex){
-					addError(errorDiv, ex);
-				}catch(RuntimeException ex){
-					addError(errorDiv, ex);
+			try {
+				// show progress
+				contentNode.addChild(progressBox());
+				// If search is complete show results
+				if (search.isDone()) {
+					// TODO dont do it this way
+					try {
+						ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk);
+						contentNode.addChild(nodegenerator.generatePageEntryNode(showold, js));
+					} catch (TaskAbortException ex) {
+						addError(errorDiv, ex);
+					} catch (RuntimeException ex) {
+						addError(errorDiv, ex);
+					}
+				} else {
+					contentNode.addChild("div", "id", "results").addChild("#");
 				}
-			else
-				contentNode.addChild("div", "id", "results").addChild("#");
+			} catch (TaskAbortException ex) {
+				// this will never catch TODO do this much much nicer
+			}
         }
 	}
 
@@ -303,7 +314,7 @@ class MainPage implements WebPage {
 	 * @param request request to get progress from
 	 * @return
 	 */
-	private HTMLNode progressBox(){
+	private HTMLNode progressBox() throws TaskAbortException{
 			HTMLNode progressDiv = new HTMLNode("div", "id", "progress");
             // Search description
 			HTMLNode progressTable = progressDiv.addChild("table", "width", "100%");
@@ -351,36 +362,14 @@ class MainPage implements WebPage {
 	 * @param request
 	 * @return
 	 */
-	public static HTMLNode progressBar(Request request) {
+	public static HTMLNode progressBar(Request request) throws TaskAbortException {
 		HTMLNode bar;
-		// If it doesn't have subrequests, draw it's progress
-		if(! ( request instanceof CompositeRequest ) ){
-			bar = new HTMLNode("tr");
-			// search term
-			bar.addChild("td", request.getSubject());
-			// search stage
-			bar.addChild("td",
-				(request.getState()==RequestState.INPROGRESS ||
-				 request.getState()==RequestState.PARTIALRESULT) ? request.getCurrentStage()
-				                                                          : request.getState().toString());
-			// show fetch progress if fetching something
-			if(request.isDone() || request.partsTotal()==0){
-				bar.addChild("td", ""); bar.addChild("td");
-			}else{
-				int percentage = (int)(100*request.partsDone()/request.partsTotal());
-				boolean fetchFinalized = request.isTotalFinal();
-				bar
-					.addChild("td", new String[]{"class"}, new String[]{"progress-bar-outline"})
-					.addChild("div", new String[]{"class", "style"}, new String[]{fetchFinalized?"progress-bar-inner-final":"progress-bar-inner-nonfinal", "z-index : -1; width:"+percentage+"%;"});
-				bar.addChild("td", fetchFinalized?percentage+"%":"Fetch length unknown");
-
-			}
 		// if request separates indexes, show their names
-		} else {
+		if( request instanceof CompositeRequest ) {
 			CompositeRequest compRequest = (CompositeRequest) request;
-			if(request.getSubject().matches(".+%.+[ ;].+")){
+			if(request.getSubject().matches(".+%.+[ ;].+")){	// TODO better way to asses Index splits
 				bar = new HTMLNode("tbody");
-				Iterator it = compRequest.getSubRequests().iterator();
+				Iterator it = compRequest.getSubProgress().iterator();
 				while( it.hasNext()){
 					Request r = (Request)it.next();
 					HTMLNode indexrow = bar.addChild("tr");
@@ -390,11 +379,30 @@ class MainPage implements WebPage {
 			// get progress for subrequests
 			}else{
 				bar = new HTMLNode("#");
-				Iterator it = compRequest.getSubRequests().iterator();
+				Iterator it = compRequest.getSubProgress().iterator();
 				while( it.hasNext()){
 					Request r = (Request)it.next();
 					bar.addChild(progressBar((Request)r));
 				}
+			}
+		// If it doesn't have subrequests, draw it's progress
+		} else {
+			bar = new HTMLNode("tr");
+			// search term
+			bar.addChild("td", request.getSubject());
+			// search stage
+			bar.addChild("td", request.getStatus());
+			// show fetch progress if fetching something
+			if(request.isDone() || request.getParts().totalest==0){
+				bar.addChild("td", ""); bar.addChild("td");
+			}else{
+				int percentage = (int)(100*request.getParts().getEstimatedFractionDone());	// TODO cater for all data and invalid (negative) values
+				boolean fetchFinalized = request.getParts().finalizedTotal();
+				bar
+					.addChild("td", new String[]{"class"}, new String[]{"progress-bar-outline"})
+					.addChild("div", new String[]{"class", "style"}, new String[]{fetchFinalized?"progress-bar-inner-final":"progress-bar-inner-nonfinal", "z-index : -1; width:"+percentage+"%;"});
+				bar.addChild("td", fetchFinalized?percentage+"%":"Fetch length unknown");
+
 			}
 		}
 		return bar;
