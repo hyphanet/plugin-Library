@@ -111,7 +111,7 @@ public class SimpleProgress implements Progress {
 			if (finalizedTotal() && parts > 0) {
 				throw new IllegalArgumentException("Total already finalised");
 			}
-			// update estimate first to maintain known <= estimate || estimate == -1
+			// update estimate first to maintain ProgressParts contract
 			// in case another thread reads this concurrently
 			estimate = known + parts;
 			known = estimate;

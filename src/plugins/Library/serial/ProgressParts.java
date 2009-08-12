@@ -40,7 +40,7 @@ public class ProgressParts {
 	/**
 	** Total estimated parts. Special values:
 	**
-	** ;{@code -1} : The final total is known and is equal to {@code #known}.
+	** ;{@code -1} : The final total is known and is equal to {@link #known}.
 	** ;{@code -2} : No estimate is available.
 	**
 	** (All other negative values are invalid.)
@@ -122,14 +122,14 @@ public class ProgressParts {
 	}
 
 	/**
-	** Whether the total is finalized, ie. whether {@code known == totalest}.
+	** Whether the total is finalized. ({@code totalest == TOTAL_FINALIZED})
 	*/
 	final public boolean finalizedTotal() {
 		return totalest == TOTAL_FINALIZED;
 	}
 
 	/**
-	** Whether an estimate exists, ie. whether {@code totalest >= 0}.
+	** Whether an estimate exists. ({@code totalest != ESTIMATE_UNKNOWN})
 	*/
 	final public boolean hasEstimate() {
 		return totalest != ESTIMATE_UNKNOWN;
