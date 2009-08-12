@@ -149,14 +149,15 @@ final public class ProtoIndex implements Index {
 		}
 
 		@Override public ProgressParts getParts() throws TaskAbortException {
-			/*if (error != null) { throw error; }
+			// TODO tidy this up
+			if (error != null) { throw error; }
 			int started = trackers.size();
 			int known = started;
 			int done = started - 1;
-			if (last) { ++started; ++done; }
-			int estimate = (result != null)? result: ttab.heightEstimate();*/
-			// PRIORITY
-			throw new UnsupportedOperationException("not implemented 2457");
+			if (last != null) { ++started; ++done; }
+			if (done < 0) { done = 0; }
+			int estimate = (result != null)? ProgressParts.TOTAL_FINALIZED: Math.max(ttab.heightEstimate()+1, known);
+			return new ProgressParts(done, started, known, estimate);
 		}
 
 		/**
@@ -191,9 +192,7 @@ final public class ProtoIndex implements Index {
 						break;
 					} catch (DataNotLoadedException d) {
 						Skeleton p = d.getParent();
-						current_meta = d.getValue();
-						current_tracker = ((Serialiser.Trackable)p.getSerialiser()).getTracker();
-						trackers.put(current_meta, current_tracker);
+						trackers.put(current_meta = d.getValue(), current_tracker = ((Serialiser.Trackable)p.getSerialiser()).getTracker());
 						p.inflate(d.getKey());
 					}
 				}

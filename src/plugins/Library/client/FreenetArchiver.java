@@ -123,10 +123,10 @@ implements LiveArchiver<T, SimpleProgress> {
 				is.close();
 
 			} catch (FetchException e) {
-				throw new TaskAbortException("Failed to insert content", e, true);
+				throw new TaskAbortException("Failed to fetch content", e, true);
 
 			} catch (IOException e) {
-				throw new TaskAbortException("Failed to write content to local tempbucket", e, true);
+				throw new TaskAbortException("Failed to read content from local tempbucket", e, true);
 
 			} catch (RuntimeException e) {
 				throw new TaskAbortException("Failed to complete task: ", e);

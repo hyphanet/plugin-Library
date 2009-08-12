@@ -32,6 +32,7 @@ import plugins.Library.serial.TaskCompleteException;
 import plugins.Library.serial.BaseCompositeProgress;
 import plugins.Library.serial.Serialiser;
 import plugins.Library.serial.Progress;
+import plugins.Library.serial.ProgressParts;
 import plugins.Library.serial.ProgressTracker;
 import plugins.Library.util.concurrent.Scheduler;
 
@@ -497,6 +498,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			// URGENT there maybe is a race condition here... see BIndexTest.fullInflate() for details
 			} while (pool.isActive() || !tasks.isEmpty() || !inflated.isEmpty() || !error.isEmpty());
+
+			ppp.setEstimate(ProgressParts.TOTAL_FINALIZED);
 
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("interrupted", e);
