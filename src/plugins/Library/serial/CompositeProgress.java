@@ -15,8 +15,8 @@ public interface CompositeProgress extends Progress {
 	** {@inheritDoc}
 	**
 	** Implementations should return {@link ProgressParts#getSubParts(Iterable,
-	** boolean)}, with the first argument being the same underlying collection as
-	** {@link getSubProgress()}.
+	** boolean)}, with the first argument being the same underlying collection
+	** as {@link #getSubProgress()}.
 	*/
 	@Override public ProgressParts getParts() throws TaskAbortException;
 

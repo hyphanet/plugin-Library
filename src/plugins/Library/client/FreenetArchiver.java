@@ -245,7 +245,7 @@ implements LiveArchiver<T, SimpleProgress> {
 			// update the progress "parts" counters
 			SplitfileProgressEvent evt = (SplitfileProgressEvent)ce;
 			int new_succeeded = evt.succeedBlocks;
-			int new_total = evt.totalBlocks;
+			int new_total = evt.minSuccessfulBlocks;
 			// fetch can go over 100%
 			if (new_succeeded > new_total) { new_succeeded = new_total; }
 			synchronized (splitfile_blocks) {

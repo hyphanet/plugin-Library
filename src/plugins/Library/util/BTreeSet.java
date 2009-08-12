@@ -49,8 +49,20 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	/**
 	** Returns the number of entries contained in the root node.
 	*/
-	public int rootSize() {
-		return bkmap.rootSize();
+	public int sizeRoot() {
+		return bkmap.sizeRoot();
+	}
+
+	public int nodeMin() {
+		return bkmap.nodeMin();
+	}
+
+	public int entMax() {
+		return bkmap.entMax();
+	}
+
+	public int heightEstimate() {
+		return bkmap.heightEstimate();
 	}
 
 	/**

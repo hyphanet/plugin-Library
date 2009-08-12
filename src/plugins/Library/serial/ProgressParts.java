@@ -13,6 +13,16 @@ import java.util.Formatter;
 public class ProgressParts {
 
 	/**
+	** The value for {@link #totalest} representing an unknown estimate.
+	*/
+	final public static int ESTIMATE_UNKNOWN = -2;
+
+	/**
+	** The value for {@link #totalest} representing a finalized estimate.
+	*/
+	final public static int TOTAL_FINALIZED = -1;
+
+	/**
 	** Parts done. This is never greater than parts started.
 	*/
 	final public int done;
@@ -28,10 +38,12 @@ public class ProgressParts {
 	final public int known;
 
 	/**
-	** Total estimated parts. A value of {@code -1} means "unknown". A value
-	** equal to {@link #known} means the estimate is final and definite. (If
-	** you want to say "we think we are finished, but we are not sure", then
-	** use {@code known+1}.)
+	** Total estimated parts. Special values:
+	**
+	** ;{@code -1} : The final total is known and is equal to {@code #known}.
+	** ;{@code -2} : No estimate is available.
+	**
+	** (All other negative values are invalid.)
 	*/
 	final public int totalest;
 
@@ -61,7 +73,7 @@ public class ProgressParts {
 	** @param k Parts {@linkplain #known}
 	*/
 	public static ProgressParts normalise(int d, int k) {
-		return normalise(d, d, k, -1);
+		return normalise(d, d, k, ESTIMATE_UNKNOWN);
 	}
 
 	/**
@@ -75,8 +87,8 @@ public class ProgressParts {
 	**         not met.
 	*/
 	public ProgressParts(int d, int s, int k, int t) {
-		if (0 > d || d > s || s > k || (t >= 0 && k > t)) {
-			throw new IllegalArgumentException("ProgressParts must obey the contract 0 <= done <= started <= known and (totalest < 0 || known <= totalest)");
+		if (0 > d || d > s || s > k || (t >= 0 && k > t) || (t != ESTIMATE_UNKNOWN && t != TOTAL_FINALIZED)) {
+			throw new IllegalArgumentException("ProgressParts must obey the contract 0 <= done <= started <= known <= totalest or totalest == ESTIMATE_UNKNOWN or TOTAL_FINALIZED");
 		}
 		done = d;
 		started = s;
@@ -94,7 +106,7 @@ public class ProgressParts {
 	**         not met.
 	*/
 	public ProgressParts(int d, int s, int k) {
-		this(d, s, k, -1);
+		this(d, s, k, ESTIMATE_UNKNOWN);
 	}
 
 	/**
@@ -102,26 +114,25 @@ public class ProgressParts {
 	**
 	** @param d Parts {@linkplain #done}, same as parts {@linkplain #started}
 	** @param k Parts {@linkplain #known}
-	** @param t {@linkplain #totalest Estimated} total parts
 	** @throws IllegalArgumentException if the constraints for the fields are
 	**         not met.
 	*/
 	public ProgressParts(int d, int k) {
-		this(d, d, k, -1);
+		this(d, d, k, ESTIMATE_UNKNOWN);
 	}
 
 	/**
 	** Whether the total is finalized, ie. whether {@code known == totalest}.
 	*/
 	final public boolean finalizedTotal() {
-		return known == totalest;
+		return totalest == TOTAL_FINALIZED;
 	}
 
 	/**
 	** Whether an estimate exists, ie. whether {@code totalest >= 0}.
 	*/
 	final public boolean hasEstimate() {
-		return totalest >= 0;
+		return totalest != ESTIMATE_UNKNOWN;
 	}
 
 	/**
@@ -150,7 +161,7 @@ public class ProgressParts {
 	** Note: this will return negative (ie. invalid) if there is no estimate.
 	*/
 	final public float getEstimatedFractionDone() {
-		return totalest == 0? 0.0f: (float)done / totalest;
+		return totalest == 0? 0.0f: totalest == TOTAL_FINALIZED? 1.0f: (float)done / totalest;
 	}
 
 	/**
@@ -158,7 +169,7 @@ public class ProgressParts {
 	** Note: this will return negative (ie. invalid) if there is no estimate.
 	*/
 	final public float getEstimatedFractionStarted() {
-		return totalest == 0? 0.0f: (float)started / totalest;
+		return totalest == 0? 0.0f: totalest == TOTAL_FINALIZED? 1.0f: (float)started / totalest;
 	}
 
 	/**
@@ -166,14 +177,15 @@ public class ProgressParts {
 	** Note: this will return negative (ie. invalid) if there is no estimate.
 	*/
 	final public float getEstimatedFractionKnown() {
-		return totalest == 0? 0.0f: (float)known / totalest;
+		return totalest == 0? 0.0f: totalest == TOTAL_FINALIZED? 1.0f: (float)known / totalest;
 	}
 
 	/**
 	** Returns a summary of the progress in the form {@code d/s/k/t??}.
 	**
 	** * If {@code done == started}, only one will be included.
-	** * If the total is {@linkplain finalized}, the estimate will be ommited.
+	** * If the total is {@linkplain #finalizedTotal() finalized}, the estimate
+	**   will be ommited.
 	** * If there is no estimate, only the {@code ??} will be included.
 	*/
 	final public String toString() {
@@ -190,7 +202,8 @@ public class ProgressParts {
 	** Returns a summary of the progress in the form {@code known_fraction_done
 	** (estimated_fraction_done)}.
 	**
-	** * If the total is {@linkplain finalized}, the estimate will be ommited.
+	** * If the total is {@linkplain #finalizedTotal() finalized}, the estimate
+	**   will be ommited.
 	** * If there is no estimate, only the {@code ??} will be included.
 	*/
 	final public String toFractionString() {
@@ -209,7 +222,8 @@ public class ProgressParts {
 	** Returns a summary of the progress in the form {@code known_percent_done
 	** (estimated_percent_done)}.
 	**
-	** * If the total is {@linkplain finalized}, the estimate will be ommited.
+	** * If the total is {@linkplain #finalizedTotal() finalized}, the estimate
+	**   will be ommited.
 	** * If there is no estimate, only the {@code ??} will be included.
 	*/
 	final public String toPercentageString() {
@@ -234,12 +248,13 @@ public class ProgressParts {
 	** number of subprogresses having estimates, the sum of these estimates,
 	** and the total number of subprogresses.
 	**
-	** ;{@code false} : {@link #getParts()} will only give an estimate if all
-	** the subprogresses have estimates.
+	** ;{@code false} : an estimate will only be supplied if all subprogresses
+	** have estimates.
 	*/
 	public static ProgressParts getSubParts(Iterable<? extends Progress> subprogress, boolean try_to_be_smart) throws TaskAbortException {
 		int d = 0, s = 0, k = 0, t = 0;
 		int num = 0, unknown = 0;
+		boolean totalfinalized = true;
 		for (Progress p: subprogress) {
 			++num;
 			if (p == null) { ++unknown; continue; }
@@ -247,22 +262,31 @@ public class ProgressParts {
 			d += parts.done;
 			s += parts.started;
 			k += parts.known;
-			if (parts.totalest < 0) { ++unknown; }
-			else { t += parts.totalest; }
+			switch (parts.totalest) {
+			case ESTIMATE_UNKNOWN:
+				++unknown;
+				totalfinalized = false;
+				break;
+			case TOTAL_FINALIZED:
+				t += parts.totalest;
+				break;
+			default:
+				totalfinalized = false;
+				t += parts.totalest;
+			}
 		}
 		if (num == unknown) {
-			t = -1;
+			t = ESTIMATE_UNKNOWN;
 		} else if (unknown > 0) {
-			t = (try_to_be_smart)? (int)Math.round(t * num / (float)(num-unknown)): -1;
+			t = (try_to_be_smart)? (int)Math.round(t * num / (float)(num-unknown)): ESTIMATE_UNKNOWN;
 		}
-		return new ProgressParts(d, s, k, t);
+		return new ProgressParts(d, s, k, (totalfinalized)? TOTAL_FINALIZED: t);
 	}
 
 	/**
 	** Constructs a new {@code ProgressParts} based on the number of progresses
 	** (done, started, known) in the given iterable, with the given total
-	** estimate. If the input estimate is {@code 0}, then the estimate of the
-	** resulting object is taken to be the same as the parts known.
+	** estimate.
 	*/
 	public static ProgressParts getParts(Iterable<? extends Progress> subprogress, int estimate) throws TaskAbortException {
 		int d = 0, s = 0, k = 0;
@@ -272,7 +296,7 @@ public class ProgressParts {
 			++s;
 			if (p.isDone()) { ++d; }
 		}
-		return new ProgressParts(d, s, k, estimate == 0? k: estimate);
+		return new ProgressParts(d, s, k, estimate);
 	}
 
 }

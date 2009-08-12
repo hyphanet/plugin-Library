@@ -12,12 +12,12 @@ package plugins.Library.serial;
 ** I will deal with this at some point, and make this class easier to use...
 ** possibly have a setDone() method like AtomicProgress has...
 **
-** NOTE: this implementation considers the task to be '''done''' when a call to
+** NOTE: this implementation considers the task '''done''' when a call to
 ** {@link #addPartDone()} triggers the condition {@code pdone == known} when
-** {@code known == estimate} is true. '''As soon as''' this is triggered, all
-** threads blocked on {@link #join()} will unblock and assume the task has
-** finished. To prevent this from happening unexpectedly, it is recommended
-** that {@link #enteredSerialiser()} and {@link #exitingSerialiser()} be called
+** {@link #finalizedTotal()} is true. '''As soon as''' this occurs, all threads
+** blocked on {@link #join()} will unblock and assume the task has finished.
+** To prevent this from happening unexpectedly, it is recommended to call
+** {@link #enteredSerialiser()} and {@link #exitingSerialiser()} appropriately
 ** '''for each serialiser visited'''. Failure to follow this advice may result
 ** in deadlock or task data being retrieved before the task is properly
 ** complete. For more details, see the source code.
@@ -66,10 +66,11 @@ public class SimpleProgress implements Progress {
 	protected volatile int known;
 
 	/**
-	** Estimated total number of parts. By defalt, this is {@code -1}, meaning
-	** no estimate.
+	** Estimated total number of parts.
+	**
+	** @see ProgressParts#totalest
 	*/
-	protected volatile int estimate = -1;
+	protected volatile int estimate = ProgressParts.ESTIMATE_UNKNOWN;
 
 	protected String status = null;
 
@@ -79,9 +80,13 @@ public class SimpleProgress implements Progress {
 
 	public SimpleProgress() { }
 
+	public boolean finalizedTotal() {
+		return estimate == ProgressParts.TOTAL_FINALIZED;
+	}
+
 	/**
-	** Add a done part. If {@code pdone == known} is triggered while {@code
-	** known == estimate} is true, then the task is deemed to be completed and
+	** Add a done part. If {@code pdone == known} is triggered while {@link
+	** #finalizedTotal()} is true, then the task is deemed to be completed and
 	** all threads blocked on {@link #join()} will be released.
 	*/
 	public synchronized void addPartDone() {
@@ -89,41 +94,46 @@ public class SimpleProgress implements Progress {
 			throw new IllegalStateException("Can't increased parts done above parts known");
 		}
 		pdone++;
-		if (known == estimate && pdone == known) {
+		if (finalizedTotal() && pdone == known) {
 			inprogress = false;
 			notifyAll();
 		}
 	}
 
 	/**
-	** Add some known parts, and either finalise the total (set estimate to be
-	** equal to it), or invalidate the estimate (set it to -1).
+	** Add some known parts, and either finalise the total or invalidate the
+	** previous estimate.
 	*/
 	public synchronized void addPartKnown(int parts, boolean finalise) {
 		if (parts < 0) {
 			throw new IllegalArgumentException("Can't decrease the number of parts done.");
 		} else if (finalise) {
-			if (known == estimate && parts > 0) {
+			if (finalizedTotal() && parts > 0) {
 				throw new IllegalArgumentException("Total already finalised");
 			}
 			// update estimate first to maintain known <= estimate || estimate == -1
+			// in case another thread reads this concurrently
 			estimate = known + parts;
 			known = estimate;
+			estimate = ProgressParts.TOTAL_FINALIZED;
 		} else {
-			if (known == estimate) {
+			if (finalizedTotal()) {
 				throw new IllegalArgumentException("Cannot un-finalise a final total!");
 			}
-			estimate = -1;
+			estimate = ProgressParts.ESTIMATE_UNKNOWN;
 			known += parts;
 		}
 	}
 
 	/**
-	** Set an estimate. This should be used '''very''' carefully due to the
-	** automatic thread-unblocking behaviour of {@link #addPartDone()}.
+	** Set an estimate. This should be used carefully due to the automatic
+	** thread-unblocking behaviour of {@link #addPartDone()}. Specifically, you
+	** should '''never''' give {@link ProgressParts#TOTAL_FINALIZED} as the
+	** argument to this method.
+	**
+	** @see ProgressParts#totalest
 	*/
-	public void setEstimate(int e) {
-		// no synchronization; we don't care about missed updates
+	public synchronized void setEstimate(int e) {
 		if (e < known) {
 			throw new IllegalArgumentException("Can't give a lower estimate than what is already known.");
 		}
@@ -183,7 +193,7 @@ public class SimpleProgress implements Progress {
 	** {@inheritDoc}
 	**
 	** This implementation (in order of priority), the message for {@link
-	** #error}, {@link #status}, or string constructed from {@link #pdone},
+	** #abort}, {@link #status}, or string constructed from {@link #pdone},
 	** {@link #known} and {@link #estimate}.
 	*/
 	@Override public String getStatus() {
@@ -208,7 +218,7 @@ public class SimpleProgress implements Progress {
 		// updates are made such that the ProgressParts contract isn't broken even
 		// in mid-update so we don't need to synchronize here.
 		if (abort != null) { throw abort; }
-		return pdone == known && known == estimate;
+		return finalizedTotal() && pdone == known;
 	}
 
 	@Override public synchronized void join() throws InterruptedException, TaskAbortException {

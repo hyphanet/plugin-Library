@@ -17,7 +17,6 @@ import java.util.Date;
 ** implement the following methods:
 **
 ** * {@link Progress#getParts()}
-** * {@link ChainedProgress#getCurrentProgress()}
 **
 ** and make sure the {@link #error}, and {@link #result} fields are set
 ** appropriately during the course of the operation. (You can use {@link
@@ -49,10 +48,8 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	protected T result;
 
 	/**
-	** Create Request of the given subject, with the start time set to the
+	** Create a Request with the given subject, with the start time set to the
 	** current time.
-	**
-	** @param subject
 	*/
 	public AbstractRequest(String sub){
 		this.subject = sub;

@@ -10,8 +10,6 @@ import plugins.Library.serial.Serialiser.*;
 **
 ** TODO perhaps synchronize
 **
-** PRIORITY incorporate finalTotalEstimate into the status
-**
 ** DOCUMENT
 **
 ** @author infinity0
@@ -22,9 +20,7 @@ public class BaseCompositeProgress implements CompositeProgress {
 
 	protected Iterable<? extends Progress> subprogress = java.util.Collections.emptyList();
 
-	protected EstimateType esttype = EstimateType.NONE;
-
-	public enum EstimateType { NONE, EQUAL_TO_KNOWN }
+	protected int esttype = ProgressParts.ESTIMATE_UNKNOWN;
 
 	public BaseCompositeProgress() { }
 
@@ -47,7 +43,11 @@ public class BaseCompositeProgress implements CompositeProgress {
 		subject = s;
 	}
 
-	public void setEstimateType(EstimateType est) {
+	/**
+	** @see ProgressParts#totalest
+	*/
+	public void setEstimate(int est) {
+		// TODO size check?
 		esttype = est;
 	}
 
@@ -69,14 +69,7 @@ public class BaseCompositeProgress implements CompositeProgress {
 	}
 
 	@Override public ProgressParts getParts() throws TaskAbortException {
-		switch (esttype) {
-		case NONE:
-			return ProgressParts.getParts(subprogress, -1);
-		case EQUAL_TO_KNOWN:
-			return ProgressParts.getParts(subprogress, 0);
-		default:
-			throw new AssertionError();
-		}
+		return ProgressParts.getParts(subprogress, esttype);
 	}
 
 	@Override public Iterable<? extends Progress> getSubProgress() {

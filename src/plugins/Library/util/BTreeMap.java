@@ -896,8 +896,30 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	/**
 	** Returns the number of entries contained in the root node.
 	*/
-	public int rootSize() {
+	public int sizeRoot() {
 		return root.nodeSize();
+	}
+
+	public int nodeMin() {
+		return NODE_MIN;
+	}
+
+	public int entMax() {
+		return ENT_MAX;
+	}
+
+	/**
+	** Gives a quick estimate of the height of the tree. This method will tend
+	** to over-estimate rather than underestimate.
+	**
+	** The exact formula is {@code 1 + floor(log(size)/log(NODE_MIN))}. I
+	** couldn't be bothered trying to prove that this is a firm upper bound;
+	** feel free.
+	*/
+	public int heightEstimate() {
+		// round(NaN) is 0 so this is fine. also, impossible to get log greater
+		// than Integer.MAX_VALUE from a double so cast is fine too.
+		return 1 + (int)Math.floor(Math.log(size) / Math.log(NODE_MIN));
 	}
 
 	/**

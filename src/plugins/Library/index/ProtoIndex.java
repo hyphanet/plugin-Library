@@ -9,6 +9,7 @@ import plugins.Library.serial.TaskAbortException;
 import plugins.Library.serial.Progress;
 import plugins.Library.serial.ProgressParts;
 import plugins.Library.serial.ProgressTracker;
+import plugins.Library.serial.ChainedProgress;
 import plugins.Library.util.Skeleton;
 import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.util.SkeletonBTreeMap;
@@ -25,9 +26,8 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.HashMap;
 import java.util.TreeSet;
-import java.util.Stack;
+import java.util.LinkedHashMap;
 import java.util.Date;
-import plugins.Library.serial.ChainedProgress;
 
 /**
 ** Prototype B-tree based index. DOCUMENT
@@ -140,14 +140,21 @@ final public class ProtoIndex implements Index {
 
 	public class getTermEntriesHandler extends AbstractRequest<Collection<TermEntry>> implements Runnable, ChainedProgress {
 
-		final Stack<Object> metas = new Stack<Object>();
-		final Stack<ProgressTracker> trackers = new Stack<ProgressTracker>();
+		final Map<Object, ProgressTracker> trackers = new LinkedHashMap<Object, ProgressTracker>();
+		Object current_meta;
+		ProgressTracker current_tracker;
 
 		protected getTermEntriesHandler(String t) {
 			super(t);
 		}
 
-		@Override public ProgressParts getParts() {
+		@Override public ProgressParts getParts() throws TaskAbortException {
+			/*if (error != null) { throw error; }
+			int started = trackers.size();
+			int known = started;
+			int done = started - 1;
+			if (last) { ++started; ++done; }
+			int estimate = (result != null)? result: ttab.heightEstimate();*/
 			// PRIORITY
 			throw new UnsupportedOperationException("not implemented 2457");
 		}
@@ -169,7 +176,7 @@ final public class ProtoIndex implements Index {
 		}
 
 		@Override public Progress getCurrentProgress() {
-			return last != null? last: trackers.isEmpty()? null: trackers.peek().getPullProgressFor(metas.peek());
+			return last != null? last: current_tracker == null? null: current_tracker.getPullProgressFor(current_meta);
 		}
 
 		// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
@@ -184,8 +191,9 @@ final public class ProtoIndex implements Index {
 						break;
 					} catch (DataNotLoadedException d) {
 						Skeleton p = d.getParent();
-						metas.push(d.getValue());
-						trackers.push(((Serialiser.Trackable)p.getSerialiser()).getTracker());
+						current_meta = d.getValue();
+						current_tracker = ((Serialiser.Trackable)p.getSerialiser()).getTracker();
+						trackers.put(current_meta, current_tracker);
 						p.inflate(d.getKey());
 					}
 				}

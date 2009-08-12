@@ -26,9 +26,6 @@ import java.nio.channels.FileLock;
 ** This class expects {@link Task#meta} to be of type {@link String}, or an
 ** array whose first element is of type {@link String}.
 **
-** @see Yaml
-** @see Loader
-** @see Dumper
 ** @author infinity0
 */
 public class FileArchiver<T>

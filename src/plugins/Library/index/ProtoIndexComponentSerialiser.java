@@ -18,6 +18,7 @@ import plugins.Library.serial.MapSerialiser;
 import plugins.Library.serial.LiveArchiver;
 import plugins.Library.serial.ParallelSerialiser;
 import plugins.Library.serial.Packer;
+import plugins.Library.serial.ProgressParts;
 import plugins.Library.serial.Progress;
 import plugins.Library.serial.SimpleProgress;
 import plugins.Library.serial.BaseCompositeProgress;
@@ -112,7 +113,7 @@ public class ProtoIndexComponentSerialiser {
 	final protected static Packer.Scale<SkeletonBTreeSet<TermEntry>>
 	term_data_scale = new Packer.Scale<SkeletonBTreeSet<TermEntry>>() {
 		@Override public int weigh(SkeletonBTreeSet<TermEntry> element) {
-			return element.rootSize();
+			return element.sizeRoot();
 		}
 	};
 
@@ -123,7 +124,7 @@ public class ProtoIndexComponentSerialiser {
 	final protected static Packer.Scale<SkeletonBTreeMap<FreenetURI, URIEntry>>
 	uri_data_scale = new Packer.Scale<SkeletonBTreeMap<FreenetURI, URIEntry>>() {
 		@Override public int weigh(SkeletonBTreeMap<FreenetURI, URIEntry> element) {
-			return element.rootSize();
+			return element.sizeRoot();
 		}
 	};
 
@@ -404,7 +405,7 @@ public class ProtoIndexComponentSerialiser {
 				try {
 					BaseCompositeProgress p = tracker.addPullProgress(en.getValue());
 					p.setSubProgress(ProgressTracker.makePullProgressIterable(subsrl.getTracker(), bintasks));
-					p.setEstimateType(BaseCompositeProgress.EstimateType.EQUAL_TO_KNOWN);
+					p.setEstimate(ProgressParts.TOTAL_FINALIZED);
 					p.setSubject("Pulling root container for " + en.getKey());
 				} catch (TaskInProgressException e) {
 					throw new AssertionError(e);
@@ -417,7 +418,7 @@ public class ProtoIndexComponentSerialiser {
 				try {
 					BaseCompositeProgress p = tracker.addPushProgress(en.getValue());
 					p.setSubProgress(ProgressTracker.makePushProgressIterable(subsrl.getTracker(), bintasks));
-					p.setEstimateType(BaseCompositeProgress.EstimateType.EQUAL_TO_KNOWN);
+					p.setEstimate(ProgressParts.TOTAL_FINALIZED);
 					p.setSubject("Pushing root container for " + en.getKey());
 				} catch (TaskInProgressException e) {
 					throw new AssertionError(e);

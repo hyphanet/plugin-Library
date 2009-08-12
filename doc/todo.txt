@@ -8,7 +8,8 @@
 
 == Freenet serialisation ==
 
-- PRIORITY use LiveArchiver for index root serialiser
+- PRIORITY make getIndex() unblocking
+  - use LiveArchiver for index root serialiser
 
 == Index semantics ==
 
@@ -32,13 +33,10 @@
 
 == Request/Progress reporting ==
 
->>> PRIORITY make a CompoundRequest that extends BaseCompositeProgress (and make CompondProgress better and more standard)
-  - and it will have equivalent functionality as "getSubRequests"
-  - how to implement getSubStage* in Search, and put it back into FindRequest
-- PRIORITY - do the renaming stuff as outlined in SimpleProgress
-- TODO probably should synchronize AtomicProgress, SimpleProgress, and
-  BaseCompositeProgress... although maybe unnecessary since these should all be
-  single-writer multi-reader (and the reads are not critical)?
+- TODO probably should synchronize SimpleProgress, and BaseCompositeProgress...
+  - although maybe unnecessary since these should all be single-writer multi-reader
+    (and the reads are not critical)?
+  - ProgressParts.getSubParts / ProgressParts.getParts: iterating might throw ConcurrentModificationException!
 
 == Packaging structure ==
 
