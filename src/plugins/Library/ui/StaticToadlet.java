@@ -121,9 +121,10 @@ class StaticToadlet extends Toadlet {
 			"a.result-uskbutton-new {color: #480000; font-variant: small-caps; font-size: small; padding-left: 20px}\n" +
 			"a.result-uskbutton-old {color: #996666; font-variant: small-caps; font-size: small; padding-left: 20px}\n" +
 			".progress-table {border-spacing:10px 0px;}\n" +
-			".progress-bar-outline { width:300px; border:1px solid grey; height : 20px; border-spacing: 0px; }\n" +
-			".progress-bar-inner-final { background-color: red; height:15px; z-index:-1; border-spacing: 0px; }\n" +
-			".progress-bar-inner-nonfinal { background-color: pink; height:15px; z-index:-1; border-spacing: 0px; }\n" +
+			"table.progress-table td { padding: 5px 15px; }\n" +
+			"td	.progress-bar-outline { padding: 0px 3px; width:300px; border:1px solid grey; height : 20px; border-spacing: 0px; }\n" +
+			"div.progress-bar-inner-final { background-color: red; height:20px; z-index:-1; border-spacing: 0px; }\n" +
+			"div.progress-bar-inner-nonfinal { background-color: pink; height:20px; z-index:-1; border-spacing: 0px; }\n" +
 			//"div#navbar { background-color: white; border : none; } \n" +
 			//"div#navbar ul { text-align : left; }\n" +
 			//"th, td { border: none; padding: 0; }\n" +
