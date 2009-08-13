@@ -917,9 +917,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** feel free.
 	*/
 	public int heightEstimate() {
-		// round(NaN) is 0 so this is fine. also, impossible to get log greater
-		// than Integer.MAX_VALUE from a double so cast is fine too.
-		return 1 + (int)Math.floor(Math.log(size) / Math.log(NODE_MIN));
+		// round(log(0)/x) is -infinity
+		return 1 + size == 0? 0: (int)Math.floor(Math.log(size) / Math.log(NODE_MIN));
 	}
 
 	/**
