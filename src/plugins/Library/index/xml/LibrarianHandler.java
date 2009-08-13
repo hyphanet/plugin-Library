@@ -54,14 +54,10 @@ public class LibrarianHandler extends DefaultHandler {
 	private FreenetURI inFileURI;
 	private int inFileWordCount;
 	
-	// Setting for how this is being processed		// TODO Probably dont need this now
-	private boolean wantPositions=false;
-	
 
 	/**
 	 * Construct a LibrarianHandler to look for many terms
 	 * @param requests the requests wanting to be resolved by this LibrarianHandler, results are written back to them
-	 * @param wantPositions should the positions be recorded? this has a performance impact but allows for phrase searching
 	 * @throws java.lang.Exception
 	 */
 	public LibrarianHandler(List<FindRequest> requests) {
@@ -149,11 +145,7 @@ public class LibrarianHandler extends DefaultHandler {
 						else
 							inFileWordCount = -1;
 						
-						for (FindRequest match : wordMatches) {
-							match.setStage(2);
-							if(wantPositions)	// So the parsing of positions wil only occur if required
-								characters = new StringBuilder();
-						}
+						characters = new StringBuilder();
 					}
 				}
 				catch (Exception e) {
