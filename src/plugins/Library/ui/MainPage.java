@@ -13,10 +13,13 @@ import freenet.support.api.HTTPRequest;
 import java.util.ArrayList;
 import java.util.Iterator;
 import plugins.Library.Library;
-import plugins.Library.index.CompositeRequest;
 import plugins.Library.index.Request;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.search.Search;
+import plugins.Library.serial.ChainedProgress;
+import plugins.Library.serial.CompositeProgress;
+import plugins.Library.serial.Progress;
+import plugins.Library.serial.ProgressParts;
 import plugins.Library.serial.TaskAbortException;
 
 
@@ -86,7 +89,7 @@ class MainPage implements WebPage {
 						etcIndexes += string.trim() + " ";
 				}
 				etcIndexes = etcIndexes.trim();
-				Logger.normal(this, "Refreshing request "+request.getIntParam("request")+" " +query);
+				Logger.minor(this, "Refreshing request "+request.getIntParam("request")+" " +query);
 			}
 		}
 	}
@@ -105,7 +108,6 @@ class MainPage implements WebPage {
 
 		// Check for adding an index
 		// TODO make sure name is valid
-		// TODO allow freesites to do this with user permission
 		if(request.isPartSet("indexname") && request.getPartAsString("indexname", 20).length() > 0){
 			if (userAccess){
 				library.addBookmark(request.getPartAsString("indexname", 20), request.getPartAsString("index", 128));
@@ -331,7 +333,8 @@ class MainPage implements WebPage {
 				HTMLNode statusRow = progressTable.addChild("tr");
 					statusRow.addChild("td")
 							.addChild("div", "id", "librarian-search-status")
-							.addChild("table", new String[]{"id", "class"}, new String[]{"progress-table", "progress-table"})
+							.addChild("table", new String[]{"id", "class"}, new String[]{"progress-base", "progress-table"})
+							.addChild("tbody")
 							.addChild(progressBar(search));
 		return progressDiv;
 	}
@@ -357,57 +360,68 @@ class MainPage implements WebPage {
 
 	
 	/**
-	 * Draw progress bars and describe progress
-	 * FIXME doesnt seem to be displaying index names for multi searches
+	 * Draw progress bars and describe progress, CompositeProgess are drawn as a table with each row containing a subProgress
 	 * @param request
 	 * @return
 	 */
-	public static HTMLNode progressBar(Request request) throws TaskAbortException {
-		HTMLNode bar;
-		// if request separates indexes, show their names
-		if( request instanceof CompositeRequest ) {
-			CompositeRequest compRequest = (CompositeRequest) request;
-			if(request.getSubject().matches(".+%.+[ ;].+")){	// TODO better way to asses Index splits
-				bar = new HTMLNode("tbody");
-				Iterator it = compRequest.getSubProgress().iterator();
-				while( it.hasNext()){
-					Request r = (Request)it.next();
-					HTMLNode indexrow = bar.addChild("tr");
-					indexrow.addChild("td", r.getSubject().split("%")[1]);
-					indexrow.addChild("td").addChild("table", "class", "progress-table").addChild(progressBar((Request)r));
+	public static HTMLNode progressBar(Progress progress) throws TaskAbortException {
+		Iterator sizeTestIterator;
+		if( progress instanceof CompositeProgress){
+			CompositeProgress compProg = (CompositeProgress) progress;
+			// Complicated method to check whether this CompositeProgress actually has more than one subProgress
+			if((sizeTestIterator =((CompositeProgress) progress).getSubProgress().iterator()).next()!=null && sizeTestIterator.hasNext()) {	// getSubProgress could return a Collection? then i could use size()
+				// If it has more than one, draw out a table for it
+				HTMLNode row = new HTMLNode("tr");	// TODO there is no point doing this it puts a table in a table
+				HTMLNode bar = row.addChild("td").addChild("table", new String[]{"id", "class"}, new String[]{"composite-"+progress.getSubject(), "progress-table"});
+				if(compProg.getSubject().matches(".+@.+[ ;].+")){	// TODO better way to asses Index splits
+					Iterator it2 = compProg.getSubProgress().iterator();
+					while( it2.hasNext()){
+						Progress p = (Request)it2.next();
+						HTMLNode indexrow = bar.addChild("tr");
+						indexrow.addChild("td", p.getSubject().split("@")[1]);
+						indexrow.addChild("td").addChild(progressBar(p));
+					}
+				}else{
+					// draw progress bars for subrequests
+					Iterator it2 = compProg.getSubProgress().iterator();
+					while( it2.hasNext()){
+						Request r = (Request)it2.next();
+						bar.addChild(progressBar(r));
+					}
 				}
-			// get progress for subrequests
-			}else{
-				bar = new HTMLNode("#");
-				Iterator it = compRequest.getSubProgress().iterator();
-				while( it.hasNext()){
-					Request r = (Request)it.next();
-					bar.addChild(progressBar((Request)r));
-				}
-			}
-		// If it doesn't have subrequests, draw it's progress
+				return row;
+			}else
+				// Draw a single bar for the single progress
+				return progressBar(compProg.getSubProgress().iterator().next());
 		} else {
-			bar = new HTMLNode("tr");
+			// Draw progress bar for single or chained progress
+			ProgressParts parts;
+			if(progress instanceof ChainedProgress)
+				parts = ((ChainedProgress)progress).getCurrentProgress().getParts();
+			else
+				parts = progress.getParts();
+
+			HTMLNode bar = new HTMLNode("tr");
 			// search term
-			bar.addChild("td", request.getSubject());
+			bar.addChild("td", progress.getSubject());
 			// search stage
-			bar.addChild("td", request.getStatus());
+			bar.addChild("td", progress.getStatus());
 			// show fetch progress if fetching something
-			if(request.isDone() || request.getParts().totalest==0){
+			if(progress.isDone() || progress.getParts().totalest==0){
 				bar.addChild("td", ""); bar.addChild("td");
 			}else{
-				int percentage = (int)(100*request.getParts().getEstimatedFractionDone());	// TODO cater for all data and invalid (negative) values
-				boolean fetchFinalized = request.getParts().finalizedTotal();
-				bar
-					.addChild("td", new String[]{"class"}, new String[]{"progress-bar-outline"})
-					.addChild("div", new String[]{"class", "style"}, new String[]{fetchFinalized?"progress-bar-inner-final":"progress-bar-inner-nonfinal", "z-index : -1; width:"+percentage+"%;"});
-				bar.addChild("td", fetchFinalized?percentage+"%":"Fetch length unknown");
+				float fractiondone = parts.getKnownFractionDone();
+				int percentage = (int)(((float)100)*fractiondone);	// TODO cater for all data and invalid (negative) values
+				boolean fetchFinalized = parts.finalizedTotal();
+//				Logger.normal(MainPage.class, "Drawing bar for : "+progress.toString() + "  - -  "+parts.toString()+ " - done = "+ percentage+" finalized ? = "+fetchFinalized+ "  fraction done = " + parts.getKnownFractionDone()+" percentage="+percentage+" - "+fractiondone);
 
+				bar.addChild("td", new String[]{"class", "style"}, new String[]{"progress-bar-outline", "padding: 0px 3px;"})
+					.addChild("div", new String[]{"class", "style"}, new String[]{fetchFinalized?"progress-bar-inner-final":"progress-bar-inner-nonfinal", "z-index : -1; width:"+percentage+"%;"});
+				bar.addChild("td", fetchFinalized?percentage+"%":"Operation length unknown");
 			}
+			return bar;
 		}
-		return bar;
 	}
-	
 	
 	
 	

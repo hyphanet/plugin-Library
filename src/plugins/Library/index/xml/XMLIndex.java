@@ -57,6 +57,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 
 	private PluginRespirator pr;
 	private Executor executor;
+	private ClientGetter rootGetter;
 	public enum FetchStatus{UNFETCHED, FETCHING, FETCHED, FAILED}
 	protected FetchStatus fetchStatus = FetchStatus.UNFETCHED;
 	protected HashMap<String, String> indexMeta  = new HashMap<String, String>();
@@ -132,6 +133,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		 **/
 		public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context){
 			FindRequest.updateWithEvent(waitingOnMainIndex, ce);
+//			Logger.normal(this, "Updated with event : "+ce.getDescription());
 		}
 
 		public void onRemoveEventProducer(ObjectContainer container){
@@ -144,12 +146,25 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	 */
 	/** Called on successful fetch */
 	public void onSuccess(FetchResult result, ClientGetter state, ObjectContainer container){
+//		Logger.normal(this, "Fetch successful " + toString());
 		processRequests(result.asBucket());
 	}
 
 	/** Called on failed/canceled fetch */
 	public void onFailure(FetchException e, ClientGetter state, ObjectContainer container){
+		if(e.newURI!=null){
+			try {
+				indexuri = e.newURI.setMetaString(null).toString();
+				startFetch();
+				return;
+			} catch (FetchException ex) {
+				Logger.error(this, "what?", ex);
+			} catch (MalformedURLException ex) {
+				Logger.error(this, "what?", ex);
+			}
+		}
 		fetchStatus = FetchStatus.FAILED;
+		Logger.error(this, "Fetch failed on "+toString() + " -- state = "+state, e);
 	}
 
 	public void onMajorProgress(ObjectContainer container){}
@@ -173,7 +188,6 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		fetchStatus = FetchStatus.FETCHING;
 		String uri = indexuri + DEFAULT_FILE;
 
-		Logger.minor(this, "Fetching "+uri);
 
 		// try local file first
 		File file = new File(uri);
@@ -182,11 +196,13 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			return;
 		}
 
+//		Logger.normal(this, "Fetching "+uri);
 		// FreenetURI, try to fetch from freenet
 		FreenetURI u = new FreenetURI(uri);
 		while (true) {
 			try {
-				hlsc.fetch(u, -1, this, this, hlsc.getFetchContext().clone());
+				rootGetter = hlsc.fetch(u, -1, this, this, hlsc.getFetchContext().clone());
+//				Logger.normal(this, "Fetch started : "+toString());
 				break;
 			} catch (FetchException e) {
 				if (e.newURI != null) {
@@ -206,6 +222,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	 */
 	private void parse(InputStream is) throws SAXException, IOException {
 		SAXParserFactory factory = SAXParserFactory.newInstance();
+//		Logger.normal(this, "Parsing main index");
 
 		try {
 			factory.setNamespaceAware(true);
@@ -239,7 +256,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 
 	@Override
 	public String toString(){
-		String output = "Index : "+indexuri+" "+fetchStatus+" "+waitingOnMainIndex+"\n\t"+subIndice;
+		String output = "Index:[ "+indexuri+" "+fetchStatus+" "+waitingOnMainIndex+"\n\t"+subIndice + (rootGetter==null?"]":(" GETTING("+rootGetter.toString()+")]"));
 		//for (SubIndex s : subIndice)
 		//	output = output+"\n -"+s;
 		return output;
@@ -286,14 +303,16 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	 * @throws java.net.MalformedURLException
 	 */
 	private synchronized void setdependencies(FindRequest request) throws FetchException, MalformedURLException{
+//		Logger.normal(this, "setting dependencies for "+request+" on "+this.toString());
 		if (fetchStatus!=FetchStatus.FETCHED){
 			waitingOnMainIndex.add(request);
-			request.setStage(0);
+			request.setStage(FindRequest.Stages.FETCHROOT);
 			startFetch();
 		}else{
+			request.setStage(FindRequest.Stages.FETCHSUBINDEX);
 			SubIndex subindex = getSubIndex(request.getSubject());
 			subindex.addRequest(request);
-			Logger.minor(this, "STarting "+getSubIndex(request.getSubject())+" to look for "+request.getSubject());
+//			Logger.normal(this, "STarting "+getSubIndex(request.getSubject())+" to look for "+request.getSubject());
 			if(executor!=null)
 				executor.execute(subindex, "Subindex:"+subindex.getFileName());
 			else
@@ -326,6 +345,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			 **/
 			public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context){
 				FindRequest.updateWithEvent(waitingOnSubindex, ce);
+//				Logger.normal(this, "Updated with event : "+ce.getDescription());
 			}
 			public void onRemoveEventProducer(ObjectContainer container){
 				throw new UnsupportedOperationException();
@@ -356,9 +376,9 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		 */
 		void addRequest(FindRequest request){
 			if(fetchStatus==FetchStatus.FETCHED)
-				request.setStage(2);
+				request.setStage(FindRequest.Stages.PARSE);
 			else
-				request.setStage(1);
+				request.setStage(FindRequest.Stages.FETCHSUBINDEX);
 			synchronized(waitingOnSubindex){
 				waitingOnSubindex.add(request);
 			}
@@ -389,7 +409,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 						}
 					}else if(fetchStatus==FetchStatus.FETCHED){
 						for(FindRequest r : waitingOnSubindex)
-							r.setStage(2);
+							r.setStage(FindRequest.Stages.PARSE);
 						SAXParserFactory factory = SAXParserFactory.newInstance();
 						try {
 							factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
