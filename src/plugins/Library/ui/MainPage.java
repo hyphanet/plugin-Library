@@ -190,7 +190,13 @@ class MainPage {
 			if(authorize){
 				HTMLNode authorizeBox = contentNode.addChild("div", "class", "authorization-box");
 				authorizeBox.addChild("h1", "Your authorization required :");
-				HTMLNode bookmarkBox = authorizeBox.addChild("div", "Whatever started this request is trying to add a bookmark to your index bookmarks, do you want to add a bookmark with the name \""+addindexname+"\" and uri \""+addindexuri+"\"?");	// TODO embolden the specific parts
+				HTMLNode bookmarkBox = authorizeBox.addChild("div", "Whatever started this request is trying to add a bookmark to your index bookmarks, do you want to add this index bookmark?");
+				bookmarkBox.addChild("br");
+				bookmarkBox.addChild("#", "Name : ");
+				bookmarkBox.addChild("b", "\""+addindexname+"\"");
+				bookmarkBox.addChild("br");
+				bookmarkBox.addChild("#", "URI : ");
+				bookmarkBox.addChild("b", "\""+addindexuri+"\"");
 				bookmarkBox.addChild("br");
 				bookmarkBox.addChild("a", "href", refreshURL + "&indexname="+addindexname+"&index="+addindexuri, "Add to index bookmarks");
 				bookmarkBox.addChild("br");
@@ -353,7 +359,7 @@ class MainPage {
 		if( progress instanceof CompositeProgress && ((CompositeProgress) progress).getSubProgress()!=null && ((CompositeProgress) progress).getSubProgress().iterator().hasNext()){
 			// Put together progress bars for all the subProgress
 			HTMLNode block = new HTMLNode("#");
-			block.addChild("tr").addChild("td", "colspan", "5", progress.getSubject() + " : "+progress.getStatus());
+			block.addChild("tr").addChild("td", "colspan", "6", progress.getSubject() + " : "+progress.getStatus());
 			for (Progress progress1 : ((CompositeProgress) progress).getSubProgress()) {
 				block.addChild(progressBar(progress1));
 			}

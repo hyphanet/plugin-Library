@@ -7,6 +7,7 @@ package plugins.Library.ui;
 
 import freenet.client.HighLevelSimpleClient;
 import freenet.clients.http.PageMaker;
+import freenet.clients.http.Toadlet;
 import freenet.clients.http.ToadletContainer;
 import freenet.node.NodeClientCore;
 import freenet.pluginmanager.PluginRespirator;
@@ -15,12 +16,13 @@ import plugins.Library.Library;
 
 public class WebInterface {
 	private PageMaker pageMaker;
-	private MainPageToadlet[] toadlets;
 	private final ToadletContainer toadletContainer;
 	private final HighLevelSimpleClient client;
 	private final NodeClientCore core;
 	private Library library;
 	private final PluginRespirator pr;
+	private MainPageToadlet pluginsToadlet;
+	private MainPageToadlet mainToadlet;
 
 	/**
 	 * @param spider
@@ -42,13 +44,12 @@ public class WebInterface {
 	public void load() {
 		//pageMaker.addNavigationCategory("/library/", "Library", "Library", new Main());
 
-		toadlets  = new MainPageToadlet[]{
-			new MainPageToadlet(client, library, core, pr),
-		};
+		mainToadlet = new MainPageToadlet(client, library, core, pr);
+		toadletContainer.register(mainToadlet, mainToadlet.menu(), mainToadlet.path(), true, mainToadlet.name(), mainToadlet.name(), true, null );
 
-		for (MainPageToadlet toadlet : toadlets) {
-			toadletContainer.register(toadlet, toadlet.menu(), toadlet.path(), true, toadlet.name(), toadlet.name(), true, null );
-		}
+		// Ive just realised that the form filter allows access to /plugins/... so /library/ wont be allowed, this is a temporary Toadlet untilthere is a whitelist for formfilter and /library is on it TODO put /library on formfilter whitelist
+		pluginsToadlet = new MainPageToadlet(client, library, core, pr);
+		toadletContainer.register(pluginsToadlet, null, "/plugins/plugin.Library.FreesiteSearch", true, null, null, true, null );
 		toadletContainer.register(new StaticToadlet(client), null, "/library/static/", true, false);
 		
 	}
@@ -57,10 +58,8 @@ public class WebInterface {
 	 * UNload the Library interface form the FProxy interface
 	 */
 	public void unload() {
-		for (MainPageToadlet pageToadlet : toadlets) {
-			toadletContainer.unregister(pageToadlet);
-			pageMaker.removeNavigationLink(pageToadlet.menu(), pageToadlet.name());
-		}
-		//pageMaker.removeNavigationCategory("Library");
+		toadletContainer.unregister(mainToadlet);
+		pageMaker.removeNavigationLink(mainToadlet.menu(), mainToadlet.name());
+		toadletContainer.unregister(pluginsToadlet);
 	}
 }
