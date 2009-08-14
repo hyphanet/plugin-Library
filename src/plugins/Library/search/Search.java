@@ -14,13 +14,15 @@ import freenet.support.Logger;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import plugins.Library.index.CompositeRequest;
 import plugins.Library.index.TermEntry;
-import plugins.Library.index.xml.XMLIndex;
 import plugins.Library.search.ResultSet.ResultOperation;
+import plugins.Library.serial.CompositeProgress;
+import plugins.Library.serial.Progress;
 
 /**
  * Performs asynchronous searches over many index or with many terms and search logic
@@ -41,11 +43,12 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 
 	protected int stage=0;
 	protected int stageCount;
-	private int blocksCompleted;
-	private int blocksTotal;
 
 	private static HashMap<String, Search> allsearches = new HashMap<String, Search>();
 	private static HashMap<Integer,Search> searchhashes = new HashMap<Integer, Search>();
+
+	private enum SearchStatus { Unstarted, Busy, Ready, Combining, Done };
+	private SearchStatus status = SearchStatus.Unstarted;
 
 
 	private static void storeSearch(Search search){
@@ -122,6 +125,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		this.query = query;
 		this.indexURI = indexURI;
 		this.resultOperation = resultOperation;
+		this.status = SearchStatus.Busy;
 
 		storeSearch(this);
 		Logger.minor(this, "Created Search object for with subRequests :"+subsearches);
@@ -310,10 +314,26 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	}
 
 	/**
-	 * @return List of Requests this search depends on
+	 * @return List of Progresses this search depends on, it will not return CompositeProgresses
 	 */
-	@Override public List<Request<Set<TermEntry>>> getSubProgress(){
-		return subsearches;
+	@Override public List<? extends Progress> getSubProgress(){
+		Logger.minor(this, toString());
+
+		// Only index splits will allowed as composites
+		if (resultOperation == ResultOperation.DIFFERENTINDEXES)
+			return subsearches;
+		// Everything else is split into leaves
+		List<Progress> subprogresses = new ArrayList();
+		for (Request<Set<TermEntry>> request : subsearches) {
+			if( request instanceof CompositeProgress && ((CompositeProgress) request).getSubProgress()!=null && ((CompositeProgress) request).getSubProgress().iterator().hasNext()){
+				for (Iterator<? extends Progress> it = ((CompositeRequest)request).getSubProgress().iterator(); it.hasNext();) {
+					Progress progress1 = it.next();
+					subprogresses.add(progress1);
+				}
+			}else
+				subprogresses.add(request);
+		}
+		return subprogresses;
 	}
 
 
@@ -369,6 +389,8 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	@Override public Set<TermEntry> getResult() throws TaskAbortException {
 		if(!isDone())
 			return null;
+
+		status = SearchStatus.Combining;	// This wont show as this operation blocks
 		
 		allsearches.remove(getSubject());
 		searchhashes.remove(hashCode());
@@ -376,17 +398,26 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		ResultSet result;
 		result = new ResultSet(subject, resultOperation, subsearches);
 
+		status = SearchStatus.Done;
+
 		return result;
 	}
 
 	@Override
 	public ProgressParts getParts() throws TaskAbortException {
-		throw new UnsupportedOperationException("Not supported yet.");	// PRIORITY
+		return ProgressParts.getParts(this.getSubProgress(), ProgressParts.ESTIMATE_UNKNOWN);
 	}
 
 	@Override
 	public String getStatus() {
-		throw new UnsupportedOperationException("Not supported yet.");
+		try {
+			if (status.compareTo(SearchStatus.Ready) < 0 && isDone()) {
+				status = SearchStatus.Ready;
+			}
+		} catch (TaskAbortException ex) {
+			return "Error";
+		}
+		return status.name();
 	}
 
 	public boolean isPartiallyDone() {
