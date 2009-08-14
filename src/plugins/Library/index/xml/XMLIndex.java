@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index.xml;
 
+import java.util.logging.Level;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
@@ -331,6 +332,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	private class SubIndex implements Runnable {
 		String indexuri, filename;
 		private final ArrayList<FindRequest> waitingOnSubindex=new ArrayList<FindRequest>();
+		private final ArrayList<FindRequest> parsingSubindex = new ArrayList<FindRequest>();
 		FetchStatus fetchStatus = FetchStatus.UNFETCHED;
 		HighLevelSimpleClient hlsc;
 		Bucket bucket;
@@ -408,28 +410,37 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 							throw new TaskAbortException(msg, e);
 						}
 					}else if(fetchStatus==FetchStatus.FETCHED){
-						for(FindRequest r : waitingOnSubindex)
-							r.setStage(FindRequest.Stages.PARSE);
-						SAXParserFactory factory = SAXParserFactory.newInstance();
-						try {
-							factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-							SAXParser saxParser = factory.newSAXParser();
-							InputStream is = bucket.getInputStream();
-							///synchronized(waitingOnSubindex){
-								saxParser.parse(is, new LibrarianHandler(waitingOnSubindex));
-								Logger.minor(this, "parsing finished "+ waitingOnSubindex.toString());
-								for (FindRequest findRequest : waitingOnSubindex) {
+						synchronized(parsingSubindex){
+							try {
+								// Wait a fifth of a second for other Requests to be added as waiting
+								Thread.sleep(200);
+							} catch (InterruptedException ex) {
+								java.util.logging.Logger.getLogger(XMLIndex.class.getName()).log(Level.SEVERE, null, ex);
+							}
+							// Transfer all requests waiting on this subindex to the parsing list
+							synchronized (waitingOnSubindex){
+								parsingSubindex.addAll(waitingOnSubindex);
+								waitingOnSubindex.removeAll(parsingSubindex);
+							}
+							// Set status of all those about to be parsed to PARSE
+							for(FindRequest r : parsingSubindex)
+								r.setStage(FindRequest.Stages.PARSE);
+							SAXParserFactory factory = SAXParserFactory.newInstance();
+							try {
+								factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+								SAXParser saxParser = factory.newSAXParser();
+								InputStream is = bucket.getInputStream();
+								saxParser.parse(is, new LibrarianHandler(parsingSubindex));
+								Logger.minor(this, "parsing finished "+ parsingSubindex.toString());
+								for (FindRequest findRequest : parsingSubindex) {
 									findRequest.setFinished();
 								}
-								waitingOnSubindex.clear();
-							///}
-							is.close();
-						} catch (Exception err) {
-							//javax.xml.parsers.ParserConfigurationException
-							//java.io.IOException
-							//org.xml.sax.SAXException
-							Logger.error(this, "Error parsing "+filename, err);
-							throw new TaskAbortException("Could not parse XML: ", err);
+								parsingSubindex.clear();
+								is.close();
+							} catch (Exception err) {	
+								Logger.error(this, "Error parsing "+filename, err);
+								throw new TaskAbortException("Could not parse XML: ", err);
+							}
 						}
 					} else {
 						break;
