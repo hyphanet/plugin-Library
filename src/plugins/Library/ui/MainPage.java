@@ -396,7 +396,7 @@ class MainPage implements WebPage {
 		} else {
 			// Draw progress bar for single or chained progress
 			ProgressParts parts;
-			if(progress instanceof ChainedProgress)
+			if(progress instanceof ChainedProgress && ((ChainedProgress)progress).getCurrentProgress()!=null)
 				parts = ((ChainedProgress)progress).getCurrentProgress().getParts();
 			else
 				parts = progress.getParts();
