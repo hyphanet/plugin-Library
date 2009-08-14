@@ -1,7 +1,7 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.inter;
+package plugins.Library.search.inter;
 
 import java.util.Collection;
 import java.util.Map;
