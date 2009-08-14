@@ -79,6 +79,8 @@ class MainPageToadlet extends Toadlet {
 		try {
 			// Get the nodes of the page
 			PageNode p = ctx.getPageMaker().getPageNode(Library.plugName, ctx);
+			// Style
+			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/stylecss", "text/css"});
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 			

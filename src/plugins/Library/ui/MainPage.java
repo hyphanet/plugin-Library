@@ -83,8 +83,8 @@ class MainPage {
 		if (request.isParameterSet("request")){
 			search = Search.getSearch(request.getIntParam("request"));
 			if(search!=null){
-				if(request.isPartSet("indexname") && request.getPartAsString("indexname", 20).length() > 0){
-					library.addBookmark(request.getPartAsString("indexname", 20), request.getPartAsString("index", 128));
+				if(request.isParameterSet("indexname") && request.getParam("indexname").length() > 0){
+					library.addBookmark(request.getParam("indexname"), request.getParam("index"));
 				}
 				query = search.getQuery();
 				indexstring = search.getIndexURI();
@@ -190,12 +190,13 @@ class MainPage {
 			// Start of body
 			// authorization box, gives the user a choice of whther to authorize something
 			if(authorize){
-				HTMLNode authorizeBox = contentNode.addChild("div");
+				HTMLNode authorizeBox = contentNode.addChild("div", "class", "authorization-box");
 				authorizeBox.addChild("h1", "Your authorization required :");
-				HTMLNode bookmarkBox = authorizeBox.addChild("div", "Whatever started this request is trying to add a bookmark you your index bookmarks, do you want to add a bookmark with the name \""+addindexname+"\" and uri \""+addindexuri+"\"?");
-				bookmarkBox.addChild("a", "href", refreshURL + "&indexname="+addindexname+"&index="+addindexuri, "yes");
+				HTMLNode bookmarkBox = authorizeBox.addChild("div", "Whatever started this request is trying to add a bookmark to your index bookmarks, do you want to add a bookmark with the name \""+addindexname+"\" and uri \""+addindexuri+"\"?");	// TODO embolden the specific parts
 				bookmarkBox.addChild("br");
-				bookmarkBox.addChild("a", "href", refreshURL, "no");
+				bookmarkBox.addChild("a", "href", refreshURL + "&indexname="+addindexname+"&index="+addindexuri, "Add to index bookmarks");
+				bookmarkBox.addChild("br");
+				bookmarkBox.addChild("a", "href", refreshURL, "Do not add to bookmarks");
 			}
 			contentNode.addChild(searchBox());
 

@@ -175,7 +175,7 @@ public class ResultNodeGenerator {
 		// create usk url
 		if (uri.isSSKForUSK()) {
 			String realuskurl = "/" + uri.uskForSSK().toString();
-			pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realuskurl, "result-uskbutton", realuskurl}, "[ USK ]");
+			pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realuskurl, (newestVersion ? "result-uskbutton-new" : "result-uskbutton-old"), realuskurl}, "[ USK ]");
 		}
 		pageNode.addChild("br");
 		pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realurl, (newestVersion ? "result-url-new" : "result-url-old"), uri.toString()}, showurl);

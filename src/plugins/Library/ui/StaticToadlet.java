@@ -55,7 +55,7 @@ class StaticToadlet extends Toadlet {
 
 
 
-	enum StaticPage {
+	public enum StaticPage {
 		scriptjs("application/javascript",
 			"var url = '/library/xml/?request=$request&$showold';\n" +
 			"var xmlhttp;\n" +
@@ -136,7 +136,10 @@ class StaticToadlet extends Toadlet {
 			"ul.index-bookmark-list { list-style: none; }\n" +
 			"ul.options-list { list-style-type: none; margin-top: none; }\n" +
 			"" +
-			"div#content th, td { border: none; }\n"
+			"div#content th, td { border: none; }\n" +
+			"div.authorization-box { background: darksalmon; border: 1px solid darkred; padding: 8px; }\n" +
+			"div.authorization-box h1 { font-size: 16pt; font-weight: bold; margin-top: 0px; }\n" +
+			"div.authorization-box a:link { color: blue; }\n"
 		);
 
 
