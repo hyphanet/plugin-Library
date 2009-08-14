@@ -210,7 +210,7 @@ public class ProgressParts {
 		Formatter f = new Formatter();
 		if (finalizedTotal()) {
 			f.format("%.4f", getKnownFractionDone());
-		} else if (hasEstimate()) {
+		} else if (!hasEstimate()) {
 			f.format("%.4f (??)", getKnownFractionDone());
 		} else {
 			f.format("%.4f (%.4f??)", getKnownFractionDone(), getEstimatedFractionDone());
@@ -230,7 +230,7 @@ public class ProgressParts {
 		Formatter f = new Formatter();
 		if (finalizedTotal()) {
 			f.format("%.2f", getKnownFractionDone()*100);
-		} else if (hasEstimate()) {
+		} else if (!hasEstimate()) {
 			f.format("%.2f (??)", getKnownFractionDone()*100);
 		} else {
 			f.format("%.2f (%.2??)", getKnownFractionDone()*100, getEstimatedFractionDone()*100);

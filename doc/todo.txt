@@ -10,11 +10,17 @@
 
 - PRIORITY make getIndex() unblocking
   - use LiveArchiver for index root serialiser
+- OPTIMISE should have a better format than having BinInfo point to a top-level CHK
+  - use MHK or have metadata directly in the parent node (latter reduces node fan-out to 400-500 max)
+
+== Resource usage ==
+
+- Make library use a ThreadPoolExecutor that handles execution of Requests
+- Memory handling; discard index data after we're done with it.
 
 == Index semantics ==
 
 - URGENT start doing a WriteableIndex and make the ttab protected again.
-
 - PRIORITY adapt SkeletonBTreeMap.inflate() to work for a submap range too. see
   that class for more details.
 - TODO index: "suggested tokens" - suggest what other people should tag this
