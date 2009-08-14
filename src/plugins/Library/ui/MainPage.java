@@ -216,15 +216,20 @@ class MainPage {
 				contentNode.addChild(progressBox());
 				// If search is complete show results
 				if (search.isDone()) {
-					// TODO dont do it this way
-					try {
-						ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk);
-						contentNode.addChild(nodegenerator.generatePageEntryNode(showold, js));
-					} catch (TaskAbortException ex) {
-						exceptions.add(ex);
-					} catch (RuntimeException ex) {
-						exceptions.add(ex);
-					}
+					if(search.hasGeneratedResultNode()){
+						contentNode.addChild(search.getHTMLNode());
+						Logger.normal(this, "Got pre generated result node.");
+					}else
+						try {
+							Logger.normal(this, "Blocking to generate resultnode.");
+							ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk, showold, js);
+							nodegenerator.run();
+							contentNode.addChild(nodegenerator.getPageEntryNode());
+						} catch (TaskAbortException ex) {
+							exceptions.add(ex);
+						} catch (RuntimeException ex) {
+							exceptions.add(ex);
+						}
 				} else {
 					contentNode.addChild("div", "id", "results").addChild("#");
 				}

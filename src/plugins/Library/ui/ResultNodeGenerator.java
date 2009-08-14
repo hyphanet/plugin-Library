@@ -21,21 +21,53 @@ import plugins.Library.index.TermTermEntry;
 
 
 /**
- * Class for parsing and formatting search results
+ * Class for parsing and formatting search results, once isDone() return true, the nodes are ready to use
  *
  * @author MikeB
  */
-public class ResultNodeGenerator {
-	TreeMap<String, TermPageGroupEntry> groupmap;
-	TreeSet<TermPageEntry> pageset;
-	TreeSet<TermTermEntry> relatedTerms;
-	TreeSet<TermIndexEntry> relatedIndexes;
+public class ResultNodeGenerator implements Runnable {
+	private TreeMap<String, TermPageGroupEntry> groupmap;
+	private TreeSet<TermPageEntry> pageset;
+	private TreeSet<TermTermEntry> relatedTerms;
+	private TreeSet<TermIndexEntry> relatedIndexes;
+	private Set<TermEntry> result;
+	private boolean groupusk;
+	private boolean showold;
+	private boolean js;
+	private boolean done;
+	private HTMLNode pageEntryNode;
 
+
+
+	public ResultNodeGenerator(Set<TermEntry> result, boolean groupusk, boolean showold, boolean js){
+		this.result = result;
+		this.groupusk = groupusk;
+		this.showold = showold;
+		this.js = js;
+	}
+
+
+	public synchronized void run(){
+		if(done)
+			throw new IllegalStateException("ResultNodeGenerator can only be run once.");
+
+		parseResult();
+		generatePageEntryNode();
+		done = true;
+	}
+
+	public HTMLNode getPageEntryNode(){
+		return pageEntryNode;
+	}
+
+	public boolean isDone(){
+		return done;
+	}
 
 	/**
 	 * Parse result into generator
 	 */
-	public ResultNodeGenerator(Set<TermEntry> result, boolean groupusk){
+	private void parseResult(){
 		if(groupusk)
 			groupmap = new TreeMap();
 		else
@@ -83,19 +115,19 @@ public class ResultNodeGenerator {
 		}
     }
 	
-	public HTMLNode generateIndexEntryNode(){
+	private HTMLNode generateIndexEntryNode(){
 		return new HTMLNode("#", "TermIndexEntry code not done yet");
 	}
 
-	public HTMLNode generateTermEntryNode(){
+	private HTMLNode generateTermEntryNode(){
 		return new HTMLNode("#", "TermTermEntry code not done yet");
 	}
 
 	/**
 	 * Generate node of page results from this generator
 	 */
-	public HTMLNode generatePageEntryNode(boolean showold, boolean js){
-		HTMLNode pageListNode = new HTMLNode("div", "id", "results");
+	private void generatePageEntryNode(){
+		pageEntryNode = new HTMLNode("div", "id", "results");
 
 		int results = 0;
 		// Loop to separate results into SSK groups
@@ -110,7 +142,7 @@ public class ResultNodeGenerator {
 				TermPageGroupEntry group = it2.next();
 				String keybase = group.getSubject();
 				SortedMap<Long, SortedSet<TermPageEntry>> siteMap = group.getEditions();
-				HTMLNode siteNode = pageListNode.addChild("div", "style", "padding-bottom: 6px;");
+				HTMLNode siteNode = pageEntryNode.addChild("div", "style", "padding-bottom: 6px;");
 				// Create a block for old versions of this SSK
 				HTMLNode siteBlockOldOuter = siteNode.addChild("div", new String[]{"id", "style"}, new String[]{"result-hiddenblock-"+keybase, (!showold?"display:none":"")});
 				// put title on block if it has more than one version in it
@@ -154,12 +186,11 @@ public class ResultNodeGenerator {
 		}else{
 			for (Iterator<TermPageEntry> it = pageset.iterator(); it.hasNext();) {
 				TermPageEntry termPageEntry = it.next();
-				pageListNode.addChild("div").addChild(termPageEntryNode(termPageEntry, true));
+				pageEntryNode.addChild("div").addChild(termPageEntryNode(termPageEntry, true));
 				results++;
 			}
 		}
-		pageListNode.addChild("p").addChild("span", "class", "librarian-summary-found", "Found "+results+" results");
-		return pageListNode;
+		pageEntryNode.addChild("p").addChild("span", "class", "librarian-summary-found", "Found "+results+" results");
 	}
 	
 	private HTMLNode termPageEntryNode(TermPageEntry entry,boolean newestVersion) {

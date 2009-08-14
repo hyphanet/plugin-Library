@@ -23,11 +23,15 @@ import plugins.Library.serial.TaskAbortException;
  * Unmodifiable Set which makes sure all data in results being combined is
  * retained and is created as the result of Set operations on other Sets. Does
  * not contain references to the original Sets.
+ * <br /> <br />
+ * The set isn't finalised until a run is finished and isDone() is true.
  *
- * FIXME get phrase search to work
  * @author MikeB
  */
-public class ResultSet implements Set<TermEntry>{
+public class ResultSet implements Set<TermEntry>, Runnable{
+	private ResultOperation resultOperation;
+	private boolean done = false;
+	private Set<TermEntry>[] subresults;
 
 	/**
 	 * What should be done with the results of subsearches\n
@@ -62,26 +66,35 @@ public class ResultSet implements Set<TermEntry>{
 				&& subRequests.size()<2)
 			throw new IllegalArgumentException(resultOperation.toString() + " operations need more than one term");
 
+		// Make sure any TaskAbortExceptions are found here and not when it's run
+		subresults = getResultSets(subRequests);
+
 		this.subject = subject;
 		internal = new HashMap();
+		this.resultOperation = resultOperation;
+	}
 
+	public synchronized void run() {
+		if(done)
+			throw new IllegalStateException("This ResultSet has already run and is finalised.");
+		
 		// Decide what to do
 		switch(resultOperation){
 			case SINGLE:	// Just add everything
-				addAllToEmptyInternal(subRequests.get(0).getResult());
+				addAllToEmptyInternal(subresults[0]);
 				break;
 			case DIFFERENTINDEXES:	// Same as UNION currently
 			case UNION:	// Add every one without overwriting
-				unite(getResultSets(subRequests));
+				unite(subresults);
 				break;
 			case INTERSECTION:	// Add one then retain the others
-				intersect(getResultSets(subRequests));
+				intersect(subresults);
 				break;
 			case REMOVE:	// Add one then remove the other
-				exclude(subRequests.get(0).getResult(), subRequests.get(1).getResult());
+				exclude(subresults[0], subresults[1]);
 				break;
 			case PHRASE:
-				phrase(getResultSets(subRequests));
+				phrase(subresults);
 				break;
 		}
 	}
@@ -463,6 +476,10 @@ public class ResultSet implements Set<TermEntry>{
 
 	public String toString(){
 		return internal.keySet().toString();
+	}
+
+	public boolean isDone(){
+		return done;
 	}
 
 

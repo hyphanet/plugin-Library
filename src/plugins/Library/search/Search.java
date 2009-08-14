@@ -3,6 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search;
 
+import freenet.support.Executor;
+import freenet.support.HTMLNode;
 import plugins.Library.Library;
 import plugins.Library.index.Request;
 import plugins.Library.index.AbstractRequest;
@@ -23,6 +25,7 @@ import plugins.Library.index.TermEntry;
 import plugins.Library.search.ResultSet.ResultOperation;
 import plugins.Library.serial.CompositeProgress;
 import plugins.Library.serial.Progress;
+import plugins.Library.ui.ResultNodeGenerator;
 
 /**
  * Performs asynchronous searches over many index or with many terms and search logic
@@ -33,6 +36,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 				implements CompositeRequest<Set<TermEntry>> {
 
 	private static Library library;
+	private static Executor executor;
 
 	private ResultOperation resultOperation;
 
@@ -41,13 +45,20 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	private String query;
 	private String indexURI;
 
-	protected int stage=0;
-	protected int stageCount;
-
 	private static HashMap<String, Search> allsearches = new HashMap<String, Search>();
 	private static HashMap<Integer,Search> searchhashes = new HashMap<Integer, Search>();
+	private ResultSet resultset;
 
-	private enum SearchStatus { Unstarted, Busy, Ready, Combining, Done };
+	/**
+	 * Settings for producing result nodes, if true a HTMLNode of the results will be generated after the results are complete which can be accessed via getResultNode()
+	 */
+	private boolean formatResult = false;
+	private boolean htmlgroupusk;
+	private boolean htmlshowold;
+	private boolean htmljs;
+	private ResultNodeGenerator resultNodeGenerator;
+
+	private enum SearchStatus { Unstarted, Busy, Combining, Formatting, Done };
 	private SearchStatus status = SearchStatus.Unstarted;
 
 
@@ -62,6 +73,10 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 *
 	 * @param search string to be searched
 	 * @param indexuri URI of index(s) to be used
+	 * @param generateResultNode if set, the search operation will conclude with
+	 * generating the results for displaying, if not set this step will be skipped.
+	 * This action is not guarenteed, in the returned Search as this search may
+	 * have already been started.
 	 * @throws InvalidSearchException if any part of the search is invalid
 	 */
 	public static Search startSearch(String search, String indexuri) throws InvalidSearchException, TaskAbortException{
@@ -78,14 +93,16 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		String[] indices = indexuri.split("[ ;]");
 		if(indices.length<1 || search.trim().length()<1)
 			throw new InvalidSearchException("Attempt to start search with no index or terms");
-		else if(indices.length==1)
-			return splitQuery(search, indexuri);
-		else{
+		else if(indices.length==1){
+			Search newSearch = splitQuery(search, indexuri);
+			return newSearch;
+		}else{
 			// create search for multiple terms over multiple indices
 			ArrayList<Request> indexrequests = new ArrayList(indices.length);
 			for (String index : indices)
 				indexrequests.add(startSearch(search, index));
-			return new Search(search, indexuri, indexrequests, ResultOperation.DIFFERENTINDEXES);
+			Search newSearch = new Search(search, indexuri, indexrequests, ResultOperation.DIFFERENTINDEXES);
+			return newSearch;
 		}
 	}
 
@@ -125,7 +142,11 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		this.query = query;
 		this.indexURI = indexURI;
 		this.resultOperation = resultOperation;
-		this.status = SearchStatus.Busy;
+		try {
+			setStatus();
+		} catch (TaskAbortException ex) {
+			setError(ex);
+		}
 
 		storeSearch(this);
 		Logger.minor(this, "Created Search object for with subRequests :"+subsearches);
@@ -149,6 +170,11 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		this.query = query;
 		this.indexURI = indexURI;
 		this.resultOperation = ResultOperation.SINGLE;
+		try {
+			setStatus();
+		} catch (TaskAbortException ex) {
+			setError(ex);
+		}
 		storeSearch(this);
 	}
 
@@ -246,8 +272,9 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	/**
 	 * Sets the parent plugin to be used for logging & plugin api
 	 */
-	public static void setup(Library library){
+	public static void setup(Library library, Executor executor){
 		Search.library = library;
+		Search.executor = executor;
 		Search.allsearches = new HashMap<String, Search>();
 	}
 
@@ -305,11 +332,16 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		return search + "@" + indexuri;
 	}
 
-	@Override
 	/**
 	 * A descriptive string for logging
 	 */
+	@Override
 	public String toString(){
+		try {
+			setStatus();
+		} catch (TaskAbortException ex) {
+			setError(ex);
+		}
 		return "Search: "+resultOperation+" : "+subject+" : "+subsearches;
 	}
 
@@ -338,69 +370,95 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 
 
 	/**
-	 * @return true if all are Finished, false otherwise
+	 * @return true if all are Finished and Result is ready, also stimulates the creation of the result if all subreqquests are complete and the result isn't made
 	 */
 	@Override public boolean isDone() throws TaskAbortException{
+		setStatus();
+		return status == SearchStatus.Done;
+	}
+
+	/**
+	 * Returns whether the generator has formatted the results
+	 * @return
+	 */
+	public boolean hasGeneratedResultNode(){
+		return resultNodeGenerator != null && resultNodeGenerator.isDone();
+	}
+
+	public HTMLNode getHTMLNode(){
+		return resultNodeGenerator.getPageEntryNode();
+	}
+	
+	/**
+	 * After this finishes running, the status of this Search object will be correct, stimulates the creation of the result if all subreqquests are complete and the result isn't made
+	 * @throws plugins.Library.serial.TaskAbortException
+	 */
+	private synchronized void setStatus() throws TaskAbortException{
+		switch (status){
+			case Unstarted :	// If Unstarted, status -> Busy
+				status = SearchStatus.Busy;
+			case Busy :
+				if(!isSubRequestsComplete())
+					return;		// If Busy & still waiting for subrequests to complete, status remains Busy
+				// If subrequests have completed start process to combine results
+				resultset = new ResultSet(subject, resultOperation, subsearches);
+				if(executor!=null)
+					executor.execute(resultset, "Library.Search : combining results");
+				else
+					(new Thread(resultset, "Library.Search : combining results")).start();
+				status = SearchStatus.Combining;
+			case Combining :
+				if(resultset!=null && !resultset.isDone())
+					return;		// If Combining & combine not finished, status remains as Combining
+				// If finished Combining and asked to generate resultnode, start that process
+				if(formatResult){
+					// resultset doesn't exist but subrequests are complete so we can start up a resultset
+					resultNodeGenerator = new ResultNodeGenerator(resultset, htmlgroupusk, htmlshowold, htmljs);
+					if(executor!=null)
+						executor.execute(resultset, "Library.Search : combining results");
+					else
+						(new Thread(resultset, "Library.Search : combining results")).start();
+					status = SearchStatus.Formatting;	// status -> Formatting
+				}else			// If not asked to format output, status -> done
+					status = SearchStatus.Done;
+			case Formatting :
+				// If asked to generate resultnode and still doing that, status remains as Formatting
+				if(formatResult && resultNodeGenerator !=null && !resultNodeGenerator.isDone())
+					return;
+				// If finished Formatting or not asked to do so, status -> Done
+				status = SearchStatus.Done;
+			case Done :
+				// Done , do nothing
+		}
+	}
+	
+	/**
+	 * @return true if all are Finished, false otherwise
+	 */
+	private boolean isSubRequestsComplete() throws TaskAbortException{
 		for(Request r : subsearches)
 			if(!r.isDone())
 				return false;
 		return true;
 	}
-
-//	/**
-//	 * @return sum of NumBlocksCompleted
-//	 */
-//	@Override public int partsDone() {
-////		if(progressAccessed())
-////			return blocksCompleted;
-//		blocksCompleted=0;
-//		for(Request r : subsearches)
-//			blocksCompleted+=r.partsDone();
-//		return blocksCompleted;
-//	}
-//
-//	/**
-//	 * @return sum of NumBlocksTotal
-//	 * TODO record all these progress things to speed up
-//	 */
-//	@Override public int partsTotal() {
-////		if(progressAccessed())
-////			return blocksTotal;
-//		blocksTotal=0;
-//		for(Request r : subsearches)
-//			blocksTotal+=r.partsTotal();
-//		return blocksTotal;
-//	}
-//
-//	/**
-//	 * @return true if all subsearches numblocks are final
-//	 */
-//	@Override public boolean isTotalFinal() {
-//		for(Request r : subsearches)
-//			if(!r.isTotalFinal())
-//				return false;
-//		return true;
-//	}
+	
 
 	/**
-	 * Use ResultSet to perform Set operations on subsearches <br />
-	 * @return Set of URIWrappers
+	 * Return the set of results or null if it is not ready <br />
+	 * @return Set of TermEntry
 	 */
 	@Override public Set<TermEntry> getResult() throws TaskAbortException {
 		if(!isDone())
 			return null;
 
-		status = SearchStatus.Combining;	// This wont show as this operation blocks
-		
-		allsearches.remove(getSubject());
-		searchhashes.remove(hashCode());
+		return resultset;
+	}
 
-		ResultSet result;
-		result = new ResultSet(subject, resultOperation, subsearches);
-
-		status = SearchStatus.Done;
-
-		return result;
+	public synchronized void setMakeResultNode(boolean groupusk, boolean showold, boolean js){
+		formatResult = true;
+		htmlgroupusk = groupusk;
+		htmlshowold = showold;
+		htmljs = js;
 	}
 
 	@Override
@@ -411,13 +469,11 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	@Override
 	public String getStatus() {
 		try {
-			if (status.compareTo(SearchStatus.Ready) < 0 && isDone()) {
-				status = SearchStatus.Ready;
-			}
+			setStatus();
+			return status.name();
 		} catch (TaskAbortException ex) {
-			return "Error";
+			return "Error finding Status";
 		}
-		return status.name();
 	}
 
 	public boolean isPartiallyDone() {
