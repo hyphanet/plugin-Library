@@ -136,10 +136,11 @@ public class ProgressParts {
 	}
 
 	/**
-	** Whether the task is done, ie. whether all four fields are equal.
+	** Whether the task is done, ie. whether {@code done == staretd == known}
+	** and the total is {@linkplain #totalest finalized}.
 	*/
 	final public boolean isDone() {
-		return done == started && started == known && known == totalest;
+		return done == started && started == known && totalest == TOTAL_FINALIZED;
 	}
 
 	/**

@@ -17,6 +17,10 @@ public interface CompositeProgress extends Progress {
 	** Implementations should return {@link ProgressParts#getSubParts(Iterable,
 	** boolean)}, with the first argument being the same underlying collection
 	** as {@link #getSubProgress()}.
+	**
+	** TODO: BaseCompositeProgress actually uses {@link
+	** ProgressParts#getParts(Iterable, int)}.... should we change the above
+	** spec?
 	*/
 	@Override public ProgressParts getParts() throws TaskAbortException;
 
