@@ -60,7 +60,7 @@ class MainPageToadlet extends Toadlet {
 			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/stylecss", "text/css"});
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
-			MainPage errorpage = new MainPage(e);
+			MainPage errorpage = new MainPage(e, library, pr);
 			MultiValueTable<String, String> headers = new MultiValueTable();
 			errorpage.writeContent(contentNode, headers);
 			writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
@@ -99,7 +99,7 @@ class MainPageToadlet extends Toadlet {
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 			// makes a mainpage for showing errors
-			MainPage errorpage = new MainPage(e);
+			MainPage errorpage = new MainPage(e, library, pr);
 			MultiValueTable<String, String> headers = new MultiValueTable();
 			errorpage.writeContent(contentNode, headers);
 			writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
