@@ -15,7 +15,7 @@ import plugins.Library.Library;
 
 public class WebInterface {
 	private PageMaker pageMaker;
-	private PageToadlet[] toadlets;
+	private MainPageToadlet[] toadlets;
 	private final ToadletContainer toadletContainer;
 	private final HighLevelSimpleClient client;
 	private final NodeClientCore core;
@@ -42,11 +42,11 @@ public class WebInterface {
 	public void load() {
 		//pageMaker.addNavigationCategory("/library/", "Library", "Library", new Main());
 
-		toadlets  = new PageToadlet[]{
-			new PageToadlet(client, library, core, new MainPage(library, pr)),
+		toadlets  = new MainPageToadlet[]{
+			new MainPageToadlet(client, library, core, pr),
 		};
 
-		for (PageToadlet toadlet : toadlets) {
+		for (MainPageToadlet toadlet : toadlets) {
 			toadletContainer.register(toadlet, toadlet.menu(), toadlet.path(), true, toadlet.name(), toadlet.name(), true, null );
 		}
 		toadletContainer.register(new StaticToadlet(client), null, "/library/static/", true, false);
@@ -57,7 +57,7 @@ public class WebInterface {
 	 * UNload the Library interface form the FProxy interface
 	 */
 	public void unload() {
-		for (PageToadlet pageToadlet : toadlets) {
+		for (MainPageToadlet pageToadlet : toadlets) {
 			toadletContainer.unregister(pageToadlet);
 			pageMaker.removeNavigationLink(pageToadlet.menu(), pageToadlet.name());
 		}

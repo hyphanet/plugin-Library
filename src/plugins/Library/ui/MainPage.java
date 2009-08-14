@@ -29,7 +29,7 @@ import plugins.Library.serial.TaskAbortException;
  *
  * @author MikeB
  */
-class MainPage implements WebPage {
+class MainPage {
 	private final Library library;
 	private final PluginRespirator pr;
 
@@ -44,13 +44,20 @@ class MainPage implements WebPage {
 	private ArrayList<String> selectedBMIndexes = new ArrayList();
 	/** Any other indexes which are not bookmarks seperated by spaces */
 	private String etcIndexes ="";
-	private boolean groupusk;
+	private boolean groupusk = false;
 	private StringBuilder messages = new StringBuilder();
 
 	// For when a freesite requests that a bookmark be added, user authorization is needed
-	private boolean authorize;
+	private boolean authorize = false;
 	private String addindexname;
 	private String addindexuri;
+
+
+	MainPage(Exception e) {
+		exceptions.add(e);
+		library = null;
+		pr = null;
+	}
 	
 	
 	/**
@@ -170,51 +177,36 @@ class MainPage implements WebPage {
 	 * freenet.support.HTMLNode)
 	 */
 	public void writeContent(HTMLNode contentNode, MultiValueTable<String, String> headers) {
-		//Logger.normal(this, "Writing page for "+ query + " " + search + " " + indexuri);
+		try{
+			//Logger.normal(this, "Writing page for "+ query + " " + search + " " + indexuri);
 
-		String refreshURL = null;
-		if ( search != null)
-			refreshURL = path()+"?request="+search.hashCode() + (showold?"&showold=on":"") + (groupusk?"&groupusk=on":"");
-		try {
-			// Don't refresh if there is no request option, if it is finished or there is an error to show or js is enabled
-			if (search != null && !"".equals(search.getQuery()) && !search.isDone() && exceptions.size() <= 0) {
-				// refresh will GET so use a request id
-				if (!js && !authorize) {
-					headers.put("Refresh", "2;url=" + refreshURL);
-					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
-					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
-				}
+			// Generate the url to refresh to to update the progress
+			String refreshURL = null;
+			if ( search != null)
+				refreshURL = path()+"?request="+search.hashCode() + (showold?"&showold=on":"") + (groupusk?"&groupusk=on":"");
+
+
+
+			// Start of body
+			// authorization box, gives the user a choice of whther to authorize something
+			if(authorize){
+				HTMLNode authorizeBox = contentNode.addChild("div");
+				authorizeBox.addChild("h1", "Your authorization required :");
+				HTMLNode bookmarkBox = authorizeBox.addChild("div", "Whatever started this request is trying to add a bookmark you your index bookmarks, do you want to add a bookmark with the name \""+addindexname+"\" and uri \""+addindexuri+"\"?");
+				bookmarkBox.addChild("a", "href", refreshURL + "&indexname="+addindexname+"&index="+addindexuri, "yes");
+				bookmarkBox.addChild("br");
+				bookmarkBox.addChild("a", "href", refreshURL, "no");
 			}
-		} catch (TaskAbortException ex) {
-			exceptions.add(ex);	// TODO do this much better
-		}
-
-		
-        // Start of body
-		// authorization box, gives the user a choice of whther to authorize something
-		if(authorize){
-			HTMLNode authorizeBox = contentNode.addChild("div");
-			authorizeBox.addChild("h1", "Your authorization required :");
-			HTMLNode bookmarkBox = authorizeBox.addChild("div", "Whatever started this request is trying to add a bookmark you your index bookmarks, do you want to add a bookmark with the name \""+addindexname+"\" and uri \""+addindexuri+"\"?");
-			bookmarkBox.addChild("a", "href", refreshURL + "&indexname="+addindexname+"&index="+addindexuri, "yes");
-			bookmarkBox.addChild("br");
-			bookmarkBox.addChild("a", "href", refreshURL, "no");
-		}
-		contentNode.addChild(searchBox());
+			contentNode.addChild(searchBox());
 
 
-        // Show any errors
-		HTMLNode errorDiv = new HTMLNode("div", "id", "errors");
-		for (Exception exception : exceptions) {
-			addError(errorDiv, exception);
-		}
-		contentNode.addChild(errorDiv);
-		contentNode.addChild("p", messages.toString());
+			// Show any errors
+			HTMLNode errorDiv = contentNode.addChild("div", "id", "errors");
+			contentNode.addChild("p", messages.toString());
 
 
-        // If showing a search
-        if(search != null){
-			try {
+			// If showing a search
+			if(search != null){
 				// show progress
 				contentNode.addChild(progressBox());
 				// If search is complete show results
@@ -224,17 +216,35 @@ class MainPage implements WebPage {
 						ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk);
 						contentNode.addChild(nodegenerator.generatePageEntryNode(showold, js));
 					} catch (TaskAbortException ex) {
-						addError(errorDiv, ex);
+						exceptions.add(ex);
 					} catch (RuntimeException ex) {
-						addError(errorDiv, ex);
+						exceptions.add(ex);
 					}
 				} else {
 					contentNode.addChild("div", "id", "results").addChild("#");
 				}
-			} catch (TaskAbortException ex) {
-				// this will never catch TODO do this much much nicer
 			}
-        }
+
+
+			for (Exception exception : exceptions) {
+				addError(errorDiv, exception);
+			}
+
+
+			// Don't refresh if there is no request option, if it is finished or there is an error to show or js is enabled
+			if (search != null && !"".equals(search.getQuery()) && !search.isDone() && exceptions.size() <= 0) {
+				// refresh will GET so use a request id
+				if (!js && !authorize) {
+					headers.put("Refresh", "2;url=" + refreshURL);
+					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
+					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
+				}
+			}
+		}catch(TaskAbortException e) {
+			exceptions.add(e);
+			search = null;
+			writeContent(contentNode, headers);
+		}
 	}
 
 
@@ -407,7 +417,7 @@ class MainPage implements WebPage {
 			// search stage
 			bar.addChild("td", progress.getStatus());
 			// show fetch progress if fetching something
-			if(progress.isDone() || progress.getParts().totalest==0){
+			if(progress.isDone() || progress.getParts().known==0){
 				bar.addChild("td", ""); bar.addChild("td");
 			}else{
 				float fractiondone = parts.getKnownFractionDone();
@@ -422,27 +432,10 @@ class MainPage implements WebPage {
 			return bar;
 		}
 	}
-	
-	
-	
-	@Override
-	public WebPage clone() {
-		return new MainPage(library, pr);
-	}
-	
-	public String path() {
+
+
+
+	public static String path() {
 		return "/library/";
-	}
-	
-	public String supportedMethods() {
-		return "GET, POST";
-	}
-
-	public String name() {
-		return "WelcomeToadlet.searchFreenet";
-	}
-
-	public String menu() {
-		return "FProxyToadlet.categoryBrowsing";
 	}
 }
