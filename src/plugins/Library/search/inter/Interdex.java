@@ -3,9 +3,16 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search.inter;
 
+import plugins.Library.index.TermEntry;
+import plugins.Library.index.TermIndexEntry;
+import plugins.Library.index.TermTermEntry;
+import plugins.Library.library.Index;
+
 import freenet.keys.FreenetURI;
 
+import java.util.Set;
 import java.util.Map;
+import java.util.HashMap;
 
 /**
 ** DOCUMENT
@@ -16,20 +23,50 @@ public class Interdex /* implements Index */ {
 
 
 
+	/**
+	** Constructs the root set of {@link IndexQuery}s.
+	*/
+	protected static Map<Index, Float> getRootIndices() {
+		throw new UnsupportedOperationException("not implemented");
+	}
+
+
+
 
 	/**
 	** Class to handle a request for a given subject term.
 	*/
-	public class Query {
+	public class InterdexQuery implements Runnable {
 
-		/*final*/ public String subject;
-
-		/*final*/ public Map<FreenetURI, IndexQuery> queries;
-
-		/*final*/ public Map<String, TermResults> results;
+		final public String subject;
 
 		/**
-		** TODO implement
+		** Table of {@link IndexQuery} objects relevant to this query.
+		*/
+		final protected Map<FreenetURI, IndexQuery> queries = new HashMap<FreenetURI, IndexQuery>();
+
+		/**
+		** Table of terms relevant to this query and results retrieved for
+		** that particular term.
+		**
+		*/
+		/*final*/ protected Map<String, TermResults> results;
+
+		/**
+		** Constructs a new InterdexQuery and TODO starts executing it.
+		*/
+		public InterdexQuery(String subj) {
+			subject = subj;
+			Map<Index, Float> roots = getRootIndices();
+			for (Map.Entry<Index, Float> en: roots.entrySet()) {
+				Index index = en.getKey();
+				// FreenetURI id = index.reqID;
+				// queries.put(id, new IndexQuery(index, en.getValue(), subj));
+			}
+		}
+
+		/**
+		** TODO implement.
 		**
 		** Returns the average perceived relevance of a given term relative to
 		** a parent subject term. "Perceived" because it uses data from indexes
@@ -51,6 +88,12 @@ public class Interdex /* implements Index */ {
 		** by this method will be lower (than it would be if more indexes had
 		** had supplied a rating).
 		**
+		** We choose 1/3 as an arbitrary compromise between majority-ignorance
+		** (most people might not know obscure term X is related to obscure
+		** term Y) and minority-attack (one person might inject information to
+		** distort a search query; we shouldn't expect WoT to deal with minor
+		** corner cases). '''This value can be discussed further'''.
+		**
 		** Formally, let
 		**
 		** : S := subject
@@ -71,7 +114,8 @@ public class Interdex /* implements Index */ {
 		}
 
 		/**
-		** TODO implement. maybe use JGraphT.
+		** TODO implement. maybe use JGraphT. DefaultDirectedWeightedGraph
+		** and DijkstraShortestPath.
 		**
 		** Returns the effective relevance of all terms relative to the subject
 		** term for this query.
@@ -80,7 +124,7 @@ public class Interdex /* implements Index */ {
 		** defined as the highest-relevance path from the subject to that term,
 		** where the relevance of a path is defined as the product of all the
 		** edges on it, where each edge from S to T has weight equal to their
-		** {@linkplain getAvPercvRelevance(String, String) average perceived
+		** {@linkplain #getAvPercvRelevance(String, String) average perceived
 		** relevance}.
 		**
 		** This is itself equivalent to the shortest-path problem from the
@@ -95,6 +139,57 @@ public class Interdex /* implements Index */ {
 		*/
 		public Map<String, Float> getEffectiveRelevances() {
 			throw new UnsupportedOperationException("not implemented");
+		}
+
+
+		/**
+		** Returns true when we have enough data to display something
+		** acceptable to the user. The query may still be going on in the
+		** background.
+		**
+		** TODO decide when this is.
+		*/
+		/*@Override*/ public boolean isPartiallyDone() {
+			throw new UnsupportedOperationException("not implemented");
+		}
+
+
+		public void run() {
+
+			for (;;) {
+
+				while (Math.log(1)!=0 /* completed tasks is not empty */ ) {
+					// get completed task
+
+					Set<TermEntry> entries = null;
+
+					for (TermEntry en: entries) {
+
+						if (en instanceof TermIndexEntry) {
+
+						} else if (en instanceof TermTermEntry) {
+
+
+						} else {
+
+
+						}
+
+
+					}
+
+				}
+
+				while (Math.log(1)!=0 /* pending tasks is not empty */) {
+
+
+
+
+
+
+				}
+
+			}
 		}
 
 	}

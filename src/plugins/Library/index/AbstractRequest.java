@@ -33,19 +33,19 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	final protected Date start;
 	protected Date stop = null;
 
-	protected String subject;
+	final protected String subject;
 
 	/**
 	** Holds the error that caused the operation to abort, if any. If not
 	** {@code null}, then thrown by {@link #getResult()}.
 	*/
-	protected TaskAbortException error;
+	private TaskAbortException error;
 
 	/**
 	** Holds the result of the operation once it completes. If {@link #error}
 	** is {@code null}, then returned by {@link #getResult()}.
 	*/
-	protected T result;
+	private T result;
 
 	/**
 	** Create a Request with the given subject, with the start time set to the
@@ -56,16 +56,18 @@ public abstract class AbstractRequest<T> implements Request<T> {
 		this.start = new Date();
 	}
 
-	protected void setResult(T res) {
+	protected synchronized void setResult(T res) {
 		if (stop != null) { throw new IllegalStateException("Task has already finished."); }
 		result = res;
 		stop = new Date();
+		notifyAll();
 	}
 
-	protected void setError(TaskAbortException err) {
+	protected synchronized void setError(TaskAbortException err) {
 		if (stop != null) { throw new IllegalStateException("Task has already finished."); }
 		error = err;
 		stop = new Date();
+		notifyAll();
 	}
 
 	/**
@@ -95,13 +97,9 @@ public abstract class AbstractRequest<T> implements Request<T> {
 		return result != null;
 	}
 
-	/**
-	** {@inheritDoc}
-	**
-	** This implementation throws {@link UnsupportedOperationException}.
-	*/
-	@Override public void join() throws InterruptedException, TaskAbortException {
-		throw new UnsupportedOperationException("not implemented");
+	@Override public synchronized void join() throws InterruptedException, TaskAbortException {
+		while (stop == null) { wait(); }
+		if (error != null) { throw error; }
 	}
 
 	/*========================================================================

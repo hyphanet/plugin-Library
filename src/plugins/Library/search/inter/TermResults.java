@@ -14,14 +14,14 @@ import java.util.Map;
 public class TermResults {
 
 	/**
-	** Subject term for these results.
-	*/
-	/*final*/ public String subject;
-
-	/**
 	** Subject term for the original query.
 	*/
 	/*final*/ public String query_subject;
+
+	/**
+	** Subject term for these results.
+	*/
+	/*final*/ public String subject;
 
 	/**
 	** Map of parent terms to the relevances that were seen for this term in
@@ -45,6 +45,11 @@ public class TermResults {
 	*/
 	public float getCachedAveragePerceivedRelevance() {
 		return av_pcv_rel_;
+	}
+
+	public TermResults(String q, String s) {
+		query_subject = q;
+		subject = s;
 	}
 
 

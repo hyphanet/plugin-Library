@@ -150,7 +150,7 @@ final public class ProtoIndex implements Index {
 
 		@Override public ProgressParts getParts() throws TaskAbortException {
 			// TODO tidy this up
-			if (error != null) { throw error; }
+			Collection<TermEntry> result = getResult();
 			int started = trackers.size();
 			int known = started;
 			int done = started - 1;
@@ -158,17 +158,6 @@ final public class ProtoIndex implements Index {
 			if (done < 0) { done = 0; }
 			int estimate = (result != null)? ProgressParts.TOTAL_FINALIZED: Math.max(ttab.heightEstimate()+1, known);
 			return new ProgressParts(done, started, known, estimate);
-		}
-
-		/**
-		** {@inheritDoc}
-		**
-		** This implementation returns an immutable collection backed by the
-		** data stored in the Library.
-		*/
-		@Override public Collection<TermEntry> getResult() throws TaskAbortException {
-			if (error != null) { throw error; }
-			return result;
 		}
 
 		@Override public String getStatus() {

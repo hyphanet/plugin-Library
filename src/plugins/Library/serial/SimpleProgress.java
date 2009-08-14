@@ -54,6 +54,8 @@ public class SimpleProgress implements Progress {
 
 	protected String subject = "??";
 
+	protected String status = null;
+
 	/**
 	** Number of parts done.
 	*/
@@ -72,11 +74,9 @@ public class SimpleProgress implements Progress {
 	*/
 	protected volatile int estimate = ProgressParts.ESTIMATE_UNKNOWN;
 
-	protected String status = null;
+	private boolean inprogress = true; // this variable is only used in synchronized blocks so doesn't need to be volatile
 
-	protected boolean inprogress = true; // this variable is only used in synchronized blocks so doesn't need to be volatile
-
-	protected volatile TaskAbortException abort = null;
+	private volatile TaskAbortException abort = null;
 
 	public SimpleProgress() { }
 
