@@ -288,6 +288,8 @@ public class Library {
 	public Object getKeyTypeFromString(String indexuri) {
 		try {
 			// return KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri); KEYEXPLORER
+			// OPTIMISE if it already ends with eg. *Index.DEFAULT_FILE, don't strip
+			// the MetaString, and have getIndexType behave accordingly
 			FreenetURI tempURI = new FreenetURI(indexuri);
 			if (tempURI.hasMetaStrings()) { tempURI = tempURI.setMetaString(null); }
 			if (tempURI.isUSK()) { tempURI = tempURI.sskForUSK(); }
