@@ -43,7 +43,7 @@ class MainPageToadlet extends Toadlet {
 		try {
 			PageNode p = ctx.getPageMaker().getPageNode(Library.plugName, ctx);
 			// Style
-			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/stylecss", "text/css"});
+			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/style.css", "text/css"});
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 
@@ -57,7 +57,7 @@ class MainPageToadlet extends Toadlet {
 		} catch(RuntimeException e) {
 			PageNode p = ctx.getPageMaker().getPageNode(Library.plugName, ctx);
 			// Style
-			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/stylecss", "text/css"});
+			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/style.css", "text/css"});
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 			MainPage errorpage = new MainPage(e, library, pr);
@@ -80,7 +80,7 @@ class MainPageToadlet extends Toadlet {
 			// Get the nodes of the page
 			PageNode p = ctx.getPageMaker().getPageNode(Library.plugName, ctx);
 			// Style
-			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/stylecss", "text/css"});
+			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/style.css", "text/css"});
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 			
@@ -95,7 +95,7 @@ class MainPageToadlet extends Toadlet {
 		} catch(RuntimeException e) {
 			PageNode p = ctx.getPageMaker().getPageNode(Library.plugName, ctx);
 			// Style
-			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/stylecss", "text/css"});
+			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/style.css", "text/css"});
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 			// makes a mainpage for showing errors

@@ -103,6 +103,10 @@
 			<include name="**/*.java"/>
 			<!--<compilerarg value="-Xlint:unchecked"/>-->
 		</javac>
+		<!-- Copy web interface static files to the build dir -->
+		<copy todir="${build}/plugins/Library/ui/staticfiles">
+			<fileset dir="src/plugins/Library/ui/staticfiles"/>
+		</copy>
 	</target>
 
 	<target name="run" depends="dist">

@@ -247,8 +247,8 @@ class MainPage {
 				// refresh will GET so use a request id
 				if (!js && !authorize) {
 					headers.put("Refresh", "2;url=" + refreshURL);
-					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
-					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "scriptjs" : "detectjs") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
+					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "script.js" : "detect.js") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
+					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "script.js" : "detect.js") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
 				}
 			}
 		}catch(TaskAbortException e) {
