@@ -59,6 +59,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	private PluginRespirator pr;
 	private Executor executor;
 	private ClientGetter rootGetter;
+	private int fetchFailures = 0;
 	public enum FetchStatus{UNFETCHED, FETCHING, FETCHED, FAILED}
 	protected FetchStatus fetchStatus = FetchStatus.UNFETCHED;
 	protected HashMap<String, String> indexMeta  = new HashMap<String, String>();
@@ -153,7 +154,8 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 
 	/** Called on failed/canceled fetch */
 	public void onFailure(FetchException e, ClientGetter state, ObjectContainer container){
-		if(e.newURI!=null){
+		fetchFailures++;
+		if(fetchFailures < 20 && e.newURI!=null){
 			try {
 				indexuri = e.newURI.setMetaString(null).toString();
 				startFetch();
