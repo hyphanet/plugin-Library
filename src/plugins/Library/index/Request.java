@@ -25,7 +25,7 @@ import java.util.Date;
 ** @author MikeB
 ** @author infinity0
 */
-public interface Request<T> extends Progress {
+public interface Request<T> extends Progress /*implements Runnable*/ {
 
 	/**
 	** Returns the Date object representing the time at which this request was

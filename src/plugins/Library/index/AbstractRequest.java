@@ -18,9 +18,10 @@ import java.util.Date;
 **
 ** * {@link Progress#getParts()}
 **
-** and make sure the {@link #error}, and {@link #result} fields are set
-** appropriately during the course of the operation. (You can use {@link
-** #setResult(Object)} and {@link #setError(TaskAbortException)} to do this.)
+** The programmer must call {@link #setResult(Object)} and {@link
+** #setError(TaskAbortException)} to set the error and result fields correctly.
+** If these methods are overridden, they '''must''' call the overriden ones
+** using {@code super}.
 **
 ** The programmer might also wish to override the following:
 ** * {@link #join()}
@@ -30,7 +31,7 @@ import java.util.Date;
 */
 public abstract class AbstractRequest<T> implements Request<T> {
 
-	final protected Date start;
+	protected Date start;
 	protected Date stop = null;
 
 	final protected String subject;
@@ -48,12 +49,25 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	private T result;
 
 	/**
-	** Create a Request with the given subject, with the start time set to the
-	** current time.
+	** Create a Request with the given subject, and immediately starts it.
 	*/
-	public AbstractRequest(String sub){
+	public AbstractRequest(String sub) {
+		this(sub, true);
+	}
+
+	/**
+	** Create a Request with the given subject.
+	**
+	** @param sub The subject
+	** @param start Whether to automatically start executing the request.
+	*/
+	public AbstractRequest(String sub, boolean autostart) {
 		this.subject = sub;
-		this.start = new Date();
+		if (autostart) { setStartDate(); }
+	}
+
+	protected synchronized void setStartDate() {
+		start = new Date();
 	}
 
 	protected synchronized void setResult(T res) {
@@ -71,12 +85,13 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	}
 
 	/**
-	** Get the time taken for the operation to finish.
+	** Get the time taken for the operation to finish. If this is negative, the
+	** task has not yet completed.
 	**
 	** TODO put this into {@link Request}?
 	*/
 	public long getTimeTaken() {
-		if (stop == null) { throw new IllegalStateException("Task not yet finished."); }
+		if (stop == null) { return -1; }
 		return stop.getTime() - start.getTime();
 	}
 
