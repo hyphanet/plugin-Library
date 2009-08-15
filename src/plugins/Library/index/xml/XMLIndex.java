@@ -89,7 +89,9 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		this.pr = pr;
 		if (pr!=null)
 			executor = pr.getNode().executor;
-
+		
+		if (baseURI.endsWith(DEFAULT_FILE))
+			baseURI = baseURI.replace(DEFAULT_FILE, "");
 		if (!baseURI.endsWith("/"))
 			baseURI += "/";
 		indexuri = baseURI;

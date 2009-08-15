@@ -150,6 +150,9 @@ public class Library {
 	** a metastring (end with "/") or be a USK.
 	*/
 	public Class<?> getIndexType(FreenetURI indexuri) throws FetchException {
+		if(indexuri.lastMetaString().equals(XMLIndex.DEFAULT_FILE))
+			return XMLIndex.class;
+
 
 		NodeClientCore core = pr.getNode().clientCore;
 		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
@@ -316,8 +319,8 @@ public class Library {
 			// PRIORITY OPTIMISE if it already ends with eg. *Index.DEFAULT_FILE, don't strip
 			// the MetaString, and have getIndexType behave accordingly
 			FreenetURI tempURI = new FreenetURI(indexuri);
-			if (tempURI.hasMetaStrings()) { tempURI = tempURI.setMetaString(null); }
-			if (tempURI.isUSK()) { tempURI = tempURI.sskForUSK(); }
+//			if (tempURI.hasMetaStrings()) { tempURI = tempURI.setMetaString(null); }
+//			if (tempURI.isUSK()) { tempURI = tempURI.sskForUSK(); }
 			return tempURI;
 		} catch (MalformedURLException e) {
 			File file = new File(indexuri);
