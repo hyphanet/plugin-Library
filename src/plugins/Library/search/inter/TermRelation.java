@@ -74,11 +74,11 @@ public class TermRelation {
 	** in the WoT's nearer rings; "average" because it generates an average
 	** rating from the individual values encountered.
 	**
-	** The value is calculated from the mean of all the relevance values
-	** encountered for this subject-term pair (with the weights /
-	** probabilities being the normalised trust score of the index which
-	** defined the pairing), multiplied by 3. (Values greater than 1 are
-	** normalised back down to 1).
+	** The value is calculated from the weighted mean of all relevance values
+	** encountered for this {@link TermRelation}, multiplied by triple the
+	** weighted ratio of (indexes defining this {@code TermRelation}) to
+	** (indexes defining the {@link TermDefinition} of the subject).
+	** Triple-ratios greater than 1 are normalised back down to 1).
 	**
 	** For example, if we have encountered 9 indexes all with equal weight,
 	** and 2 of them defined rel(S, T) = 0.5, then this method will return
@@ -97,8 +97,8 @@ public class TermRelation {
 	**
 	** Formally, let
 	**
-	** : S := subject
-	** : T := term
+	** : S := subject term
+	** : T := target term
 	** : A := { all indexes encountered }
 	** : D := { i &#x220A; A: i[S] is defined }
 	** : R := { i &#x220A; A: i.rel(S, T) is defined }

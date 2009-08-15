@@ -24,7 +24,7 @@ public class TermDefinition {
 	final protected Set<IndexIdentity> def = new HashSet<IndexIdentity>();
 
 	/**
-	** Total trust mass of the relevance map. This is the term
+	** Total trust mass of the defining identities. This is the term
 	**
 	** : W<sub>D</sub> == &Sigma;<sub>i&#x220A;D</sub>W<sub>i</sub>
 	**
