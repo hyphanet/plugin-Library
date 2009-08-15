@@ -22,7 +22,7 @@ public interface CompositeProgress extends Progress {
 	** ProgressParts#getParts(Iterable, int)}.... should we change the above
 	** spec?
 	*/
-	@Override public ProgressParts getParts() throws TaskAbortException;
+	/*@Override**/ public ProgressParts getParts() throws TaskAbortException;
 
 	/**
 	** Gets all the Progress objects backing this progress. The iterator

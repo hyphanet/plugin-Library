@@ -73,7 +73,7 @@ public class Tester {
 				YamlReaderWriter yamlrw = new YamlReaderWriter();
 				FreenetArchiver arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000);
 
-				public void run() {
+				@Override public void run() {
 					push_progress_start = new Date();
 					Map<String, Integer> testmap = new TreeMap<String, Integer>();
 					for(int i=0; i<0x10000; ++i) {
@@ -143,7 +143,7 @@ public class Tester {
 				ProtoIndex idx;
 				Random rand = new Random();
 
-				public void run() {
+				@Override public void run() {
 					try {
 						idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test");
 					} catch (java.net.MalformedURLException e) {

@@ -44,19 +44,19 @@ abstract public class CompositeIterable<S, T> implements Iterable<T> {
 		immutable = immute;
 	}
 
-	@Override public Iterator<T> iterator() {
+	/*@Override**/ public Iterator<T> iterator() {
 		return immutable?
 		new Iterator<T>() {
 			final Iterator<S> it = ib.iterator();
-			@Override public boolean hasNext() { return it.hasNext(); }
-			@Override public T next() { return CompositeIterable.this.nextFor(it.next()); }
-			@Override public void remove() { throw new UnsupportedOperationException("Immutable iterator"); }
+			/*@Override**/ public boolean hasNext() { return it.hasNext(); }
+			/*@Override**/ public T next() { return CompositeIterable.this.nextFor(it.next()); }
+			/*@Override**/ public void remove() { throw new UnsupportedOperationException("Immutable iterator"); }
 		}:
 		new Iterator<T>() {
 			final Iterator<S> it = ib.iterator();
-			@Override public boolean hasNext() { return it.hasNext(); }
-			@Override public T next() { return CompositeIterable.this.nextFor(it.next()); }
-			@Override public void remove() { it.remove(); }
+			/*@Override**/ public boolean hasNext() { return it.hasNext(); }
+			/*@Override**/ public T next() { return CompositeIterable.this.nextFor(it.next()); }
+			/*@Override**/ public void remove() { it.remove(); }
 		};
 	}
 

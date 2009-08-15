@@ -100,7 +100,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	  public interface Map
 	 ========================================================================*/
 
-	@Override public boolean containsKey(Object key) {
+	/*@Override**/ public boolean containsKey(Object key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return false; }
 
@@ -109,7 +109,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return map.containsKey(k);
 	}
 
-	@Override public boolean containsValue(Object value) {
+	/*@Override**/ public boolean containsValue(Object value) {
 		if (tmap.containsValue(value)) { return true; }
 		for (PrefixTreeMap<K, V> ch: child) {
 			if (ch != null && ch.containsValue(value)) { return true; }
@@ -117,7 +117,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return false;
 	}
 
-	@Override public V get(Object key) {
+	/*@Override**/ public V get(Object key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return null; }
 
@@ -126,7 +126,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return map.get(k);
 	}
 
-	@Override public V put(K key, V value) {
+	/*@Override**/ public V put(K key, V value) {
 		if (!key.match(prefix, preflen)) {
 			throw new IllegalArgumentException("Key does not match prefix for this tree.");
 		}
@@ -140,7 +140,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return v;
 	}
 
-	@Override public void putAll(Map<? extends K,? extends V> t) {
+	/*@Override**/ public void putAll(Map<? extends K,? extends V> t) {
 		for (Map.Entry<K, V> e: ((Map<K, V>)t).entrySet()) {
 			// TODO need to implement entrySet for PrefixTreeMap
 			// if we want to be able to merge two PTMs!
@@ -148,7 +148,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		}
 	}
 
-	@Override public V remove(Object key) {
+	/*@Override**/ public V remove(Object key) {
 		K k; if (!(key instanceof PrefixKey) ||
 			!(k = (K) key).match(prefix, preflen)) { return null; }
 
@@ -161,7 +161,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		return v;
 	}
 
-	@Override public Set<Map.Entry<K,V>> entrySet() {
+	/*@Override**/ public Set<Map.Entry<K,V>> entrySet() {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
@@ -169,7 +169,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
-	@Override public Collection<V> values() {
+	/*@Override**/ public Collection<V> values() {
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 

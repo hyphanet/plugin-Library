@@ -55,7 +55,7 @@ implements IterableSerialiser<T>,
 	}
 
 	// return ? extends Progress so as to hide the implementation details of P
-	@Override public ProgressTracker<T, ? extends Progress> getTracker() {
+	/*@Override**/ public ProgressTracker<T, ? extends Progress> getTracker() {
 		return tracker;
 	}
 
@@ -63,7 +63,7 @@ implements IterableSerialiser<T>,
 	  public interface IterableSerialiser
 	 ========================================================================*/
 
-	@Override public void pull(PullTask<T> task) throws TaskAbortException {
+	/*@Override**/ public void pull(PullTask<T> task) throws TaskAbortException {
 		try {
 			try {
 				P p = tracker.addPullProgress(task);
@@ -77,7 +77,7 @@ implements IterableSerialiser<T>,
 		}
 	}
 
-	@Override public void push(PushTask<T> task) throws TaskAbortException {
+	/*@Override**/ public void push(PushTask<T> task) throws TaskAbortException {
 		try {
 			try {
 				P p = tracker.addPushProgress(task);
@@ -96,7 +96,7 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	@Override public void pull(Iterable<PullTask<T>> tasks) throws TaskAbortException {
+	/*@Override**/ public void pull(Iterable<PullTask<T>> tasks) throws TaskAbortException {
 		List<Progress> progs = new ArrayList<Progress>();
 		try {
 			for (Iterator<PullTask<T>> it = tasks.iterator(); it.hasNext();) {
@@ -123,7 +123,7 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	@Override public void push(Iterable<PushTask<T>> tasks) throws TaskAbortException {
+	/*@Override**/ public void push(Iterable<PushTask<T>> tasks) throws TaskAbortException {
 		List<Progress> progs = new ArrayList<Progress>();
 		try {
 			for (Iterator<PushTask<T>> it = tasks.iterator(); it.hasNext();) {
@@ -150,7 +150,7 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	@Override public Scheduler pullSchedule(BlockingQueue<PullTask<T>> input,
+	/*@Override**/ public Scheduler pullSchedule(BlockingQueue<PullTask<T>> input,
 	                                        BlockingQueue<PullTask<T>> output,
 	                                        ConcurrentMap<PullTask<T>, TaskAbortException> error) {
 		return new PullTaskHandler(input, output, error);
@@ -161,7 +161,7 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	@Override public Scheduler pushSchedule(BlockingQueue<PushTask<T>> input,
+	/*@Override**/ public Scheduler pushSchedule(BlockingQueue<PushTask<T>> input,
 	                                        BlockingQueue<PushTask<T>> output,
 	                                        ConcurrentMap<PushTask<T>, TaskAbortException> error) {
 		return new PushTaskHandler(input, output, error);
@@ -291,12 +291,12 @@ implements IterableSerialiser<T>,
 
 		// public interface Scheduler
 
-		@Override public void close() {
+		/*@Override**/ public void close() {
 			running = false;
 			interrupt();
 		}
 
-		@Override public boolean isActive() {
+		/*@Override**/ public boolean isActive() {
 			// NOTE: this method is pointless when in serial mode
 			// URGENT verify this
 			return exec.getTaskCount() > exec.getCompletedTaskCount();

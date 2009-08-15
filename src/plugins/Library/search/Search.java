@@ -352,7 +352,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	/**
 	 * @return List of Progresses this search depends on, it will not return CompositeProgresses
 	 */
-	@Override public List<? extends Progress> getSubProgress(){
+	/*@Override**/ public List<? extends Progress> getSubProgress(){
 		Logger.minor(this, toString());
 
 		// Only index splits will allowed as composites

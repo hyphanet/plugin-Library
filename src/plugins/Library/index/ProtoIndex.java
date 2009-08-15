@@ -165,13 +165,13 @@ final public class ProtoIndex implements Index {
 			return (cur == null)? "Starting next stage...": cur.getSubject() + ": " + cur.getStatus();
 		}
 
-		@Override public Progress getCurrentProgress() {
+		/*@Override**/ public Progress getCurrentProgress() {
 			return last != null? last: current_tracker == null? null: current_tracker.getPullProgressFor(current_meta);
 		}
 
 		// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
 		Progress last = null;
-		@Override public void run() {
+		/*@Override**/ public void run() {
 			try {
 				// get the root container
 				SkeletonBTreeSet<TermEntry> root;

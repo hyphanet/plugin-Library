@@ -55,11 +55,11 @@ public class BaseCompositeProgress implements CompositeProgress {
 	  public interface Progress
 	 ========================================================================*/
 
-	@Override public String getSubject() {
+	/*@Override**/ public String getSubject() {
 		return subject;
 	}
 
-	@Override public String getStatus() {
+	/*@Override**/ public String getStatus() {
 		try {
 			return getParts().toString();
 		} catch (TaskAbortException e) {
@@ -68,16 +68,16 @@ public class BaseCompositeProgress implements CompositeProgress {
 		}
 	}
 
-	@Override public ProgressParts getParts() throws TaskAbortException {
+	/*@Override**/ public ProgressParts getParts() throws TaskAbortException {
 		return ProgressParts.getParts(subprogress, esttype);
 	}
 
-	@Override public Iterable<? extends Progress> getSubProgress() {
+	/*@Override**/ public Iterable<? extends Progress> getSubProgress() {
 		// TODO make this check that subprogress is immutable, and if not return a wrapper
 		return subprogress;
 	}
 
-	@Override public boolean isDone() throws TaskAbortException {
+	/*@Override**/ public boolean isDone() throws TaskAbortException {
 		for (Progress p: subprogress) {
 			if (p == null || !p.isDone()) { return false; }
 		}
@@ -89,7 +89,7 @@ public class BaseCompositeProgress implements CompositeProgress {
 	**
 	** This method just checks to see if at least one subprogress is done.
 	*/
-	@Override public boolean isPartiallyDone() {
+	/*@Override**/ public boolean isPartiallyDone() {
 		for (Progress p: subprogress) {
 			try {
 				if (p != null && !p.isDone()) { return true; }
@@ -100,7 +100,7 @@ public class BaseCompositeProgress implements CompositeProgress {
 		return false;
 	}
 
-	@Override public void join() throws InterruptedException, TaskAbortException {
+	/*@Override**/ public void join() throws InterruptedException, TaskAbortException {
 		int s = 1;
 		for (;;) {
 			boolean foundnull = false;

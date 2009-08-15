@@ -416,7 +416,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		**
 		** @param n The other node to compare with
 		*/
-		@Override public int compareTo(Node n) {
+		/*@Override**/ public int compareTo(Node n) {
 			int b = compareR(rkey, n.rkey);
 			return (b == 0)? compareL(n.lkey, lkey): b;
 			// the more "natural" version
@@ -1017,7 +1017,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/* provided by AbstractMap
-	@Override public boolean containsValue(Object key) {
+	/*@Override**/ public boolean containsValue(Object key) {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
@@ -1394,7 +1394,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 							return "nodestack: [" + s + "]; cnode: " + cnode.getRange() + "; lastkey: " + lastkey;
 						}*/
 
-						@Override public boolean hasNext() {
+						/*@Override**/ public boolean hasNext() {
 							// TODO ideally iterate in the reverse order
 							for (Iterator<Map.Entry<K, V>> it: itstack) {
 								if (it.hasNext()) { return true; }
@@ -1404,7 +1404,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 							return false;
 						}
 
-						@Override public Map.Entry<K, V> next() {
+						/*@Override**/ public Map.Entry<K, V> next() {
 							if (cnode.isLeaf()) {
 								while (!centit.hasNext()) {
 									if (nodestack.empty()) {
@@ -1432,7 +1432,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 							return next;
 						}
 
-						@Override public void remove() {
+						/*@Override**/ public void remove() {
 							if (!removeok) {
 								throw new IllegalStateException("Iteration has not yet begun, or the element has already been removed.");
 							}
@@ -1502,13 +1502,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 	/* provided by AbstractMap
 	** OPTIMISE - the default clear() method is inefficient
-	@Override public Set<K> keySet() {
+	/*@Override**/ public Set<K> keySet() {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
 	/* provided by AbstractMap
 	** OPTIMISE - the default clear() method is inefficient
-	@Override public Collection<V> values() {
+	/*@Override**/ public Collection<V> values() {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
@@ -1516,11 +1516,11 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	  public interface SortedMap
 	 ========================================================================*/
 
-	@Override public Comparator<? super K> comparator() {
+	/*@Override**/ public Comparator<? super K> comparator() {
 		return comparator;
 	}
 
-	@Override public K firstKey() {
+	/*@Override**/ public K firstKey() {
 		Node node = root;
 		for (;;) {
 			K fkey = node.entries.firstKey();
@@ -1529,7 +1529,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		}
 	}
 
-	@Override public K lastKey() {
+	/*@Override**/ public K lastKey() {
 		Node node = root;
 		for (;;) {
 			K lkey = node.entries.lastKey();
@@ -1543,7 +1543,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** Not yet implemented - throws {@link UnsupportedOperationException}
 	*/
-	@Override public SortedMap<K, V> headMap(K rkey) {
+	/*@Override**/ public SortedMap<K, V> headMap(K rkey) {
 		throw new UnsupportedOperationException("not implemented");
 	}
 
@@ -1552,7 +1552,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** Not yet implemented - throws {@link UnsupportedOperationException}
 	*/
-	@Override public SortedMap<K, V> tailMap(K lkey) {
+	/*@Override**/ public SortedMap<K, V> tailMap(K lkey) {
 		throw new UnsupportedOperationException("not implemented");
 	}
 
@@ -1561,7 +1561,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** Not yet implemented - throws {@link UnsupportedOperationException}
 	*/
-	@Override public SortedMap<K, V> subMap(K lkey, K rkey) {
+	/*@Override**/ public SortedMap<K, V> subMap(K lkey, K rkey) {
 		throw new UnsupportedOperationException("not implemented");
 	}
 

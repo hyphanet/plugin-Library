@@ -169,8 +169,8 @@ public class Library {
 
 			final String[] mime = new String[1];
 			hlsc.addEventHook(new ClientEventListener() {
-				@Override public void onRemoveEventProducer(ObjectContainer container){ }
-				@Override public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
+				/*@Override**/ public void onRemoveEventProducer(ObjectContainer container){ }
+				/*@Override**/ public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
 					if (!(ce instanceof ExpectedMIMEEvent)) { return; }
 					mime[0] = ((ExpectedMIMEEvent)ce).expectedMIMEType;
 					gu.cancel(maybeContainer, context);

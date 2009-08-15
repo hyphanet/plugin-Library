@@ -56,7 +56,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	** and always uses block-level elements.
 	*/
 	final protected static ThreadLocal<Yaml> DEFAULT_YAML = new ThreadLocal<Yaml>() {
-		protected synchronized Yaml initialValue() {
+		@Override protected synchronized Yaml initialValue() {
 			DumperOptions opt = new DumperOptions();
 			opt.setWidth(Integer.MAX_VALUE);
 			opt.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
@@ -81,7 +81,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		yaml = y;
 	}
 
-	@Override public Object readObject(InputStream is) throws IOException {
+	/*@Override**/ public Object readObject(InputStream is) throws IOException {
 		try {
 			return yaml.get().load(new InputStreamReader(is));
 		} catch (YAMLException e) {
@@ -89,7 +89,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		}
 	}
 
-	@Override public void writeObject(Object o, OutputStream os) throws IOException {
+	/*@Override**/ public void writeObject(Object o, OutputStream os) throws IOException {
 		try {
 			yaml.get().dump(o, new OutputStreamWriter(os));
 		} catch (YAMLException e) {
@@ -108,13 +108,13 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		}
 
 		private class RepresentFreenetURI implements Represent {
-			@Override public Node representData(Object data) {
+			/*@Override**/ public Node representData(Object data) {
 				return representScalar("!FreenetURI", ((FreenetURI) data).toString());
 			}
 		}
 
 		private class RepresentPackerBinInfo implements Represent {
-			@Override public Node representData(Object data) {
+			/*@Override**/ public Node representData(Object data) {
 				Packer.BinInfo inf = (Packer.BinInfo)data;
 				Map<Object, Object> map = Collections.<Object, Object>singletonMap(inf.getID(), inf.getWeight());
 				return representMapping("!BinInfo", map, true);
@@ -133,7 +133,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		}
 
 		private class ConstructFreenetURI extends AbstractConstruct {
-			@Override public Object construct(Node node) {
+			/*@Override**/ public Object construct(Node node) {
 				String uri = (String) constructScalar((ScalarNode)node);
 				try {
 					return new FreenetURI(uri);
@@ -144,7 +144,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		}
 
 		private class ConstructPackerBinInfo extends AbstractConstruct {
-			@Override public Object construct(Node node) {
+			/*@Override**/ public Object construct(Node node) {
 				Map<?, ?> map = (Map) constructMapping((MappingNode)node);
 				if (map.size() != 1) {
 					throw new ConstructorException("while constructing a Packer.BinInfo", node.getStartMark(), "found incorrectly sized map data " + map, null) {};

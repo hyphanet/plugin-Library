@@ -302,11 +302,11 @@ public class ProtoIndexComponentSerialiser {
 			ktr = k;
 		}
 
-		@Override public Map<String, Object> app(SkeletonTreeMap<K, V> map) {
+		/*@Override**/ public Map<String, Object> app(SkeletonTreeMap<K, V> map) {
 			return app(map, new TreeMap<String, Object>(), ktr);
 		}
 
-		@Override public SkeletonTreeMap<K, V> rev(Map<String, Object> map) {
+		/*@Override**/ public SkeletonTreeMap<K, V> rev(Map<String, Object> map) {
 			return rev(map, new SkeletonTreeMap<K, V>(), ktr);
 		}
 	}
@@ -346,15 +346,15 @@ public class ProtoIndexComponentSerialiser {
 			name = n;
 		}
 
-		@Override public Translator<SkeletonBTreeMap<K, V>.SkeletonNode, Map<String, Object>> getTranslator() {
+		/*@Override**/ public Translator<SkeletonBTreeMap<K, V>.SkeletonNode, Map<String, Object>> getTranslator() {
 			return trans;
 		}
 
-		@Override public LiveArchiver<Map<String, Object>, SimpleProgress> getChildSerialiser() {
+		/*@Override**/ public LiveArchiver<Map<String, Object>, SimpleProgress> getChildSerialiser() {
 			return subsrl;
 		}
 
-		@Override public void pullLive(PullTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) throws TaskAbortException {
+		/*@Override**/ public void pullLive(PullTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) throws TaskAbortException {
 			SkeletonBTreeMap<K, V>.GhostNode ghost = (SkeletonBTreeMap.GhostNode)task.meta;
 			PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(ghost.getMeta());
 			p.setSubject("Pulling " + name + ": " + ghost.getRange());
@@ -364,7 +364,7 @@ public class ProtoIndexComponentSerialiser {
 			p.exitingSerialiser();
 		}
 
-		@Override public void pushLive(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) throws TaskAbortException {
+		/*@Override**/ public void pushLive(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) throws TaskAbortException {
 			Map<String, Object> intermediate = trans.app(task.data);
 			PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(intermediate, task.meta);
 			p.setSubject("Pushing " + name + ": " + task.data.getRange());
@@ -396,7 +396,7 @@ public class ProtoIndexComponentSerialiser {
 			tracker = new ProgressTracker<V, BaseCompositeProgress>(BaseCompositeProgress.class);
 		}
 
-		@Override public ProgressTracker<V, ? extends Progress> getTracker() {
+		/*@Override**/ public ProgressTracker<V, ? extends Progress> getTracker() {
 			return tracker;
 		}
 
@@ -451,11 +451,11 @@ public class ProtoIndexComponentSerialiser {
 			btr = b;
 		}
 
-		@Override public LiveArchiver<Map<String, Object>, SimpleProgress> getChildSerialiser() {
+		/*@Override**/ public LiveArchiver<Map<String, Object>, SimpleProgress> getChildSerialiser() {
 			return subsrl;
 		}
 
-		@Override public void pullLive(PullTask<Map<K, V>> task, SimpleProgress p) throws TaskAbortException {
+		/*@Override**/ public void pullLive(PullTask<Map<K, V>> task, SimpleProgress p) throws TaskAbortException {
 			PullTask<Map<String, Object>> t = new PullTask<Map<String, Object>>(task.meta);
 			p.setSubject("Pulling root container " + task.meta);
 			p.enteredSerialiser();
@@ -479,7 +479,7 @@ public class ProtoIndexComponentSerialiser {
 			}
 		}
 
-		@Override public void pushLive(PushTask<Map<K, V>> task, SimpleProgress p) throws TaskAbortException {
+		/*@Override**/ public void pushLive(PushTask<Map<K, V>> task, SimpleProgress p) throws TaskAbortException {
 			Map<String, Object> conv = new HashMap<String, Object>();
 			for (Map.Entry<K, V> mp: task.data.entrySet()) {
 				conv.put((ktr == null)? (String)mp.getKey(): ktr.app(mp.getKey()), btr.app(mp.getValue()));

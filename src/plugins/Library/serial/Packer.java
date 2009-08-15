@@ -453,7 +453,7 @@ implements MapSerialiser<K, T>,
 	** task map, and will add extra tasks to the map if those pulling those
 	** bins result in extra data being loaded.
 	*/
-	@Override public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) throws TaskAbortException {
+	/*@Override**/ public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) throws TaskAbortException {
 
 		try {
 			Inventory<K, T> inv = new Inventory<K, T>(this, tasks);
@@ -537,7 +537,7 @@ implements MapSerialiser<K, T>,
 	** a UUID), and overriding {@link #generator()}. (ID generation based on
 	** bin ''content'' is ''not'' supported, and is not a priority at present.)
 	*/
-	@Override public void push(Map<K, PushTask<T>> tasks, Object mapmeta) throws TaskAbortException {
+	/*@Override**/ public void push(Map<K, PushTask<T>> tasks, Object mapmeta) throws TaskAbortException {
 
 		try {
 			// read local copy of aggression
@@ -665,7 +665,7 @@ implements MapSerialiser<K, T>,
 		** for remainding weight capacity. {@link DummyBin}s are treated as the
 		** "heaviest", or "least empty" bin for its weight.
 		*/
-		@Override public int compareTo(Bin<K> bin) {
+		/*@Override**/ public int compareTo(Bin<K> bin) {
 			if (this == bin) { return 0; }
 			int f1 = filled(), f2 = bin.filled();
 			if (f1 != f2) { return (f2 > f1)? 1: -1; }
@@ -766,7 +766,7 @@ implements MapSerialiser<K, T>,
 		** Compare keys by the weights of the element it maps to. The {@code
 		** null} key is treated as the "lightest" key for its weight.
 		*/
-		public int compare(K k1, K k2) {
+		@Override public int compare(K k1, K k2) {
 			if (k1 == k2) { return 0; }
 			int a = getWeight(k1), b = getWeight(k2);
 			if (a != b) { return (a < b)? -1: 1; }

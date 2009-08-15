@@ -475,7 +475,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	}
 
 
-	public String toString(){
+	@Override public String toString(){
 		return internal.keySet().toString();
 	}
 

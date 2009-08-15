@@ -66,14 +66,14 @@ public class LibrarianHandler extends DefaultHandler {
 		}
 	}
 
-	public void setDocumentLocator(Locator value) {
+	@Override public void setDocumentLocator(Locator value) {
 
 	}
 
-	public void endDocument() throws SAXException {
+	@Override public void endDocument() throws SAXException {
 	}
 
-	public void startDocument() throws SAXException {
+	@Override public void startDocument() throws SAXException {
 		if(uris==null || titles ==null){
 			uris = new HashMap<String, String>();
 			titles = new HashMap<String, String>();
@@ -81,7 +81,7 @@ public class LibrarianHandler extends DefaultHandler {
 		}
 	}
 
-	public void startElement(String nameSpaceURI, String localName, String rawName, Attributes attrs)
+	@Override public void startElement(String nameSpaceURI, String localName, String rawName, Attributes attrs)
 	        throws SAXException {
 		if(requests.size()==0&&wordMatches.size()==0)
 			return;
@@ -182,7 +182,7 @@ public class LibrarianHandler extends DefaultHandler {
 		}
 	}
 
-	public void characters(char[] ch, int start, int length) {
+	@Override public void characters(char[] ch, int start, int length) {
 		if(processingWord && wordMatches!= null && characters!=null){
 			characters.append(ch, start, length);
 		}
