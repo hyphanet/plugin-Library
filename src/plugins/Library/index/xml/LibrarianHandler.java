@@ -23,9 +23,8 @@ import plugins.Library.index.TermPageEntry;
 /**
  * Required for using SAX parser on XML indices
  *
- * TODO tf-idf
- *
  * @author swati
+ * @author MikeB
  *
  */
 public class LibrarianHandler extends DefaultHandler {
@@ -136,10 +135,10 @@ public class LibrarianHandler extends DefaultHandler {
 						{
 							inFileTitle = titles.get(attrs.getValue("id"));
 							if ((suri).equals(inFileTitle))
-								inFileTitle = "not available";
+								inFileTitle = null;
 						}
 						else
-							inFileTitle = "not available";
+							inFileTitle = null;
 						if(wordCounts.containsKey(attrs.getValue("id")))
 							inFileWordCount = wordCounts.get(attrs.getValue("id")).intValue();
 						else

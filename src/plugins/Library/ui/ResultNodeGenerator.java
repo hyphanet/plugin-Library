@@ -197,7 +197,7 @@ public class ResultNodeGenerator implements Runnable {
 		FreenetURI uri = entry.getURI();
 		String showtitle = entry.getTitle();
 		String showurl = uri.toShortString();
-		if (showtitle == null || showtitle.trim().length() == 0 || showtitle.equals("not available")) {
+		if (showtitle == null || showtitle.trim().length() == 0) {
 			showtitle = showurl;
 		}
 		String realurl = "/" + uri.toString();
