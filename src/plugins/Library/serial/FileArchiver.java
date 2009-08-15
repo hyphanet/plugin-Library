@@ -128,7 +128,7 @@ implements Archiver<T>,
 	  public interface LiveArchiver
 	 ========================================================================*/
 
-	@Override public void pull(PullTask<T> t) throws TaskAbortException {
+	public void pull(PullTask<T> t) throws TaskAbortException {
 		File file = getFile(t.meta);
 		try {
 			FileInputStream is = new FileInputStream(file);
@@ -149,7 +149,7 @@ implements Archiver<T>,
 		}
 	}
 
-	@Override public void push(PushTask<T> t) throws TaskAbortException {
+	public void push(PushTask<T> t) throws TaskAbortException {
 		if (random) { t.meta = java.util.UUID.randomUUID().toString(); }
 		File file = getFile(t.meta);
 		try {
@@ -171,7 +171,7 @@ implements Archiver<T>,
 		}
 	}
 
-	@Override public void pullLive(PullTask<T> t, SimpleProgress p) throws TaskAbortException {
+	public void pullLive(PullTask<T> t, SimpleProgress p) throws TaskAbortException {
 		try {
 			pull(t);
 			if (testmode) { randomWait(p); }
@@ -181,7 +181,7 @@ implements Archiver<T>,
 		}
 	}
 
-	@Override public void pushLive(PushTask<T> t, SimpleProgress p) throws TaskAbortException {
+	public void pushLive(PushTask<T> t, SimpleProgress p) throws TaskAbortException {
 		try {
 			push(t);
 			if (testmode) { randomWait(p); }

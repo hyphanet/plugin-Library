@@ -55,7 +55,7 @@ implements IterableSerialiser<T>,
 	}
 
 	// return ? extends Progress so as to hide the implementation details of P
-	@Override public ProgressTracker<T, ? extends Progress> getTracker() {
+	public ProgressTracker<T, ? extends Progress> getTracker() {
 		return tracker;
 	}
 
@@ -63,7 +63,7 @@ implements IterableSerialiser<T>,
 	  public interface IterableSerialiser
 	 ========================================================================*/
 
-	@Override public void pull(PullTask<T> task) throws TaskAbortException {
+	public void pull(PullTask<T> task) throws TaskAbortException {
 		try {
 			try {
 				P p = tracker.addPullProgress(task);
@@ -77,7 +77,7 @@ implements IterableSerialiser<T>,
 		}
 	}
 
-	@Override public void push(PushTask<T> task) throws TaskAbortException {
+	public void push(PushTask<T> task) throws TaskAbortException {
 		try {
 			try {
 				P p = tracker.addPushProgress(task);
@@ -96,7 +96,7 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	@Override public void pull(Iterable<PullTask<T>> tasks) throws TaskAbortException {
+	public void pull(Iterable<PullTask<T>> tasks) throws TaskAbortException {
 		List<Progress> progs = new ArrayList<Progress>();
 		try {
 			for (Iterator<PullTask<T>> it = tasks.iterator(); it.hasNext();) {
@@ -123,7 +123,7 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	@Override public void push(Iterable<PushTask<T>> tasks) throws TaskAbortException {
+	public void push(Iterable<PushTask<T>> tasks) throws TaskAbortException {
 		List<Progress> progs = new ArrayList<Progress>();
 		try {
 			for (Iterator<PushTask<T>> it = tasks.iterator(); it.hasNext();) {
@@ -150,7 +150,7 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	@Override public Scheduler pullSchedule(BlockingQueue<PullTask<T>> input,
+	public Scheduler pullSchedule(BlockingQueue<PullTask<T>> input,
 	                                        BlockingQueue<PullTask<T>> output,
 	                                        ConcurrentMap<PullTask<T>, TaskAbortException> error) {
 		return new PullTaskHandler(input, output, error);
@@ -161,7 +161,7 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	@Override public Scheduler pushSchedule(BlockingQueue<PushTask<T>> input,
+	public Scheduler pushSchedule(BlockingQueue<PushTask<T>> input,
 	                                        BlockingQueue<PushTask<T>> output,
 	                                        ConcurrentMap<PushTask<T>, TaskAbortException> error) {
 		return new PushTaskHandler(input, output, error);
@@ -268,7 +268,7 @@ implements IterableSerialiser<T>,
 
 		// public class Thread
 
-		@Override public void run() {
+		public void run() {
 			if (!parallel) {
 				throw new IllegalStateException("This scheduler was not created as a parallel service. Use schedule() instead.");
 			}
@@ -291,12 +291,12 @@ implements IterableSerialiser<T>,
 
 		// public interface Scheduler
 
-		@Override public void close() {
+		public void close() {
 			running = false;
 			interrupt();
 		}
 
-		@Override public boolean isActive() {
+		public boolean isActive() {
 			// NOTE: this method is pointless when in serial mode
 			// URGENT verify this
 			return exec.getTaskCount() > exec.getCompletedTaskCount();
@@ -304,7 +304,7 @@ implements IterableSerialiser<T>,
 
 		// public class Object
 
-		@Override public void finalize() {
+		public void finalize() {
 			close();
 		}
 
@@ -320,7 +320,7 @@ implements IterableSerialiser<T>,
 			super(e);
 		}
 
-		@Override public void handleTask(final PullTask<T> task) throws TaskInProgressException {
+		public void handleTask(final PullTask<T> task) throws TaskInProgressException {
 			// if not parallel then we assume the caller has made the progress object
 			// DOCUMENT THIS MORE THOROUGHLY
 			final P prog = (parallel)? tracker.addPullProgress(task):
@@ -350,7 +350,7 @@ implements IterableSerialiser<T>,
 			super(e);
 		}
 
-		@Override public void handleTask(final PushTask<T> task) throws TaskInProgressException {
+		public void handleTask(final PushTask<T> task) throws TaskInProgressException {
 			// if not parallel then we assume the caller has made the progress object
 			// DOCUMENT THIS MORE THOROUGHLY
 			final P prog = (parallel)? tracker.addPushProgress(task):

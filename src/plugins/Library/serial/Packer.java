@@ -453,7 +453,7 @@ implements MapSerialiser<K, T>,
 	** task map, and will add extra tasks to the map if those pulling those
 	** bins result in extra data being loaded.
 	*/
-	@Override public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) throws TaskAbortException {
+	public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) throws TaskAbortException {
 
 		try {
 			Inventory<K, T> inv = new Inventory<K, T>(this, tasks);
@@ -537,7 +537,7 @@ implements MapSerialiser<K, T>,
 	** a UUID), and overriding {@link #generator()}. (ID generation based on
 	** bin ''content'' is ''not'' supported, and is not a priority at present.)
 	*/
-	@Override public void push(Map<K, PushTask<T>> tasks, Object mapmeta) throws TaskAbortException {
+	public void push(Map<K, PushTask<T>> tasks, Object mapmeta) throws TaskAbortException {
 
 		try {
 			// read local copy of aggression
@@ -650,12 +650,12 @@ implements MapSerialiser<K, T>,
 			return capacity - weight;
 		}
 
-		@Override public boolean add(K c) {
+		public boolean add(K c) {
 			if (super.add(c)) { weight += inv.getWeight(c); return true; }
 			return false;
 		}
 
-		@Override public boolean remove(Object c) {
+		public boolean remove(Object c) {
 			if (super.remove(c)) { weight -= inv.getWeight((K)c); return true; }
 			return false;
 		}
@@ -665,7 +665,7 @@ implements MapSerialiser<K, T>,
 		** for remainding weight capacity. {@link DummyBin}s are treated as the
 		** "heaviest", or "least empty" bin for its weight.
 		*/
-		@Override public int compareTo(Bin<K> bin) {
+		public int compareTo(Bin<K> bin) {
 			if (this == bin) { return 0; }
 			int f1 = filled(), f2 = bin.filled();
 			if (f1 != f2) { return (f2 > f1)? 1: -1; }
@@ -690,18 +690,18 @@ implements MapSerialiser<K, T>,
 			weight = w;
 		}
 
-		@Override public boolean add(K k) {
+		public boolean add(K k) {
 			throw new UnsupportedOperationException("Dummy bins cannot be modified");
 		}
 
-		@Override public boolean remove(Object c) {
+		public boolean remove(Object c) {
 			throw new UnsupportedOperationException("Dummy bins cannot be modified");
 		}
 
 		/**
 		** {@inheritDoc}
 		*/
-		@Override public int compareTo(Bin<K> bin) {
+		public int compareTo(Bin<K> bin) {
 			if (this == bin) { return 0; }
 			int f1 = filled(), f2 = bin.filled();
 			if (f1 != f2) { return (f2 > f1)? 1: -1; }
@@ -852,18 +852,18 @@ implements MapSerialiser<K, T>,
 		public void setID(Object i) { id = i; }
 		public void setWeight(int w) { weight = w; }
 
-		@Override public boolean equals(Object o) {
+		public boolean equals(Object o) {
 			if (o == this) { return true; }
 			if (!(o instanceof BinInfo)) { return false; }
 			BinInfo bi = (BinInfo)o;
 			return id.equals(bi.id) && weight == bi.weight;
 		}
 
-		@Override public int hashCode() {
+		public int hashCode() {
 			return id.hashCode() + weight*31;
 		}
 
-		@Override public String toString() {
+		public String toString() {
 			return "Bin \"" + id + "\" - " + weight + "oz.";
 		}
 
