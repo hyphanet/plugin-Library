@@ -110,8 +110,8 @@ implements IterableSerialiser<T>,
 				}
 			}
 			for (Progress p: progs) { p.join(); }
-			// toad - if it fails, we won't necessarily know until all of the other tasks
-			// have completed ... is this acceptable?
+			// TODO: toad - if it fails, we won't necessarily know until all of the
+			// other tasks have completed ... is this acceptable?
 
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("ParallelSerialiser pull was interrupted", e, true);
@@ -137,8 +137,8 @@ implements IterableSerialiser<T>,
 				}
 			}
 			for (Progress p: progs) { p.join(); }
-			// toad - if it fails, we won't necessarily know until all of the other tasks
-			// have completed ... is this acceptable?
+			// TODO: toad - if it fails, we won't necessarily know until all of the
+			// other tasks have completed ... is this acceptable?
 
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("ParallelSerialiser pull was interrupted", e, true);
