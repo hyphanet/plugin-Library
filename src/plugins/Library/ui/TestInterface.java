@@ -29,7 +29,7 @@ public class TestInterface{
 			String line;
 			String index = "../../Freenet/myindex8";
 			Library library = Library.init(null);
-			Search.setup(library);
+			Search.setup(library, null);
 
 			do{
 				line = br.readLine();

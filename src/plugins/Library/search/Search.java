@@ -15,6 +15,7 @@ import freenet.support.Logger;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Locale;
@@ -40,7 +41,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 
 	private ResultOperation resultOperation;
 
-	private ArrayList<Request<Set<TermEntry>>> subsearches;
+	private final List<Request<Set<TermEntry>>> subsearches;
 
 	private String query;
 	private String indexURI;
@@ -62,7 +63,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	private SearchStatus status = SearchStatus.Unstarted;
 
 
-	private static void storeSearch(Search search){
+	private synchronized static void storeSearch(Search search){
 		allsearches.put(search.getSubject(), search);
 		searchhashes.put(search.hashCode(), search);
 	}
@@ -131,13 +132,16 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 			throw new InvalidSearchException(resultOperation.toString() + " operations need more than one term");
 		
 		query = query.toLowerCase(Locale.US).trim();
-		subsearches = new ArrayList();
+		
+		// Create a temporary list of sub searches then make it unmodifiable
+		List<Request<Set<TermEntry>>> tempsubsearches = new ArrayList();
 		for (Request request : requests) {
 			if(request != null)
-				subsearches.add(request);
+				tempsubsearches.add(request);
 			else
 				throw new NullPointerException("Search cannot encapsulate null");
 		}
+		subsearches = Collections.unmodifiableList(tempsubsearches);
 
 		this.query = query;
 		this.indexURI = indexURI;
@@ -284,14 +288,14 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * @param indexuri
 	 * @return Search or null if not found
 	 */
-	public static Search getSearch(String search, String indexuri){
+	public synchronized static Search getSearch(String search, String indexuri){
 		if(search==null || indexuri==null)
 			return null;
 		search = search.toLowerCase(Locale.US).trim();
 
 		return allsearches.get(makeString(search, indexuri));
 	}
-	public static Search getSearch(int searchHash){
+	public synchronized static Search getSearch(int searchHash){
 		return searchhashes.get(searchHash);
 	}
 
@@ -301,15 +305,15 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * @param indexuri
 	 * @return true if it's found
 	 */
-	public static boolean hasSearch(String search, String indexuri){
+	public static synchronized boolean hasSearch(String search, String indexuri){
 		if(search==null || indexuri==null)
 			return false;
 		search = search.toLowerCase(Locale.US).trim();
 		return allsearches.containsKey(makeString(search, indexuri));
 	}
 
-	public static Map<String, Search> getAllSearches(){
-		return allsearches;
+	public static synchronized Map<String, Search> getAllSearches(){
+		return Collections.unmodifiableMap(allsearches);
 	}
 
     public String getQuery(){
