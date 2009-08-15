@@ -46,7 +46,9 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	private String query;
 	private String indexURI;
 
+	/** Map of Searches by subject */
 	private static HashMap<String, Search> allsearches = new HashMap<String, Search>();
+	/** Map of Searches by hashCode */
 	private static HashMap<Integer,Search> searchhashes = new HashMap<Integer, Search>();
 	private ResultSet resultset;
 
@@ -66,6 +68,11 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	private synchronized static void storeSearch(Search search){
 		allsearches.put(search.getSubject(), search);
 		searchhashes.put(search.hashCode(), search);
+	}
+
+	private static synchronized void removeSearch(Search search) {
+		allsearches.remove(search.subject);
+		searchhashes.remove(search.hashCode());
 	}
 
 	/**
@@ -390,7 +397,9 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	}
 
 	public HTMLNode getHTMLNode(){
-		return resultNodeGenerator.getPageEntryNode();
+		HTMLNode pageEntryNode = resultNodeGenerator.getPageEntryNode();
+		resultNodeGenerator = null;
+		return pageEntryNode;
 	}
 	
 	/**
@@ -460,8 +469,12 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	@Override public Set<TermEntry> getResult() throws TaskAbortException {
 		if(!isDone())
 			return null;
+		
+		removeSearch(this);
+		Set<TermEntry> rs = resultset;
+		resultset= null;
 
-		return resultset;
+		return rs;
 	}
 
 	public synchronized void setMakeResultNode(boolean groupusk, boolean showold, boolean js){
