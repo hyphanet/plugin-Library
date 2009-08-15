@@ -48,6 +48,7 @@
 		<mkdir dir="lib/"/>
 		<mkdir dir="${tmp}"/>
 		<ant target="SnakeYAML-get"/>
+		<ant target="JGraphT-get"/>
 		<!--<ant target="KeyExplorer-get"/>-->
 		<delete dir="${tmp}"/>
 	</target>
@@ -74,6 +75,28 @@
 			</patternset>
 			<mapper type="flatten"/>
 		</unzip>
+	</target>
+
+	<property name="JGraphT.mirror" value="http://downloads.sourceforge.net/project/jgrapht/JGraphT/Version%200.7.3/jgrapht-0.7.3.tar.gz" />
+	<property name="JGraphT.md5" value="51586a595af047c43174e520ae45e88b" />
+	<property name="JGraphT.sha" value="d4d9b3995bce37616077130d1262c1c6c0be8e0e" />
+	<available property="JGraphT.exist" classname="org.jgrapht.Graph" classpathref="lib.path"/>
+	<target name="JGraphT-get" unless="JGraphT.exist">
+		<get verbose="true" src="${JGraphT.mirror}" dest="${tmp}/jgrapht-0.7.3.tar.gz" />
+		<checksum file="${tmp}/jgrapht-0.7.3.tar.gz" algorithm="MD5" property="${JGraphT.md5}" verifyProperty="JGraphTMD5ok" />
+		<checksum file="${tmp}/jgrapht-0.7.3.tar.gz" algorithm="SHA" property="${JGraphT.sha}" verifyProperty="JGraphTSHAok" />
+		<fail message="JGraphT.zip checksum mismatch">
+			<condition>
+				<or>
+					<equals arg1="${JGraphTMD5ok}" arg2="false" />
+					<equals arg1="${JGraphTSHAok}" arg2="false" />
+				</or>
+			</condition>
+		</fail>
+		<untar src="${tmp}/jgrapht-0.7.3.tar.gz" compression="gzip" dest="${tmp}/"/>
+		<patch patchfile="lib/jgrapht.FibonacciHeap.java.r602.diff" strip="0" dir="${tmp}/jgrapht-0.7.3"/>
+		<ant dir="${tmp}/jgrapht-0.7.3" target="jar" />
+		<move file="${tmp}/jgrapht-0.7.3/jgrapht-jdk1.5.jar" tofile="lib/jgrapht-jdk1.5-0.7.3+r602.jar" />
 	</target>
 
 	<!--<property name="KeyExplorer.mirror" value="http://cloud.github.com/downloads/freenet/plugin-Library-staging/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" />
@@ -180,6 +203,7 @@
 			</fileset>
 			<link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
 			<link href="http://snakeyamlrepo.appspot.com/releases/1.3/site/apidocs"/>
+			<link href="http://www.jgrapht.org/javadoc"/>
 		</javadoc>
 	</target>
 
