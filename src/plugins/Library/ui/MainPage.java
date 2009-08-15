@@ -80,6 +80,7 @@ class MainPage {
 
 		if (request.isParameterSet("request")){
 			search = Search.getSearch(request.getIntParam("request"));
+			search.setMakeResultNode(groupusk, showold, js);
 			if(search!=null){
 				if(request.isParameterSet("indexname") && request.getParam("indexname").length() > 0){
 					library.addBookmark(request.getParam("indexname"), request.getParam("index"));
@@ -288,7 +289,7 @@ class MainPage {
 				HTMLNode optionsBox = searchForm.addChild("div", "style", "margin: 20px 0px 20px 20px; display: inline-table; text-align: left;", "Options");
 					HTMLNode optionsList = optionsBox.addChild("ul", "class", "options-list");
 						optionsList.addChild("li")
-							.addChild("input", new String[]{"name", "type", groupusk?"checked":"size", "title"}, new String[]{"groupusk", "checkbox", "1", "If set, the results are returned grouped by site and edition, this makes the results quicker to scan through but will disrupt ordering on relevance, if apllicable to the indexs you are using."}, "Group USK Editions");
+							.addChild("input", new String[]{"name", "type", groupusk?"checked":"size", "title"}, new String[]{"groupusk", "checkbox", "1", "If set, the results are returned grouped by site and edition, this makes the results quicker to scan through but will disrupt ordering on relevance, if applicable to the indexs you are using."}, "Group sites and editions");
 						optionsList.addChild("li")
 							.addChild("input", new String[]{"name", "type", showold?"checked":"size", "title"}, new String[]{"showold", "checkbox", "1", "If set, older editions are shown in the results greyed out, otherwise only the most recent are shown."}, "Show older editions");
 

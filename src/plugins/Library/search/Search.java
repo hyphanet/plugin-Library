@@ -412,16 +412,16 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 					(new Thread(resultset, "Library.Search : combining results")).start();
 				status = SearchStatus.Combining;
 			case Combining :
-				if(resultset!=null && !resultset.isDone())
+				if(!resultset.isDone())
 					return;		// If Combining & combine not finished, status remains as Combining
 				// If finished Combining and asked to generate resultnode, start that process
 				if(formatResult){
 					// resultset doesn't exist but subrequests are complete so we can start up a resultset
 					resultNodeGenerator = new ResultNodeGenerator(resultset, htmlgroupusk, htmlshowold, htmljs);
 					if(executor!=null)
-						executor.execute(resultset, "Library.Search : combining results");
+						executor.execute(resultNodeGenerator, "Library.Search : formatting results");
 					else
-						(new Thread(resultset, "Library.Search : combining results")).start();
+						(new Thread(resultNodeGenerator, "Library.Search : formatting results")).start();
 					status = SearchStatus.Formatting;	// status -> Formatting
 				}else			// If not asked to format output, status -> done
 					status = SearchStatus.Done;
