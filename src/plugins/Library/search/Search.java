@@ -5,6 +5,7 @@ package plugins.Library.search;
 
 import freenet.support.Executor;
 import freenet.support.HTMLNode;
+import java.util.logging.Level;
 import plugins.Library.Library;
 import plugins.Library.index.Request;
 import plugins.Library.index.AbstractRequest;
@@ -393,10 +394,6 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	public boolean hasGeneratedResultNode(){
 		return pageEntryNode != null;
 	}
-
-	public HTMLNode getHTMLNode(){
-		return pageEntryNode;
-	}
 	
 	/**
 	 * After this finishes running, the status of this Search object will be correct, stimulates the creation of the result if all subreqquests are complete and the result isn't made
@@ -476,6 +473,23 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		resultset= null;
 
 		return rs;
+	}
+
+	public HTMLNode getHTMLNode(){
+		try {
+			if (!isDone() || !formatResult) {
+				return null;
+			}
+		} catch (TaskAbortException ex) {
+			Logger.error(this, "Error finding out whether this is done", ex);
+			return null;
+		}
+
+		removeSearch(this);
+		HTMLNode pen = pageEntryNode;
+		pageEntryNode = null;
+
+		return pen;
 	}
 
 	public synchronized void setMakeResultNode(boolean groupusk, boolean showold, boolean js){
