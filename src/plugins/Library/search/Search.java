@@ -416,7 +416,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 						if(!(request instanceof Search) || ((Search)request).status==SearchStatus.Busy)
 							return;	// If Busy & still waiting for subrequests to complete, status remains Busy
 				status = SearchStatus.Combining_First;	// If Busy and waiting for subrequests to combine, status -> Combining_First
-			case Combining_First :
+			case Combining_First :	// for when subrequests are combining
 				if(!isSubRequestsComplete())	// If combining first and subsearches still haven't completed, remain
 					return;
 				// If subrequests have completed start process to combine results
@@ -426,9 +426,10 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 				else
 					(new Thread(resultset, "Library.Search : combining results")).start();
 				status = SearchStatus.Combining_Last;
-			case Combining_Last :
+			case Combining_Last :	// for when this is combining
 				if(!resultset.isDone())
 					return;		// If Combining & combine not finished, status remains as Combining
+				subsearches.clear();	// clear the subrequests after they have been combined
 				// If finished Combining and asked to generate resultnode, start that process
 				if(formatResult){
 					// resultset doesn't exist but subrequests are complete so we can start up a resultset
