@@ -124,6 +124,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			return old;
 		}
 
+		@Override
 		public SkeletonValue<V> clone() {
 			try {
 				return (SkeletonValue<V>)super.clone();
@@ -367,19 +368,25 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	  public interface Map
 	 ========================================================================*/
 
+	@Override
 	public int size() { return skmap.size(); }
 
+	@Override
 	public boolean isEmpty() { return skmap.isEmpty(); }
 
+	@Override
 	public void clear() {
 		skmap.clear();
 		ghosts = 0;
 	}
 
+	@Override
 	public Comparator<? super K> comparator() { return skmap.comparator(); }
 
+	@Override
 	public boolean containsKey(Object key) { return skmap.containsKey(key); }
 
+	@Override
 	public boolean containsValue(Object value) {
 		if (!isLive()) {
 			// TODO maybe make this work even when map is partially loaded
@@ -392,6 +399,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 	}
 
+	@Override
 	public V get(Object key) {
 		SkeletonValue<V> sk = skmap.get(key);
 		if (sk == null) { return null; }
@@ -413,6 +421,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** OPTIMISE code a version that throws {@link IllegalArgumentException} if
 	** the key is not already in the map. (Useful for the *flate methods.)
 	*/
+	@Override
 	public V put(K key, V value) {
 		SkeletonValue<V> sk = skmap.get(key);
 		if (sk == null) { skmap.put(key, sk = new SkeletonValue<V>()); }
@@ -433,6 +442,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** method throw {@link DataNotLoadedException} in such circumstances, at
 	** the user's discretion.
 	*/
+	@Override
 	public V remove(Object key) {
 		SkeletonValue<V> sk = skmap.remove(key);
 		if (sk == null) { return null; }
@@ -441,26 +451,32 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	}
 
 	private Set<Map.Entry<K,V>> entries;
+	@Override
 	public Set<Map.Entry<K,V>> entrySet() {
 		if (entries == null) {
 			entries = new AbstractSet<Map.Entry<K, V>>() {
 
+				@Override
 				public int size() { return skmap.size(); }
 
+				@Override
 				public Iterator<Map.Entry<K, V>> iterator() {
 					return new UnwrappingIterator<Map.Entry<K, V>>(skmap.entrySet().iterator(), UnwrappingIterator.ENTRY);
 				}
 
+				@Override
 				public void clear() {
 					SkeletonTreeMap.this.clear();
 				}
 
+				@Override
 				public boolean contains(Object o) {
 					if (!(o instanceof Map.Entry)) { return false; }
 					Map.Entry e = (Map.Entry)o;
 					return SkeletonTreeMap.this.get(e.getKey()).equals(e.getValue());
 				}
 
+				@Override
 				public boolean remove(Object o) {
 					// SkeletonTreeMap.remove() called, which automatically updates _ghosts
 					boolean c = contains(o);
@@ -477,22 +493,28 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	}
 
 	private Set<K> keys;
+	@Override
 	public Set<K> keySet() {
 		if (keys == null) {
 			keys = new AbstractSet<K>() {
 
+				@Override
 				public int size() { return skmap.size(); }
 
+				@Override
 				public Iterator<K> iterator() {
 					return new UnwrappingIterator<K>(skmap.entrySet().iterator(), UnwrappingIterator.KEY);
 				}
 
+				@Override
 				public void clear() { SkeletonTreeMap.this.clear(); }
 
+				@Override
 				public boolean contains(Object o) {
 					return SkeletonTreeMap.this.containsKey(o);
 				}
 
+				@Override
 				public boolean remove(Object o) {
 					boolean c = contains(o);
 					SkeletonTreeMap.this.remove(o);
@@ -505,16 +527,20 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	}
 
 	private Collection<V> values;
+	@Override
 	public Collection<V> values() {
 		if (values == null) {
 			values = new AbstractCollection<V>() {
 
+				@Override
 				public int size() { return SkeletonTreeMap.this.size(); }
 
+				@Override
 				public Iterator<V> iterator() {
 					return new UnwrappingIterator<V>(skmap.entrySet().iterator(), UnwrappingIterator.VALUE);
 				}
 
+				@Override
 				public void clear() { SkeletonTreeMap.this.clear(); }
 
 			};
@@ -522,10 +548,12 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		return values;
 	}
 
+	@Override
 	public K firstKey() {
 		return skmap.firstKey();
 	}
 
+	@Override
 	public K lastKey() {
 		return skmap.lastKey();
 	}
@@ -537,6 +565,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** functionality, and will throw {@link UnsupportedOperationException} for
 	** most of its methods. For details, see {@link UnwrappingSortedSubMap}.
 	*/
+	@Override
 	public SortedMap<K, V> subMap(K fr, K to) {
 		return new UnwrappingSortedSubMap<K, V>(skmap.subMap(fr, to));
 	}
@@ -548,6 +577,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** functionality, and will throw {@link UnsupportedOperationException} for
 	** most of its methods. For details, see {@link UnwrappingSortedSubMap}.
 	*/
+	@Override
 	public SortedMap<K, V> headMap(K to) {
 		return new UnwrappingSortedSubMap<K, V>(skmap.headMap(to));
 	}
@@ -559,6 +589,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** functionality, and will throw {@link UnsupportedOperationException} for
 	** most of its methods. For details, see {@link UnwrappingSortedSubMap}.
 	*/
+	@Override
 	public SortedMap<K, V> tailMap(K fr) {
 		return new UnwrappingSortedSubMap<K, V>(skmap.tailMap(fr));
 	}
@@ -568,6 +599,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	  public class Object
 	 ========================================================================*/
 
+	@Override
 	public boolean equals(Object o) {
 		if (o instanceof SkeletonTreeMap) {
 			return skmap.equals(((SkeletonTreeMap<K, V>)o).skmap);
@@ -580,6 +612,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
+	@Override
 	public Object clone() {
 		return new SkeletonTreeMap<K, V>(this);
 	}
@@ -718,12 +751,14 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 				return skel.set(value);
 			}
 
+			@Override
 			public int hashCode() {
 				verifyLoaded();
 				return (key==null? 0: key.hashCode()) ^
 				       (skel.data==null? 0: skel.data.hashCode());
 			}
 
+			@Override
 			public boolean equals(Object o) {
 				if (!(o instanceof Map.Entry)) { return false; }
 				verifyLoaded();
@@ -760,6 +795,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			return bkmap.comparator();
 		}
 
+		@Override
 		public boolean isEmpty() {
 			return bkmap.isEmpty();
 		}
@@ -772,6 +808,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			return bkmap.lastKey();
 		}
 
+		@Override
 		public Set<Map.Entry<K, V>> entrySet() {
 			throw new UnsupportedOperationException("not implemented");
 		}

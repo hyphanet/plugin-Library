@@ -56,6 +56,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	** and always uses block-level elements.
 	*/
 	final protected static ThreadLocal<Yaml> DEFAULT_YAML = new ThreadLocal<Yaml>() {
+		@Override
 		protected synchronized Yaml initialValue() {
 			DumperOptions opt = new DumperOptions();
 			opt.setWidth(Integer.MAX_VALUE);

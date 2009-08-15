@@ -64,34 +64,42 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 	  public class PrefixTree
 	 ========================================================================*/
 
+	@Override
 	protected PrefixTreeMap<K, V> makeSubTree(int msym) {
 		return new PrefixTreeMap<K, V>((K)prefix.spawn(preflen, msym), preflen+1, capacityLocal);
 	}
 
+	@Override
 	protected void transferLocalToSubtree(int i, K key) {
 		child[i].put(key, tmap.remove(key));
 	}
 
+	@Override
 	protected void transferSubtreeToLocal(PrefixTree<K, V> ch) {
 		tmap.putAll(((PrefixTreeMap<K, V>)ch).tmap);
 	}
 
+	@Override
 	protected Map<K, V> selectNode(int i) {
 		return (child[i] == null)? tmap: child[i];
 	}
 
+	@Override
 	protected TreeMap<K, V> getLocalMap() {
 		return tmap;
 	}
 
+	@Override
 	protected void clearLocal() {
 		tmap.clear();
 	}
 
+	@Override
 	protected Set<K> keySetLocal() {
 		return tmap.keySet();
 	}
 
+	@Override
 	public int sizeLocal() {
 		return tmap.size();
 	}
@@ -165,6 +173,7 @@ implements Map<K, V>/*, SortedMap<K,V>, NavigableMap<K,V>
 		throw new UnsupportedOperationException("Not implemented.");
 	}
 
+	@Override
 	public Set<K> keySet() {
 		throw new UnsupportedOperationException("Not implemented.");
 	}

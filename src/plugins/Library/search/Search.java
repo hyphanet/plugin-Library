@@ -376,6 +376,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	/**
 	 * @return true if all are Finished and Result is ready, also stimulates the creation of the result if all subreqquests are complete and the result isn't made
 	 */
+	@Override
 	public boolean isDone() throws TaskAbortException{
 		setStatus();
 		return status == SearchStatus.Done;
@@ -457,6 +458,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * Return the set of results or null if it is not ready <br />
 	 * @return Set of TermEntry
 	 */
+	@Override
 	public Set<TermEntry> getResult() throws TaskAbortException {
 		if(!isDone())
 			return null;

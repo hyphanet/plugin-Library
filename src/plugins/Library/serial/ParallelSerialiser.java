@@ -268,6 +268,7 @@ implements IterableSerialiser<T>,
 
 		// public class Thread
 
+		@Override
 		public void run() {
 			if (!parallel) {
 				throw new IllegalStateException("This scheduler was not created as a parallel service. Use schedule() instead.");
@@ -304,6 +305,7 @@ implements IterableSerialiser<T>,
 
 		// public class Object
 
+		@Override
 		public void finalize() {
 			close();
 		}
@@ -320,6 +322,7 @@ implements IterableSerialiser<T>,
 			super(e);
 		}
 
+		@Override
 		public void handleTask(final PullTask<T> task) throws TaskInProgressException {
 			// if not parallel then we assume the caller has made the progress object
 			// DOCUMENT THIS MORE THOROUGHLY
@@ -350,6 +353,7 @@ implements IterableSerialiser<T>,
 			super(e);
 		}
 
+		@Override
 		public void handleTask(final PushTask<T> task) throws TaskInProgressException {
 			// if not parallel then we assume the caller has made the progress object
 			// DOCUMENT THIS MORE THOROUGHLY

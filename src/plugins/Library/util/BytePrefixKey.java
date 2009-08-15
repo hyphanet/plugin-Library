@@ -77,6 +77,7 @@ abstract public class BytePrefixKey<K extends BytePrefixKey<K>> extends Abstract
 		for (int i=0; i<h.length; ++i) { hash[i] = h[i]; }
 	}
 
+	@Override
 	public String toString() {
 		if (str_ == null) {
 			str_ = bytesToHex(hash);
@@ -106,6 +107,7 @@ abstract public class BytePrefixKey<K extends BytePrefixKey<K>> extends Abstract
 	  public class PrefixTree.PrefixKey
 	 ========================================================================*/
 
+	@Override
 	abstract public BytePrefixKey<K> clone();
 
 	public int symbols() {
@@ -132,6 +134,7 @@ abstract public class BytePrefixKey<K extends BytePrefixKey<K>> extends Abstract
 	  public class Object
 	 ========================================================================*/
 
+	@Override
 	public boolean equals(Object o) {
 		if (o == this) { return true; }
 		if (o instanceof BytePrefixKey) {
@@ -140,6 +143,7 @@ abstract public class BytePrefixKey<K extends BytePrefixKey<K>> extends Abstract
 		return false;
 	}
 
+	@Override
 	public int hashCode() {
 		return Arrays.hashCode(hash);
 	}

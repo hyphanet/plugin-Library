@@ -78,18 +78,22 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	  public interface Set
 	 ========================================================================*/
 
+	@Override
 	public int size() {
 		return bkmap.size();
 	}
 
+	@Override
 	public boolean isEmpty() {
 		return bkmap.isEmpty();
 	}
 
+	@Override
 	public boolean contains(Object o) {
 		return bkmap.containsKey(o);
 	}
 
+	@Override
 	public Iterator<E> iterator() {
 		return bkmap.keySet().iterator();
 	}
@@ -102,6 +106,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	public <T> T[] toArray(T[] a) { }
 	*/
 
+	@Override
 	public boolean add(E o) {
 		if (o == null) {
 			// BTreeMap doesn't support null keys at the time of coding, but this may change
@@ -110,6 +115,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 		return bkmap.put(o, o) == null;
 	}
 
+	@Override
 	public boolean remove(Object o) {
 		if (o == null) {
 			// BTreeMap doesn't support null keys at the time of coding, but this may change
@@ -125,6 +131,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	public boolean removeAll(Collection<?> c) { }
 	*/
 
+	@Override
 	public void clear() {
 		bkmap.clear();
 	}

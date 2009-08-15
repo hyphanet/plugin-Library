@@ -973,14 +973,17 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	  public interface Map
 	 ========================================================================*/
 
+	@Override
 	public int size() {
 		return size;
 	}
 
+	@Override
 	public boolean isEmpty() {
 		return size == 0;
 	}
 
+	@Override
 	public void clear() {
 		root = newNode(true);
 		size = 0;
@@ -998,6 +1001,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         natural order, or its comparator does not tolerate {@code null}
 	**         keys
 	*/
+	@Override
 	public boolean containsKey(Object k) {
 		K key = (K) k;
 		Node node = root;
@@ -1033,6 +1037,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         natural order, or its comparator does not tolerate {@code null}
 	**         keys
 	*/
+	@Override
 	public V get(Object k) {
 		K key = (K) k;
 		Node node = root;
@@ -1079,6 +1084,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         natural order, or its comparator does not tolerate {@code null}
 	**         keys
 	*/
+	@Override
 	public V put(K key, V value) {
 		if (key == null) { throw new UnsupportedOperationException("Sorry, this BTreeMap implementation can't handle null keys, even if the comparator supports it."); }
 		Node node = root, parent = null;
@@ -1159,6 +1165,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         natural order, or its comparator does not tolerate {@code null}
 	**         keys
 	*/
+	@Override
 	public V remove(Object k) {
 		K key = (K) k;
 		Node node = root, parent = null;
@@ -1242,6 +1249,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** @param t mappings to be stored in this map
 	*/
+	@Override
 	public void putAll(Map<? extends K, ? extends V> t) {
 		// t == this to support restructure()
 		if (t.isEmpty()) {
@@ -1365,12 +1373,15 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 	// TODO maybe make this a WeakReference?
 	private Set<Map.Entry<K, V>> entrySet = null;
+	@Override
 	public Set<Map.Entry<K, V>> entrySet() {
 		if (entrySet == null) {
 			entrySet = new AbstractSet<Map.Entry<K, V>>() {
 
+				@Override
 				public int size() { return BTreeMap.this.size(); }
 
+				@Override
 				public Iterator<Map.Entry<K, V>> iterator() {
 					// URGENT - this does NOT yet throw ConcurrentModificationException
 					// use a modCount counter
@@ -1475,10 +1486,12 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 					};
 				}
 
+				@Override
 				public void clear() {
 					BTreeMap.this.clear();
 				}
 
+				@Override
 				public boolean contains(Object o) {
 					if (!(o instanceof Map.Entry)) { return false; }
 					Map.Entry e = (Map.Entry)o;
@@ -1486,6 +1499,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 					return value != null && value.equals(e.getValue());
 				}
 
+				@Override
 				public boolean remove(Object o) {
 					if (contains(o)) {
 						Map.Entry e = (Map.Entry)o;

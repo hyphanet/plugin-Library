@@ -317,26 +317,31 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			meta = m;
 		}
 
+		@Override
 		int nodeSize() {
 			throw new DataNotLoadedException("BTreeMap Node not loaded: " + getRange(), parent, lkey, this);
 		}
 
+		@Override
 		boolean isLeaf() {
 			throw new DataNotLoadedException("BTreeMap Node not loaded: " + getRange(), parent, lkey, this);
 		}
 
+		@Override
 		Node nodeL(Node n) {
 			// this method-call should never be reached in the B-tree algorithm
 			assert(false);
 			throw new IllegalStateException("This method call should never be reached");
 		}
 
+		@Override
 		Node nodeR(Node n) {
 			// this method-call should never be reached in the B-tree algorithm
 			assert(false);
 			throw new IllegalStateException("This method call should never be reached");
 		}
 
+		@Override
 		Node selectNode(K key) {
 			// this method-call should never be reached in the B-tree algorithm
 			assert(false);
@@ -353,6 +358,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		super(node_min);
 	}
 
+	@Override
 	protected Node newNode(boolean leaf) {
 		return new SkeletonNode(leaf);
 	}

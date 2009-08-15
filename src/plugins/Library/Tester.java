@@ -73,6 +73,7 @@ public class Tester {
 				YamlReaderWriter yamlrw = new YamlReaderWriter();
 				FreenetArchiver arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000);
 
+				@Override
 				public void run() {
 					push_progress_start = new Date();
 					Map<String, Integer> testmap = new TreeMap<String, Integer>();
@@ -143,6 +144,7 @@ public class Tester {
 				ProtoIndex idx;
 				Random rand = new Random();
 
+				@Override
 				public void run() {
 					try {
 						idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test");

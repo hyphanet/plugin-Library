@@ -650,11 +650,13 @@ implements MapSerialiser<K, T>,
 			return capacity - weight;
 		}
 
+		@Override
 		public boolean add(K c) {
 			if (super.add(c)) { weight += inv.getWeight(c); return true; }
 			return false;
 		}
 
+		@Override
 		public boolean remove(Object c) {
 			if (super.remove(c)) { weight -= inv.getWeight((K)c); return true; }
 			return false;
@@ -690,10 +692,12 @@ implements MapSerialiser<K, T>,
 			weight = w;
 		}
 
+		@Override
 		public boolean add(K k) {
 			throw new UnsupportedOperationException("Dummy bins cannot be modified");
 		}
 
+		@Override
 		public boolean remove(Object c) {
 			throw new UnsupportedOperationException("Dummy bins cannot be modified");
 		}
@@ -701,6 +705,7 @@ implements MapSerialiser<K, T>,
 		/**
 		** {@inheritDoc}
 		*/
+		@Override
 		public int compareTo(Bin<K> bin) {
 			if (this == bin) { return 0; }
 			int f1 = filled(), f2 = bin.filled();
@@ -766,6 +771,7 @@ implements MapSerialiser<K, T>,
 		** Compare keys by the weights of the element it maps to. The {@code
 		** null} key is treated as the "lightest" key for its weight.
 		*/
+		@Override
 		public int compare(K k1, K k2) {
 			if (k1 == k2) { return 0; }
 			int a = getWeight(k1), b = getWeight(k2);
@@ -852,6 +858,7 @@ implements MapSerialiser<K, T>,
 		public void setID(Object i) { id = i; }
 		public void setWeight(int w) { weight = w; }
 
+		@Override
 		public boolean equals(Object o) {
 			if (o == this) { return true; }
 			if (!(o instanceof BinInfo)) { return false; }
@@ -859,10 +866,12 @@ implements MapSerialiser<K, T>,
 			return id.equals(bi.id) && weight == bi.weight;
 		}
 
+		@Override
 		public int hashCode() {
 			return id.hashCode() + weight*31;
 		}
 
+		@Override
 		public String toString() {
 			return "Bin \"" + id + "\" - " + weight + "oz.";
 		}

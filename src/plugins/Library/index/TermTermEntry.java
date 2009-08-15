@@ -67,6 +67,7 @@ public class TermTermEntry extends TermEntry {
 		return super.equals(o) && term.equals(((TermTermEntry)o).term);
 	}
 
+	@Override
 	public boolean equalsTarget(TermEntry entry) {
 		return (entry instanceof TermPageEntry) && term.equals(((TermTermEntry)entry).term);
 	}
