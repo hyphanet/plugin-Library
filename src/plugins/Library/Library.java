@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library;
 
+import java.io.IOException;
 import plugins.Library.library.Index;
 import plugins.Library.library.WriteableIndex;
 import plugins.Library.index.xml.XMLIndex;
@@ -34,9 +35,7 @@ import freenet.support.Logger;
 
 import com.db4o.ObjectContainer;
 
-import freenet.node.NodeClientCore;
 import freenet.client.HighLevelSimpleClient;
-import freenet.client.ClientMetadata;
 import freenet.client.FetchContext;
 import freenet.client.FetchException;
 import freenet.client.FetchResult;
@@ -51,7 +50,10 @@ import freenet.node.RequestClient;
 import freenet.node.NodeClientCore;
 
 import java.io.File;
-import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.MalformedURLException;
 import java.util.Arrays;
 import java.util.List;
@@ -102,8 +104,30 @@ public class Library {
 	 */
 	private Library(PluginRespirator pr){
 		this.pr = pr;
-		addBookmark("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/");
-		addBookmark("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/");
+		File persistentFile = new File("LibraryPersistent");
+		if(persistentFile.canRead()){
+			try {
+				ObjectInputStream is = new ObjectInputStream(new FileInputStream(persistentFile));	// These are annoying but it's better than nothing
+				bookmarks = (Map<String, String>)is.readObject();
+			} catch (ClassNotFoundException ex) {
+				Logger.error(this, "Error trying to read bookmarks Map from file.", ex);
+			} catch (IOException ex) {
+				Logger.normal(this, "Error trying to read Library persistent data.", ex);
+			}
+		}else{
+			addBookmark("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/");
+			addBookmark("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/2/");
+		}
+	}
+
+	public void saveState(){
+		File persistentFile = new File("LibraryPersistent");
+		try {
+			ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(persistentFile));
+			os.writeObject(bookmarks);
+		} catch (IOException ex) {
+			Logger.error(this, "Error writing out Library state to file.", ex);
+		}
 	}
 
 	/**
@@ -313,6 +337,7 @@ public class Library {
 	 */
 	public String addBookmark(String name, String uri) {
 		bookmarks.put(name, uri);
+		saveState();
 		return name;
 	}
 	public Set<String> bookmarkKeys() {
