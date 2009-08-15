@@ -85,7 +85,7 @@
 		<get verbose="true" src="${JGraphT.mirror}" dest="${tmp}/jgrapht-0.7.3.tar.gz" />
 		<checksum file="${tmp}/jgrapht-0.7.3.tar.gz" algorithm="MD5" property="${JGraphT.md5}" verifyProperty="JGraphTMD5ok" />
 		<checksum file="${tmp}/jgrapht-0.7.3.tar.gz" algorithm="SHA" property="${JGraphT.sha}" verifyProperty="JGraphTSHAok" />
-		<fail message="JGraphT.zip checksum mismatch">
+		<fail message="jgrapht-0.7.3.tar.gz checksum mismatch">
 			<condition>
 				<or>
 					<equals arg1="${JGraphTMD5ok}" arg2="false" />

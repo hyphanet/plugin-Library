@@ -4,62 +4,49 @@
 package plugins.Library.search.inter;
 
 import plugins.Library.library.Index;
+import plugins.Library.index.TermEntry;
+import plugins.Library.index.Request;
+import plugins.Library.serial.ChainedProgress;
 
-import java.util.Collections;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.Collection;
+
+import java.util.concurrent.BlockingQueue;
 
 /**
-** DOCUMENT
+** Class representing a query for a single term on a single index.
+**
+** TODO
 **
 ** @author infinity0
 */
-public class IndexQuery /* implements Index */ {
+public class IndexQuery implements /*Request,*/ Runnable {
 
-	/**
-	** Reference to the index.
-	*/
+	final BlockingQueue<IndexQuery> out;
+	// PRIORITY error too...
+
 	final public Index index;
+	final public String term;
 
-	/**
-	** Score for this index in the WoT.
-	*/
-	final public float WoT_score;
+	// TODO implement Request by delegating all methods to this
+	final public Request<Collection<TermEntry>> request;
 
-	/**
-	** Minimum number of hops this index is from the inner-group of indexes.
-	*/
-	protected int WoT_hops;
-
-	/**
-	** References to this index that we've seen, from other indexes.
-	**
-	** TODO decide if this is needed.
-	*/
-	protected int WoT_refs;
-
-	/**
-	** Mutex for manipulating the below sets.
-	*/
-	final protected Object terms_lock = new Object();
-
-	final protected Set<String> terms_done = new HashSet<String>();
-	final protected Set<String> terms_started = new HashSet<String>();
-	final protected Set<String> terms_pending;
-
-	public IndexQuery(Index i, float s, Set<String> terms, int hops) {
+	public IndexQuery(Index i, String t, BlockingQueue<IndexQuery> o) {
 		index = i;
-		WoT_score = s;
-		WoT_hops = hops;
-		terms_pending = new HashSet<String>(terms);
+		term = t;
+		out = o;
+		request = index.getTermEntries(term); // , false); TODO implement
 	}
 
-	public IndexQuery(Index i, float s, String root_term) {
-		this(i, s, Collections.singleton(root_term), 0);
-	}
-
-	public void updateMinimumHops(int h) {
-		if (h < WoT_hops) { WoT_hops = h; }
+	public void run() {
+		// this uses different thread... untidy...
+		// if (!request.started()) { request.run(); }
+		// else { request.join(); }
+		// TODO make Request implement Runnable
+		try {
+			out.put(this);
+		} catch (InterruptedException e) {
+			// TODO.. setError(new TaskAbortException("Query was interrupted", e);
+		}
 	}
 
 }
