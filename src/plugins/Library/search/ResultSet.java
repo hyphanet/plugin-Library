@@ -97,6 +97,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 				phrase(subresults);
 				break;
 		}
+		done = true;
 	}
 
 	/**
