@@ -41,7 +41,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 
 	private ResultOperation resultOperation;
 
-	private final List<Request<Set<TermEntry>>> subsearches;
+	private List<Request<Set<TermEntry>>> subsearches;
 
 	private String query;
 	private String indexURI;
@@ -60,6 +60,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	private boolean htmlshowold;
 	private boolean htmljs;
 	private ResultNodeGenerator resultNodeGenerator;
+	private HTMLNode pageEntryNode;
 
 	private enum SearchStatus { Unstarted, Busy, Combining_First, Combining_Last, Formatting, Done };
 	private SearchStatus status = SearchStatus.Unstarted;
@@ -348,11 +349,6 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 */
 	@Override
 	public String toString(){
-		try {
-			setStatus();
-		} catch (TaskAbortException ex) {
-			setError(ex);
-		}
 		return "Search: "+resultOperation+" : "+subject+" : "+subsearches;
 	}
 
@@ -362,6 +358,8 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	/*@Override**/ public List<? extends Progress> getSubProgress(){
 		Logger.minor(this, toString());
 
+		if (subsearches == null)
+			return null;
 		// Only index splits will allowed as composites
 		if (resultOperation == ResultOperation.DIFFERENTINDEXES)
 			return subsearches;
@@ -393,12 +391,10 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * @return
 	 */
 	public boolean hasGeneratedResultNode(){
-		return resultNodeGenerator != null && resultNodeGenerator.isDone();
+		return pageEntryNode != null;
 	}
 
 	public HTMLNode getHTMLNode(){
-		HTMLNode pageEntryNode = resultNodeGenerator.getPageEntryNode();
-		resultNodeGenerator = null;
 		return pageEntryNode;
 	}
 	
@@ -429,7 +425,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 			case Combining_Last :	// for when this is combining
 				if(!resultset.isDone())
 					return;		// If Combining & combine not finished, status remains as Combining
-				subsearches.clear();	// clear the subrequests after they have been combined
+				subsearches = null;	// clear the subrequests after they have been combined
 				// If finished Combining and asked to generate resultnode, start that process
 				if(formatResult){
 					// resultset doesn't exist but subrequests are complete so we can start up a resultset
@@ -442,10 +438,14 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 				}else			// If not asked to format output, status -> done
 					status = SearchStatus.Done;
 			case Formatting :
-				// If asked to generate resultnode and still doing that, status remains as Formatting
-				if(formatResult && resultNodeGenerator !=null && !resultNodeGenerator.isDone())
-					return;
-				// If finished Formatting or not asked to do so, status -> Done
+				if(formatResult){
+					// If asked to generate resultnode and still doing that, status remains as Formatting
+					if(!resultNodeGenerator.isDone())
+						return;
+					// If finished Formatting or not asked to do so, status -> Done
+					pageEntryNode = resultNodeGenerator.getPageEntryNode();
+					resultNodeGenerator = null;
+				}
 				status = SearchStatus.Done;
 			case Done :
 				// Done , do nothing
@@ -487,6 +487,8 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 
 	@Override
 	public ProgressParts getParts() throws TaskAbortException {
+		if(subsearches==null)
+			return ProgressParts.normalise(0, 0);
 		return ProgressParts.getParts(this.getSubProgress(), ProgressParts.ESTIMATE_UNKNOWN);
 	}
 

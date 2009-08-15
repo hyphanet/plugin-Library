@@ -362,41 +362,44 @@ class MainPage {
 	 * @return
 	 */
 	public static HTMLNode progressBar(Progress progress) throws TaskAbortException {
-		if( progress instanceof CompositeProgress && ((CompositeProgress) progress).getSubProgress()!=null && ((CompositeProgress) progress).getSubProgress().iterator().hasNext()){
-			// Put together progress bars for all the subProgress
-			HTMLNode block = new HTMLNode("#");
-			block.addChild("tr").addChild("td", "colspan", "6", progress.getSubject() + " : "+progress.getStatus());
-			for (Progress progress1 : ((CompositeProgress) progress).getSubProgress()) {
-				block.addChild(progressBar(progress1));
-			}
-			return block;
-		} else {
-			// Draw progress bar for single or chained progress
-			ProgressParts parts;
-			if(progress instanceof ChainedProgress && ((ChainedProgress)progress).getCurrentProgress()!=null)
-				parts = ((ChainedProgress)progress).getCurrentProgress().getParts();
-			else
-				parts = progress.getParts();
+		synchronized (progress){
+			if( progress instanceof CompositeProgress && ((CompositeProgress) progress).getSubProgress()!=null && ((CompositeProgress) progress).getSubProgress().iterator().hasNext()){
+				// Put together progress bars for all the subProgress
+				HTMLNode block = new HTMLNode("#");
+				block.addChild("tr").addChild("td", "colspan", "6", progress.getSubject() + " : "+progress.getStatus());
+				if(((CompositeProgress) progress).getSubProgress() != null)
+					for (Progress progress1 : ((CompositeProgress) progress).getSubProgress()) {
+						block.addChild(progressBar(progress1));
+					}
+				return block;
+			} else {
+				// Draw progress bar for single or chained progress
+				ProgressParts parts;
+				if(progress instanceof ChainedProgress && ((ChainedProgress)progress).getCurrentProgress()!=null)
+					parts = ((ChainedProgress)progress).getCurrentProgress().getParts();
+				else
+					parts = progress.getParts();
 
-			HTMLNode bar = new HTMLNode("tr");
-			bar.addChild("td");
-			// search term
-			bar.addChild("td", progress.getSubject());
-			// search stage
-			bar.addChild("td", progress.getStatus());
-			// show fetch progress if fetching something
-			if(progress.isDone() || progress.getParts().known==0){
-				bar.addChild("td", ""); bar.addChild("td");
-			}else{
-				float fractiondone = parts.getKnownFractionDone();
-				int percentage = (int)(((float)100)*fractiondone);	// TODO cater for all data and invalid (negative) values
-				boolean fetchFinalized = parts.finalizedTotal();
+				HTMLNode bar = new HTMLNode("tr");
+				bar.addChild("td");
+				// search term
+				bar.addChild("td", progress.getSubject());
+				// search stage
+				bar.addChild("td", progress.getStatus());
+				// show fetch progress if fetching something
+				if(progress.isDone() || progress.getParts().known==0){
+					bar.addChild("td", ""); bar.addChild("td");
+				}else{
+					float fractiondone = parts.getKnownFractionDone();
+					int percentage = (int)(((float)100)*fractiondone);	// TODO cater for all data and invalid (negative) values
+					boolean fetchFinalized = parts.finalizedTotal();
 
-				bar.addChild("td", new String[]{"class", "style"}, new String[]{"progress-bar-outline", "padding: 0px 3px;"})
-					.addChild("div", new String[]{"class", "style"}, new String[]{fetchFinalized?"progress-bar-inner-final":"progress-bar-inner-nonfinal", "z-index : -1; width:"+percentage+"%;"});
-				bar.addChild("td", fetchFinalized?percentage+"%":"Operation length unknown");
+					bar.addChild("td", new String[]{"class", "style"}, new String[]{"progress-bar-outline", "padding: 0px 3px;"})
+						.addChild("div", new String[]{"class", "style"}, new String[]{fetchFinalized?"progress-bar-inner-final":"progress-bar-inner-nonfinal", "z-index : -1; width:"+percentage+"%;"});
+					bar.addChild("td", fetchFinalized?percentage+"%":"Operation length unknown");
+				}
+				return bar;
 			}
-			return bar;
 		}
 	}
 
