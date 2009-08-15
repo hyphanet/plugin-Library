@@ -78,7 +78,7 @@ class MainPage {
 		showold = request.isParameterSet("showold");
 		groupusk = request.isParameterSet("groupusk");
 
-		if (request.isParameterSet("request")){
+		if (request.isParameterSet("request") && Search.hasSearch(request.getIntParam("request"))){
 			search = Search.getSearch(request.getIntParam("request"));
 			search.setMakeResultNode(groupusk, showold, js);
 			if(search!=null){

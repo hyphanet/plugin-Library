@@ -314,11 +314,15 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * @param indexuri
 	 * @return true if it's found
 	 */
-	public static synchronized boolean hasSearch(String search, String indexuri){
+	public static boolean hasSearch(String search, String indexuri){
 		if(search==null || indexuri==null)
 			return false;
 		search = search.toLowerCase(Locale.US).trim();
 		return allsearches.containsKey(makeString(search, indexuri));
+	}
+
+	public static boolean hasSearch(int searchHash){
+		return searchhashes.containsKey(searchHash);
 	}
 
 	public static synchronized Map<String, Search> getAllSearches(){
