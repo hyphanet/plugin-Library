@@ -185,7 +185,7 @@ public class SimpleProgress implements Progress {
 	  public interface Progress
 	 ========================================================================*/
 
-	public String getSubject() {
+	@Override public String getSubject() {
 		return subject;
 	}
 
@@ -196,7 +196,7 @@ public class SimpleProgress implements Progress {
 	** #abort}, {@link #status}, or string constructed from {@link #pdone},
 	** {@link #known} and {@link #estimate}.
 	*/
-	public String getStatus() {
+	@Override public String getStatus() {
 		if (abort != null) { return abort.getMessage(); }
 		if (status != null) { return status; }
 		try {
@@ -207,21 +207,21 @@ public class SimpleProgress implements Progress {
 		}
 	}
 
-	public ProgressParts getParts() throws TaskAbortException {
+	@Override public ProgressParts getParts() throws TaskAbortException {
 		// updates are made such that the ProgressParts contract isn't broken even
 		// in mid-update so we don't need to synchronize here.
 		if (abort != null) { throw abort; }
 		return new ProgressParts(pdone, known, known, estimate);
 	}
 
-	public boolean isDone() throws TaskAbortException {
+	@Override public boolean isDone() throws TaskAbortException {
 		// updates are made such that the ProgressParts contract isn't broken even
 		// in mid-update so we don't need to synchronize here.
 		if (abort != null) { throw abort; }
 		return finalizedTotal() && pdone == known;
 	}
 
-	public synchronized void join() throws InterruptedException, TaskAbortException {
+	@Override public synchronized void join() throws InterruptedException, TaskAbortException {
 		while (inprogress) { wait(); }
 		if (abort != null) { throw abort; }
 	}

@@ -110,12 +110,10 @@ class MainPageToadlet extends Toadlet {
 	
 	
 	
-	@Override
 	public String path() {
 		return MainPage.path();
 	}
 	
-	@Override
 	public String supportedMethods() {
 		return "GET, POST";
 	}

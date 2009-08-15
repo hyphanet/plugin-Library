@@ -189,7 +189,6 @@ public class ProgressParts {
 	**   will be ommited.
 	** * If there is no estimate, only the {@code ??} will be included.
 	*/
-	@Override
 	final public String toString() {
 		String s = done + "/";
 		if (done != started) { s += started + "/"; }

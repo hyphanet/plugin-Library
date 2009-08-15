@@ -88,15 +88,15 @@ implements Archiver<ProtoIndex>,
 		return srl;
 	}
 
-	public Archiver<Map<String, Object>> getChildSerialiser() {
+	@Override public Archiver<Map<String, Object>> getChildSerialiser() {
 		return subsrl;
 	}
 
-	public Translator<ProtoIndex, Map<String, Object>> getTranslator() {
+	@Override public Translator<ProtoIndex, Map<String, Object>> getTranslator() {
 		return trans;
 	}
 
-	public void pull(PullTask<ProtoIndex> task) throws TaskAbortException {
+	@Override public void pull(PullTask<ProtoIndex> task) throws TaskAbortException {
 		PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(task.meta);
 		subsrl.pull(serialisable);
 		task.meta = serialisable.meta;
@@ -110,7 +110,7 @@ implements Archiver<ProtoIndex>,
 		}
 	}
 
-	public void push(PushTask<ProtoIndex> task) throws TaskAbortException {
+	@Override public void push(PushTask<ProtoIndex> task) throws TaskAbortException {
 		PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(trans.app(task.data));
 		serialisable.meta = serialisable.data.remove("insID");
 		subsrl.push(serialisable);
@@ -135,7 +135,7 @@ implements Archiver<ProtoIndex>,
 		ProtoIndexComponentSerialiser.TreeMapTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null));
 
 
-		public Map<String, Object> app(ProtoIndex idx) {
+		@Override public Map<String, Object> app(ProtoIndex idx) {
 			if (!idx.ttab.isBare() || !idx.utab.isBare()) {
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
@@ -151,7 +151,7 @@ implements Archiver<ProtoIndex>,
 			return map;
 		}
 
-		public ProtoIndex rev(Map<String, Object> map) {
+		@Override public ProtoIndex rev(Map<String, Object> map) {
 			long magic = (Long)map.get("serialVersionUID");
 
 			if (magic == ProtoIndex.serialVersionUID) {

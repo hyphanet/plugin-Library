@@ -84,6 +84,7 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 		return ProgressParts.normalise(stage, (stage<end-1)?stage+1:end, end, ProgressParts.TOTAL_FINALIZED);
 	}
 
+	@Override
 	public Progress getCurrentProgress() {
 		return currentProgress;
 	}

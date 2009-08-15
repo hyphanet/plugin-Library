@@ -433,7 +433,6 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	  public class Object
 	 ========================================================================*/
 
-	@Override
 	public boolean equals(Object o) {
 		if (o == this) { return true; }
 		if (!(o instanceof PrefixTree)) { return false; }
@@ -460,7 +459,6 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 		return true;
 	}
 
-	@Override
 	public int hashCode() {
 		int sum = getLocalMap().hashCode();
 		for (PrefixTree<K, V> ch: child) {
@@ -536,7 +534,6 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
 	*/
 	abstract public static class AbstractPrefixKey<K extends AbstractPrefixKey<K>> implements PrefixKey<K> {
 
-		@Override
 		abstract public AbstractPrefixKey<K> clone();
 
 		public K spawn(int i, int v) {

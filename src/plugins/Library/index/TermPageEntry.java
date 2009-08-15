@@ -111,7 +111,6 @@ public class TermPageEntry extends TermEntry {
 		return super.equals(o) && uri.equals(((TermPageEntry)o).uri);
 	}
 
-	@Override
 	public boolean equalsTarget(TermEntry entry) {
 		return (entry instanceof TermPageEntry) && uri.equals(((TermPageEntry)entry).uri);
 	}

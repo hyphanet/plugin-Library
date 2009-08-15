@@ -124,8 +124,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			return old;
 		}
 
-		@Override
-		public SkeletonValue<V> clone() {
+		@Override public SkeletonValue<V> clone() {
 			try {
 				return (SkeletonValue<V>)super.clone();
 			} catch (CloneNotSupportedException e) {
@@ -163,27 +162,27 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	  public interface SkeletonMap
 	 ========================================================================*/
 
-	public boolean isLive() {
+	@Override public boolean isLive() {
 		return ghosts == 0;
 	}
 
-	public boolean isBare() {
+	@Override public boolean isBare() {
 		return ghosts == skmap.size();
 	}
 
-	public MapSerialiser<K, V> getSerialiser() {
+	@Override public MapSerialiser<K, V> getSerialiser() {
 		return serialiser;
 	}
 
-	public Object getMeta() {
+	@Override public Object getMeta() {
 		return mapmeta;
 	}
 
-	public void setMeta(Object m) {
+	@Override public void setMeta(Object m) {
 		mapmeta = m;
 	}
 
-	public void inflate() throws TaskAbortException {
+	@Override public void inflate() throws TaskAbortException {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 		if (isLive()) { return; }
 
@@ -204,7 +203,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 	}
 
-	public void deflate() throws TaskAbortException {
+	@Override public void deflate() throws TaskAbortException {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 		if (isBare()) { return; }
 
@@ -223,7 +222,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 	}
 
-	public void inflate(K key) throws TaskAbortException {
+	@Override public void inflate(K key) throws TaskAbortException {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		SkeletonValue<V> skel = skmap.get(key);
@@ -266,7 +265,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 	}
 
-	public void deflate(K key) throws TaskAbortException {
+	@Override public void deflate(K key) throws TaskAbortException {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		SkeletonValue<V> skel = skmap.get(key);
@@ -368,26 +367,20 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	  public interface Map
 	 ========================================================================*/
 
-	@Override
-	public int size() { return skmap.size(); }
+	@Override public int size() { return skmap.size(); }
 
-	@Override
-	public boolean isEmpty() { return skmap.isEmpty(); }
+	@Override public boolean isEmpty() { return skmap.isEmpty(); }
 
-	@Override
-	public void clear() {
+	@Override public void clear() {
 		skmap.clear();
 		ghosts = 0;
 	}
 
-	@Override
-	public Comparator<? super K> comparator() { return skmap.comparator(); }
+	@Override public Comparator<? super K> comparator() { return skmap.comparator(); }
 
-	@Override
-	public boolean containsKey(Object key) { return skmap.containsKey(key); }
+	@Override public boolean containsKey(Object key) { return skmap.containsKey(key); }
 
-	@Override
-	public boolean containsValue(Object value) {
+	@Override public boolean containsValue(Object value) {
 		if (!isLive()) {
 			// TODO maybe make this work even when map is partially loaded
 			throw new DataNotLoadedException("TreeMap not fully loaded.", this);
@@ -399,8 +392,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 	}
 
-	@Override
-	public V get(Object key) {
+	@Override public V get(Object key) {
 		SkeletonValue<V> sk = skmap.get(key);
 		if (sk == null) { return null; }
 		if (!sk.isLoaded) { throw new DataNotLoadedException("Data not loaded for key " + key + ": " + sk.meta, this, key, sk.meta); }
@@ -421,8 +413,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** OPTIMISE code a version that throws {@link IllegalArgumentException} if
 	** the key is not already in the map. (Useful for the *flate methods.)
 	*/
-	@Override
-	public V put(K key, V value) {
+	@Override public V put(K key, V value) {
 		SkeletonValue<V> sk = skmap.get(key);
 		if (sk == null) { skmap.put(key, sk = new SkeletonValue<V>()); }
 		if (!sk.isLoaded) { --ghosts; }
@@ -442,8 +433,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** method throw {@link DataNotLoadedException} in such circumstances, at
 	** the user's discretion.
 	*/
-	@Override
-	public V remove(Object key) {
+	@Override public V remove(Object key) {
 		SkeletonValue<V> sk = skmap.remove(key);
 		if (sk == null) { return null; }
 		if (!sk.isLoaded) { --ghosts; }
@@ -451,32 +441,26 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	}
 
 	private Set<Map.Entry<K,V>> entries;
-	@Override
-	public Set<Map.Entry<K,V>> entrySet() {
+	@Override public Set<Map.Entry<K,V>> entrySet() {
 		if (entries == null) {
 			entries = new AbstractSet<Map.Entry<K, V>>() {
 
-				@Override
 				public int size() { return skmap.size(); }
 
-				@Override
 				public Iterator<Map.Entry<K, V>> iterator() {
 					return new UnwrappingIterator<Map.Entry<K, V>>(skmap.entrySet().iterator(), UnwrappingIterator.ENTRY);
 				}
 
-				@Override
 				public void clear() {
 					SkeletonTreeMap.this.clear();
 				}
 
-				@Override
 				public boolean contains(Object o) {
 					if (!(o instanceof Map.Entry)) { return false; }
 					Map.Entry e = (Map.Entry)o;
 					return SkeletonTreeMap.this.get(e.getKey()).equals(e.getValue());
 				}
 
-				@Override
 				public boolean remove(Object o) {
 					// SkeletonTreeMap.remove() called, which automatically updates _ghosts
 					boolean c = contains(o);
@@ -493,28 +477,22 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	}
 
 	private Set<K> keys;
-	@Override
-	public Set<K> keySet() {
+	@Override public Set<K> keySet() {
 		if (keys == null) {
 			keys = new AbstractSet<K>() {
 
-				@Override
 				public int size() { return skmap.size(); }
 
-				@Override
 				public Iterator<K> iterator() {
 					return new UnwrappingIterator<K>(skmap.entrySet().iterator(), UnwrappingIterator.KEY);
 				}
 
-				@Override
 				public void clear() { SkeletonTreeMap.this.clear(); }
 
-				@Override
 				public boolean contains(Object o) {
 					return SkeletonTreeMap.this.containsKey(o);
 				}
 
-				@Override
 				public boolean remove(Object o) {
 					boolean c = contains(o);
 					SkeletonTreeMap.this.remove(o);
@@ -527,20 +505,16 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	}
 
 	private Collection<V> values;
-	@Override
-	public Collection<V> values() {
+	@Override public Collection<V> values() {
 		if (values == null) {
 			values = new AbstractCollection<V>() {
 
-				@Override
 				public int size() { return SkeletonTreeMap.this.size(); }
 
-				@Override
 				public Iterator<V> iterator() {
 					return new UnwrappingIterator<V>(skmap.entrySet().iterator(), UnwrappingIterator.VALUE);
 				}
 
-				@Override
 				public void clear() { SkeletonTreeMap.this.clear(); }
 
 			};
@@ -548,13 +522,11 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		return values;
 	}
 
-	@Override
-	public K firstKey() {
+	@Override public K firstKey() {
 		return skmap.firstKey();
 	}
 
-	@Override
-	public K lastKey() {
+	@Override public K lastKey() {
 		return skmap.lastKey();
 	}
 
@@ -565,8 +537,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** functionality, and will throw {@link UnsupportedOperationException} for
 	** most of its methods. For details, see {@link UnwrappingSortedSubMap}.
 	*/
-	@Override
-	public SortedMap<K, V> subMap(K fr, K to) {
+	@Override public SortedMap<K, V> subMap(K fr, K to) {
 		return new UnwrappingSortedSubMap<K, V>(skmap.subMap(fr, to));
 	}
 
@@ -577,8 +548,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** functionality, and will throw {@link UnsupportedOperationException} for
 	** most of its methods. For details, see {@link UnwrappingSortedSubMap}.
 	*/
-	@Override
-	public SortedMap<K, V> headMap(K to) {
+	@Override public SortedMap<K, V> headMap(K to) {
 		return new UnwrappingSortedSubMap<K, V>(skmap.headMap(to));
 	}
 
@@ -589,8 +559,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** functionality, and will throw {@link UnsupportedOperationException} for
 	** most of its methods. For details, see {@link UnwrappingSortedSubMap}.
 	*/
-	@Override
-	public SortedMap<K, V> tailMap(K fr) {
+	@Override public SortedMap<K, V> tailMap(K fr) {
 		return new UnwrappingSortedSubMap<K, V>(skmap.tailMap(fr));
 	}
 
@@ -599,8 +568,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	  public class Object
 	 ========================================================================*/
 
-	@Override
-	public boolean equals(Object o) {
+	@Override public boolean equals(Object o) {
 		if (o instanceof SkeletonTreeMap) {
 			return skmap.equals(((SkeletonTreeMap<K, V>)o).skmap);
 		}
@@ -608,12 +576,11 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	}
 
 	/* provided by AbstractMap
-	public int hashCode() {
+	@Override public int hashCode() {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
-	@Override
-	public Object clone() {
+	@Override public Object clone() {
 		return new SkeletonTreeMap<K, V>(this);
 	}
 
@@ -751,14 +718,12 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 				return skel.set(value);
 			}
 
-			@Override
 			public int hashCode() {
 				verifyLoaded();
 				return (key==null? 0: key.hashCode()) ^
 				       (skel.data==null? 0: skel.data.hashCode());
 			}
 
-			@Override
 			public boolean equals(Object o) {
 				if (!(o instanceof Map.Entry)) { return false; }
 				verifyLoaded();
@@ -791,25 +756,23 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			bkmap = sub;
 		}
 
-		public Comparator<? super K> comparator() {
+		@Override public Comparator<? super K> comparator() {
 			return bkmap.comparator();
 		}
 
-		@Override
-		public boolean isEmpty() {
+		@Override public boolean isEmpty() {
 			return bkmap.isEmpty();
 		}
 
-		public K firstKey() {
+		@Override public K firstKey() {
 			return bkmap.firstKey();
 		}
 
-		public K lastKey() {
+		@Override public K lastKey() {
 			return bkmap.lastKey();
 		}
 
-		@Override
-		public Set<Map.Entry<K, V>> entrySet() {
+		@Override public Set<Map.Entry<K, V>> entrySet() {
 			throw new UnsupportedOperationException("not implemented");
 		}
 
@@ -819,7 +782,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** NOTE: the sorted map returned by this method has the {@link
 		** UnwrappingSortedSubMap same limitations} as this class.
 		*/
-		public SortedMap<K, V> subMap(K fr, K to) {
+		@Override public SortedMap<K, V> subMap(K fr, K to) {
 			return new UnwrappingSortedSubMap<K, V>(bkmap.subMap(fr, to));
 		}
 
@@ -829,7 +792,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** NOTE: the sorted map returned by this method has the {@link
 		** UnwrappingSortedSubMap same limitations} as this class.
 		*/
-		public SortedMap<K, V> headMap(K to) {
+		@Override public SortedMap<K, V> headMap(K to) {
 			return new UnwrappingSortedSubMap<K, V>(bkmap.headMap(to));
 		}
 
@@ -839,7 +802,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** NOTE: the sorted map returned by this method has the {@link
 		** UnwrappingSortedSubMap same limitations} as this class.
 		*/
-		public SortedMap<K, V> tailMap(K fr) {
+		@Override public SortedMap<K, V> tailMap(K fr) {
 			return new UnwrappingSortedSubMap<K, V>(bkmap.tailMap(fr));
 		}
 

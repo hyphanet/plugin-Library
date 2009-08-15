@@ -19,7 +19,7 @@ public interface ChainedProgress extends Progress {
 	** int)}, with the first argument being the collection of already
 	** completed progresses plus the current one.
 	*/
-	public ProgressParts getParts() throws TaskAbortException;
+	@Override public ProgressParts getParts() throws TaskAbortException;
 
 	/**
 	** Gets the latest subprogress. The earlier ones should all be complete.

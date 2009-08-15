@@ -57,7 +57,6 @@ public class TermIndexEntry extends TermEntry {
 		return super.equals(o) && index.equals(((TermIndexEntry)o).index);
 	}
 
-	@Override
 	public boolean equalsTarget(TermEntry entry) {
 		return (entry instanceof TermIndexEntry) && index.equals(((TermIndexEntry)entry).index);
 	}
