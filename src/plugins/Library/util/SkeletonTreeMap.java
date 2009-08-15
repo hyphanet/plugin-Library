@@ -576,7 +576,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	}
 
 	/* provided by AbstractMap
-	/*@Override**/ public int hashCode() {
+	@Override public int hashCode() {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 

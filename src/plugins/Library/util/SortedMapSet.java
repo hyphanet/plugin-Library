@@ -95,11 +95,11 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	}
 
 	/* provided by AbstractSet
-	/*@Override**/ public Object[] toArray() { }
+	@Override public Object[] toArray() { }
 	*/
 
 	/* provided by AbstractSet
-	/*@Override**/ public <T> T[] toArray(T[] a) { }
+	@Override public <T> T[] toArray(T[] a) { }
 	*/
 
 	@Override public boolean add(E o) {
@@ -119,10 +119,10 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	}
 
 	/* provided by AbstractSet
-	/*@Override**/ public boolean containsAll(Collection<?> c) { }
-	/*@Override**/ public boolean addAll(Collection<? extends E> c) { }
-	/*@Override**/ public boolean retainAll(Collection<?> c) { }
-	/*@Override**/ public boolean removeAll(Collection<?> c) { }
+	@Override public boolean containsAll(Collection<?> c) { }
+	@Override public boolean addAll(Collection<? extends E> c) { }
+	@Override public boolean retainAll(Collection<?> c) { }
+	@Override public boolean removeAll(Collection<?> c) { }
 	*/
 
 	@Override public void clear() {
@@ -130,8 +130,8 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	}
 
 	/* provided by AbstractSet
-	/*@Override**/ public boolean equals(Object o) { }
-	/*@Override**/ public int hashCode() { }
+	@Override public boolean equals(Object o) { }
+	@Override public int hashCode() { }
 	*/
 
 	/*========================================================================

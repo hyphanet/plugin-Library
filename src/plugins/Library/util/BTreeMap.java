@@ -1017,7 +1017,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/* provided by AbstractMap
-	/*@Override**/ public boolean containsValue(Object key) {
+	@Override public boolean containsValue(Object key) {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
@@ -1502,13 +1502,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 	/* provided by AbstractMap
 	** OPTIMISE - the default clear() method is inefficient
-	/*@Override**/ public Set<K> keySet() {
+	@Override public Set<K> keySet() {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
 	/* provided by AbstractMap
 	** OPTIMISE - the default clear() method is inefficient
-	/*@Override**/ public Collection<V> values() {
+	@Override public Collection<V> values() {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
