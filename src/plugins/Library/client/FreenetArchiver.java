@@ -247,7 +247,10 @@ implements LiveArchiver<T, SimpleProgress> {
 			int new_succeeded = evt.succeedBlocks;
 			int new_total = evt.minSuccessfulBlocks;
 			// fetch can go over 100%
-			if (new_succeeded > new_total) { new_succeeded = new_total; }
+			if (new_succeeded > new_total) {
+				Logger.normal(this, "Received SplitfileProgressEvent greater than 100%: " + evt.getDescription());
+				new_succeeded = new_total;
+			}
 			synchronized (splitfile_blocks) {
 				int old_succeeded = splitfile_blocks[0];
 				int old_total = splitfile_blocks[1];

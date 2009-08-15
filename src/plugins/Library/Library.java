@@ -179,29 +179,30 @@ public class Library {
 
 			try {
 				FetchResult res = fw.waitForCompletion();
-				throw new RuntimeException("Could not get MIME type for " + indexuri);
+				return getIndexTypeFromMIME(res.getMimeType());
 
 			} catch (FetchException e) {
-
 				if (e.getMode() == FetchException.CANCELLED) {
-
-					if (mime[0].equals(ProtoIndex.MIME_TYPE)) {
-						//return "YAML index";
-						return ProtoIndex.class;
-					} else if (mime[0].equals(XMLIndex.MIME_TYPE)) {
-						//return "XML index";
-						return XMLIndex.class;
-					} else {
-						throw new UnsupportedOperationException("Unknown mime-type for index");
-					}
-
+					return getIndexTypeFromMIME(mime[0]);
 				}
-
 			}
 
 		}
 		throw new UnsupportedOperationException("Could not find appropriate data for index");
 	}
+
+	public Class<?> getIndexTypeFromMIME(String mime) {
+		if (mime.equals(ProtoIndex.MIME_TYPE)) {
+			//return "YAML index";
+			return ProtoIndex.class;
+		} else if (mime.equals(XMLIndex.MIME_TYPE)) {
+			//return "XML index";
+			return XMLIndex.class;
+		} else {
+			throw new UnsupportedOperationException("Unknown mime-type for index");
+		}
+	}
+
 
 /*
 	KEYEXPLORER slightly more efficient version that depends on KeyExplorer
@@ -309,10 +310,10 @@ public class Library {
 		throw new UnsupportedOperationException("Could not determine default index file under the path given: " + f);
 	}
 
-	public Object getKeyTypeFromString(String indexuri) {
+	public Object getAddressTypeFromString(String indexuri) {
 		try {
 			// return KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri); KEYEXPLORER
-			// OPTIMISE if it already ends with eg. *Index.DEFAULT_FILE, don't strip
+			// PRIORITY OPTIMISE if it already ends with eg. *Index.DEFAULT_FILE, don't strip
 			// the MetaString, and have getIndexType behave accordingly
 			FreenetURI tempURI = new FreenetURI(indexuri);
 			if (tempURI.hasMetaStrings()) { tempURI = tempURI.setMetaString(null); }
@@ -398,7 +399,7 @@ public class Library {
 			return rtab.get(indexuri);
 
 		try {
-			Object indexkey = getKeyTypeFromString(indexuri);
+			Object indexkey = getAddressTypeFromString(indexuri);
 			Class<?> indextype;
 			Index index;
 

@@ -386,7 +386,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			throw new DataNotLoadedException("TreeMap not fully loaded.", this);
 		} else {
 			for (SkeletonValue<V> v: skmap.values()) {
-				if (value.equals(v)) { return true; }
+				if (value.equals(v.data)) { return true; }
 			}
 			return false;
 		}

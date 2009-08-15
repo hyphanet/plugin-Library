@@ -134,7 +134,18 @@ implements Archiver<ProtoIndex>,
 		SkeletonBTreeMap.TreeTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null, new
 		ProtoIndexComponentSerialiser.TreeMapTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null));
 
-
+		/**
+		** {@inheritDoc}
+		**
+		** Note: the resulting map will contain the insert SSK URI under the
+		** key {@code insID}. The intention is for push methods to remove this
+		** and add it to the task metadata. '''Failure to do this may result in
+		** the insert URI being published'''.
+		**
+		** PRIORITY maybe make this more secure, eg. wrap it in a
+		** UnserialisableWrapper or something that makes YAML throw an
+		** exception if it is accidentally passed to it.
+		*/
 		/*@Override**/ public Map<String, Object> app(ProtoIndex idx) {
 			if (!idx.ttab.isBare() || !idx.utab.isBare()) {
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");

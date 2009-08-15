@@ -162,7 +162,7 @@ public class ProgressParts {
 	** Note: this will return negative (ie. invalid) if there is no estimate.
 	*/
 	final public float getEstimatedFractionDone() {
-		return totalest == 0? 0.0f: totalest == TOTAL_FINALIZED? 1.0f: (float)done / totalest;
+		return totalest == 0? 0.0f: totalest == TOTAL_FINALIZED? getKnownFractionDone(): (float)done / totalest;
 	}
 
 	/**
@@ -170,7 +170,7 @@ public class ProgressParts {
 	** Note: this will return negative (ie. invalid) if there is no estimate.
 	*/
 	final public float getEstimatedFractionStarted() {
-		return totalest == 0? 0.0f: totalest == TOTAL_FINALIZED? 1.0f: (float)started / totalest;
+		return totalest == 0? 0.0f: totalest == TOTAL_FINALIZED? getKnownFractionStarted(): (float)started / totalest;
 	}
 
 	/**
@@ -269,7 +269,7 @@ public class ProgressParts {
 				totalfinalized = false;
 				break;
 			case TOTAL_FINALIZED:
-				t += parts.totalest;
+				t += parts.known;
 				break;
 			default:
 				totalfinalized = false;
