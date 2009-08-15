@@ -193,8 +193,10 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 			if(ce instanceof SplitfileProgressEvent){
 				SplitfileProgressEvent spe = (SplitfileProgressEvent)ce;
 				parts = ProgressParts.normalise(spe.succeedBlocks, spe.minSuccessfulBlocks, spe.minSuccessfulBlocks, spe.finalizedTotal?ProgressParts.TOTAL_FINALIZED:ProgressParts.ESTIMATE_UNKNOWN);
-			}else
-				throw new UnsupportedOperationException("Not supported yet. This ClientEvent hasn't been identified as being needed yet : "+ce.getClass().getName());	// Haven't come across any other ClientEvents arriving here yet
+			}else{
+				parts = ProgressParts.normalise(0, 0);
+				Logger.error(this, "Fetch progress will not update due to unrecognised ClientEvent : "+ce.getClass().getName());
+			}
 		}
 
 		@Override
