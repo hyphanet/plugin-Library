@@ -10,16 +10,17 @@ import org.jgrapht.EdgeFactory;
 **
 ** @author infinity0
 */
-public class TermRelationFactory implements EdgeFactory<String, TermRelation> {
+public class TermRelationFactory implements EdgeFactory<TermDefinition, TermRelation> {
 
+	// TODO maybe get rid of this, this is no longer needed now that we have TermDefinition
 	final protected InterdexQuery parent_query;
 
 	public TermRelationFactory(InterdexQuery q) {
 		parent_query = q;
 	}
 
-	@Override public TermRelation createEdge(String subject, String target) {
-		return new TermRelation(subject, target, parent_query);
+	@Override public TermRelation createEdge(TermDefinition subjdef, TermDefinition targdef) {
+		return new TermRelation(subjdef, targdef, parent_query);
 	}
 
 }

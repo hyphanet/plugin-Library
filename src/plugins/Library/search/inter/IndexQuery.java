@@ -24,25 +24,26 @@ public class IndexQuery implements /*Request,*/ Runnable {
 	final BlockingQueue<IndexQuery> out;
 	// PRIORITY error too...
 
-	final public Index index;
-	final public String term;
+	final public IndexIdentity id;
+	final public TermDefinition termdef;
 
 	// TODO implement Request by delegating all methods to this
 	final public Request<Collection<TermEntry>> request;
 
-	public IndexQuery(Index i, String t, BlockingQueue<IndexQuery> o) {
-		index = i;
-		term = t;
+	public IndexQuery(IndexIdentity i, TermDefinition td, BlockingQueue<IndexQuery> o) {
+		id = i;
+		termdef = td;
 		out = o;
-		request = index.getTermEntries(term); // , false); TODO implement
+		request = id.index.getTermEntries(termdef.subject); // , false); TODO implement
 	}
 
 	public void run() {
-		// this uses different thread... untidy...
-		// if (!request.started()) { request.run(); }
-		// else { request.join(); }
-		// TODO make Request implement Runnable
 		try {
+			// this uses different thread... untidy...
+			// if (!request.started()) { request.run(); }
+			// else { request.join(); }
+			// TODO make Request implement Runnable
+
 			out.put(this);
 		} catch (InterruptedException e) {
 			// TODO.. setError(new TaskAbortException("Query was interrupted", e);

@@ -14,13 +14,16 @@ import freenet.keys.FreenetURI;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultDirectedWeightedGraph;
 
-import java.util.Set;
+import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
 ** Class to handle a request for a given subject term.
@@ -28,6 +31,13 @@ import java.util.concurrent.TimeUnit;
 ** @author infinity0
 */
 public class InterdexQuery implements /* CompositeProgress, */ Runnable {
+
+	// PRIORITY find a better place to put this.. maybe in the Library singleton
+	final static protected ThreadPoolExecutor exec = new ThreadPoolExecutor(
+		0x40, 0x40, 1, TimeUnit.SECONDS,
+		new LinkedBlockingQueue<Runnable>(),
+		new ThreadPoolExecutor.CallerRunsPolicy() // easier than catching RejectedExecutionException, if it ever occurs
+	);
 
 	/**
 	** Argument passed to the constructor of {@link ConcurrentHashMap}.
@@ -48,21 +58,20 @@ public class InterdexQuery implements /* CompositeProgress, */ Runnable {
 	/**
 	** Table of results.
 	*/
-	final protected ConcurrentMap<FreenetURI, Map<String, Set<TermEntry>>>
-	results = new ConcurrentHashMap<FreenetURI, Map<String, Set<TermEntry>>>(0x10, (float)0.75, CONCURRENCY_LEVEL);
+	final protected ConcurrentMap<FreenetURI, Map<String, Collection<TermEntry>>>
+	results = new ConcurrentHashMap<FreenetURI, Map<String, Collection<TermEntry>>>(0x10, (float)0.75, CONCURRENCY_LEVEL);
 
 	/**
-	** Graph of terms encountered relevant to the subject term of the
-	** query. Not synchronized.
+	** Graph of terms encountered. Not synchronized.
 	*/
-	final protected Graph<String, TermRelation>
-	terms = new DefaultDirectedWeightedGraph<String, TermRelation>(new TermRelationFactory(this));
+	final protected Graph<TermDefinition, TermRelation>
+	terms = new DefaultDirectedWeightedGraph<TermDefinition, TermRelation>(new TermRelationFactory(this));
 
 	/**
 	** Queue for completed (index, term) queries.
 	*/
 	final protected BlockingQueue<IndexQuery>
-	queries_complete = new LinkedBlockingQueue<IndexQuery>();
+	query_complete = new LinkedBlockingQueue<IndexQuery>();
 
 	// TODO error maps..
 
@@ -70,7 +79,7 @@ public class InterdexQuery implements /* CompositeProgress, */ Runnable {
 	** Queue for completed {@link IndexIdentity}s retrievals.
 	*/
 	final protected BlockingQueue<IndexIdentity>
-	indexes_complete = new LinkedBlockingQueue<IndexIdentity>();
+	index_complete = new LinkedBlockingQueue<IndexIdentity>();
 
 	/**
 	** Sum of trust-scores of all indexes.
@@ -86,10 +95,11 @@ public class InterdexQuery implements /* CompositeProgress, */ Runnable {
 			addIndex(id);
 			// TODO anything else?
 		}
-		addTerm(subj);
+		addTermDefinition(new TermDefinition(subj));
 	}
 
 	public float getTotalTrustMass() {
+		// TODO maybe provide a way to re-calculate this from all the identities...
 		return trust_mass;
 	}
 
@@ -104,52 +114,81 @@ public class InterdexQuery implements /* CompositeProgress, */ Runnable {
 	** defined as the highest-relevance path from the subject to that term,
 	** where the relevance of a path is defined as the product of all the
 	** edges on it, where each edge from S to T has weight equal to their
-	** {@linkplain #getAvPercvRelevance(String, String) average perceived
+	** {@linkplain TermRelation#getWeightedRelevance() average weighted
 	** relevance}.
 	**
 	** This is itself equivalent to the shortest-path problem from the
 	** subject term to the target term, with each edge from S to T having
-	** weight {@code -log(R)}, with R being the average perceived relevance
+	** weight {@code -log(R)}, with R being the average weighted relevance
 	** of S, T.
 	**
 	** This definition was chosen because there may be an infinite number
 	** of paths between two terms in the semantic web; we want the "most
-	** direct" one that exists (by consensus; so we use average perceived
+	** direct" one that exists (by consensus; so we use average weighted
 	** relevance).
 	*/
 	public Map<String, Float> getEffectiveRelevances() {
 		throw new UnsupportedOperationException("not implemented");
 	}
 
-	protected void addIndex(IndexIdentity id) {
-		// pair up this index with all terms in terms.vertexSet(), and add them to the queue
-		// update the trust mass
-		indexes.put(id.reqID, id);
-		throw new UnsupportedOperationException("not implemented");
-	}
-
 	/**
-	** Add a new term relation to the semantic web.
+	** Add an {@link IndexIdentity} to the active list, and queue {@link
+	** IndexQuery}s to search all terms in this index. This method assumes that
+	** the identity does not already exist in the index map; it is up to the
+	** calling code to ensure that this holds.
 	**
-	** @return New average perceived relevance of the relation.
+	** This method is not thread-safe.
 	*/
-	protected float addTermRelation(String subj, String term, IndexIdentity index, float relevance) {
-		throw new UnsupportedOperationException("not implemented");
+	protected void addIndex(IndexIdentity id) {
+		// update the trust mass
+		trust_mass += id.trust;
+		// pair up this index with all terms in terms.vertexSet(), and schedule
+		// them for execution
+		IndexIdentity old = indexes.put(id.reqID, id);
+		assert(old == null);
+		for (TermDefinition termdef: terms.vertexSet()) {
+			exec.execute(new IndexQuery(id, termdef, query_complete));
+		}
 	}
 
 	/**
-	** Add a new term to the semantic web, and queue the appropriate {@link
-	** IndexQuery}s.
+	** Add a new term relation to the terms graph. This method assumes that
+	** the {@link TermDefinition} for the subject term has already been added
+	** to the terms graph; it is up to the calling code to ensure that this
+	** holds.
+	**
+	** This method is not thread-safe.
+	**
+	** @return New average weighted relevance of the relation.
+	*/
+	protected float addTermRelation(TermDefinition subjdef, String term, IndexIdentity index, float relevance) {
+		assert(terms.containsVertex(subjdef));
+		TermDefinition termdef = new TermDefinition(term);
+		addTermDefinition(termdef);
+		TermRelation rel = terms.getEdge(subjdef, termdef);
+		if (rel == null) {
+			rel = terms.addEdge(subjdef, termdef);
+		}
+		return rel.addRelevanceRating(index, relevance);
+	}
+
+	/**
+	** Add a new term to the terms graph, and queue {@link IndexQuery}s to
+	** search this term in all {@link IndexIdentity}s. If the term is already
+	** in the graph, returns {@code false}.
+	**
+	** This method is not thread-safe.
 	**
 	** @return Whether the graph changed (ie. the term was not already in it).
 	*/
-	protected boolean addTerm(String subj) {
+	protected boolean addTermDefinition(TermDefinition termdef) {
+		if (!terms.addVertex(termdef)) { return false; }
 		// pair up this term with all indexes, and add them to the task queeu
-		throw new UnsupportedOperationException("not implemented");
+		for (IndexIdentity id: indexes.values()) {
+			exec.execute(new IndexQuery(id, termdef, query_complete));
+		}
+		return true;
 	}
-
-
-
 
 	/**
 	** Returns true when we have enough data to display something
@@ -168,29 +207,35 @@ public class InterdexQuery implements /* CompositeProgress, */ Runnable {
 
 			do {
 
-				while (!queries_complete.isEmpty()) {
+				while (!query_complete.isEmpty()) {
 					// get completed task
+					IndexQuery res_query = query_complete.poll(1, TimeUnit.SECONDS);
 
-					String res_term = null; // TODO init these
-					FreenetURI res_index = null;
-					Set<TermEntry> entries = null;
-					IndexIdentity res_id = indexes.get(res_index);
+					TermDefinition res_termdef = res_query.termdef;
+					Collection<TermEntry> entries = null;// TODO res_query.getResult();
+					IndexIdentity res_id = res_query.id;
+
+					// update the termdefs
+					res_termdef.addDefiningIdentity(res_id);
 
 					for (TermEntry en: entries) {
 
 						if (en instanceof TermIndexEntry) {
-							// PRIORITY limit this! stop the recursion at some point
 							TermIndexEntry idxen = ((TermIndexEntry)en);
 							FreenetURI rel_id = idxen.getIndex();
 
-							// TODO start a new request to retrieve the IndexIdentity for this FreenetURI
+							// PRIORITY limit this! stop the recursion at some point
+							if (!indexes.containsKey(rel_id)) {
+								// TODO start a new request to retrieve the IndexIdentity for this FreenetURI
+							}
 
 						} else if (en instanceof TermTermEntry) {
 							TermTermEntry termen = ((TermTermEntry)en);
 							String rel_term = termen.getTerm();
 							float rel_rel = termen.getRelevance();
+
 							// PRIORITY limit this! stop the recursion at some point
-							addTermRelation(res_term, rel_term, res_id, rel_rel);
+							addTermRelation(res_termdef, rel_term, res_id, rel_rel);
 
 						} else {
 							// TODO add it to results set for the term
@@ -198,8 +243,8 @@ public class InterdexQuery implements /* CompositeProgress, */ Runnable {
 					}
 				}
 
-				while (!indexes_complete.isEmpty()) {
-					IndexIdentity index_id = indexes_complete.poll(1, TimeUnit.SECONDS);
+				while (!index_complete.isEmpty()) {
+					IndexIdentity index_id = index_complete.poll(1, TimeUnit.SECONDS);
 					addIndex(index_id);
 				}
 

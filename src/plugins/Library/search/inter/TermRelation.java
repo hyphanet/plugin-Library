@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search.inter;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.HashMap;
@@ -16,43 +17,60 @@ public class TermRelation {
 
 	/**
 	** Parent query. Used to get the total trust mass in order to calculate
-	** {@link #getAvPercvRelevance()}.
+	** {@link #getWeightedRelevance()}.
 	*/
 	final public InterdexQuery parent_query;
 
 	/**
-	** Subject term
+	** Subject {@link TermDefinition} of the relation.
 	*/
-	final public String subject;
+	final public TermDefinition subjdef;
 
 	/**
-	** Subject term for these results.
+	** Target {@link TermDefinition} of the relation.
 	*/
-	final public String target;
+	final public TermDefinition targdef;
 
 	/**
 	** Map of relevances from the {@link IndexIdentity}s that defined it.
 	*/
-	final public Map<IndexIdentity, Float> rel = new HashMap<IndexIdentity, Float>();
+	final protected Map<IndexIdentity, Float> rel = new HashMap<IndexIdentity, Float>();
 
 	/**
-	** Incremental calculation of effective relevance. May not be exact if
-	** if additional indexes were encountered referencing this term, after the
-	** last update to this field.
+	** Weighted sum of the relevance map. This is the term
+	**
+	** : (&Sigma;<sub>i&#x220A;R</sub>W<sub>i</sub>&middot;i.rel(S, T))
+	**
+	** in the definition for {@link #getWeightedRelevance()}.
 	*/
-	protected float rel_;
+	protected float local_relevance_mass;
 
-	public TermRelation(String s, String t, InterdexQuery q) {
-		subject = s;
-		target = t;
+	/**
+	** Total trust mass of the relevance map. This is the term
+	**
+	** : W<sub>R</sub> == &Sigma;<sub>i&#x220A;R</sub>W<sub>i</sub>
+	**
+	** in the definition for {@link #getWeightedRelevance()}.
+	*/
+	protected float local_trust_mass;
+
+	public TermRelation(TermDefinition s, TermDefinition t, InterdexQuery q) {
+		subjdef = s;
+		targdef = t;
 		parent_query = q;
 	}
 
+	public void addRelevanceRating(IndexIdentity id, float relevance) {
+		if (rel.put(id, relevance) != null) {
+			throw new AssertionError("Cannot add two relations from the same IndexIdentity to a TermRelation. This indicates a bug in the code.");
+		}
+		local_relevance_mass += id.trust * relevance;
+		local_trust_mass += id.trust;
+	}
+
 	/**
-	** TODO implement.
-	**
-	** Returns the average perceived relevance of a given term relative to
-	** a parent subject term. "Perceived" because it uses data from indexes
+	** Returns the average weighted relevance of a given term relative to
+	** a parent subject term. "Weighted" because it uses data from indexes
 	** in the WoT's nearer rings; "average" because it generates an average
 	** rating from the individual values encountered.
 	**
@@ -82,20 +100,52 @@ public class TermRelation {
 	** : S := subject
 	** : T := term
 	** : A := { all indexes encountered }
+	** : D := { i &#x220A; A: i[S] is defined }
 	** : R := { i &#x220A; A: i.rel(S, T) is defined }
 	** : W<sub>i</sub> := weight of index i (eg. WoT trust score)
+	** : W<sub>R</sub> := total weight of R ==
+	**   &Sigma;<sub>i&#x220A;R</sub>W<sub>i</sub>
+	** : W<sub>D</sub> := total weight of D ==
+	**   &Sigma;<sub>i&#x220A;D</sub>W<sub>i</sub>
 	**
 	** Then this method calculates:
 	**
-	** : (&Sigma;<sub>i&#x220A;R</sub>W<sub>i</sub>&middot;i.rel(S, T))
-	**   &middot; min(1, 3&middot;&Sigma;<sub>i&#x220A;R</sub>W<sub>i</sub>
-	**   / &Sigma;<sub>i&#x220A;A</sub>W<sub>i</sub>)
-	**
+	** : (&Sigma;<sub>i&#x220A;R</sub>W<sub>i</sub>&middot;i.rel(S, T) /
+	**   W<sub>R</sub>) &middot; min(1, 3&middot;W<sub>R</sub> / W<sub>D</sub>)
 	*/
-	public float getAvPercvRelevance() {
-		throw new UnsupportedOperationException("not implemented");
+	public float getWeightedRelevance() {
+		return local_relevance_mass / local_trust_mass * Math.min(1,
+		       3 * local_trust_mass / targdef.getTrustMass());
 	}
 
+	/**
+	** @param recalculate Whether to recalculate this value, or return the
+	**        cached version (which may be slightly different due to rounding.)
+	*/
+	public float getWeightedRelevance(boolean recalculate) {
+		if (recalculate) {
+			float[] weighted_relevances = new float[rel.size()];
+			float[] trust_weights = new float[rel.size()];
+			int i=0;
+			for (Map.Entry<IndexIdentity, Float> en: rel.entrySet()) {
+				IndexIdentity id = en.getKey();
+				weighted_relevances[i] = id.trust * en.getValue();
+				trust_weights[i] = id.trust;
+				++i;
+			}
+			// add smallest terms first to reduce floating point error
+			Arrays.sort(weighted_relevances);
+			Arrays.sort(trust_weights);
+			int relevance_mass = 0, trust_mass = 0;
+			for (i=0; i<trust_weights.length; ++i) {
+				relevance_mass += weighted_relevances[i];
+				trust_mass += trust_weights[i];
+			}
+			local_relevance_mass = relevance_mass;
+			local_trust_mass = trust_mass;
+		}
+		return getWeightedRelevance();
+	}
 
 	/**
 	** As required by the contract of {@link org.jgrapht.Graph}.
@@ -104,12 +154,11 @@ public class TermRelation {
 		if (o == this) { return true; }
 		if (!(o instanceof TermRelation)) { return false; }
 		TermRelation rel = (TermRelation)o;
-		return subject.equals(rel.subject) && target.equals(rel.target);
+		return subjdef.equals(rel.subjdef) && targdef.equals(rel.targdef);
 	}
 
 	@Override public int hashCode() {
-		return subject.hashCode() ^ target.hashCode();
+		return subjdef.hashCode() ^ targdef.hashCode();
 	}
-
 
 }
