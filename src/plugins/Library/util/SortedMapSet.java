@@ -78,31 +78,31 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	  public interface Set
 	 ========================================================================*/
 
-	@Override public int size() {
+	public int size() {
 		return bkmap.size();
 	}
 
-	@Override public boolean isEmpty() {
+	public boolean isEmpty() {
 		return bkmap.isEmpty();
 	}
 
-	@Override public boolean contains(Object o) {
+	public boolean contains(Object o) {
 		return bkmap.containsKey(o);
 	}
 
-	@Override public Iterator<E> iterator() {
+	public Iterator<E> iterator() {
 		return bkmap.keySet().iterator();
 	}
 
 	/* provided by AbstractSet
-	@Override public Object[] toArray() { }
+	public Object[] toArray() { }
 	*/
 
 	/* provided by AbstractSet
-	@Override public <T> T[] toArray(T[] a) { }
+	public <T> T[] toArray(T[] a) { }
 	*/
 
-	@Override public boolean add(E o) {
+	public boolean add(E o) {
 		if (o == null) {
 			// BTreeMap doesn't support null keys at the time of coding, but this may change
 			return !bkmap.containsKey(null)? bkmap.put(null, null) == null: false;
@@ -110,7 +110,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 		return bkmap.put(o, o) == null;
 	}
 
-	@Override public boolean remove(Object o) {
+	public boolean remove(Object o) {
 		if (o == null) {
 			// BTreeMap doesn't support null keys at the time of coding, but this may change
 			return bkmap.containsKey(null)? bkmap.remove(null) == null: false;
@@ -119,46 +119,46 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	}
 
 	/* provided by AbstractSet
-	@Override public boolean containsAll(Collection<?> c) { }
-	@Override public boolean addAll(Collection<? extends E> c) { }
-	@Override public boolean retainAll(Collection<?> c) { }
-	@Override public boolean removeAll(Collection<?> c) { }
+	public boolean containsAll(Collection<?> c) { }
+	public boolean addAll(Collection<? extends E> c) { }
+	public boolean retainAll(Collection<?> c) { }
+	public boolean removeAll(Collection<?> c) { }
 	*/
 
-	@Override public void clear() {
+	public void clear() {
 		bkmap.clear();
 	}
 
 	/* provided by AbstractSet
-	@Override public boolean equals(Object o) { }
-	@Override public int hashCode() { }
+	public boolean equals(Object o) { }
+	public int hashCode() { }
 	*/
 
 	/*========================================================================
 	  public interface SortedSet
 	 ========================================================================*/
 
-	@Override public Comparator<? super E> comparator() {
+	public Comparator<? super E> comparator() {
 		return bkmap.comparator();
 	}
 
-	@Override public E first() {
+	public E first() {
 		return bkmap.firstKey();
 	}
 
-	@Override public E last() {
+	public E last() {
 		return bkmap.lastKey();
 	}
 
-	@Override public SortedSet<E> headSet(E to) {
+	public SortedSet<E> headSet(E to) {
 		return new SortedMapSet<E, SortedMap<E, E>>(bkmap.headMap(to));
 	}
 
-	@Override public SortedSet<E> tailSet(E fr) {
+	public SortedSet<E> tailSet(E fr) {
 		return new SortedMapSet<E, SortedMap<E, E>>(bkmap.tailMap(fr));
 	}
 
-	@Override public SortedSet<E> subSet(E fr, E to) {
+	public SortedSet<E> subSet(E fr, E to) {
 		return new SortedMapSet<E, SortedMap<E, E>>(bkmap.subMap(fr, to));
 	}
 

@@ -416,7 +416,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		**
 		** @param n The other node to compare with
 		*/
-		@Override public int compareTo(Node n) {
+		public int compareTo(Node n) {
 			int b = compareR(rkey, n.rkey);
 			return (b == 0)? compareL(n.lkey, lkey): b;
 			// the more "natural" version
@@ -973,15 +973,15 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	  public interface Map
 	 ========================================================================*/
 
-	@Override public int size() {
+	public int size() {
 		return size;
 	}
 
-	@Override public boolean isEmpty() {
+	public boolean isEmpty() {
 		return size == 0;
 	}
 
-	@Override public void clear() {
+	public void clear() {
 		root = newNode(true);
 		size = 0;
 	}
@@ -998,7 +998,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         natural order, or its comparator does not tolerate {@code null}
 	**         keys
 	*/
-	@Override public boolean containsKey(Object k) {
+	public boolean containsKey(Object k) {
 		K key = (K) k;
 		Node node = root;
 
@@ -1017,7 +1017,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/* provided by AbstractMap
-	@Override public boolean containsValue(Object key) {
+	public boolean containsValue(Object key) {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
@@ -1033,7 +1033,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         natural order, or its comparator does not tolerate {@code null}
 	**         keys
 	*/
-	@Override public V get(Object k) {
+	public V get(Object k) {
 		K key = (K) k;
 		Node node = root;
 
@@ -1079,7 +1079,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         natural order, or its comparator does not tolerate {@code null}
 	**         keys
 	*/
-	@Override public V put(K key, V value) {
+	public V put(K key, V value) {
 		if (key == null) { throw new UnsupportedOperationException("Sorry, this BTreeMap implementation can't handle null keys, even if the comparator supports it."); }
 		Node node = root, parent = null;
 
@@ -1159,7 +1159,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         natural order, or its comparator does not tolerate {@code null}
 	**         keys
 	*/
-	@Override public V remove(Object k) {
+	public V remove(Object k) {
 		K key = (K) k;
 		Node node = root, parent = null;
 
@@ -1242,7 +1242,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** @param t mappings to be stored in this map
 	*/
-	@Override public void putAll(Map<? extends K, ? extends V> t) {
+	public void putAll(Map<? extends K, ? extends V> t) {
 		// t == this to support restructure()
 		if (t.isEmpty()) {
 			return;
@@ -1365,13 +1365,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 	// TODO maybe make this a WeakReference?
 	private Set<Map.Entry<K, V>> entrySet = null;
-	@Override public Set<Map.Entry<K, V>> entrySet() {
+	public Set<Map.Entry<K, V>> entrySet() {
 		if (entrySet == null) {
 			entrySet = new AbstractSet<Map.Entry<K, V>>() {
 
-				@Override public int size() { return BTreeMap.this.size(); }
+				public int size() { return BTreeMap.this.size(); }
 
-				@Override public Iterator<Map.Entry<K, V>> iterator() {
+				public Iterator<Map.Entry<K, V>> iterator() {
 					// URGENT - this does NOT yet throw ConcurrentModificationException
 					// use a modCount counter
 					return new Iterator<Map.Entry<K, V>>() {
@@ -1394,7 +1394,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 							return "nodestack: [" + s + "]; cnode: " + cnode.getRange() + "; lastkey: " + lastkey;
 						}*/
 
-						@Override public boolean hasNext() {
+						public boolean hasNext() {
 							// TODO ideally iterate in the reverse order
 							for (Iterator<Map.Entry<K, V>> it: itstack) {
 								if (it.hasNext()) { return true; }
@@ -1404,7 +1404,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 							return false;
 						}
 
-						@Override public Map.Entry<K, V> next() {
+						public Map.Entry<K, V> next() {
 							if (cnode.isLeaf()) {
 								while (!centit.hasNext()) {
 									if (nodestack.empty()) {
@@ -1432,7 +1432,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 							return next;
 						}
 
-						@Override public void remove() {
+						public void remove() {
 							if (!removeok) {
 								throw new IllegalStateException("Iteration has not yet begun, or the element has already been removed.");
 							}
@@ -1475,18 +1475,18 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 					};
 				}
 
-				@Override public void clear() {
+				public void clear() {
 					BTreeMap.this.clear();
 				}
 
-				@Override public boolean contains(Object o) {
+				public boolean contains(Object o) {
 					if (!(o instanceof Map.Entry)) { return false; }
 					Map.Entry e = (Map.Entry)o;
 					Object value = BTreeMap.this.get(e.getKey());
 					return value != null && value.equals(e.getValue());
 				}
 
-				@Override public boolean remove(Object o) {
+				public boolean remove(Object o) {
 					if (contains(o)) {
 						Map.Entry e = (Map.Entry)o;
 						BTreeMap.this.remove(e.getKey());
@@ -1502,13 +1502,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 	/* provided by AbstractMap
 	** OPTIMISE - the default clear() method is inefficient
-	@Override public Set<K> keySet() {
+	public Set<K> keySet() {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
 	/* provided by AbstractMap
 	** OPTIMISE - the default clear() method is inefficient
-	@Override public Collection<V> values() {
+	public Collection<V> values() {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
@@ -1516,11 +1516,11 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	  public interface SortedMap
 	 ========================================================================*/
 
-	@Override public Comparator<? super K> comparator() {
+	public Comparator<? super K> comparator() {
 		return comparator;
 	}
 
-	@Override public K firstKey() {
+	public K firstKey() {
 		Node node = root;
 		for (;;) {
 			K fkey = node.entries.firstKey();
@@ -1529,7 +1529,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		}
 	}
 
-	@Override public K lastKey() {
+	public K lastKey() {
 		Node node = root;
 		for (;;) {
 			K lkey = node.entries.lastKey();
@@ -1543,7 +1543,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** Not yet implemented - throws {@link UnsupportedOperationException}
 	*/
-	@Override public SortedMap<K, V> headMap(K rkey) {
+	public SortedMap<K, V> headMap(K rkey) {
 		throw new UnsupportedOperationException("not implemented");
 	}
 
@@ -1552,7 +1552,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** Not yet implemented - throws {@link UnsupportedOperationException}
 	*/
-	@Override public SortedMap<K, V> tailMap(K lkey) {
+	public SortedMap<K, V> tailMap(K lkey) {
 		throw new UnsupportedOperationException("not implemented");
 	}
 
@@ -1561,7 +1561,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** Not yet implemented - throws {@link UnsupportedOperationException}
 	*/
-	@Override public SortedMap<K, V> subMap(K lkey, K rkey) {
+	public SortedMap<K, V> subMap(K lkey, K rkey) {
 		throw new UnsupportedOperationException("not implemented");
 	}
 

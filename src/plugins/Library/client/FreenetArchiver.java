@@ -81,7 +81,7 @@ implements LiveArchiver<T, SimpleProgress> {
 	**
 	** This implementation expects metdata of type {@link FreenetURI}.
 	*/
-	@Override public void pullLive(PullTask<T> task, final SimpleProgress progress) throws TaskAbortException {
+	public void pullLive(PullTask<T> task, final SimpleProgress progress) throws TaskAbortException {
 		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 		Bucket tempB = null; InputStream is = null;
 
@@ -153,7 +153,7 @@ implements LiveArchiver<T, SimpleProgress> {
 	** FreenetURI#suggestedEdition} of a USK is '''not''' automatically
 	** incremented.
 	*/
-	@Override public void pushLive(PushTask<T> task, final SimpleProgress progress) throws TaskAbortException {
+	public void pushLive(PushTask<T> task, final SimpleProgress progress) throws TaskAbortException {
 		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 		Bucket tempB = null; OutputStream os = null;
 
@@ -219,11 +219,11 @@ implements LiveArchiver<T, SimpleProgress> {
 		}
 	}
 
-	@Override public void pull(PullTask<T> task) throws TaskAbortException {
+	public void pull(PullTask<T> task) throws TaskAbortException {
 		pullLive(task, null);
 	}
 
-	@Override public void push(PushTask<T> task) throws TaskAbortException {
+	public void push(PushTask<T> task) throws TaskAbortException {
 		pushLive(task, null);
 	}
 
@@ -236,9 +236,9 @@ implements LiveArchiver<T, SimpleProgress> {
 			progress = prog;
 		}
 
-		@Override public void onRemoveEventProducer(ObjectContainer container) { }
+		public void onRemoveEventProducer(ObjectContainer container) { }
 
-		@Override public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
+		public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
 			progress.setStatus(ce.getDescription());
 			if (!(ce instanceof SplitfileProgressEvent)) { return; }
 

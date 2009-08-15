@@ -106,25 +106,25 @@ abstract public class BytePrefixKey<K extends BytePrefixKey<K>> extends Abstract
 	  public class PrefixTree.PrefixKey
 	 ========================================================================*/
 
-	@Override abstract public BytePrefixKey<K> clone();
+	abstract public BytePrefixKey<K> clone();
 
-	@Override public int symbols() {
+	public int symbols() {
 		return 256;
 	}
 
-	@Override public int size() {
+	public int size() {
 		return hash.length;
 	}
 
-	@Override public int get(int i) {
+	public int get(int i) {
 		return hash[i] & 0xFF;
 	}
 
-	@Override public void set(int i, int v) {
+	public void set(int i, int v) {
 		hash[i] = (byte)v;
 	}
 
-	@Override public void clear(int i) {
+	public void clear(int i) {
 		hash[i] = 0;
 	}
 

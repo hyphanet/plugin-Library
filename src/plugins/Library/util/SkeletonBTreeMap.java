@@ -147,13 +147,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return ghost;
 		}
 
-		@Override public Object getMeta() { return null; }
+		public Object getMeta() { return null; }
 
-		@Override public void setMeta(Object m) { }
+		public void setMeta(Object m) { }
 
-		@Override public IterableSerialiser<SkeletonNode> getSerialiser() { return nsrl; }
+		public IterableSerialiser<SkeletonNode> getSerialiser() { return nsrl; }
 
-		@Override public boolean isLive() {
+		public boolean isLive() {
 			if (ghosts > 0 || !((SkeletonTreeMap<K, V>)entries).isLive()) { return false; }
 			if (!isLeaf()) {
 				for (Node n: rnodes.values()) {
@@ -164,7 +164,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return true;
 		}
 
-		@Override public boolean isBare() {
+		public boolean isBare() {
 			if (!isLeaf()) {
 				if (ghosts < rnodes.size()) {
 					return false;
@@ -173,7 +173,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return ((SkeletonTreeMap<K, V>)entries).isBare();
 		}
 
-		@Override public void deflate() throws TaskAbortException {
+		public void deflate() throws TaskAbortException {
 			if (!isLeaf()) {
 				List<PushTask<SkeletonNode>> tasks = new ArrayList<PushTask<SkeletonNode>>(rnodes.size() - ghosts);
 				for (Map.Entry<K, Node> en: rnodes.entrySet()) {
@@ -205,7 +205,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		// OPTIMISE make this parallel
-		@Override public void inflate() throws TaskAbortException {
+		public void inflate() throws TaskAbortException {
 			((SkeletonTreeMap<K, V>)entries).inflate();
 			if (!isLeaf()) {
 				for (K k: rnodes.keySet()) {
@@ -215,7 +215,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			assert(isLive());
 		}
 
-		@Override public void inflate(K key) throws TaskAbortException {
+		public void inflate(K key) throws TaskAbortException {
 			inflate(key, false);
 		}
 
@@ -226,7 +226,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		** @param key The key
 		*/
-		@Override public void deflate(K key) throws TaskAbortException {
+		public void deflate(K key) throws TaskAbortException {
 			if (isLeaf()) { return; }
 			Node node = rnodes.get(key);
 			if (node.entries == null) { return; } // ghost node
@@ -317,27 +317,27 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			meta = m;
 		}
 
-		@Override int nodeSize() {
+		int nodeSize() {
 			throw new DataNotLoadedException("BTreeMap Node not loaded: " + getRange(), parent, lkey, this);
 		}
 
-		@Override boolean isLeaf() {
+		boolean isLeaf() {
 			throw new DataNotLoadedException("BTreeMap Node not loaded: " + getRange(), parent, lkey, this);
 		}
 
-		@Override Node nodeL(Node n) {
+		Node nodeL(Node n) {
 			// this method-call should never be reached in the B-tree algorithm
 			assert(false);
 			throw new IllegalStateException("This method call should never be reached");
 		}
 
-		@Override Node nodeR(Node n) {
+		Node nodeR(Node n) {
 			// this method-call should never be reached in the B-tree algorithm
 			assert(false);
 			throw new IllegalStateException("This method call should never be reached");
 		}
 
-		@Override Node selectNode(K key) {
+		Node selectNode(K key) {
 			// this method-call should never be reached in the B-tree algorithm
 			assert(false);
 			throw new IllegalStateException("This method call should never be reached");
@@ -353,7 +353,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		super(node_min);
 	}
 
-	@Override protected Node newNode(boolean leaf) {
+	protected Node newNode(boolean leaf) {
 		return new SkeletonNode(leaf);
 	}
 
@@ -361,21 +361,21 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	  public interface SkeletonMap
 	 ========================================================================*/
 
-	@Override public Object getMeta() { return null; }
+	public Object getMeta() { return null; }
 
-	@Override public void setMeta(Object m) { }
+	public void setMeta(Object m) { }
 
-	@Override public MapSerialiser<K, V> getSerialiser() { return vsrl; }
+	public MapSerialiser<K, V> getSerialiser() { return vsrl; }
 
-	@Override public boolean isLive() {
+	public boolean isLive() {
 		return ((SkeletonNode)root).isLive();
 	}
 
-	@Override public boolean isBare() {
+	public boolean isBare() {
 		return ((SkeletonNode)root).isBare();
 	}
 
-	@Override public void deflate() throws TaskAbortException {
+	public void deflate() throws TaskAbortException {
 		((SkeletonNode)root).deflate();
 	}
 
@@ -384,7 +384,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	// metadata is (lkey, rkey), or something..(PROGRESS)
 	BaseCompositeProgress ppp = new BaseCompositeProgress();
 	public BaseCompositeProgress getPPP() { return ppp; } // REMOVE ME
-	@Override public void inflate() throws TaskAbortException {
+	public void inflate() throws TaskAbortException {
 
 		// TODO adapt the algorithm to track partial loads of submaps (SUBMAP)
 		// TODO if we do that, we'll also need to make it thread-safe. (THREAD)
@@ -402,7 +402,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		BlockingQueue<PullTask<SkeletonNode>> tasks = new LinkedBlockingQueue<PullTask<SkeletonNode>>(0x10);
 		BlockingQueue<PullTask<SkeletonNode>> inflated = new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10,
 			new Comparator<PullTask<SkeletonNode>>() {
-				@Override public int compare(PullTask<SkeletonNode> t1, PullTask<SkeletonNode> t2) {
+				public int compare(PullTask<SkeletonNode> t1, PullTask<SkeletonNode> t2) {
 					return t1.data.compareTo(t2.data);
 				}
 			}
@@ -510,12 +510,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 	}
 
-	@Override public void deflate(K key) throws TaskAbortException {
+	public void deflate(K key) throws TaskAbortException {
 		// TODO code this
 		throw new UnsupportedOperationException("not implemented");
 	}
 
-	@Override public void inflate(K key) throws TaskAbortException {
+	public void inflate(K key) throws TaskAbortException {
 		// TODO tidy up
 		// OPTIMISE could write a more efficient version by keeping track of the
 		// already-inflated nodes so get() doesn't keep traversing down the tree
@@ -576,7 +576,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			mtr = m;
 		}
 
-		@Override public Map<String, Object> app(SkeletonNode node) {
+		public Map<String, Object> app(SkeletonNode node) {
 			if (!node.isBare()) {
 				throw new IllegalStateException("Cannot translate non-bare node " + node.getRange());
 			}
@@ -598,7 +598,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return map;
 		}
 
-		@Override public SkeletonNode rev(Map<String, Object> map) {
+		public SkeletonNode rev(Map<String, Object> map) {
 			try {
 				SkeletonNode node = new SkeletonNode(!map.containsKey("subnodes"),
 				                                     (mtr == null)? (SkeletonTreeMap<K, V>)map.get("entries")
@@ -649,14 +649,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			mtr = m;
 		}
 
-		@Override public Map<String, Object> app(SkeletonBTreeMap<K, V> tree) {
+		public Map<String, Object> app(SkeletonBTreeMap<K, V> tree) {
 			if (tree.comparator() != null) {
 				throw new UnsupportedOperationException("Sorry, this translator does not (yet) support comparators");
 			}
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("node_min", tree.NODE_MIN);
 			map.put("size", tree.size);
-			Map<String, Object> rmap = tree.makeNodeTranslator(ktr, mtr).app((SkeletonBTreeMap.SkeletonNode)tree.root);
+			Map<String, Object> rmap = tree.makeNodeTranslator(ktr, mtr).app((SkeletonBTreeMap.SkeletonNode)(SkeletonBTreeMap.Node)tree.root);
 			map.put("entries", rmap.get("entries"));
 			if (!tree.root.isLeaf()) {
 				map.put("subnodes", rmap.get("subnodes"));
@@ -664,7 +664,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return map;
 		}
 
-		@Override public SkeletonBTreeMap<K, V> rev(Map<String, Object> map) {
+		public SkeletonBTreeMap<K, V> rev(Map<String, Object> map) {
 			try {
 				SkeletonBTreeMap<K, V> tree = new SkeletonBTreeMap<K, V>((Integer)map.get("node_min"));
 				tree.size = (Integer)map.get("size");

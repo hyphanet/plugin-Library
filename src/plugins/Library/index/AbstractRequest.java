@@ -84,20 +84,20 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	  public interface Progress
 	 ========================================================================*/
 
-	@Override public String getSubject() {
+	public String getSubject() {
 		return subject;
 	}
 
-	@Override abstract public String getStatus();
+	abstract public String getStatus();
 
-	@Override abstract public ProgressParts getParts() throws TaskAbortException;
+	abstract public ProgressParts getParts() throws TaskAbortException;
 
-	@Override public boolean isDone() throws TaskAbortException {
+	public boolean isDone() throws TaskAbortException {
 		if (error != null) { throw error; }
 		return result != null;
 	}
 
-	@Override public synchronized void join() throws InterruptedException, TaskAbortException {
+	public synchronized void join() throws InterruptedException, TaskAbortException {
 		while (stop == null) { wait(); }
 		if (error != null) { throw error; }
 	}
@@ -106,11 +106,11 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	  public interface Request
 	 ========================================================================*/
 
-	@Override public Date getStartDate() {
+	public Date getStartDate() {
 		return start;
 	}
 
-	@Override public long getTimeElapsed() {
+	public long getTimeElapsed() {
 		return System.currentTimeMillis() - start.getTime();
 	}
 
@@ -120,7 +120,7 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	** This implementation returns {@link #result} if {@link #error} is {@code
 	** null}, otherwise it throws it.
 	*/
-	@Override public T getResult() throws TaskAbortException {
+	public T getResult() throws TaskAbortException {
 		if (error != null) { throw error; }
 		return result;
 	}

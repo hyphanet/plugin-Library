@@ -21,7 +21,7 @@ public interface SkeletonMap<K, V> extends Map<K, V>, Skeleton<K, MapSerialiser<
 	** In other words, for all keys k: {@link Map#get(Object) get(k)} must
 	** return the appropriate value.
 	*/
-	@Override public boolean isLive();
+	public boolean isLive();
 
 	/**
 	** {@inheritDoc}
@@ -29,9 +29,9 @@ public interface SkeletonMap<K, V> extends Map<K, V>, Skeleton<K, MapSerialiser<
 	** In other words, for all keys k: {@link Map#get(Object) get(k)} must
 	** throw {@link DataNotLoadedException}.
 	*/
-	@Override public boolean isBare();
+	public boolean isBare();
 
-	@Override public MapSerialiser<K, V> getSerialiser();
+	public MapSerialiser<K, V> getSerialiser();
 
 	/**
 	** {@inheritDoc}
@@ -42,7 +42,7 @@ public interface SkeletonMap<K, V> extends Map<K, V>, Skeleton<K, MapSerialiser<
 	**
 	** @param key The key for whose value to inflate.
 	*/
-	@Override public void inflate(K key) throws TaskAbortException;
+	public void inflate(K key) throws TaskAbortException;
 
 	/**
 	** {@inheritDoc}
@@ -53,6 +53,6 @@ public interface SkeletonMap<K, V> extends Map<K, V>, Skeleton<K, MapSerialiser<
 	**
 	** @param key The key for whose value to deflate.
 	*/
-	@Override public void deflate(K key) throws TaskAbortException;
+	public void deflate(K key) throws TaskAbortException;
 
 }
