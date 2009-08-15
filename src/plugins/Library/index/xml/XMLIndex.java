@@ -413,12 +413,6 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 						}
 					}else if(fetchStatus==FetchStatus.FETCHED){
 						synchronized(parsingSubindex){
-							try {
-								// Wait a fifth of a second for other Requests to be added as waiting
-								Thread.sleep(200);
-							} catch (InterruptedException ex) {
-								java.util.logging.Logger.getLogger(XMLIndex.class.getName()).log(Level.SEVERE, null, ex);
-							}
 							// Transfer all requests waiting on this subindex to the parsing list
 							synchronized (waitingOnSubindex){
 								parsingSubindex.addAll(waitingOnSubindex);
