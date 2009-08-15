@@ -59,7 +59,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	private boolean htmljs;
 	private ResultNodeGenerator resultNodeGenerator;
 
-	private enum SearchStatus { Unstarted, Busy, Combining, Formatting, Done };
+	private enum SearchStatus { Unstarted, Busy, Combining_First, Combining_Last, Formatting, Done };
 	private SearchStatus status = SearchStatus.Unstarted;
 
 
@@ -403,15 +403,21 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 				status = SearchStatus.Busy;
 			case Busy :
 				if(!isSubRequestsComplete())
-					return;		// If Busy & still waiting for subrequests to complete, status remains Busy
+					for (Request<Set<TermEntry>> request : subsearches)
+						if(!(request instanceof Search) || ((Search)request).status==SearchStatus.Busy)
+							return;	// If Busy & still waiting for subrequests to complete, status remains Busy
+				status = SearchStatus.Combining_First;	// If Busy and waiting for subrequests to combine, status -> Combining_First
+			case Combining_First :
+				if(!isSubRequestsComplete())	// If combining first and subsearches still haven't completed, remain
+					return;
 				// If subrequests have completed start process to combine results
 				resultset = new ResultSet(subject, resultOperation, subsearches);
 				if(executor!=null)
 					executor.execute(resultset, "Library.Search : combining results");
 				else
 					(new Thread(resultset, "Library.Search : combining results")).start();
-				status = SearchStatus.Combining;
-			case Combining :
+				status = SearchStatus.Combining_Last;
+			case Combining_Last :
 				if(!resultset.isDone())
 					return;		// If Combining & combine not finished, status remains as Combining
 				// If finished Combining and asked to generate resultnode, start that process
