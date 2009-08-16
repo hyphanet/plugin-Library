@@ -7,7 +7,6 @@ package plugins.Library.ui;
 
 import freenet.client.HighLevelSimpleClient;
 import freenet.clients.http.PageMaker;
-import freenet.clients.http.Toadlet;
 import freenet.clients.http.ToadletContainer;
 import freenet.node.NodeClientCore;
 import freenet.pluginmanager.PluginRespirator;
@@ -23,6 +22,7 @@ public class WebInterface {
 	private final PluginRespirator pr;
 	private MainPageToadlet pluginsToadlet;
 	private MainPageToadlet mainToadlet;
+	private StaticToadlet staticToadlet;
 
 	/**
 	 * @param spider
@@ -50,7 +50,8 @@ public class WebInterface {
 		// Ive just realised that the form filter allows access to /plugins/... so /library/ wont be allowed, this is a temporary Toadlet untilthere is a whitelist for formfilter and /library is on it TODO put /library on formfilter whitelist
 		pluginsToadlet = new MainPageToadlet(client, library, core, pr);
 		toadletContainer.register(pluginsToadlet, null, "/plugins/plugin.Library.FreesiteSearch", true, null, null, true, null );
-		toadletContainer.register(new StaticToadlet(client), null, "/library/static/", true, false);
+		staticToadlet = new StaticToadlet(client);
+		toadletContainer.register(staticToadlet, null, "/library/static/", true, false);
 		
 	}
 
@@ -61,5 +62,6 @@ public class WebInterface {
 		toadletContainer.unregister(mainToadlet);
 		pageMaker.removeNavigationLink(mainToadlet.menu(), mainToadlet.name());
 		toadletContainer.unregister(pluginsToadlet);
+		toadletContainer.unregister(staticToadlet);
 	}
 }
