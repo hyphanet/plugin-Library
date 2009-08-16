@@ -9,6 +9,7 @@ import freenet.keys.FreenetURI;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -27,7 +28,7 @@ import plugins.Library.index.TermTermEntry;
  */
 public class ResultNodeGenerator implements Runnable {
 	private TreeMap<String, TermPageGroupEntry> groupmap;
-	private TreeSet<TermPageEntry> pageset;
+	private TreeMap<TermPageEntry, Boolean> pageset;
 	private TreeSet<TermTermEntry> relatedTerms;
 	private TreeSet<TermIndexEntry> relatedIndexes;
 	private Set<TermEntry> result;
@@ -38,7 +39,13 @@ public class ResultNodeGenerator implements Runnable {
 	private HTMLNode pageEntryNode;
 
 
-
+	/**
+	 * Create the generator
+	 * @param result Set of TermEntrys to format
+	 * @param groupusk whether the sites and editions should be grouped
+	 * @param showold whether to show older editions
+	 * @param js whether
+	 */
 	public ResultNodeGenerator(Set<TermEntry> result, boolean groupusk, boolean showold, boolean js){
 		this.result = result;
 		this.groupusk = groupusk;
@@ -54,12 +61,21 @@ public class ResultNodeGenerator implements Runnable {
 		parseResult();
 		generatePageEntryNode();
 		done = true;
+		result = null;
 	}
 
+	/**
+	 * Return the generated HTMLNode of PageEntrys, only call this after checking isDone()
+	 * @return
+	 */
 	public HTMLNode getPageEntryNode(){
 		return pageEntryNode;
 	}
 
+	/**
+	 * Whether this ResultNodegenerator has finished formatting and get methods can be called
+	 * @return
+	 */
 	public boolean isDone(){
 		return done;
 	}
@@ -68,10 +84,9 @@ public class ResultNodeGenerator implements Runnable {
 	 * Parse result into generator
 	 */
 	private void parseResult(){
-		if(groupusk)
-			groupmap = new TreeMap();
-		else
-			pageset = new TreeSet(RelevanceComparator.comparator);
+		groupmap = new TreeMap();
+		if(!groupusk)
+			pageset = new TreeMap(RelevanceComparator.comparator);
 		relatedTerms = new TreeSet(RelevanceComparator.comparator);
 		relatedIndexes = new TreeSet(RelevanceComparator.comparator);
 
@@ -80,30 +95,28 @@ public class ResultNodeGenerator implements Runnable {
 			TermEntry o = (TermEntry)it.next();
 			if(o instanceof TermPageEntry){
 				TermPageEntry pageEntry = (TermPageEntry)o;
-				if(groupusk){	// Put pages into a group hirearchy : USK key/docnames --> USK editions --> Pages
-					String sitebase;
-					long uskEdition = Long.MIN_VALUE;
-					// Get the key and name
-					FreenetURI uri;
-					uri = pageEntry.getURI();
-					// convert usk's
-					if(uri.isSSKForUSK()){
-						uri = uri.uskForSSK();
-						// Get the USK edition
-						uskEdition = uri.getEdition();
-					}
-					// Get the site base name, key + documentname - uskversion
-					sitebase = uri.setMetaString(null).setSuggestedEdition(0).toString().replaceFirst("/0", "");
-					Logger.minor(this, sitebase);
+					// Put pages into a group hirearchy : USK key/docnames --> USK editions --> Pages
+				String sitebase;
+				long uskEdition = Long.MIN_VALUE;
+				// Get the key and name
+				FreenetURI uri;
+				uri = pageEntry.getURI();
+				// convert usk's
+				if(uri.isSSKForUSK()){
+					uri = uri.uskForSSK();
+					// Get the USK edition
+					uskEdition = uri.getEdition();
+				}
+				// Get the site base name, key + documentname - uskversion
+				sitebase = uri.setMetaString(null).setSuggestedEdition(0).toString().replaceFirst("/0", "");
+				Logger.minor(this, sitebase);
 
-					// Add site
-					if(!groupmap.containsKey(sitebase))
-						groupmap.put(sitebase, new TermPageGroupEntry(sitebase));
-					TermPageGroupEntry siteGroup = groupmap.get(sitebase);
-					// Add page
-					siteGroup.addPage(uskEdition, pageEntry);
-				}else	// Just put all the pages into their own SortedSet
-					pageset.add(pageEntry);
+				// Add site
+				if(!groupmap.containsKey(sitebase))
+					groupmap.put(sitebase, new TermPageGroupEntry(sitebase));
+				TermPageGroupEntry siteGroup = groupmap.get(sitebase);
+				// Add page
+				siteGroup.addPage(uskEdition, pageEntry);
 
 			}else if(o instanceof TermTermEntry){
 				relatedTerms.add((TermTermEntry)o);
@@ -111,7 +124,24 @@ public class ResultNodeGenerator implements Runnable {
 				relatedIndexes.add((TermIndexEntry)o);
 			}else
 				Logger.error(this, "Unknown TermEntry type : "+o.getClass().getName());
-			
+		}
+
+
+		if(!groupusk){	// Move entries from the groupmap to the pageset, marking whether thaey are the newest
+			for (Iterator<TermPageGroupEntry> it2 = groupmap.values().iterator(); it2.hasNext();) {
+				TermPageGroupEntry groupentry = it2.next();
+				SortedMap<Long, SortedSet<TermPageEntry>> editions = groupentry.getEditions();	// The editions of each site
+				SortedSet<TermPageEntry> newest = editions.get(editions.lastKey());				// get the newest edition
+				for (Iterator<SortedSet<TermPageEntry>> editionIterator = groupentry.getEditions().values().iterator(); editionIterator.hasNext();) {
+					SortedSet<TermPageEntry> edition = editionIterator.next();					// Iterate through all the editions
+					if(!showold && edition != newest)			// If not showing old, skip all but newest
+						continue;
+					for (TermPageEntry termPageEntry : edition) {
+						pageset.put(termPageEntry, edition==newest);	// Add pages, marking whether they are from the newest edition
+					}
+				}
+			}
+			groupmap = null;
 		}
     }
 	
@@ -132,7 +162,7 @@ public class ResultNodeGenerator implements Runnable {
 		int results = 0;
 		// Loop to separate results into SSK groups
 		
-		if(groupmap != null){
+		if(groupmap != null){	// Produce grouped list of pages
 			SortedSet<TermPageGroupEntry> groupSet = new TreeSet(RelevanceComparator.comparator);
 			groupSet.addAll(groupmap.values());
 			
@@ -183,16 +213,24 @@ public class ResultNodeGenerator implements Runnable {
 					}
 				}
 			}
-		}else{
-			for (Iterator<TermPageEntry> it = pageset.iterator(); it.hasNext();) {
-				TermPageEntry termPageEntry = it.next();
-				pageEntryNode.addChild("div").addChild(termPageEntryNode(termPageEntry, true));
+		}else{	// Just produce sorted list of results
+			for (Iterator<Entry<TermPageEntry, Boolean>> it = pageset.entrySet().iterator(); it.hasNext();) {
+				Entry<TermPageEntry, Boolean> entry = it.next();
+				TermPageEntry termPageEntry = entry.getKey();
+				boolean newestVersion = entry.getValue();
+				pageEntryNode.addChild("div").addChild(termPageEntryNode(termPageEntry, newestVersion));
 				results++;
 			}
 		}
 		pageEntryNode.addChild("p").addChild("span", "class", "librarian-summary-found", "Found "+results+" results");
 	}
-	
+
+	/**
+	 * formats a TermPageEntry into a HTMLNode for display in a browser
+	 * @param entry
+	 * @param newestVersion	if set, the result is shown in full brightness, if unset the result is greyed out
+	 * @return
+	 */
 	private HTMLNode termPageEntryNode(TermPageEntry entry,boolean newestVersion) {
 		FreenetURI uri = entry.getURI();
 		String showtitle = entry.getTitle();
@@ -202,7 +240,7 @@ public class ResultNodeGenerator implements Runnable {
 		}
 		String realurl = "/" + uri.toString();
 		HTMLNode pageNode = new HTMLNode("div", new String[]{"class", "style"}, new String[]{"result-entry", ""});
-		pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realurl, (newestVersion ? "result-title-new" : "result-title-old"), (entry.getRelevance()>0)?"Relevance : "+entry.getRelevance():"Relevance unknown"}, showtitle);
+		pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realurl, (newestVersion ? "result-title-new" : "result-title-old"), (entry.getRelevance()>0)?"Relevance : "+(entry.getRelevance()*100)+"%":"Relevance unknown"}, showtitle);
 		// create usk url
 		if (uri.isSSKForUSK()) {
 			String realuskurl = "/" + uri.uskForSSK().toString();
