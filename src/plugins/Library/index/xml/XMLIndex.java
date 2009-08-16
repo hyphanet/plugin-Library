@@ -63,6 +63,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	public enum FetchStatus{UNFETCHED, FETCHING, FETCHED, FAILED}
 	protected FetchStatus fetchStatus = FetchStatus.UNFETCHED;
 	protected HashMap<String, String> indexMeta  = new HashMap<String, String>();
+	// TODO it could be tidier if this was converted to a FreenetURI
 	protected String indexuri;
 
 	private HighLevelSimpleClient hlsc;
@@ -249,7 +250,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 
 				for (String key : parser.getSubIndice()) {
 					subIndiceList.add(key);
-					subIndice.put(key, new SubIndex(indexuri, "index_" + key + ".xml"));
+					subIndice.put(key, new SubIndex((new FreenetURI(indexuri)).sskForUSK().toString(), "index_" + key + ".xml"));
 				}
 				Collections.sort(subIndiceList);
 			}
