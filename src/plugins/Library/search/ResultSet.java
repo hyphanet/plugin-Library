@@ -30,6 +30,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	private ResultOperation resultOperation;
 	private boolean done = false;
 	private Set<TermEntry>[] subresults;
+	private RuntimeException exception;
 
 	/**
 	 * What should be done with the results of subsearches\n
@@ -75,25 +76,30 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	public synchronized void run() {
 		if(done)
 			throw new IllegalStateException("This ResultSet has already run and is finalised.");
-		
-		// Decide what to do
-		switch(resultOperation){
-			case SINGLE:	// Just add everything
-				addAllToEmptyInternal(subresults[0]);
-				break;
-			case DIFFERENTINDEXES:	// Same as UNION currently
-			case UNION:	// Add every one without overwriting
-				unite(subresults);
-				break;
-			case INTERSECTION:	// Add one then retain the others
-				intersect(subresults);
-				break;
-			case REMOVE:	// Add one then remove the other
-				exclude(subresults[0], subresults[1]);
-				break;
-			case PHRASE:
-				phrase(subresults);
-				break;
+
+		try{
+			// Decide what to do
+			switch(resultOperation){
+				case SINGLE:	// Just add everything
+					addAllToEmptyInternal(subresults[0]);
+					break;
+				case DIFFERENTINDEXES:	// Same as UNION currently
+				case UNION:	// Add every one without overwriting
+					unite(subresults);
+					break;
+				case INTERSECTION:	// Add one then retain the others
+					intersect(subresults);
+					break;
+				case REMOVE:	// Add one then remove the other
+					exclude(subresults[0], subresults[1]);
+					break;
+				case PHRASE:
+					phrase(subresults);
+					break;
+			}
+		}catch(RuntimeException e){
+			exception = e;	// Exeptions thrown here are stored in case this is being run in a thread, in this case it is thrown in isDone() or iterator()
+			throw e;
 		}
 		subresults = null; // forget the subresults
 		done = true;
@@ -127,8 +133,11 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 
 	/**
 	 * @return Iterator of Set, remove is unsupported
+	 * @throws RuntimeException if a RuntimeException was caught while generating the Set
 	 */
 	public Iterator<TermEntry> iterator() {
+		if(exception != null)
+			throw new RuntimeException("RuntimeException thrown in ResultSet thread", exception);
 		return new ResultIterator(internal.keySet().iterator());
 	}
 
@@ -281,10 +290,12 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 				continue;
 			// if term entry is followed in all the others, add it to this
 			TermPageEntry termPageEntry = (TermPageEntry)termEntry;
+			if(termPageEntry.getPositions() == null)
+				continue;
 			Map<Integer, String> positions = new HashMap(termPageEntry.getPositions());
 			
 			int i;	// Iterate over the other collections, checking for following
-			for (i = 1; i < collections.length && positions.size() > 0; i++) {
+			for (i = 1; positions != null && i < collections.length && positions.size() > 0; i++) {
 				Collection<? extends TermEntry> collection = collections[i];
 				// See if collection follows termEntry
 				TermPageEntry termPageEntry1 = (TermPageEntry)getIgnoreSubject(termPageEntry, collection);
@@ -436,7 +447,14 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 		return internal.keySet().toString();
 	}
 
+	/**
+	 * Returns true if the ResultSet has completed it's operations
+	 * @throws RuntimeException if a RuntimeException was caught while generating the Set
+	 * @return
+	 */
 	public boolean isDone(){
+		if(exception != null)
+			throw new RuntimeException("RuntimeException thrown in ResultSet thread", exception);
 		return done;
 	}
 

@@ -37,6 +37,7 @@ public class ResultNodeGenerator implements Runnable {
 	private boolean js;
 	private boolean done;
 	private HTMLNode pageEntryNode;
+	private RuntimeException exception;
 
 
 	/**
@@ -58,25 +59,36 @@ public class ResultNodeGenerator implements Runnable {
 		if(done)
 			throw new IllegalStateException("ResultNodeGenerator can only be run once.");
 
-		parseResult();
-		generatePageEntryNode();
+		try{
+			parseResult();
+			generatePageEntryNode();
+		}catch(RuntimeException e){
+			exception = e;	// Exeptions thrown here are stored in case this is being run in a thread, in this case it is thrown in isDone() or iterator()
+			throw e;
+		}
 		done = true;
 		result = null;
 	}
 
 	/**
 	 * Return the generated HTMLNode of PageEntrys, only call this after checking isDone()
+	 * @throws RuntimeException if a RuntimeException was caught while generating the node
 	 * @return
 	 */
 	public HTMLNode getPageEntryNode(){
+		if(exception != null)
+			throw new RuntimeException("RuntimeException thrown in ResultNodeGenerator thread", exception);
 		return pageEntryNode;
 	}
 
 	/**
 	 * Whether this ResultNodegenerator has finished formatting and get methods can be called
+	 * @throws RuntimeException if a RuntimeException was caught while generating the node
 	 * @return
 	 */
 	public boolean isDone(){
+		if(exception != null)
+			throw new RuntimeException("RuntimeException thrown in ResultNodeGenerator thread", exception);
 		return done;
 	}
 
