@@ -304,7 +304,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 					continue;	// Treat stop words as blanks, dont check
 				// See if collection follows termEntry
 				TermPageEntry termPageEntry1 = (TermPageEntry)getIgnoreSubject(termPageEntry, collection);
-				if(termPageEntry1==null)	// If collection doesnt contain this termpageentry it does not follow
+				if(termPageEntry1==null || termPageEntry1.getPositions()==null)	// If collection doesnt contain this termpageentry or has not positions, it does not follow
 					positions = null;
 				else{
 					for (Iterator<Integer> it = positions.keySet().iterator(); it.hasNext();) {
