@@ -24,8 +24,11 @@ eg
 	freenet -"freenet message system"
 	freenet or "free network"
 
-Bear in mind that searches including common things such as 'and' or 'the' wont
-refine the search much but can take a long time.
+Stop words( Anything less than 3 letters and popular words such as 'and' 'the'
+'but' ) are excluded from searches, in some situations such as an intersection
+search ('bill of rights') or phrase search('"jesus of nazareth"') the stopword
+is treated as a blank as the result can still be useful, searching for
+the phrase ('"the who"') will fail though as ignoring 'the' makes the search almost meaningless.
 
 You also need to specify one or more indexes, there are checkboxes for the 2
 largest xml indexes known about and others can be specified in the uri box

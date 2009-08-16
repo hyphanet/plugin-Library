@@ -155,6 +155,8 @@ class MainPage {
 			try {
 				//Logger.normal(this, "starting search for "+query+" on "+indexuri);
 				search = Search.startSearch(query, indexstring);
+				if(search == null)
+					messages.append("Stopwords too prominent in search term, try removing words like 'the, 'and' and 'that' and any words less than 3 characters");
 			} catch (InvalidSearchException ex) {
 				exceptions.add(ex);
 			} catch (TaskAbortException ex) {

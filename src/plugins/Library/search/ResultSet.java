@@ -52,6 +52,8 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 * @param subRequets List of subrequests to test each getResult()
 	 * @throws plugins.Library.serial.TaskAbortException if thrown from a higher getResult() method
 	 * @throws plugins.Library.search.IllegalArgumentException if the number of subRequests is not acceptable {@see ResultOperation}
+	 *
+	 * TODO reevaluate relevance for all combinations, and find a way to calculate relevance of phrases
 	 */
 	ResultSet(String subject, ResultOperation resultOperation, List<Request<Set<TermEntry>>> subRequests) throws TaskAbortException {
 		if(resultOperation==ResultOperation.SINGLE && subRequests.size()!=1)
@@ -65,12 +67,13 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 				&& subRequests.size()<2)
 			throw new IllegalArgumentException(resultOperation.toString() + " operations need more than one term");
 
-		// Make sure any TaskAbortExceptions are found here and not when it's run
-		subresults = getResultSets(subRequests);
 
 		this.subject = subject;
 		internal = new HashMap();
 		this.resultOperation = resultOperation;
+		
+		// Make sure any TaskAbortExceptions are found here and not when it's run
+		subresults = getResultSets(subRequests);
 	}
 
 	public synchronized void run() {
@@ -297,6 +300,8 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 			int i;	// Iterate over the other collections, checking for following
 			for (i = 1; positions != null && i < collections.length && positions.size() > 0; i++) {
 				Collection<? extends TermEntry> collection = collections[i];
+				if(collection == null)
+					continue;	// Treat stop words as blanks, dont check
 				// See if collection follows termEntry
 				TermPageEntry termPageEntry1 = (TermPageEntry)getIgnoreSubject(termPageEntry, collection);
 				if(termPageEntry1==null)	// If collection doesnt contain this termpageentry it does not follow
@@ -421,7 +426,13 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	private Set<TermEntry>[] getResultSets(List<Request<Set<TermEntry>>> subRequests) throws TaskAbortException{
 		Set<TermEntry>[] sets = new Set[subRequests.size()];
 		for (int i = 0; i < subRequests.size(); i++) {
-			sets[i] = subRequests.get(i).getResult();
+			if(subRequests.get(i) == null){
+				if(resultOperation == ResultOperation.PHRASE)
+					sets[i] = null;
+				else
+					throw new NullPointerException("Nulls not allowed in subRequests for operations other than phrase.");
+			}else
+				sets[i] = subRequests.get(i).getResult();
 		}
 		return sets;
 	}

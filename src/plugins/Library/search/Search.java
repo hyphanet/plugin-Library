@@ -5,7 +5,6 @@ package plugins.Library.search;
 
 import freenet.support.Executor;
 import freenet.support.HTMLNode;
-import java.util.logging.Level;
 import plugins.Library.Library;
 import plugins.Library.index.Request;
 import plugins.Library.index.AbstractRequest;
@@ -16,6 +15,7 @@ import freenet.support.Logger;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -83,10 +83,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 *
 	 * @param search string to be searched
 	 * @param indexuri URI of index(s) to be used
-	 * @param generateResultNode if set, the search operation will conclude with
-	 * generating the results for displaying, if not set this step will be skipped.
-	 * This action is not guarenteed, in the returned Search as this search may
-	 * have already been started.
+	 * @return existing Search for this if it exists, new one otherwise or null if query is for a stopword or stop query
 	 * @throws InvalidSearchException if any part of the search is invalid
 	 */
 	public static Search startSearch(String search, String indexuri) throws InvalidSearchException, TaskAbortException{
@@ -108,9 +105,13 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 			return newSearch;
 		}else{
 			// create search for multiple terms over multiple indices
-			ArrayList<Request> indexrequests = new ArrayList(indices.length);
-			for (String index : indices)
-				indexrequests.add(startSearch(search, index));
+			ArrayList<Request<Set<TermEntry>>> indexrequests = new ArrayList(indices.length);
+			for (String index : indices){
+				Search indexsearch = startSearch(search, index);
+				if(indexsearch==null)
+					return null;
+				indexrequests.add(indexsearch);
+			}
 			Search newSearch = new Search(search, indexuri, indexrequests, ResultOperation.DIFFERENTINDEXES);
 			return newSearch;
 		}
@@ -126,7 +127,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * @param resultOperation Which set operation to do on the results of the subrequests
 	 * @throws InvalidSearchException if the search is invalid
 	 **/
-	private Search(String query, String indexURI, List<Request> requests, ResultOperation resultOperation)
+	private Search(String query, String indexURI, List<? extends Request<Set<TermEntry>>> requests, ResultOperation resultOperation)
 	throws InvalidSearchException{
 		super(makeString(query, indexURI));
 		if(resultOperation==ResultOperation.SINGLE && requests.size()!=1)
@@ -145,10 +146,10 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		// Create a temporary list of sub searches then make it unmodifiable
 		List<Request<Set<TermEntry>>> tempsubsearches = new ArrayList();
 		for (Request request : requests) {
-			if(request != null)
+			if(request != null || resultOperation == ResultOperation.PHRASE)
 				tempsubsearches.add(request);
 			else
-				throw new NullPointerException("Search cannot encapsulate null");
+				throw new NullPointerException("Search cannot encapsulate nulls except in the case of a ResultOperation.PHRASE where they are treated as blanks");
 		}
 		subsearches = Collections.unmodifiableList(tempsubsearches);
 
@@ -172,13 +173,12 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * @param indexURI the index uri this search is made on, only for reference
 	 * @param request Request to encapsulate
 	 */
-	private Search(String query, String indexURI, Request request){
+	private Search(String query, String indexURI, Request<Set<TermEntry>> request){
 		super(makeString(query, indexURI));
 		if(request == null)
 			throw new NullPointerException("Search cannot encapsulate null (query=\""+query+"\" indexURI=\""+indexURI+"\")");
 		query = query.toLowerCase(Locale.US).trim();
-		subsearches = new ArrayList();
-		subsearches.add(request);
+		subsearches = Collections.singletonList(request);
 
 		this.query = query;
 		this.indexURI = indexURI;
@@ -196,11 +196,15 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * Splits query into multiple searches, will be used for advanced queries
 	 * @param query search query, can use various different search conventions
 	 * @param indexuri uri for one index
-	 * @return Set of subsearches or null if theres only one search
+	 * @return single Search encompassing everything in the query or null if query is a stop word
+	 * @throws InvalidSearchException if search query is invalid
 	 */
 	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException, TaskAbortException{
 		if(query.matches("\\A\\w*\\Z")) {
 			// single search term
+			// return null if stopword
+			if(isStopWord(query))
+				return null;
 			Request request = library.getIndex(indexuri).getTermEntries(query);
 			if (request == null)
 				throw new InvalidSearchException( "Something wrong with query=\""+query+"\" or indexURI=\""+indexuri+"\", maybe something is wrong with the index or it's uri is wrong." );
@@ -209,13 +213,31 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 
 		// Make phrase search
 		if(query.matches("\\A\"[^\"]*\"\\Z")){
-			ArrayList<Request> phrasesearches = new ArrayList();
+			ArrayList<Request<Set<TermEntry>>> phrasesearches = new ArrayList();
 			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split(" ");
 			Logger.minor(Search.class, "Phrase split"+query);
 			for (String subquery : phrase){
-				phrasesearches.add(splitQuery(subquery, indexuri));
+				Search term = startSearch(subquery, indexuri);
+				phrasesearches.add(term);
 			}
-			return new Search(query, indexuri, phrasesearches, ResultOperation.PHRASE);
+			// Not really sure how stopwords should be handled in phrases
+			// currently i'm thinking that they should be treated as blanks
+			// between other words and ignored in other cases "jesus of nazareth"
+			// is treated as "jesus <blank> nazareth". Whereas "the who" will be
+			// treated as a stop query as just searching for "who" and purporting
+			// that the results are representative of "the who" is misleading.
+
+			// this makes sure there are no trailing nulls at the start
+			while(phrasesearches.get(0)==null)
+				phrasesearches.remove(0);
+			// this makes sure there are no trailing nulls at the end
+			while(phrasesearches.get(phrasesearches.size()-1)==null)
+				phrasesearches.remove(phrasesearches.size()-1);
+
+			if(phrasesearches.size()>1)
+				return new Search(query, indexuri, phrasesearches, ResultOperation.PHRASE);
+			else
+				return null;
 		}
 
 		Logger.minor(Search.class, "Splitting " + query);
@@ -252,28 +274,48 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		}
 		Logger.minor(Search.class, "phrase back query : "+formattedquery);
 
+
+
 		// Make complement search
 		if (formattedquery.contains("^^(")){
-			ArrayList<Request> complementsearches = new ArrayList();
+			ArrayList<Request<Set<TermEntry>>> complementsearches = new ArrayList();
 			String[] splitup = formattedquery.split("(\\^\\^\\(|\\))", 3);
-			complementsearches.add(splitQuery(splitup[0]+splitup[2], indexuri));
-			complementsearches.add(splitQuery(splitup[1], indexuri));
+			Search add = startSearch(splitup[0]+splitup[2], indexuri);
+			Search subtract = startSearch(splitup[1], indexuri);
+			if(add==null || subtract == null)
+				return null;	// If 'and' is not to be searched for 'the -john' is not to be searched for, also 'john -the' wouldnt have shown many results anyway
+			complementsearches.add(add);
+			complementsearches.add(subtract);
 			return new Search(query, indexuri, complementsearches, ResultOperation.REMOVE);
 		}
 		// Split intersections
 		if (formattedquery.contains("&&")){
-			ArrayList<Request> intersectsearches = new ArrayList();
+			ArrayList<Search> intersectsearches = new ArrayList();
 			String[] intersects = formattedquery.split("&&");
-			for (String subquery : intersects)
-				intersectsearches.add(splitQuery(subquery, indexuri));
-			return new Search(query, indexuri, intersectsearches, ResultOperation.INTERSECTION);
+			for (String subquery : intersects){
+				Search subsearch = startSearch(subquery, indexuri);
+				if (subsearch != null)		// We will assume that searching for 'the big apple' will near enough show the same results as 'big apple', so just ignore 'the' in interseaction
+					intersectsearches.add(subsearch);
+			}
+			switch(intersectsearches.size()){
+				case 0:				// eg. 'the that'
+					return null;
+				case 1 :			// eg. 'cake that' will return a search for 'cake'
+					return intersectsearches.get(0);
+				default :
+					return new Search(query, indexuri, intersectsearches, ResultOperation.INTERSECTION);
+			}
 		}
 		// Split Unions
 		if (formattedquery.contains("||")){
-			ArrayList<Request> unionsearches = new ArrayList();
+			ArrayList<Request<Set<TermEntry>>> unionsearches = new ArrayList();
 			String[] unions = formattedquery.split("\\|\\|");
-			for (String subquery : unions)
-				unionsearches.add(splitQuery(subquery, indexuri));
+			for (String subquery : unions){
+				Search add = startSearch(subquery, indexuri);
+				if (add == null)	// eg a search for 'the or cake' would be almost the same as a search for 'the' and so should be treated as such
+					return null;
+				unionsearches.add(add);
+			}
 			return new Search(query, indexuri, unionsearches, ResultOperation.UNION);
 		}
 
@@ -354,13 +396,13 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 */
 	@Override
 	public String toString(){
-		return "Search: "+resultOperation+" : "+subject+" : "+subsearches;
+		return "Search: "+resultOperation+" - " + status + " : "+subject+" : "+subsearches;
 	}
 
 	/**
 	 * @return List of Progresses this search depends on, it will not return CompositeProgresses
 	 */
-	/*@Override**/ public List<? extends Progress> getSubProgress(){
+	public List<? extends Progress> getSubProgress(){
 		Logger.minor(this, toString());
 
 		if (subsearches == null)
@@ -371,6 +413,8 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		// Everything else is split into leaves
 		List<Progress> subprogresses = new ArrayList();
 		for (Request<Set<TermEntry>> request : subsearches) {
+			if(request == null)
+				continue;
 			if( request instanceof CompositeProgress && ((CompositeProgress) request).getSubProgress()!=null && ((CompositeProgress) request).getSubProgress().iterator().hasNext()){
 				for (Iterator<? extends Progress> it = ((CompositeRequest)request).getSubProgress().iterator(); it.hasNext();) {
 					Progress progress1 = it.next();
@@ -410,7 +454,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 			case Busy :
 				if(!isSubRequestsComplete())
 					for (Request<Set<TermEntry>> request : subsearches)
-						if(!(request instanceof Search) || ((Search)request).status==SearchStatus.Busy)
+						if(request != null && (!(request instanceof Search) || ((Search)request).status==SearchStatus.Busy))
 							return;	// If Busy & still waiting for subrequests to complete, status remains Busy
 				status = SearchStatus.Combining_First;	// If Busy and waiting for subrequests to combine, status -> Combining_First
 			case Combining_First :	// for when subrequests are combining
@@ -458,7 +502,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 */
 	private boolean isSubRequestsComplete() throws TaskAbortException{
 		for(Request r : subsearches)
-			if(!r.isDone())
+			if(r != null && !r.isDone())
 				return false;
 		return true;
 	}
@@ -474,8 +518,6 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		
 		removeSearch(this);
 		Set<TermEntry> rs = resultset;
-		resultset= null;
-
 		return rs;
 	}
 
@@ -522,5 +564,17 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 
 	public boolean isPartiallyDone() {
 		throw new UnsupportedOperationException("Not supported yet.");
+	}
+
+	private static List<String> stopWords = Arrays.asList(new String[]{
+		"the", "and", "that", "have", "for"		// English stop words
+	});
+	/**
+	 * returns true, that word is a stopword if it is less than 3 letters long or included in the stopWords list
+	 * @param word
+	 * @return
+	 */
+	private  static boolean isStopWord(String word) {
+		return word.length() <3 || stopWords.contains(word);
 	}
 }

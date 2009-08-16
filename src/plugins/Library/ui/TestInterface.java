@@ -42,9 +42,14 @@ public class TestInterface{
 					requestcount++;
 				}
 				if("s".equals(command)){
-					requests.put(""+requestcount,Search.startSearch(param, index));
-					System.out.println("Started request "+requestcount);
-					requestcount++;
+					Search search = Search.startSearch(param, index);
+					if (search == null)
+						System.out.println("Stopwords too prominent in query");
+					else{
+						requests.put(""+requestcount,search);
+						System.out.println("Started request "+requestcount);
+						requestcount++;
+					}
 				}
 				if("p".equals(command))
 					System.out.println(requests.get(param).toString());
