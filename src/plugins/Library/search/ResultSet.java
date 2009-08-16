@@ -4,10 +4,8 @@
 package plugins.Library.search;
 
 import freenet.support.Logger;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import plugins.Library.index.Request;
 import plugins.Library.index.TermPageEntry;
 import java.util.Iterator;
@@ -248,44 +246,31 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	}
 
 	/**
-	 * Find the smallest collection, iterate over it and add elements which appear in all Collections
-	 * @param collections
+	 * Iterate over the first collection adding those elements which exist in all the other collections
+	 * @param collections a bunch of collections to intersect
 	 */
 	private void intersect(Collection<? extends TermEntry>... collections) {
-		// Find shortest collection
-		int shortest = 0; int shortestsize = Integer.MAX_VALUE;
-		for (int i = 1; i < collections.length; i++)
-			if (collections[i].size() < shortestsize)
-				shortest = i;
-
-		Collection<? extends TermEntry> shortCollection = collections[shortest];
+		Collection<? extends TermEntry> firstCollection = collections[0];
 		// Iterate over it
-		for (TermEntry termEntry : shortCollection) {
-			// if term entry is in all the others, add it to this
-			Set<TermEntry> entries = new HashSet(collections.length);
-			entries.add(termEntry);
+		for (Iterator<? extends TermEntry> it = firstCollection.iterator(); it.hasNext();) {
+			TermEntry termEntry = it.next();
+			// if term entry is contained in all the other collections add it
 
-			for (int i = 0; i < collections.length; i++) {
-				if(i==shortest)
-					continue;	// dont compare against self
-
+			int i;
+			for (i = 1; i < collections.length; i++) {
 				Collection<? extends TermEntry> collection = collections[i];
 				// See if collection contains termEntry
-				TermEntry contains = getIgnoreSubject(termEntry, collection);
-				if(contains != null)
-					// add it to the entries
-					entries.add(contains);
-				else
-					break;
+
+				if ( getIgnoreSubject(termEntry, collection) != null )
+					addInternal(convertEntry(termEntry));
 			}
-			// If all contained this entry, merge them all
-			if(entries.size() == collections.length)
-				addInternal(mergeEntries(entries.toArray(new TermEntry[0])));
 		}
 	}
 
 	/**
-	 * Iterate over the first collection and add elements which appear are followed in the next collection, repeat this operation with the others
+	 * Iterate over the first collection, and the termpositions of each entry,
+	 * keeping those positions which are followed in the other collections. Keeps
+	 * those entries which have positions remaingin after this process
 	 * @param collections
 	 */
 	private void phrase(Collection<? extends TermEntry>... collections) {
@@ -295,24 +280,30 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 			if(!(termEntry instanceof TermPageEntry))
 				continue;
 			// if term entry is followed in all the others, add it to this
-			List<TermPageEntry> entries = new ArrayList<TermPageEntry>(collections.length);
-			entries.add((TermPageEntry)termEntry);
-
-			for (int i = 1; i < collections.length; i++) {
+			TermPageEntry termPageEntry = (TermPageEntry)termEntry;
+			Map<Integer, String> positions = new HashMap(termPageEntry.getPositions());
+			
+			int i;	// Iterate over the other collections, checking for following
+			for (i = 1; i < collections.length && positions.size() > 0; i++) {
 				Collection<? extends TermEntry> collection = collections[i];
 				// See if collection follows termEntry
-				TermPageEntry follow = follows(entries.get(i-1), collection);
-				if(follow != null){
-					// add it to the entries
-					entries.add(follow);
-				}else
-					break;
+				TermPageEntry termPageEntry1 = (TermPageEntry)getIgnoreSubject(termPageEntry, collection);
+				if(termPageEntry1==null)	// If collection doesnt contain this termpageentry it does not follow
+					positions = null;
+				else{
+					for (Iterator<Integer> it = positions.keySet().iterator(); it.hasNext();) {
+						int posi = it.next();
+						if ( !termPageEntry1.getPositions().containsKey(posi+i) )
+							it.remove();
+						else
+							Logger.normal(this, termPageEntry.getURI() + "["+positions.keySet()+"] is followed by "+termPageEntry1.getURI()+"["+termPageEntry1.getPositions().keySet()+"] +"+i);
+					}
+				}
 			}
-			// If all followed, merge them all
-			if(entries.size() == collections.length)
-				addInternal(mergeEntries(entries.toArray(new TermEntry[0])));
+			// if this termentry has any positions remaining, add it
+			if(positions != null && positions.size() > 0)
+				addInternal(new TermPageEntry(subject, termPageEntry.getURI(), termPageEntry.getTitle(), positions));
 		}
-		
 	}
 
 	private TermEntry convertEntry(TermEntry termEntry) {
@@ -329,7 +320,9 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 			entry.setRelevance(termEntry.getRelevance());
 		return entry;
 	}
-	
+
+
+	// TODO merge and combine can be cut down
 	/**
 	 * Merge a group of TermEntries each pair of which(a, b) must be a.equalsTarget
 	 * The new TermEntry created will have the subject of this ResultSet, it
@@ -438,43 +431,6 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 			}
 		return result;
 	}
-
-	/**
-	 * If entry is a TermPageEntry and there exists a TermPageEntry in collection
-	 * which is equal ignoring the subject and contains at least one position
-	 * which directly follows a position in entry, a new TermPageEntry is returned
-	 * being a copy of the TermPageEntry found in collection with it's positions
-	 * which do not directly follow positions in entry eliminated. Otherwise null
-	 *
-	 * @param entry
-	 * @param collection
-	 * @return
-	 */
-	private TermPageEntry follows(TermEntry entry, Collection<? extends TermEntry> collection){
-		if(!(entry instanceof TermPageEntry))
-			return null;
-		TermPageEntry pageEntry1 = (TermPageEntry)entry;
-		TermPageEntry pageEntry2 = (TermPageEntry)getIgnoreSubject(entry, collection);
-		if(pageEntry1.getPositions() == null || pageEntry2 == null || pageEntry2.getPositions() == null)
-			return null;
-
-		Map<Integer, String> pos1 = pageEntry1.getPositions();
-		Map<Integer, String> pos2 = pageEntry2.getPositions();
-		if(pos1==null || pos2 == null)
-			throw new NullPointerException("This index does not have term position information and so cannot perform a phrase search, this should probably be a different type of exception, maybe an InvalidSearchException? : "+pageEntry1.toString()+" "+pageEntry1.getPositions()+" / "+pageEntry2.toString()+" "+pageEntry2.getPositions());
-		Map<Integer, String> newPos = new HashMap();
-		for (Integer integer1 : pos1.keySet()) {
-			for (Integer integer2 : pos2.keySet()) {
-				if(integer1 == integer2+1)
-					newPos.put(integer2, pos2.get(integer2));
-			}
-		}
-		if(newPos.size()>0)
-			return new TermPageEntry(pageEntry2.getSubject(), pageEntry2.getURI(), pageEntry2.getTitle(), newPos);
-		else
-			return null;
-	}
-
 
 	@Override public String toString(){
 		return internal.keySet().toString();
