@@ -205,7 +205,7 @@ implements MapSerialiser<K, T>,
 		for (Map.Entry<K, PushTask<T>> en: elems.entrySet()) {
 			PushTask<T> task = en.getValue();
 			if (task.data == null) {
-				if (task.meta != null) {
+				if (task.meta == null) {
 					throw new IllegalArgumentException("Packer error: null data and null meta for key" + en.getKey());
 				}
 				Object binID = scale.readMetaID(task.meta);
