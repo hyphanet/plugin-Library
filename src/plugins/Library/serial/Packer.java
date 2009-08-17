@@ -148,7 +148,7 @@ implements MapSerialiser<K, T>,
 		if (i < 0 || i > 3) {
 			throw new IllegalArgumentException("Invalid aggression value: only 0,1,2,3 is allowed.");
 		}
-		synchronized (aggression) {
+		synchronized (this) {
 			aggression = i;
 		}
 	}
@@ -157,7 +157,7 @@ implements MapSerialiser<K, T>,
 	** Atomically get the {@link #aggression}.
 	*/
 	public int getAggression() {
-		synchronized (aggression) {
+		synchronized (this) {
 			return aggression;
 		}
 	}
