@@ -25,7 +25,7 @@ import java.util.Date;
 ** @author MikeB
 ** @author infinity0
 */
-public interface Request<T> extends Progress /*implements Runnable*/ {
+public interface Request<T> extends Progress, Runnable {
 
 	/**
 	** Returns the Date object representing the time at which this request was
@@ -42,5 +42,15 @@ public interface Request<T> extends Progress /*implements Runnable*/ {
 	** Gets the result of this operation.
 	*/
 	public T getResult() throws TaskAbortException;
+
+	/**
+	** Run the request. Implementations should throw {@link
+	** IllegalStateException} if the task is already running.
+	**
+	** @throws IllegalStateException if the request is already running.
+	*/
+	/*@Override**/ public void run();
+
+	// URGENT needs a way to atomically start the request if it's not already started.
 
 }

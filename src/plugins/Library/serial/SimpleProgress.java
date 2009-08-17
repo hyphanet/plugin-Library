@@ -214,6 +214,16 @@ public class SimpleProgress implements Progress {
 		return new ProgressParts(pdone, known, known, estimate);
 	}
 
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation returns {@code true}; it's assume that the task has
+	** already started by the time you construct one of these objects.
+	*/
+	/*@Override**/ public boolean isStarted() {
+		return true;
+	}
+
 	/*@Override**/ public boolean isDone() throws TaskAbortException {
 		// updates are made such that the ProgressParts contract isn't broken even
 		// in mid-update so we don't need to synchronize here.

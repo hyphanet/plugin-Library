@@ -294,7 +294,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	/**
 	 * Find the term in this Index
 	 */
-	public synchronized Request getTermEntries(String term){
+	public synchronized Request getTermEntries(String term, boolean autostart_not_implemented){
 		try {
 			FindRequest request = new FindRequest(term);
 			setdependencies(request);
@@ -309,7 +309,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		}
 	}
 
-	public Request getURIEntry(FreenetURI uri){
+	public Request getURIEntry(FreenetURI uri, boolean autostart_not_implemented){
 		throw new UnsupportedOperationException("getURIEntry not Implemented in XMLIndex");
 	}
 
@@ -448,7 +448,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 								}
 								parsingSubindex.clear();
 								is.close();
-							} catch (Exception err) {	
+							} catch (Exception err) {
 								Logger.error(this, "Error parsing "+filename, err);
 								throw new TaskAbortException("Could not parse XML: ", err);
 							}

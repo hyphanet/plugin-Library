@@ -1,11 +1,11 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-
 package plugins.Library;
 
-import freenet.l10n.L10n.LANGUAGE;
 import plugins.Library.search.Search;
+import plugins.Library.ui.WebInterface;
+import plugins.Library.index.ProtoIndex;
 
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginL10n;
@@ -13,10 +13,10 @@ import freenet.pluginmanager.FredPluginRealVersioned;
 import freenet.pluginmanager.FredPluginThreadless;
 import freenet.pluginmanager.FredPluginVersioned;
 import freenet.pluginmanager.PluginRespirator;
+import freenet.support.Executor;
+import freenet.l10n.L10n.LANGUAGE;
 
 import java.security.MessageDigest;
-import plugins.Library.ui.WebInterface;
-
 
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces
@@ -54,8 +54,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	// FredPlugin
 	public void runPlugin(PluginRespirator pr) {
 		Main.pr = pr;
+		Executor exec = pr.getNode().executor;
 		library = Library.init(pr);
-		Search.setup(library, pr.getNode().executor);
+		Search.setup(library, exec);
+		ProtoIndex.setup(exec);
 		webinterface = new WebInterface(library, pr);
 		webinterface.load();
 	}

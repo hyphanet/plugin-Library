@@ -27,6 +27,11 @@ public interface Progress {
 	public ProgressParts getParts() throws TaskAbortException;
 
 	/**
+	** Whether the progress has started.
+	*/
+	public boolean isStarted();
+
+	/**
 	** Whether the progress has completed successfully, or throw an exception
 	** if it has aborted.
 	*/

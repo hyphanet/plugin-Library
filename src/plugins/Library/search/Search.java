@@ -140,9 +140,9 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 					|| resultOperation == ResultOperation.DIFFERENTINDEXES )
 				&& requests.size()<2)
 			throw new InvalidSearchException(resultOperation.toString() + " operations need more than one term");
-		
+
 		query = query.toLowerCase(Locale.US).trim();
-		
+
 		// Create a temporary list of sub searches then make it unmodifiable
 		List<Request<Set<TermEntry>>> tempsubsearches = new ArrayList();
 		for (Request request : requests) {
@@ -205,7 +205,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 			// return null if stopword
 			if(isStopWord(query))
 				return null;
-			Request request = library.getIndex(indexuri).getTermEntries(query);
+			Request request = library.getIndex(indexuri).getTermEntries(query, true);
 			if (request == null)
 				throw new InvalidSearchException( "Something wrong with query=\""+query+"\" or indexURI=\""+indexuri+"\", maybe something is wrong with the index or it's uri is wrong." );
 			return new Search(query, indexuri, request );
@@ -382,7 +382,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	/**
 	 * Creates a string which uniquly identifies this Search object for comparison
 	 * and lookup, wont make false positives but can make false negatives as search and indexuri aren't standardised
-	 * 
+	 *
 	 * @param search
 	 * @param indexuri
 	 * @return
@@ -442,7 +442,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	public boolean hasGeneratedResultNode(){
 		return pageEntryNode != null;
 	}
-	
+
 	/**
 	 * After this finishes running, the status of this Search object will be correct, stimulates the creation of the result if all subreqquests are complete and the result isn't made
 	 * @throws plugins.Library.serial.TaskAbortException
@@ -496,7 +496,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 				// Done , do nothing
 		}
 	}
-	
+
 	/**
 	 * @return true if all are Finished, false otherwise
 	 */
@@ -506,7 +506,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 				return false;
 		return true;
 	}
-	
+
 
 	/**
 	 * Return the set of results or null if it is not ready <br />
@@ -515,7 +515,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	@Override public Set<TermEntry> getResult() throws TaskAbortException {
 		if(!isDone())
 			return null;
-		
+
 		removeSearch(this);
 		Set<TermEntry> rs = resultset;
 		return rs;

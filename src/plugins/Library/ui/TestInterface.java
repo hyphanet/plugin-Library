@@ -37,7 +37,7 @@ public class TestInterface{
 				param = line.substring(1);
 
 				if("f".equals(command)){
-					requests.put(""+requestcount,library.getIndex(index).getTermEntries(param));
+					requests.put(""+requestcount,library.getIndex(index).getTermEntries(param, true));
 					System.out.println("Started request "+requestcount);
 					requestcount++;
 				}
