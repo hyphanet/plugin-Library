@@ -5,12 +5,18 @@
 package plugins.Library.ui;
 
 
+import freenet.keys.FreenetURI;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;
 import freenet.support.MultiValueTable;
 import freenet.support.api.HTTPRequest;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.logging.Level;
 import plugins.Library.Library;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.search.Search;
@@ -28,6 +34,26 @@ import plugins.Library.serial.TaskAbortException;
  * @author MikeB
  */
 class MainPage {
+	/** map of search hashes to pages on them */
+	private static final HashMap<Integer, MainPage> searchPages = new HashMap();
+
+	private synchronized static void addpage(int hashCode, MainPage page) {
+		searchPages.put(hashCode, page);
+	}
+	
+	private synchronized static void cleanUpPages(){
+		for (Integer integer : searchPages.keySet()) {
+			if (!Search.hasSearch(integer))
+				searchPages.remove(integer);
+		}
+	}
+
+	private synchronized static MainPage getPage(int intParam) {
+		return searchPages.get(intParam);
+	}
+	
+	
+	
 	private final Library library;
 	private final PluginRespirator pr;
 
@@ -40,15 +66,14 @@ class MainPage {
 	private String indexstring = Library.DEFAULT_INDEX_SITE;
 	/** Array of all the bookmark indexes used in this request */
 	private ArrayList<String> selectedBMIndexes = new ArrayList();
+	/** Any other indexes which are not bookmarks */
+	private ArrayList<String> selectedOtherIndexes = new ArrayList();
 	/** Any other indexes which are not bookmarks seperated by spaces */
-	private String etcIndexes ="";
 	private boolean groupusk = false;
 	private StringBuilder messages = new StringBuilder();
 
-	// For when a freesite requests that a bookmark be added, user authorization is needed
-	private boolean authorize = false;
 	private String addindexname;
-	private String addindexuri;
+	private String addindexuri = "";
 
 
 	MainPage(Exception e, Library library, PluginRespirator pr) {
@@ -59,7 +84,6 @@ class MainPage {
 	
 	
 	/**
-	 * TODO the whole index thing here is a huge mess
 	 * FIXME ajaxy stuff isnt working, it doesnt seem to renew the timeout in the js, it stopped working when the response type of the xml was changed to text/xml
 	 * @param library
 	 * @param pr
@@ -70,34 +94,26 @@ class MainPage {
 	}
 
 	/**
-	 * Process a get request, the only parameters allowed for a get request are
-	 * request id (for an ongoing request) and formatting parameters
+	 * Process a get request, the only parameter allowed for a get request is
+	 * request id (for an ongoing request)
 	 */
-	public void processGetRequest(HTTPRequest request){
-		js = request.isParameterSet("js");
-		showold = request.isParameterSet("showold");
-		groupusk = request.isParameterSet("groupusk");
-
-		if (request.isParameterSet("request") && Search.hasSearch(request.getIntParam("request"))){
-			search = Search.getSearch(request.getIntParam("request"));
-			search.setMakeResultNode(groupusk, showold, true);	// for the moment js will always be on for results, js detecting isnt being used
-			if(search!=null){
-				if(request.isParameterSet("indexname") && request.getParam("indexname").length() > 0){
-					library.addBookmark(request.getParam("indexname"), request.getParam("index"));
-				}
-				query = search.getQuery();
-				indexstring = search.getIndexURI();
-				String[] indexes = indexstring.split("[ ;]");
-				for (String string : indexes) {
-					if(string.length() > Library.BOOKMARK_PREFIX.length() && library.bookmarkKeys().contains(string.substring(Library.BOOKMARK_PREFIX.length())))
-						selectedBMIndexes.add(string);
-					else
-						etcIndexes += string.trim() + " ";
-				}
-				etcIndexes = etcIndexes.trim();
-				Logger.minor(this, "Refreshing request "+request.getIntParam("request")+" " +query);
-			}
+	public static MainPage processGetRequest(HTTPRequest request){
+		if (request.isParameterSet("request") && searchPages.containsKey(request.getIntParam("request"))){
+			return getPage(request.getIntParam("request"));
 		}
+		return null;
+	}
+	
+	/** post commands */
+	private static enum Commands {
+		/** performs a search */
+		find,
+		/** adds a new index to the bookmarks in Library */
+		addbookmark,
+		/** puts an index in the add bookmark box to be named, requires an integer parameter between 0 and "extraindexcount" to specify which index is being added */
+		addindex,
+		/** deletes a bookmark from the Library, requires an integer parameter between 0 and the number of bookmarks */
+		removebookmark
 	}
 	
 	/**
@@ -106,66 +122,117 @@ class MainPage {
 	 * @see plugins.XMLSpider.WebPage#processPostRequest(freenet.support.api.HTTPRequest,
 	 * freenet.support.HTMLNode)
 	 */
-	public void processPostRequest(HTTPRequest request, HTMLNode contentNode, boolean userAccess ) {
-		js = request.isPartSet("js");
-		showold = request.isPartSet("showold");
-		groupusk = request.isPartSet("groupusk");
+	public static MainPage processPostRequest(HTTPRequest request, HTMLNode contentNode, boolean userAccess, Library library, PluginRespirator pr ) {
+		cleanUpPages();
+		MainPage page = new MainPage(library, pr);
+		
+		page.js = request.isPartSet("js");
+		page.showold = request.isPartSet("showold");
+		page.groupusk = request.isPartSet("groupusk");
+		String[] etcIndexes = request.getPartAsString("indexuris", 256).trim().split("[ ;]");
+		page.query = request.getPartAsString("search", 256);
 
-
-		// Check for adding an index
-		// TODO make sure name is valid
-		if(request.isPartSet("indexname") && request.getPartAsString("indexname", 20).length() > 0 && request.isPartSet("index") && request.getPartAsString("index", 128).length() > 0){
-			if (userAccess){
-				library.addBookmark(request.getPartAsString("indexname", 20), request.getPartAsString("index", 128));
-			}else{
-				authorize = true;
-				addindexname = request.getPartAsString("indexname", 20);
-				addindexuri = request.getPartAsString("index", 128);
-			}
+		if(userAccess){
+			page.addindexname = request.getPartAsString("addindexname", 32);
+			page.addindexuri = request.getPartAsString("addindexuri", 256);
 		}
 
-		// Get index list
-		indexstring = "";
+
+
+		// Get bookmarked index list
+		page.indexstring = "";
 		for (String bm : library.bookmarkKeys()){
 			String bmid = (Library.BOOKMARK_PREFIX + bm).trim();
 			//Logger.normal(this, "checking for ~" + bm + " - "+request.isPartSet("~"+bm));
 			if(request.isPartSet("~"+bm)){
-				indexstring += bmid + " ";
-				selectedBMIndexes.add(bmid);
+				page.indexstring += bmid + " ";
+				page.selectedBMIndexes.add(bmid);
 			}
 		}
-		if (request.isPartSet("index")){
-			indexstring += request.getPartAsString("index", 256).trim();
-			etcIndexes = request.getPartAsString("index", 256).trim();
+		// Get other index list
+		//Logger.normal(page, "extra indexes : "+request.getIntPart("extraindexcount", 0));
+		for (int i = 0; i < request.getIntPart("extraindexcount", 0); i++) {
+			if (request.isPartSet("index"+i)){
+				String otherindexuri = request.getPartAsString("index"+i, 256);
+				//Logger.normal(page, "Added index : "+otherindexuri);
+				page.indexstring += otherindexuri + " ";
+				page.selectedOtherIndexes.add(otherindexuri);
+			}//else
+				//Logger.normal(page, "other index #"+i+" unchecked");
 		}
-		indexstring = indexstring.trim();
+		for (String string : etcIndexes) {
+			if(string.length()>0){
+				page.indexstring += string + " ";
+				page.selectedOtherIndexes.add(string);
+			}
+		}
+		page.indexstring = page.indexstring.trim();
 
-		if("".equals(indexstring))
-			indexstring = Library.DEFAULT_INDEX_SITE;
+		if("".equals(page.indexstring))
+			page.indexstring = Library.DEFAULT_INDEX_SITE;
 
-		if(etcIndexes.length()==0 && selectedBMIndexes.size() == 0)
-			selectedBMIndexes.add(Library.DEFAULT_INDEX_SITE);
-		
-		
+		if(page.selectedBMIndexes.size() == 0 && page.selectedOtherIndexes.size() == 0)
+			page.selectedBMIndexes.add(Library.DEFAULT_INDEX_SITE);
+
+
+
+
+
 		// get search query
-		if (request.isPartSet("search")){
+		if (request.isPartSet(Commands.find.toString())){
 			// Start or continue a search
-			query = request.getPartAsString("search", 256);
-			
 			try {
 				//Logger.normal(this, "starting search for "+query+" on "+indexuri);
-				search = Search.startSearch(query, indexstring);
-				if(search == null)
-					messages.append("Stopwords too prominent in search term, try removing words like 'the, 'and' and 'that' and any words less than 3 characters");
+				page.search = Search.startSearch(page.query, page.indexstring);
+				if(page.search == null)
+					page.messages.append("Stopwords too prominent in search term, try removing words like 'the, 'and' and 'that' and any words less than 3 characters");
+				else{
+					page.search.setMakeResultNode(page.groupusk, page.showold, true);	// for the moment js will always be on for results, js detecting isnt being used
+
+					// at this point pages is in a state ready to be saved
+					addpage(page.search.hashCode(), page);
+				}
 			} catch (InvalidSearchException ex) {
-				exceptions.add(ex);
+				page.messages.append("Problem with search : "+ex.getLocalizedMessage()+"\n");
 			} catch (TaskAbortException ex) {
-				exceptions.add(ex);		// TODO handle these exceptions separately
+				page.exceptions.add(ex);		// TODO handle these exceptions separately
 			} catch (RuntimeException ex){
-				exceptions.add(ex);
+				page.exceptions.add(ex);
 			}
+			
+		}else if (request.isPartSet(Commands.addbookmark.toString())) {
+			try {
+				// adding an index
+				// TODO make sure name is valid
+				if (userAccess && page.addindexname.length() > 0 && URLEncoder.encode(page.addindexname, "UTF-8").equals(page.addindexname)) {
+					// Use URLEncoder to have a simple constraint on names
+					library.addBookmark(page.addindexname, page.addindexuri);
+					if (page.selectedOtherIndexes.contains(page.addindexuri)) {
+						page.selectedOtherIndexes.remove(page.addindexuri);
+						page.selectedBMIndexes.add(Library.BOOKMARK_PREFIX + page.addindexname);
+					}
+					page.addindexname = "";
+					page.addindexuri = "";
+				}
+			} catch (UnsupportedEncodingException ex) {
+				Logger.error(page, "Encoding error", ex);
+			}
+		}else{	// check if one of the other indexes is being added as a bookmark, this doesnt actually add it but moves it into the add box
+			for (int i = 0; i < request.getIntPart("extraindexcount", 0); i++) { // TODO make sure name is valid
+				if (request.isPartSet(Commands.addindex.toString()+i))
+					page.addindexuri = request.getPartAsString("index"+i, 256);
+			}
+			if(userAccess)
+				// check if one of the bookmarks is being removed
+				for (String bm : library.bookmarkKeys()) {
+					if (request.isPartSet(Commands.removebookmark+bm)){
+						library.removeBookmark(bm);
+						break;
+					}
+				}
 		}
 
+		return page;
 	}
 
 
@@ -185,27 +252,11 @@ class MainPage {
 			// Generate the url to refresh to to update the progress
 			String refreshURL = null;
 			if ( search != null)
-				refreshURL = path()+"?request="+search.hashCode() + (showold?"&showold=on":"") + (groupusk?"&groupusk=on":"");
+				refreshURL = path()+"?request="+search.hashCode();
 
 
 
-			// Start of body
-			// authorization box, gives the user a choice of whther to authorize something
-			if(authorize){
-				HTMLNode authorizeBox = contentNode.addChild("div", "class", "authorization-box");
-				authorizeBox.addChild("h1", "Your authorization required :");
-				HTMLNode bookmarkBox = authorizeBox.addChild("div", "Whatever started this request is trying to add a bookmark to your index bookmarks, do you want to add this index bookmark?");
-				bookmarkBox.addChild("br");
-				bookmarkBox.addChild("#", "Name : ");
-				bookmarkBox.addChild("b", "\""+addindexname+"\"");
-				bookmarkBox.addChild("br");
-				bookmarkBox.addChild("#", "URI : ");
-				bookmarkBox.addChild("b", "\""+addindexuri+"\"");
-				bookmarkBox.addChild("br");
-				bookmarkBox.addChild("a", "href", refreshURL + "&indexname="+addindexname+"&index="+addindexuri, "Add to index bookmarks");
-				bookmarkBox.addChild("br");
-				bookmarkBox.addChild("a", "href", refreshURL, "Do not add to bookmarks");
-			}
+
 			contentNode.addChild(searchBox());
 
 
@@ -222,10 +273,10 @@ class MainPage {
 				if (search.isDone()) {
 					if(search.hasGeneratedResultNode()){
 						contentNode.addChild(search.getHTMLNode());
-						Logger.normal(this, "Got pre generated result node.");
+						//Logger.normal(this, "Got pre generated result node.");
 					}else
 						try {
-							Logger.normal(this, "Blocking to generate resultnode.");
+							//Logger.normal(this, "Blocking to generate resultnode.");
 							ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk, showold, true); // js is being switch on always currently due to detection being off
 							nodegenerator.run();
 							contentNode.addChild(nodegenerator.getPageEntryNode());
@@ -241,14 +292,14 @@ class MainPage {
 
 
 			for (Exception exception : exceptions) {
-				addError(errorDiv, exception);
+				addError(errorDiv, exception, messages);
 			}
 
 
 			// Don't refresh if there is no request option, if it is finished or there is an error to show or js is enabled
 			if (search != null && !"".equals(search.getQuery()) && !search.isDone() && exceptions.size() <= 0) {
 				// refresh will GET so use a request id
-				if (!js && !authorize) {
+				if (!js) {
 					headers.put("Refresh", "2;url=" + refreshURL);
 					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "script.js" : "detect.js") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
 					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "script.js" : "detect.js") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
@@ -285,9 +336,27 @@ class MainPage {
 					HTMLNode indexeslist = searchBox.addChild("ul", "class", "index-bookmark-list", "Select indexes");
 					for (String bm : library.bookmarkKeys()){
 						//Logger.normal(this, "Checking for bm="+Library.BOOKMARK_PREFIX+bm+" in \""+indexuri + " = " + selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm)+" "+indexuri.contains(Library.BOOKMARK_PREFIX+bm));
-						indexeslist.addChild("li")
-							.addChild("input", new String[]{"type", "name", "value", (selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"checkbox", "~"+bm, Library.BOOKMARK_PREFIX+bm, "1", } , bm);
+						HTMLNode bmItem = indexeslist.addChild("li");
+							bmItem.addChild("input", new String[]{"name", "type", "value", "title", (selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"~"+bm, "checkbox", Library.BOOKMARK_PREFIX+bm, "Index uri : "+library.getBookmark(bm), "1" } , bm);
+							bmItem.addChild("input", new String[]{"name", "type", "value", "title", "class"}, new String[]{Commands.removebookmark+bm, "submit", "X", "Delete this bookmark", "index-bookmark-delete" });
 					}
+					int i=0;
+					for (String uri : selectedOtherIndexes) {
+						HTMLNode removeItem = indexeslist.addChild("li");
+							String showuri;
+							try{
+								showuri = (new FreenetURI(uri)).toShortString();
+							}catch(MalformedURLException e){
+								showuri = uri;
+							}
+							removeItem.addChild("input", new String[]{"type", "name", "value", "checked"}, new String[]{"checkbox", "index"+i, uri, "checked", } , showuri);
+							removeItem.addChild("input", new String[]{"name", "type", "value"}, new String[]{Commands.addindex.toString()+i, "submit", "Add=>" });
+							i++;
+					}
+					indexeslist.addChild("input", new String[]{"name", "type", "value"}, new String[]{"extraindexcount", "hidden", ""+selectedOtherIndexes.size()});
+					indexeslist.addChild("li")
+							.addChild("input", new String[]{"name", "type", "value", "class", "title"}, new String[]{"indexuris", "text", "", "index", "URI or path of other index(s) to search on"});
+
 
 				HTMLNode optionsBox = searchForm.addChild("div", "style", "margin: 20px 0px 20px 20px; display: inline-table; text-align: left;", "Options");
 					HTMLNode optionsList = optionsBox.addChild("ul", "class", "options-list");
@@ -299,10 +368,12 @@ class MainPage {
 					HTMLNode newIndexInput = optionsBox.addChild("div", new String[]{"class", "style"}, new String[]{"index", "display: inline-table;"}, "Add an index:");
 						newIndexInput.addChild("br");
 						newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "Name:");
-						newIndexInput.addChild("input", new String[]{"name", "type", "class", "title"}, new String[]{"indexname", "text", "index", "If both a name and uri are entered, this index is added as a bookmark"});
+						newIndexInput.addChild("input", new String[]{"name", "type", "class", "title"}, new String[]{"addindexname", "text", "index", "Name of the bookmark, this will appear in the list to the left"});
 						newIndexInput.addChild("br");
 						newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "URI:");
-						newIndexInput.addChild("input", new String[]{"name", "type", "value", "class", "title"}, new String[]{"index", "text", etcIndexes, "index", "URI or path of index to search on, if a name is given above, this index is stored in bookmarks"});
+						newIndexInput.addChild("input", new String[]{"name", "type", "class", "title", "value"}, new String[]{"addindexuri", "text", "index", "URI or path of index to add to bookmarks, including the main index filename at the end of a Freenet uri will help Library not to block in order to discover the index type.", addindexuri});
+						newIndexInput.addChild("br");
+						newIndexInput.addChild("input", new String[]{"name", "type", "value"}, new String[]{"addbookmark", "submit", "Add Bookmark"});
 		}else
 			searchDiv.addChild("#", "No PluginRespirater, so Form cannot be displayed");
 		return searchDiv;
@@ -343,19 +414,20 @@ class MainPage {
 	 * Put an error on the page, under node, also draws a big grey box around
 	 * the error, unless it is an InvalidSearchException in which case it just shows the description
 	 */
-	public static void addError(HTMLNode node, Throwable error){
-//		if(error instanceof InvalidSearchException){	// Print description
-//			node.addChild("p", error.getLocalizedMessage());
-//			// TODO if there is a cause there should be some way to view this if needed for debugging
-//		}else{	// Else print stack trace
+	public static void addError(HTMLNode node, Throwable error, StringBuilder messages){
+		if(messages != null && 
+				(error instanceof InvalidSearchException || error instanceof TaskAbortException)){	// Print description
+			messages.append(error.getMessage()+"\n");
+			// TODO if there is a cause there should be some way to view this if needed for debugging
+		}else{	// Else print stack trace
 			HTMLNode error1 = node.addChild("div", "style", "padding:10px;border:5px solid gray;margin:10px", error.toString());
 			for (StackTraceElement ste : error.getStackTrace()){
 				error1.addChild("br");
 				error1.addChild("#", " -- "+ste.toString());
 			}
 			if(error.getCause()!=null)
-				addError(error1, error.getCause());
-//		}
+				addError(error1, error.getCause(), messages);
+		}
 	}
 
 	
