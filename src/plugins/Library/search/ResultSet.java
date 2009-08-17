@@ -242,6 +242,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	/**
 	 * Iterate over all the collections adding and merging all their entries
 	 * @param collections to be merged into this collection
+	 * TODO proper relevance calculating here, currently i think the relevance of the first one added will have less impact than the others, the other 3 types are more important i believe
 	 */
 	private void unite(Collection<? extends TermEntry>... collections) {
 		for(Collection<? extends TermEntry> c : collections)
@@ -267,17 +268,25 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 		for (Iterator<? extends TermEntry> it = firstCollection.iterator(); it.hasNext();) {
 			TermEntry termEntry = it.next();
 			// if term entry is contained in all the other collections add it
+			float combinedrelevance = termEntry.getRelevance();
 
 			int i;
 			for (i = 1; i < collections.length; i++) {
 				Collection<? extends TermEntry> collection = collections[i];
 				// See if collection contains termEntry
 
-				if ( getIgnoreSubject(termEntry, collection) == null )
+				TermEntry termEntry2 = getIgnoreSubject(termEntry, collection);
+				if ( termEntry2 == null )
 					break;
+				else	// add to combined relevance
+					combinedrelevance += termEntry2.getRelevance();
 			}
-			if (i==collections.length)
-				addInternal(convertEntry(termEntry));
+			if (i==collections.length){
+				TermEntry newEntry = convertEntry(termEntry);
+				if(combinedrelevance != 0)
+					newEntry.setRelevance(combinedrelevance/collections.length);	// New relevance is mean of the others
+				addInternal(newEntry);
+			}
 		}
 	}
 
