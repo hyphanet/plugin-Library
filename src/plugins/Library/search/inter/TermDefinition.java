@@ -7,7 +7,8 @@ import java.util.Set;
 import java.util.HashSet;
 
 /**
-** DOCUMENT
+** Represents the definition of a term, and keeps track of the {@link
+** IndexIdentity}s that provided a definition. DOCUMENT
 **
 ** @author infinity0
 */
@@ -50,6 +51,7 @@ public class TermDefinition {
 	public float getTrustMass(boolean recalculate) {
 		if (recalculate) {
 			// TODO
+			throw new UnsupportedOperationException("not implemented");
 		}
 		return local_trust_mass;
 	}

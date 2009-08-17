@@ -11,16 +11,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
-** DOCUMENT
+** Represents an {@link Index} with an associated WoT identity. DOCUMENT
 **
 ** @author infinity0
 */
-public class IndexIdentity /* implements Index */ {
-
-	/**
-	** Request ID for the identity
-	*/
-	final public FreenetURI reqID;
+public class IndexIdentity extends IndexReferent {
 
 	/**
 	** Reference to the index.
@@ -37,15 +32,22 @@ public class IndexIdentity /* implements Index */ {
 	*/
 	protected int WoT_hops;
 
-	public IndexIdentity(FreenetURI u, Index i, float t) {
-		reqID = u;
+	/**
+	** Constructs a new identity '''backed by''' the given referent.
+	*/
+	public IndexIdentity(IndexReferent u, Index i, float t) {
+		super(u);
 		index = i;
 		trust = t;
 	}
 
-	// TODO probably move this into InterdexQuery
-	public void updateMinimumHops(int h) {
+	// TODO maybe move this into InterdexQuery
+	public void updateHops(int h) {
 		if (h < WoT_hops) { WoT_hops = h; }
+	}
+
+	public int getHops() {
+		return WoT_hops;
 	}
 
 }

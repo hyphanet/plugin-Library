@@ -6,7 +6,7 @@ package plugins.Library.search.inter;
 import org.jgrapht.EdgeFactory;
 
 /**
-** DOCUMENT
+** TODO maybe get rid of this, no longer needed since we have TermDefinition
 **
 ** @author infinity0
 */
