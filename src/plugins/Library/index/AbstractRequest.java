@@ -4,6 +4,7 @@
 package plugins.Library.index;
 
 import plugins.Library.serial.TaskAbortException;
+import plugins.Library.serial.TaskInProgressException;
 import plugins.Library.serial.Progress;
 import plugins.Library.serial.ProgressParts;
 
@@ -59,14 +60,16 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	** Create a Request with the given subject.
 	**
 	** @param sub The subject
-	** @param start Whether to automatically start executing the request.
+	** @param autorun Whether to automatically run the request in the same
+	**        thread as the caller of the constructor.
 	*/
-	public AbstractRequest(String sub, boolean autostart) {
+	public AbstractRequest(String sub, boolean autorun) {
 		this.subject = sub;
-		if (autostart) { setStartDate(); }
+		if (autorun) { run(); }
 	}
 
 	protected synchronized void setStartDate() {
+		if (start != null) { throw new IllegalStateException("Request is already running"); }
 		start = new Date();
 	}
 
@@ -107,9 +110,13 @@ public abstract class AbstractRequest<T> implements Request<T> {
 
 	abstract public ProgressParts getParts() throws TaskAbortException;
 
-	/*@Override**/ public boolean isDone() throws TaskAbortException {
+	/*@Override**/ public synchronized boolean isDone() throws TaskAbortException {
 		if (error != null) { throw error; }
 		return result != null;
+	}
+
+	/*@Override**/ public synchronized boolean isStarted() {
+		return start != null;
 	}
 
 	/*@Override**/ public synchronized void join() throws InterruptedException, TaskAbortException {
@@ -139,5 +146,28 @@ public abstract class AbstractRequest<T> implements Request<T> {
 		if (error != null) { throw error; }
 		return result;
 	}
+
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation just sets the start date.
+	*/
+	/*@Override**/ public void run() {
+		setStartDate();
+		runReal();
+	}
+
+	/*@Override**/ public void execute() throws TaskInProgressException {
+		synchronized (this) {
+			if (start != null) {
+				throw new TaskInProgressException("Task already in progress", this);
+			}
+			setStartDate();
+		}
+		runReal();
+	}
+
+	// PRIORITY find a better way to do this
+	public void runReal() { }
 
 }

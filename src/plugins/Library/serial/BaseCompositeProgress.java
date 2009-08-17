@@ -77,6 +77,13 @@ public class BaseCompositeProgress implements CompositeProgress {
 		return subprogress;
 	}
 
+	/*@Override**/ public boolean isStarted() {
+		for (Progress p: subprogress) {
+			if (p != null && p.isStarted()) { return true; }
+		}
+		return false;
+	}
+
 	/*@Override**/ public boolean isDone() throws TaskAbortException {
 		for (Progress p: subprogress) {
 			if (p == null || !p.isDone()) { return false; }

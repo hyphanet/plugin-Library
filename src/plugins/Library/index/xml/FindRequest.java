@@ -171,6 +171,10 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 			return parts;
 		}
 
+		public boolean isStarted() {
+			return true;
+		}
+
 		public boolean isDone() throws TaskAbortException {
 			return parts.isDone();
 		}

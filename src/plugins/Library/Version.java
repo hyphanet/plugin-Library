@@ -7,9 +7,11 @@ package plugins.Library;
  * Necessary to be able to use pluginmanager's versions
  */
 public class Version {
-	private static final String svnRevision = "@custom@";
 
-	static String getSvnRevision() {
-		return svnRevision;
+	private static final String vcsRevision = "@custom@";
+
+	public static String vcsRevision() {
+		return vcsRevision;
 	}
+
 }

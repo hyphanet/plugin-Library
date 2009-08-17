@@ -29,6 +29,8 @@ import java.util.TreeSet;
 import java.util.LinkedHashMap;
 import java.util.Date;
 
+import java.util.concurrent.Executor;
+
 /**
 ** Prototype B-tree based index. DOCUMENT
 **
@@ -44,6 +46,12 @@ final public class ProtoIndex implements Index {
 	// DEBUG make final again later
 	/*final*/ public static int BTREE_NODE_MIN = 0x1000;
 	final public static int BTREE_ENT_MAX = (BTREE_NODE_MIN<<1) - 1;
+
+	protected static Executor exec;
+
+	public static void setup(Executor e) {
+		exec = e;
+	}
 
 	/**
 	** Request ID for this index
@@ -119,13 +127,13 @@ final public class ProtoIndex implements Index {
 	private Map<String, Request<Collection<TermEntry>>> getTermEntriesProgress = new
 	HashMap<String, Request<Collection<TermEntry>>>();
 
-	public Request<Collection<TermEntry>> getTermEntries(String term) {
+	public Request<Collection<TermEntry>> getTermEntries(String term, boolean autostart) {
 		Request<Collection<TermEntry>> request = getTermEntriesProgress.get(term);
 		if (request == null) {
 			request = new getTermEntriesHandler(term);
 			getTermEntriesProgress.put(term, request);
 			// TODO use ThreadPoolExecutor
-			new Thread((Runnable)request).start();
+			if (autostart) { exec.execute(request); }
 		}
 		return request;
 	}
@@ -133,7 +141,7 @@ final public class ProtoIndex implements Index {
 
 
 
-	public Request<URIEntry> getURIEntry(FreenetURI uri) {
+	public Request<URIEntry> getURIEntry(FreenetURI uri, boolean autostart) {
 		throw new UnsupportedOperationException("not implemented");
 	}
 
@@ -145,7 +153,7 @@ final public class ProtoIndex implements Index {
 		ProgressTracker current_tracker;
 
 		protected getTermEntriesHandler(String t) {
-			super(t);
+			super(t, false);
 		}
 
 		@Override public ProgressParts getParts() throws TaskAbortException {
@@ -171,7 +179,8 @@ final public class ProtoIndex implements Index {
 
 		// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
 		Progress last = null;
-		/*@Override**/ public void run() {
+		/*@Override**/ public void runReal() {
+			super.run();
 			try {
 				// get the root container
 				SkeletonBTreeSet<TermEntry> root;

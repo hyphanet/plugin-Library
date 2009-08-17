@@ -48,6 +48,7 @@ import freenet.client.events.ExpectedMIMEEvent;
 import freenet.node.RequestStarter;
 import freenet.node.RequestClient;
 import freenet.node.NodeClientCore;
+import freenet.support.Executor;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -69,7 +70,7 @@ import java.util.Collections;
  * Library class is the api for others to use search facilities, it is used by the interfaces
  * @author MikeB
  */
-public class Library {
+final public class Library {
 
 	public static final String BOOKMARK_PREFIX = "bookmark:";
 	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "freenetindex";
@@ -97,7 +98,8 @@ public class Library {
 		return lib;
 	}
 
-	private PluginRespirator pr;
+	final private PluginRespirator pr;
+	final private Executor exec;
 
 	/**
 	 * Method to setup Library class so it has access to PluginRespirator, and load bookmarks
@@ -105,6 +107,7 @@ public class Library {
 	 */
 	private Library(PluginRespirator pr){
 		this.pr = pr;
+		this.exec = pr.getNode().executor;
 		File persistentFile = new File("LibraryPersistent");
 		if(persistentFile.canRead()){
 			try {
