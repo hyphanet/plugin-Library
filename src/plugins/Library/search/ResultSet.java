@@ -273,9 +273,11 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 				Collection<? extends TermEntry> collection = collections[i];
 				// See if collection contains termEntry
 
-				if ( getIgnoreSubject(termEntry, collection) != null )
-					addInternal(convertEntry(termEntry));
+				if ( getIgnoreSubject(termEntry, collection) == null )
+					break;
 			}
+			if (i==collections.length)
+				addInternal(convertEntry(termEntry));
 		}
 	}
 
@@ -312,7 +314,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 						if ( !termPageEntry1.getPositions().containsKey(posi+i) )
 							it.remove();
 						else
-							Logger.normal(this, termPageEntry.getURI() + "["+positions.keySet()+"] is followed by "+termPageEntry1.getURI()+"["+termPageEntry1.getPositions().keySet()+"] +"+i);
+							Logger.minor(this, termPageEntry.getURI() + "["+positions.keySet()+"] is followed by "+termPageEntry1.getURI()+"["+termPageEntry1.getPositions().keySet()+"] +"+i);
 					}
 				}
 			}
