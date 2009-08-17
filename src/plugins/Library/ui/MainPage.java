@@ -80,7 +80,7 @@ class MainPage {
 
 		if (request.isParameterSet("request") && Search.hasSearch(request.getIntParam("request"))){
 			search = Search.getSearch(request.getIntParam("request"));
-			search.setMakeResultNode(groupusk, showold, js);
+			search.setMakeResultNode(groupusk, showold, true);	// for the moment js will always be on for results, js detecting isnt being used
 			if(search!=null){
 				if(request.isParameterSet("indexname") && request.getParam("indexname").length() > 0){
 					library.addBookmark(request.getParam("indexname"), request.getParam("index"));
@@ -180,6 +180,7 @@ class MainPage {
 	public void writeContent(HTMLNode contentNode, MultiValueTable<String, String> headers) {
 		try{
 			//Logger.normal(this, "Writing page for "+ query + " " + search + " " + indexuri);
+			contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", "/library/static/script.js"}).addChild("%", " ");
 
 			// Generate the url to refresh to to update the progress
 			String refreshURL = null;
@@ -225,7 +226,7 @@ class MainPage {
 					}else
 						try {
 							Logger.normal(this, "Blocking to generate resultnode.");
-							ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk, showold, js);
+							ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk, showold, true); // js is being switch on always currently due to detection being off
 							nodegenerator.run();
 							contentNode.addChild(nodegenerator.getPageEntryNode());
 						} catch (TaskAbortException ex) {
