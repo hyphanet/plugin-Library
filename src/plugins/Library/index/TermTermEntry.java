@@ -68,7 +68,7 @@ public class TermTermEntry extends TermEntry {
 	}
 
 	@Override public boolean equalsTarget(TermEntry entry) {
-		return (entry instanceof TermPageEntry) && term.equals(((TermTermEntry)entry).term);
+		return (entry instanceof TermTermEntry) && term.equals(((TermTermEntry)entry).term);
 	}
 
 	@Override public int hashCode() {
