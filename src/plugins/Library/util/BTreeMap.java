@@ -465,6 +465,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** @throws ClassCastException if the keys cannot be compared by the given
 	**         comparator, or if they cannot be compared naturally (ie. they
 	**         don't implement {@link Comparable})
+	** @throws NullPointerException if either of the keys are {@code null}.
 	*/
 	public int compare(K key1, K key2) {
 		return (comparator != null)? comparator.compare(key1, key2): ((Comparable<K>)key1).compareTo(key2);
@@ -628,6 +629,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 	/**
 	** Creates a new node.
+	**
+	** @param l Whether the node is a leaf.
 	*/
 	protected Node newNode(boolean l) {
 		return new Node(l);
