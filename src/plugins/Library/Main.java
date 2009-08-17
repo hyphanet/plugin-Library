@@ -35,7 +35,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 
 	// FredPluginVersioned
 	public String getVersion() {
-		return library.getVersion() + " r" + Version.getSvnRevision();
+		return library.getVersion() + " " + Version.vcsRevision();
 	}
 
 	// FredPluginRealVersioned
