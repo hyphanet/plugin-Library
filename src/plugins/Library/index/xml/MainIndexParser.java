@@ -100,7 +100,7 @@ public class MainIndexParser extends DefaultHandler {
 		private void keywordsStartElement(String uri, String localName, String qName, Attributes attributes)
 		        throws SAXException {
 			if (!"subIndex".equals(localName))
-				new SAXException("Bad tag <" + localName + "> in keywords @" + location());
+				throw new SAXException("Bad tag <" + localName + "> in keywords @" + location());
 
 			String key = attributes.getValue("", "key");
 			if (key == null || key.length() < 1 || key.length() > 32 || !key.matches("^[0-9a-fA-F]*$"))

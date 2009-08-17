@@ -62,6 +62,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.security.MessageDigest;
+import java.util.Collections;
 
 
 /**
@@ -120,11 +121,12 @@ public class Library {
 		}
 	}
 
-	public void saveState(){
+	public synchronized void saveState(){
 		File persistentFile = new File("LibraryPersistent");
 		try {
 			ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(persistentFile));
 			os.writeObject(bookmarks);
+			os.close();
 		} catch (IOException ex) {
 			Logger.error(this, "Error writing out Library state to file.", ex);
 		}
@@ -339,13 +341,26 @@ public class Library {
 	 * @param uri of new bookmark
 	 * @return reference of new bookmark
 	 */
-	public String addBookmark(String name, String uri) {
+	public synchronized String addBookmark(String name, String uri) {
 		bookmarks.put(name, uri);
 		saveState();
 		return name;
 	}
+
+	public synchronized void removeBookmark(String name) {
+		bookmarks.remove(name);
+		saveState();
+	}
+
+	public synchronized String getBookmark(String bm) {
+		return bookmarks.get(bm);
+	}
+	/**
+	 * Returns the Set of bookmark names, unmodifiable
+	 * @return
+	 */
 	public Set<String> bookmarkKeys() {
-		return bookmarks.keySet();
+		return Collections.unmodifiableSet(bookmarks.keySet());
 	}
 
 	/**
@@ -401,11 +416,17 @@ public class Library {
 		if (rtab.containsKey(indexuri))
 			return rtab.get(indexuri);
 
-		try {
-			Object indexkey = getAddressTypeFromString(indexuri);
-			Class<?> indextype;
-			Index index;
+		Class<?> indextype;
+		Index index;
+		Object indexkey;
+		
+		try{
+			indexkey = getAddressTypeFromString(indexuri);
+		}catch(UnsupportedOperationException e){
+			throw new TaskAbortException("Did not recognise index type in : \""+indexuri+"\"", e);
+		}
 
+		try {
 			if (indexkey instanceof File) {
 				indextype = getIndexType((File)indexkey);
 			} else if (indexkey instanceof FreenetURI) {

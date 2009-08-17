@@ -234,7 +234,7 @@ public class ProgressParts {
 		} else if (!hasEstimate()) {
 			f.format("%.2f (??)", getKnownFractionDone()*100);
 		} else {
-			f.format("%.2f (%.2??)", getKnownFractionDone()*100, getEstimatedFractionDone()*100);
+			f.format("%.2f (%.2f??)", getKnownFractionDone()*100, getEstimatedFractionDone()*100);
 		}
 		return f.toString();
 	}

@@ -16,7 +16,6 @@ import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.logging.Level;
 import plugins.Library.Library;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.search.Search;
