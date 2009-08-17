@@ -80,8 +80,8 @@ class MainPage {
 
 		if (request.isParameterSet("request") && Search.hasSearch(request.getIntParam("request"))){
 			search = Search.getSearch(request.getIntParam("request"));
-			search.setMakeResultNode(groupusk, showold, true);	// for the moment js will always be on for results, js detecting isnt being used
 			if(search!=null){
+				search.setMakeResultNode(groupusk, showold, true);	// for the moment js will always be on for results, js detecting isnt being used
 				if(request.isParameterSet("indexname") && request.getParam("indexname").length() > 0){
 					library.addBookmark(request.getParam("indexname"), request.getParam("index"));
 				}
