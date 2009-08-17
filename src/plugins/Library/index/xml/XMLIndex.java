@@ -258,7 +258,8 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 					subIndiceList.add(key);
 					String stillbase;
 					try{
-						stillbase = (new FreenetURI(indexuri)).sskForUSK().toString();
+						FreenetURI furi = new FreenetURI(indexuri);
+						stillbase = ( furi.isUSK() ? furi.sskForUSK() : furi ).toString();
 					}catch(MalformedURLException e){
 						stillbase = indexuri;
 					}
