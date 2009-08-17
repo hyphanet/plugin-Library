@@ -123,6 +123,9 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			waitingOnMainIndex.clear();
 		}catch(Exception e){
 			fetchStatus = FetchStatus.FAILED;
+			for (FindRequest findRequest : waitingOnMainIndex) {
+				findRequest.setError(new TaskAbortException("Failure parsing "+toString(), e));
+			}
 			Logger.error(this, indexuri, e);
 		} finally {
 			bucket.free();
@@ -170,6 +173,9 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			}
 		}
 		fetchStatus = FetchStatus.FAILED;
+		for (FindRequest findRequest : waitingOnMainIndex) {
+			findRequest.setError(new TaskAbortException("Failure fetching rootindex of "+toString(), e));
+		}
 		Logger.error(this, "Fetch failed on "+toString() + " -- state = "+state, e);
 	}
 
