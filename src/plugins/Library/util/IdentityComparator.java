@@ -75,7 +75,7 @@ abstract public class IdentityComparator<T> implements Comparator<T> {
 				if (l2 == null) { l2 = counter++; objectid.put(o2, l2); }
 
 				idcounter.put(h1, counter);
-				assert(l1 != l2);
+				assert((long)l1 != (long)l2);
 				return (l1 > l2)? 1: -1;
 			}
 		}

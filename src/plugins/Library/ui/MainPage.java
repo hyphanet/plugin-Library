@@ -78,10 +78,10 @@ class MainPage {
 		showold = request.isParameterSet("showold");
 		groupusk = request.isParameterSet("groupusk");
 
-		if (request.isParameterSet("request")){
+		if (request.isParameterSet("request") && Search.hasSearch(request.getIntParam("request"))){
 			search = Search.getSearch(request.getIntParam("request"));
-			search.setMakeResultNode(groupusk, showold, js);
 			if(search!=null){
+				search.setMakeResultNode(groupusk, showold, true);	// for the moment js will always be on for results, js detecting isnt being used
 				if(request.isParameterSet("indexname") && request.getParam("indexname").length() > 0){
 					library.addBookmark(request.getParam("indexname"), request.getParam("index"));
 				}
@@ -155,6 +155,8 @@ class MainPage {
 			try {
 				//Logger.normal(this, "starting search for "+query+" on "+indexuri);
 				search = Search.startSearch(query, indexstring);
+				if(search == null)
+					messages.append("Stopwords too prominent in search term, try removing words like 'the, 'and' and 'that' and any words less than 3 characters");
 			} catch (InvalidSearchException ex) {
 				exceptions.add(ex);
 			} catch (TaskAbortException ex) {
@@ -178,6 +180,7 @@ class MainPage {
 	public void writeContent(HTMLNode contentNode, MultiValueTable<String, String> headers) {
 		try{
 			//Logger.normal(this, "Writing page for "+ query + " " + search + " " + indexuri);
+			contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", "/library/static/script.js"}).addChild("%", " ");
 
 			// Generate the url to refresh to to update the progress
 			String refreshURL = null;
@@ -223,7 +226,7 @@ class MainPage {
 					}else
 						try {
 							Logger.normal(this, "Blocking to generate resultnode.");
-							ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk, showold, js);
+							ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk, showold, true); // js is being switch on always currently due to detection being off
 							nodegenerator.run();
 							contentNode.addChild(nodegenerator.getPageEntryNode());
 						} catch (TaskAbortException ex) {
@@ -362,41 +365,44 @@ class MainPage {
 	 * @return
 	 */
 	public static HTMLNode progressBar(Progress progress) throws TaskAbortException {
-		if( progress instanceof CompositeProgress && ((CompositeProgress) progress).getSubProgress()!=null && ((CompositeProgress) progress).getSubProgress().iterator().hasNext()){
-			// Put together progress bars for all the subProgress
-			HTMLNode block = new HTMLNode("#");
-			block.addChild("tr").addChild("td", "colspan", "6", progress.getSubject() + " : "+progress.getStatus());
-			for (Progress progress1 : ((CompositeProgress) progress).getSubProgress()) {
-				block.addChild(progressBar(progress1));
-			}
-			return block;
-		} else {
-			// Draw progress bar for single or chained progress
-			ProgressParts parts;
-			if(progress instanceof ChainedProgress && ((ChainedProgress)progress).getCurrentProgress()!=null)
-				parts = ((ChainedProgress)progress).getCurrentProgress().getParts();
-			else
-				parts = progress.getParts();
+		synchronized (progress){
+			if( progress instanceof CompositeProgress && ((CompositeProgress) progress).getSubProgress()!=null && ((CompositeProgress) progress).getSubProgress().iterator().hasNext()){
+				// Put together progress bars for all the subProgress
+				HTMLNode block = new HTMLNode("#");
+				block.addChild("tr").addChild("td", "colspan", "6", progress.getSubject() + " : "+progress.getStatus());
+				if(((CompositeProgress) progress).getSubProgress() != null)
+					for (Progress progress1 : ((CompositeProgress) progress).getSubProgress()) {
+						block.addChild(progressBar(progress1));
+					}
+				return block;
+			} else {
+				// Draw progress bar for single or chained progress
+				ProgressParts parts;
+				if(progress instanceof ChainedProgress && ((ChainedProgress)progress).getCurrentProgress()!=null)
+					parts = ((ChainedProgress)progress).getCurrentProgress().getParts();
+				else
+					parts = progress.getParts();
 
-			HTMLNode bar = new HTMLNode("tr");
-			bar.addChild("td");
-			// search term
-			bar.addChild("td", progress.getSubject());
-			// search stage
-			bar.addChild("td", progress.getStatus());
-			// show fetch progress if fetching something
-			if(progress.isDone() || progress.getParts().known==0){
-				bar.addChild("td", ""); bar.addChild("td");
-			}else{
-				float fractiondone = parts.getKnownFractionDone();
-				int percentage = (int)(((float)100)*fractiondone);	// TODO cater for all data and invalid (negative) values
-				boolean fetchFinalized = parts.finalizedTotal();
+				HTMLNode bar = new HTMLNode("tr");
+				bar.addChild("td");
+				// search term
+				bar.addChild("td", progress.getSubject());
+				// search stage
+				bar.addChild("td", progress.getStatus());
+				// show fetch progress if fetching something
+				if(progress.isDone() || progress.getParts().known==0){
+					bar.addChild("td", ""); bar.addChild("td");
+				}else{
+					float fractiondone = parts.getKnownFractionDone();
+					int percentage = (int)(((float)100)*fractiondone);	// TODO cater for all data and invalid (negative) values
+					boolean fetchFinalized = parts.finalizedTotal();
 
-				bar.addChild("td", new String[]{"class", "style"}, new String[]{"progress-bar-outline", "padding: 0px 3px;"})
-					.addChild("div", new String[]{"class", "style"}, new String[]{fetchFinalized?"progress-bar-inner-final":"progress-bar-inner-nonfinal", "z-index : -1; width:"+percentage+"%;"});
-				bar.addChild("td", fetchFinalized?percentage+"%":"Operation length unknown");
+					bar.addChild("td", new String[]{"class", "style"}, new String[]{"progress-bar-outline", "padding: 0px 3px;"})
+						.addChild("div", new String[]{"class", "style"}, new String[]{fetchFinalized?"progress-bar-inner-final":"progress-bar-inner-nonfinal", "z-index : -1; width:"+percentage+"%;"});
+					bar.addChild("td", fetchFinalized?percentage+"%":"Operation length unknown");
+				}
+				return bar;
 			}
-			return bar;
 		}
 	}
 

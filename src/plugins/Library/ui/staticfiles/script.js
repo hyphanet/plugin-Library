@@ -1,4 +1,4 @@
-var url = '/library/xml/?request=0&';
+var url = '/library/xml/?request=0&'; // this bit will have to be put into the page being generated dynamically if used again
 var xmlhttp;
 
 function getProgress(){

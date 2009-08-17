@@ -150,7 +150,7 @@ public class Library {
 	** a metastring (end with "/") or be a USK.
 	*/
 	public Class<?> getIndexType(FreenetURI indexuri) throws FetchException {
-		if(indexuri.lastMetaString().equals(XMLIndex.DEFAULT_FILE))
+		if(indexuri.lastMetaString()!=null && indexuri.lastMetaString().equals(XMLIndex.DEFAULT_FILE))
 			return XMLIndex.class;
 
 

@@ -63,6 +63,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	public enum FetchStatus{UNFETCHED, FETCHING, FETCHED, FAILED}
 	protected FetchStatus fetchStatus = FetchStatus.UNFETCHED;
 	protected HashMap<String, String> indexMeta  = new HashMap<String, String>();
+	// TODO it could be tidier if this was converted to a FreenetURI
 	protected String indexuri;
 
 	private HighLevelSimpleClient hlsc;
@@ -89,7 +90,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		this.pr = pr;
 		if (pr!=null)
 			executor = pr.getNode().executor;
-		
+
 		if (baseURI.endsWith(DEFAULT_FILE))
 			baseURI = baseURI.replace(DEFAULT_FILE, "");
 		if (!baseURI.endsWith("/"))
@@ -249,7 +250,13 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 
 				for (String key : parser.getSubIndice()) {
 					subIndiceList.add(key);
-					subIndice.put(key, new SubIndex(indexuri, "index_" + key + ".xml"));
+					String stillbase;
+					try{
+						stillbase = (new FreenetURI(indexuri)).sskForUSK().toString();
+					}catch(MalformedURLException e){
+						stillbase = indexuri;
+					}
+					subIndice.put(key, new SubIndex(stillbase, "index_" + key + ".xml"));
 				}
 				Collections.sort(subIndiceList);
 			}

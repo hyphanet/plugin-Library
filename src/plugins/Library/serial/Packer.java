@@ -148,7 +148,7 @@ implements MapSerialiser<K, T>,
 		if (i < 0 || i > 3) {
 			throw new IllegalArgumentException("Invalid aggression value: only 0,1,2,3 is allowed.");
 		}
-		synchronized (aggression) {
+		synchronized (this) {
 			aggression = i;
 		}
 	}
@@ -157,7 +157,7 @@ implements MapSerialiser<K, T>,
 	** Atomically get the {@link #aggression}.
 	*/
 	public int getAggression() {
-		synchronized (aggression) {
+		synchronized (this) {
 			return aggression;
 		}
 	}
@@ -205,7 +205,7 @@ implements MapSerialiser<K, T>,
 		for (Map.Entry<K, PushTask<T>> en: elems.entrySet()) {
 			PushTask<T> task = en.getValue();
 			if (task.data == null) {
-				if (task.meta != null) {
+				if (task.meta == null) {
 					throw new IllegalArgumentException("Packer error: null data and null meta for key" + en.getKey());
 				}
 				Object binID = scale.readMetaID(task.meta);

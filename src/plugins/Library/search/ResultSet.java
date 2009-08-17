@@ -4,10 +4,8 @@
 package plugins.Library.search;
 
 import freenet.support.Logger;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import plugins.Library.index.Request;
 import plugins.Library.index.TermPageEntry;
 import java.util.Iterator;
@@ -32,6 +30,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	private ResultOperation resultOperation;
 	private boolean done = false;
 	private Set<TermEntry>[] subresults;
+	private RuntimeException exception;
 
 	/**
 	 * What should be done with the results of subsearches\n
@@ -53,6 +52,8 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 * @param subRequets List of subrequests to test each getResult()
 	 * @throws plugins.Library.serial.TaskAbortException if thrown from a higher getResult() method
 	 * @throws plugins.Library.search.IllegalArgumentException if the number of subRequests is not acceptable {@see ResultOperation}
+	 *
+	 * TODO reevaluate relevance for all combinations, and find a way to calculate relevance of phrases
 	 */
 	ResultSet(String subject, ResultOperation resultOperation, List<Request<Set<TermEntry>>> subRequests) throws TaskAbortException {
 		if(resultOperation==ResultOperation.SINGLE && subRequests.size()!=1)
@@ -66,37 +67,44 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 				&& subRequests.size()<2)
 			throw new IllegalArgumentException(resultOperation.toString() + " operations need more than one term");
 
-		// Make sure any TaskAbortExceptions are found here and not when it's run
-		subresults = getResultSets(subRequests);
 
 		this.subject = subject;
 		internal = new HashMap();
 		this.resultOperation = resultOperation;
+		
+		// Make sure any TaskAbortExceptions are found here and not when it's run
+		subresults = getResultSets(subRequests);
 	}
 
 	public synchronized void run() {
 		if(done)
 			throw new IllegalStateException("This ResultSet has already run and is finalised.");
-		
-		// Decide what to do
-		switch(resultOperation){
-			case SINGLE:	// Just add everything
-				addAllToEmptyInternal(subresults[0]);
-				break;
-			case DIFFERENTINDEXES:	// Same as UNION currently
-			case UNION:	// Add every one without overwriting
-				unite(subresults);
-				break;
-			case INTERSECTION:	// Add one then retain the others
-				intersect(subresults);
-				break;
-			case REMOVE:	// Add one then remove the other
-				exclude(subresults[0], subresults[1]);
-				break;
-			case PHRASE:
-				phrase(subresults);
-				break;
+
+		try{
+			// Decide what to do
+			switch(resultOperation){
+				case SINGLE:	// Just add everything
+					addAllToEmptyInternal(subresults[0]);
+					break;
+				case DIFFERENTINDEXES:	// Same as UNION currently
+				case UNION:	// Add every one without overwriting
+					unite(subresults);
+					break;
+				case INTERSECTION:	// Add one then retain the others
+					intersect(subresults);
+					break;
+				case REMOVE:	// Add one then remove the other
+					exclude(subresults[0], subresults[1]);
+					break;
+				case PHRASE:
+					phrase(subresults);
+					break;
+			}
+		}catch(RuntimeException e){
+			exception = e;	// Exeptions thrown here are stored in case this is being run in a thread, in this case it is thrown in isDone() or iterator()
+			throw e;
 		}
+		subresults = null; // forget the subresults
 		done = true;
 	}
 
@@ -128,8 +136,11 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 
 	/**
 	 * @return Iterator of Set, remove is unsupported
+	 * @throws RuntimeException if a RuntimeException was caught while generating the Set
 	 */
 	public Iterator<TermEntry> iterator() {
+		if(exception != null)
+			throw new RuntimeException("RuntimeException thrown in ResultSet thread", exception);
 		return new ResultIterator(internal.keySet().iterator());
 	}
 
@@ -231,6 +242,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	/**
 	 * Iterate over all the collections adding and merging all their entries
 	 * @param collections to be merged into this collection
+	 * TODO proper relevance calculating here, currently i think the relevance of the first one added will have less impact than the others, the other 3 types are more important i believe
 	 */
 	private void unite(Collection<? extends TermEntry>... collections) {
 		for(Collection<? extends TermEntry> c : collections)
@@ -247,44 +259,41 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	}
 
 	/**
-	 * Find the smallest collection, iterate over it and add elements which appear in all Collections
-	 * @param collections
+	 * Iterate over the first collection adding those elements which exist in all the other collections
+	 * @param collections a bunch of collections to intersect
 	 */
 	private void intersect(Collection<? extends TermEntry>... collections) {
-		// Find shortest collection
-		int shortest = 0; int shortestsize = Integer.MAX_VALUE;
-		for (int i = 1; i < collections.length; i++)
-			if (collections[i].size() < shortestsize)
-				shortest = i;
-
-		Collection<? extends TermEntry> shortCollection = collections[shortest];
+		Collection<? extends TermEntry> firstCollection = collections[0];
 		// Iterate over it
-		for (TermEntry termEntry : shortCollection) {
-			// if term entry is in all the others, add it to this
-			Set<TermEntry> entries = new HashSet(collections.length);
-			entries.add(termEntry);
+		for (Iterator<? extends TermEntry> it = firstCollection.iterator(); it.hasNext();) {
+			TermEntry termEntry = it.next();
+			// if term entry is contained in all the other collections add it
+			float combinedrelevance = termEntry.getRelevance();
 
-			for (int i = 0; i < collections.length; i++) {
-				if(i==shortest)
-					continue;	// dont compare against self
-
+			int i;
+			for (i = 1; i < collections.length; i++) {
 				Collection<? extends TermEntry> collection = collections[i];
 				// See if collection contains termEntry
-				TermEntry contains = getIgnoreSubject(termEntry, collection);
-				if(contains != null)
-					// add it to the entries
-					entries.add(contains);
-				else
+
+				TermEntry termEntry2 = getIgnoreSubject(termEntry, collection);
+				if ( termEntry2 == null )
 					break;
+				else	// add to combined relevance
+					combinedrelevance += termEntry2.getRelevance();
 			}
-			// If all contained this entry, merge them all
-			if(entries.size() == collections.length)
-				addInternal(mergeEntries(entries.toArray(new TermEntry[0])));
+			if (i==collections.length){
+				TermEntry newEntry = convertEntry(termEntry);
+				if(combinedrelevance != 0)
+					newEntry.setRelevance(combinedrelevance/collections.length);	// New relevance is mean of the others
+				addInternal(newEntry);
+			}
 		}
 	}
 
 	/**
-	 * Iterate over the first collection and add elements which appear are followed in the next collection, repeat this operation with the others
+	 * Iterate over the first collection, and the termpositions of each entry,
+	 * keeping those positions which are followed in the other collections. Keeps
+	 * those entries which have positions remaingin after this process
 	 * @param collections
 	 */
 	private void phrase(Collection<? extends TermEntry>... collections) {
@@ -294,24 +303,34 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 			if(!(termEntry instanceof TermPageEntry))
 				continue;
 			// if term entry is followed in all the others, add it to this
-			List<TermPageEntry> entries = new ArrayList<TermPageEntry>(collections.length);
-			entries.add((TermPageEntry)termEntry);
-
-			for (int i = 1; i < collections.length; i++) {
+			TermPageEntry termPageEntry = (TermPageEntry)termEntry;
+			if(termPageEntry.getPositions() == null)
+				continue;
+			Map<Integer, String> positions = new HashMap(termPageEntry.getPositions());
+			
+			int i;	// Iterate over the other collections, checking for following
+			for (i = 1; positions != null && i < collections.length && positions.size() > 0; i++) {
 				Collection<? extends TermEntry> collection = collections[i];
+				if(collection == null)
+					continue;	// Treat stop words as blanks, dont check
 				// See if collection follows termEntry
-				TermPageEntry follow = follows(entries.get(i-1), collection);
-				if(follow != null){
-					// add it to the entries
-					entries.add(follow);
-				}else
-					break;
+				TermPageEntry termPageEntry1 = (TermPageEntry)getIgnoreSubject(termPageEntry, collection);
+				if(termPageEntry1==null || termPageEntry1.getPositions()==null)	// If collection doesnt contain this termpageentry or has not positions, it does not follow
+					positions = null;
+				else{
+					for (Iterator<Integer> it = positions.keySet().iterator(); it.hasNext();) {
+						int posi = it.next();
+						if ( !termPageEntry1.getPositions().containsKey(posi+i) )
+							it.remove();
+						else
+							Logger.minor(this, termPageEntry.getURI() + "["+positions.keySet()+"] is followed by "+termPageEntry1.getURI()+"["+termPageEntry1.getPositions().keySet()+"] +"+i);
+					}
+				}
 			}
-			// If all followed, merge them all
-			if(entries.size() == collections.length)
-				addInternal(mergeEntries(entries.toArray(new TermEntry[0])));
+			// if this termentry has any positions remaining, add it
+			if(positions != null && positions.size() > 0)
+				addInternal(new TermPageEntry(subject, termPageEntry.getURI(), termPageEntry.getTitle(), positions));
 		}
-		
 	}
 
 	private TermEntry convertEntry(TermEntry termEntry) {
@@ -328,7 +347,9 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 			entry.setRelevance(termEntry.getRelevance());
 		return entry;
 	}
-	
+
+
+	// TODO merge and combine can be cut down
 	/**
 	 * Merge a group of TermEntries each pair of which(a, b) must be a.equalsTarget
 	 * The new TermEntry created will have the subject of this ResultSet, it
@@ -416,7 +437,13 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	private Set<TermEntry>[] getResultSets(List<Request<Set<TermEntry>>> subRequests) throws TaskAbortException{
 		Set<TermEntry>[] sets = new Set[subRequests.size()];
 		for (int i = 0; i < subRequests.size(); i++) {
-			sets[i] = subRequests.get(i).getResult();
+			if(subRequests.get(i) == null){
+				if(resultOperation == ResultOperation.PHRASE)
+					sets[i] = null;
+				else
+					throw new NullPointerException("Nulls not allowed in subRequests for operations other than phrase.");
+			}else
+				sets[i] = subRequests.get(i).getResult();
 		}
 		return sets;
 	}
@@ -438,48 +465,18 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 		return result;
 	}
 
-	/**
-	 * If entry is a TermPageEntry and there exists a TermPageEntry in collection
-	 * which is equal ignoring the subject and contains at least one position
-	 * which directly follows a position in entry, a new TermPageEntry is returned
-	 * being a copy of the TermPageEntry found in collection with it's positions
-	 * which do not directly follow positions in entry eliminated. Otherwise null
-	 *
-	 * @param entry
-	 * @param collection
-	 * @return
-	 */
-	private TermPageEntry follows(TermEntry entry, Collection<? extends TermEntry> collection){
-		if(!(entry instanceof TermPageEntry))
-			return null;
-		TermPageEntry pageEntry1 = (TermPageEntry)entry;
-		TermPageEntry pageEntry2 = (TermPageEntry)getIgnoreSubject(entry, collection);
-		if(pageEntry1.getPositions() == null || pageEntry2 == null || pageEntry2.getPositions() == null)
-			return null;
-
-		Map<Integer, String> pos1 = pageEntry1.getPositions();
-		Map<Integer, String> pos2 = pageEntry2.getPositions();
-		if(pos1==null || pos2 == null)
-			throw new NullPointerException("This index does not have term position information and so cannot perform a phrase search, this should probably be a different type of exception, maybe an InvalidSearchException? : "+pageEntry1.toString()+" "+pageEntry1.getPositions()+" / "+pageEntry2.toString()+" "+pageEntry2.getPositions());
-		Map<Integer, String> newPos = new HashMap();
-		for (Integer integer1 : pos1.keySet()) {
-			for (Integer integer2 : pos2.keySet()) {
-				if(integer1 == integer2+1)
-					newPos.put(integer2, pos2.get(integer2));
-			}
-		}
-		if(newPos.size()>0)
-			return new TermPageEntry(pageEntry2.getSubject(), pageEntry2.getURI(), pageEntry2.getTitle(), newPos);
-		else
-			return null;
-	}
-
-
 	@Override public String toString(){
 		return internal.keySet().toString();
 	}
 
+	/**
+	 * Returns true if the ResultSet has completed it's operations
+	 * @throws RuntimeException if a RuntimeException was caught while generating the Set
+	 * @return
+	 */
 	public boolean isDone(){
+		if(exception != null)
+			throw new RuntimeException("RuntimeException thrown in ResultSet thread", exception);
 		return done;
 	}
 
