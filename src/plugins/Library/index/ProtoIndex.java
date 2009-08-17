@@ -179,7 +179,7 @@ final public class ProtoIndex implements Index {
 
 		// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
 		Progress last = null;
-		/*@Override**/ public void run() {
+		/*@Override**/ public void runReal() {
 			super.run();
 			try {
 				// get the root container

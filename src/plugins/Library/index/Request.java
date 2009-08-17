@@ -4,6 +4,7 @@
 package plugins.Library.index;
 
 import plugins.Library.serial.TaskAbortException;
+import plugins.Library.serial.TaskInProgressException;
 import plugins.Library.serial.Progress;
 
 import java.util.Date;
@@ -44,13 +45,20 @@ public interface Request<T> extends Progress, Runnable {
 	public T getResult() throws TaskAbortException;
 
 	/**
-	** Run the request. Implementations should throw {@link
-	** IllegalStateException} if the task is already running.
+	** Run the request.
 	**
-	** @throws IllegalStateException if the request is already running.
+	** Implementations should throw {@link IllegalStateException} if the task
+	** has already started.
+	**
+	** @throws IllegalStateException if the request has already started.
 	*/
 	/*@Override**/ public void run();
 
-	// URGENT needs a way to atomically start the request if it's not already started.
+	/**
+	** Run the request (in the current thread) if it has not already started.
+	**
+	** @throws TaskInProgressException if the request has already started.
+	*/
+	public void execute() throws TaskInProgressException;
 
 }

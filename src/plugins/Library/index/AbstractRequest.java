@@ -4,6 +4,7 @@
 package plugins.Library.index;
 
 import plugins.Library.serial.TaskAbortException;
+import plugins.Library.serial.TaskInProgressException;
 import plugins.Library.serial.Progress;
 import plugins.Library.serial.ProgressParts;
 
@@ -153,6 +154,20 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	*/
 	/*@Override**/ public void run() {
 		setStartDate();
+		runReal();
 	}
+
+	/*@Override**/ public void execute() throws TaskInProgressException {
+		synchronized (this) {
+			if (start != null) {
+				throw new TaskInProgressException("Task already in progress", this);
+			}
+			setStartDate();
+		}
+		runReal();
+	}
+
+	// PRIORITY find a better way to do this
+	public void runReal() { }
 
 }
