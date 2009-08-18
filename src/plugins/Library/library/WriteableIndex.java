@@ -20,18 +20,18 @@ import java.util.Collection;
 */
 public interface WriteableIndex extends Index {
 
-	public Request<Collection<TermEntry>> clearTermEntries(String term, boolean autostart);
+	public Request<Collection<TermEntry>> clearTermEntries(String term);
 
-	public Request<TermEntry> putTermEntry(TermEntry entry, boolean autostart);
+	public Request<TermEntry> putTermEntry(TermEntry entry);
 
-	public Request<TermEntry> remTermEntry(TermEntry entry, boolean autostart);
+	public Request<TermEntry> remTermEntry(TermEntry entry);
 
-	public Request<URIEntry> clearURIEntry(FreenetURI uri, boolean autostart);
+	public Request<URIEntry> clearURIEntry(FreenetURI uri);
 
-	public Request<URIEntry> putURIEntry(URIEntry entry, boolean autostart);
+	public Request<URIEntry> putURIEntry(URIEntry entry);
 
-	public Request<URIEntry> remURIEntry(URIEntry entry, boolean autostart);
+	public Request<URIEntry> remURIEntry(URIEntry entry);
 
-	public Request<Object> commitAndPush(boolean autostart);
+	public Request<Object> commitAndPush();
 
 }

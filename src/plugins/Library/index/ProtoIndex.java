@@ -127,13 +127,12 @@ final public class ProtoIndex implements Index {
 	private Map<String, Request<Collection<TermEntry>>> getTermEntriesProgress = new
 	HashMap<String, Request<Collection<TermEntry>>>();
 
-	public Request<Collection<TermEntry>> getTermEntries(String term, boolean autostart) {
+	public Request<Collection<TermEntry>> getTermEntries(String term) {
 		Request<Collection<TermEntry>> request = getTermEntriesProgress.get(term);
 		if (request == null) {
 			request = new getTermEntriesHandler(term);
 			getTermEntriesProgress.put(term, request);
-			// TODO use ThreadPoolExecutor
-			if (autostart) { exec.execute(request); }
+			exec.execute((getTermEntriesHandler)request);
 		}
 		return request;
 	}
@@ -141,19 +140,20 @@ final public class ProtoIndex implements Index {
 
 
 
-	public Request<URIEntry> getURIEntry(FreenetURI uri, boolean autostart) {
+	public Request<URIEntry> getURIEntry(FreenetURI uri) {
 		throw new UnsupportedOperationException("not implemented");
 	}
 
 
 	public class getTermEntriesHandler extends AbstractRequest<Collection<TermEntry>> implements Runnable, ChainedProgress {
+		// TODO have a Runnable field instead of extending Runnable
 
 		final Map<Object, ProgressTracker> trackers = new LinkedHashMap<Object, ProgressTracker>();
 		Object current_meta;
 		ProgressTracker current_tracker;
 
 		protected getTermEntriesHandler(String t) {
-			super(t, false);
+			super(t);
 		}
 
 		@Override public ProgressParts getParts() throws TaskAbortException {
@@ -179,8 +179,7 @@ final public class ProtoIndex implements Index {
 
 		// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
 		Progress last = null;
-		/*@Override**/ public void runReal() {
-			super.run();
+		/*@Override**/ public void run() {
 			try {
 				// get the root container
 				SkeletonBTreeSet<TermEntry> root;

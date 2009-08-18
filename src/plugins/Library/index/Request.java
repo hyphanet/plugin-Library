@@ -4,7 +4,6 @@
 package plugins.Library.index;
 
 import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.TaskInProgressException;
 import plugins.Library.serial.Progress;
 
 import java.util.Date;
@@ -26,7 +25,7 @@ import java.util.Date;
 ** @author MikeB
 ** @author infinity0
 */
-public interface Request<T> extends Progress, Runnable {
+public interface Request<T> extends Progress {
 
 	/**
 	** Returns the Date object representing the time at which this request was
@@ -43,22 +42,5 @@ public interface Request<T> extends Progress, Runnable {
 	** Gets the result of this operation.
 	*/
 	public T getResult() throws TaskAbortException;
-
-	/**
-	** Run the request.
-	**
-	** Implementations should throw {@link IllegalStateException} if the task
-	** has already started.
-	**
-	** @throws IllegalStateException if the request has already started.
-	*/
-	/*@Override**/ public void run();
-
-	/**
-	** Run the request (in the current thread) if it has not already started.
-	**
-	** @throws TaskInProgressException if the request has already started.
-	*/
-	public void execute() throws TaskInProgressException;
 
 }

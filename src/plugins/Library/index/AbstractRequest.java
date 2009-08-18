@@ -4,7 +4,6 @@
 package plugins.Library.index;
 
 import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.TaskInProgressException;
 import plugins.Library.serial.Progress;
 import plugins.Library.serial.ProgressParts;
 
@@ -50,22 +49,15 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	private T result;
 
 	/**
-	** Create a Request with the given subject, and immediately starts it.
-	*/
-	public AbstractRequest(String sub) {
-		this(sub, true);
-	}
-
-	/**
 	** Create a Request with the given subject.
 	**
 	** @param sub The subject
 	** @param autorun Whether to automatically run the request in the same
 	**        thread as the caller of the constructor.
 	*/
-	public AbstractRequest(String sub, boolean autorun) {
+	public AbstractRequest(String sub) {
 		this.subject = sub;
-		if (autorun) { run(); }
+		setStartDate();
 	}
 
 	protected synchronized void setStartDate() {
@@ -146,28 +138,5 @@ public abstract class AbstractRequest<T> implements Request<T> {
 		if (error != null) { throw error; }
 		return result;
 	}
-
-	/**
-	** {@inheritDoc}
-	**
-	** This implementation just sets the start date.
-	*/
-	/*@Override**/ public void run() {
-		setStartDate();
-		runReal();
-	}
-
-	/*@Override**/ public void execute() throws TaskInProgressException {
-		synchronized (this) {
-			if (start != null) {
-				throw new TaskInProgressException("Task already in progress", this);
-			}
-			setStartDate();
-		}
-		runReal();
-	}
-
-	// PRIORITY find a better way to do this
-	public void runReal() { }
 
 }

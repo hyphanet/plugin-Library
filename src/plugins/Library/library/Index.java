@@ -22,15 +22,9 @@ public interface Index {
 	** Non-blocking fetch of the entries associated with a given term.
 	**
 	** DOCUMENT
-	**
-	** @param autostart Whether to automatically start the request using the
-	**        default executor for the index. Note that supplying {@code false}
-	**        does not guarantee that the request will not be started by the
-	**        time you get to it; another thread may have called {@link
-	**        Request#execute()} on it in the meantime.
 	*/
-	public Request<Collection<TermEntry>> getTermEntries(String term, boolean autostart);
+	public Request<Collection<TermEntry>> getTermEntries(String term);
 
-	public Request<URIEntry> getURIEntry(FreenetURI uri, boolean autostart);
+	public Request<URIEntry> getURIEntry(FreenetURI uri);
 
 }

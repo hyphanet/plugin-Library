@@ -295,7 +295,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	/**
 	 * Find the term in this Index
 	 */
-	public synchronized Request getTermEntries(String term, boolean autostart_not_implemented){
+	public synchronized Request getTermEntries(String term){
 		try {
 			FindRequest request = new FindRequest(term);
 			setdependencies(request);
@@ -310,7 +310,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		}
 	}
 
-	public Request getURIEntry(FreenetURI uri, boolean autostart_not_implemented){
+	public Request getURIEntry(FreenetURI uri){
 		throw new UnsupportedOperationException("getURIEntry not Implemented in XMLIndex");
 	}
 
