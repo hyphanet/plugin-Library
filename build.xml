@@ -15,7 +15,9 @@
 	<property name="junit.location" value="/usr/share/java/junit.jar"/>
 	<property name="packagebase" value="plugins.Library" />
 
-	<available file="src/plugins/Library/Version.java" property="version.present"/>
+	<property name="version.src" value="plugins/Library/Version.java" />
+	<property name="version.build" value="plugins/Library/Version.class" />
+	<available file="src/${version.src}" property="version.present"/>
 	<available file="${junit.location}" property="junit.present"/>
 
 	<path id="lib.path">
@@ -107,12 +109,12 @@
 	<!-- ================================================== -->
 	<target name="setver" if="version.present">
 		<!-- Update the Version.java file in ${build}-->
-		<copy file="src/plugins/Library/Version.java" tofile="${build}/plugins/Library/Version.java"/>
-		<delete file="${build}/plugins/Library/Version.class"/>
-		<replace file="${build}/plugins/Library/Version.java">
+		<copy file="src/${version.src}" tofile="${build}/${version.src}" overwrite="true" />
+		<delete file="${build}/${version.build}"/>
+		<replace file="${build}/${version.src}">
 			<replacefilter token="@custom@" value="${git.revision}"/>
 		</replace>
-		<echo message="Updated build version to ${git.revision} in ${build}/plugins/Library/Version.java"/>
+		<echo message="Updated build version to ${git.revision} in ${build}/${version.src}"/>
 	</target>
 
 	<!-- ================================================== -->
@@ -129,7 +131,7 @@
 			</classpath>
 			<include name="**/*.java"/>
 			<exclude name="**/package-info.java"/>
-			<exclude name="plugins/Library/Version.java"/>
+			<exclude name="${version.src}"/>
 		</javac>
 
 		<!-- Force compile of Version.java in case compile of ${src} didn't trigger it -->
@@ -137,7 +139,7 @@
 			<classpath>
 				<path refid="lib.path"/>
 			</classpath>
-			<include name="plugins/Library/Version.java"/>
+			<include name="${version.src}"/>
 		</javac>
 
 		<!-- Copy web interface static files to the build dir -->
@@ -149,9 +151,8 @@
 	<target name="run" depends="dist">
 		<java classname="${packagebase}.ui.TestInterface">
 			<classpath>
-				<pathelement location="../fred/lib/freenet-cvs-snapshot.jar"/>
-				<pathelement location="../fred/lib/freenet-ext.jar"/>
-				<pathelement location="dist/Library.jar"/>
+				<path refid="lib.path"/>
+				<pathelement location="${dist}/Library.jar"/>
 			</classpath>
 		</java>
 	</target>
@@ -202,7 +203,9 @@
 				<include name="**/*.txt"/>
 				<include name="**/*.properties"/>
 			</fileset>
-			<fileset dir="${build}/"/>
+			<fileset dir="${build}/">
+				<exclude name="${version.src}"/>
+			</fileset>
 			<zipgroupfileset dir="lib/" includes="**/*.jar"/>
 		</jar>
 	</target>
