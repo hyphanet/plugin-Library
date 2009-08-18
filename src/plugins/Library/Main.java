@@ -5,7 +5,7 @@ package plugins.Library;
 
 import plugins.Library.search.Search;
 import plugins.Library.ui.WebInterface;
-import plugins.Library.index.ProtoIndex;
+import plugins.Library.util.concurrent.Executors;
 
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginL10n;
@@ -57,7 +57,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		Executor exec = pr.getNode().executor;
 		library = Library.init(pr);
 		Search.setup(library, exec);
-		ProtoIndex.setup(exec);
+		Executors.setDefaultExecutor(exec);
 		webinterface = new WebInterface(library, pr);
 		webinterface.load();
 	}

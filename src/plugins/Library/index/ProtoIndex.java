@@ -15,6 +15,7 @@ import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.DataNotLoadedException;
+import plugins.Library.util.concurrent.Executors;
 
 import freenet.keys.FreenetURI;
 
@@ -47,11 +48,8 @@ final public class ProtoIndex implements Index {
 	/*final*/ public static int BTREE_NODE_MIN = 0x1000;
 	final public static int BTREE_ENT_MAX = (BTREE_NODE_MIN<<1) - 1;
 
-	protected static Executor exec;
-
-	public static void setup(Executor e) {
-		exec = e;
-	}
+	protected static Executor exec = Executors.DEFAULT_EXECUTOR;
+	public static void setExecutor(Executor e) { exec = e; }
 
 	/**
 	** Request ID for this index
