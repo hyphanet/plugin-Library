@@ -3,6 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.serial;
 
+import plugins.Library.event.Progress;
+
 import java.util.Collection;
 import java.util.Map;
 

@@ -6,7 +6,7 @@ package plugins.Library.search.inter;
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermIndexEntry;
 import plugins.Library.index.TermTermEntry;
-import plugins.Library.library.Index;
+import plugins.Library.Index;
 
 import freenet.keys.FreenetURI;
 

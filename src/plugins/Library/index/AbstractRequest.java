@@ -3,9 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
+import plugins.Library.event.Progress;
+import plugins.Library.event.ProgressParts;
 import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.Progress;
-import plugins.Library.serial.ProgressParts;
 
 import java.util.Date;
 

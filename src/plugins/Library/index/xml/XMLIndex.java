@@ -41,7 +41,7 @@ import java.util.SortedMap;
 import java.util.HashMap;
 
 import plugins.Library.Library;
-import plugins.Library.library.Index;
+import plugins.Library.Index;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.index.Request;
 import plugins.Library.serial.TaskAbortException;

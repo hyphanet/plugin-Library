@@ -3,7 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search.inter;
 
-import plugins.Library.library.Index;
+import plugins.Library.Index;
 
 import java.util.Collections;
 import java.util.Set;

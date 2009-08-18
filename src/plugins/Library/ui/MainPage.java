@@ -19,10 +19,10 @@ import java.util.HashMap;
 import plugins.Library.Library;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.search.Search;
-import plugins.Library.serial.ChainedProgress;
-import plugins.Library.serial.CompositeProgress;
-import plugins.Library.serial.Progress;
-import plugins.Library.serial.ProgressParts;
+import plugins.Library.event.ChainedProgress;
+import plugins.Library.event.CompositeProgress;
+import plugins.Library.event.Progress;
+import plugins.Library.event.ProgressParts;
 import plugins.Library.serial.TaskAbortException;
 
 
@@ -39,7 +39,7 @@ class MainPage {
 	private synchronized static void addpage(int hashCode, MainPage page) {
 		searchPages.put(hashCode, page);
 	}
-	
+
 	private synchronized static void cleanUpPages(){
 		for (Integer integer : searchPages.keySet()) {
 			if (!Search.hasSearch(integer))
@@ -50,9 +50,9 @@ class MainPage {
 	private synchronized static MainPage getPage(int intParam) {
 		return searchPages.get(intParam);
 	}
-	
-	
-	
+
+
+
 	private final Library library;
 	private final PluginRespirator pr;
 
@@ -80,8 +80,8 @@ class MainPage {
 		this.library = library;
 		this.pr = pr;
 	}
-	
-	
+
+
 	/**
 	 * FIXME ajaxy stuff isnt working, it doesnt seem to renew the timeout in the js, it stopped working when the response type of the xml was changed to text/xml
 	 * @param library
@@ -102,7 +102,7 @@ class MainPage {
 		}
 		return null;
 	}
-	
+
 	/** post commands */
 	private static enum Commands {
 		/** performs a search */
@@ -114,17 +114,17 @@ class MainPage {
 		/** deletes a bookmark from the Library, requires an integer parameter between 0 and the number of bookmarks */
 		removebookmark
 	}
-	
+
 	/**
 	 * Process a post request
-	 * 
+	 *
 	 * @see plugins.XMLSpider.WebPage#processPostRequest(freenet.support.api.HTTPRequest,
 	 * freenet.support.HTMLNode)
 	 */
 	public static MainPage processPostRequest(HTTPRequest request, HTMLNode contentNode, boolean userAccess, Library library, PluginRespirator pr ) {
 		cleanUpPages();
 		MainPage page = new MainPage(library, pr);
-		
+
 		page.js = request.isPartSet("js");
 		page.showold = request.isPartSet("showold");
 		page.groupusk = request.isPartSet("groupusk");
@@ -198,7 +198,7 @@ class MainPage {
 			} catch (RuntimeException ex){
 				page.exceptions.add(ex);
 			}
-			
+
 		}else if (request.isPartSet(Commands.addbookmark.toString())) {
 			try {
 				// adding an index
@@ -235,11 +235,11 @@ class MainPage {
 	}
 
 
-	
+
 	/**
 	 * Write the search page out
 	 *
-	 * 
+	 *
 	 * @see plugins.XMLSpider.WebPage#writeContent(freenet.support.api.HTTPRequest,
 	 * freenet.support.HTMLNode)
 	 */
@@ -414,7 +414,7 @@ class MainPage {
 	 * the error, unless it is an InvalidSearchException in which case it just shows the description
 	 */
 	public static void addError(HTMLNode node, Throwable error, StringBuilder messages){
-		if(messages != null && 
+		if(messages != null &&
 				(error instanceof InvalidSearchException || error instanceof TaskAbortException)){	// Print description
 			messages.append(error.getMessage()+"\n");
 			// TODO if there is a cause there should be some way to view this if needed for debugging
@@ -429,7 +429,7 @@ class MainPage {
 		}
 	}
 
-	
+
 	/**
 	 * Draw progress bars and describe progress, CompositeProgess are drawn as a table with each row containing a subProgress
 	 * @param request

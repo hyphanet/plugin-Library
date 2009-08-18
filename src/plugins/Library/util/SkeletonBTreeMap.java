@@ -28,12 +28,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import plugins.Library.serial.TaskCompleteException;
-import plugins.Library.serial.BaseCompositeProgress;
+import plugins.Library.event.Progress;
+import plugins.Library.event.ProgressParts;
+import plugins.Library.event.BaseCompositeProgress;
 import plugins.Library.serial.Serialiser;
-import plugins.Library.serial.Progress;
-import plugins.Library.serial.ProgressParts;
 import plugins.Library.serial.ProgressTracker;
+import plugins.Library.serial.TaskCompleteException;
 import plugins.Library.util.concurrent.Scheduler;
 
 /**

@@ -3,7 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.serial.ChainedProgress;
+import plugins.Library.event.ChainedProgress;
 
 /**
  * For Requests which are composed of multiple serial subrequests

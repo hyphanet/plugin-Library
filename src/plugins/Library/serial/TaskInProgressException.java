@@ -3,6 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.serial;
 
+import plugins.Library.event.Progress;
+
 /**
 ** Thrown when a task is already in progress elsewhere.
 **

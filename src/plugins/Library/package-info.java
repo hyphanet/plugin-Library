@@ -6,10 +6,8 @@
 ** The index package and its subpackages contain implementations of these
 ** interfaces.
 **
-** TODO put these interfaces back into index/?
-**
 ** @author MikeB
 ** @author infinity0
 */
-package plugins.Library.library;
+package plugins.Library;
 

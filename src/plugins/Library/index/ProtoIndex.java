@@ -3,13 +3,13 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.library.Index;
+import plugins.Library.Index;
 import plugins.Library.serial.Serialiser;
 import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.Progress;
-import plugins.Library.serial.ProgressParts;
 import plugins.Library.serial.ProgressTracker;
-import plugins.Library.serial.ChainedProgress;
+import plugins.Library.event.Progress;
+import plugins.Library.event.ProgressParts;
+import plugins.Library.event.ChainedProgress;
 import plugins.Library.util.Skeleton;
 import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.util.SkeletonBTreeMap;

@@ -4,8 +4,8 @@
 package plugins.Library;
 
 import java.io.IOException;
-import plugins.Library.library.Index;
-import plugins.Library.library.WriteableIndex;
+import plugins.Library.Index;
+import plugins.Library.WriteableIndex;
 import plugins.Library.index.xml.XMLIndex;
 import plugins.Library.index.ProtoIndex;
 import plugins.Library.index.ProtoIndexSerialiser;
@@ -422,7 +422,7 @@ final public class Library {
 		Class<?> indextype;
 		Index index;
 		Object indexkey;
-		
+
 		try{
 			indexkey = getAddressTypeFromString(indexuri);
 		}catch(UnsupportedOperationException e){

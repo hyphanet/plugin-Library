@@ -8,7 +8,7 @@ import freenet.support.HTMLNode;
 import plugins.Library.Library;
 import plugins.Library.index.Request;
 import plugins.Library.index.AbstractRequest;
-import plugins.Library.serial.ProgressParts;
+import plugins.Library.event.ProgressParts;
 import plugins.Library.serial.TaskAbortException;
 
 import freenet.support.Logger;
@@ -25,8 +25,8 @@ import java.util.Set;
 import plugins.Library.index.CompositeRequest;
 import plugins.Library.index.TermEntry;
 import plugins.Library.search.ResultSet.ResultOperation;
-import plugins.Library.serial.CompositeProgress;
-import plugins.Library.serial.Progress;
+import plugins.Library.event.CompositeProgress;
+import plugins.Library.event.Progress;
 import plugins.Library.ui.ResultNodeGenerator;
 
 /**
@@ -205,7 +205,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 			// return null if stopword
 			if(isStopWord(query))
 				return null;
-			Request request = library.getIndex(indexuri).getTermEntries(query, true);
+			Request request = library.getIndex(indexuri).getTermEntries(query);
 			if (request == null)
 				throw new InvalidSearchException( "Something wrong with query=\""+query+"\" or indexURI=\""+indexuri+"\", maybe something is wrong with the index or it's uri is wrong." );
 			return new Search(query, indexuri, request );
