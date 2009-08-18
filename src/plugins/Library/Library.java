@@ -360,7 +360,7 @@ final public class Library {
 	}
 	/**
 	 * Returns the Set of bookmark names, unmodifiable
-	 * @return
+	 * @return The set of bookmarks
 	 */
 	public Set<String> bookmarkKeys() {
 		return Collections.unmodifiableSet(bookmarks.keySet());

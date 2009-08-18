@@ -16,13 +16,14 @@ import java.util.concurrent.TimeUnit;
 public class Executors {
 
 	/**
-	** Classes can reference this field when they don't want to create a new
-	** executor themselves. This is just a wrapper around the real executor,
-	** which can be set via {@link #setDefaultExecutor}. If no executor has
-	** been set by the time the first call to {@link Executor#execute()} is
-	** made, a {@link ThreadPoolExecutor} is created, using 64 cached threads
-	** with a timeout of 1 second and a rejection policy of "{@link
-	** ThreadPoolExecutor.CallerRunsPolicy caller runs}".
+	** A JVM-wide executor that objects/classes can reference when they don't
+	** want to create a new executor themselves. This is a wrapper around a
+	** real executor, which can be set ({@link #setDefaultExecutor(Executor)})
+	** without calling methods on every object/class that uses the wrapper.
+	** If no backing executor has been set by the time the first call to {@link
+	** Executor#execute(Runnable)} is made, a {@link ThreadPoolExecutor} is
+	** created, with a thread-cache size of 64, timeout of 1s, and rejection
+	** policy of "{@link ThreadPoolExecutor.CallerRunsPolicy caller runs}".
 	*/
 	final public static Executor DEFAULT_EXECUTOR = new Executor() {
 		/*@Override**/ public void execute(Runnable r) {

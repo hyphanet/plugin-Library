@@ -52,8 +52,6 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	** Create a Request with the given subject.
 	**
 	** @param sub The subject
-	** @param autorun Whether to automatically run the request in the same
-	**        thread as the caller of the constructor.
 	*/
 	public AbstractRequest(String sub) {
 		this.subject = sub;
