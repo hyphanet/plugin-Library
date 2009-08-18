@@ -47,10 +47,11 @@ class MainPageToadlet extends Toadlet {
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 
-			MainPage page = new MainPage(library, pr);
-			MultiValueTable<String, String> headers = new MultiValueTable();
 			// process the request
-			page.processGetRequest(request);
+			MainPage page = MainPage.processGetRequest(request);
+			if(page == null)
+				page = new MainPage(library, pr);
+			MultiValueTable<String, String> headers = new MultiValueTable();
 			page.writeContent(contentNode, headers);
 			// write reply
 			writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
@@ -84,9 +85,10 @@ class MainPageToadlet extends Toadlet {
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 			
-			MainPage page = new MainPage(library, pr);
+			MainPage page = MainPage.processPostRequest(request, contentNode, formPassword!=null && formPassword.equals(core.formPassword), library, pr);
+			if(page==null)
+				page = new MainPage(library,pr);
 			// Process the request
-			page.processPostRequest(request, contentNode, formPassword!=null && formPassword.equals(core.formPassword));
 			MultiValueTable<String, String> headers = new MultiValueTable();
 			// write reply
 			page.writeContent(contentNode, headers);

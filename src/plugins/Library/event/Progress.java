@@ -1,7 +1,9 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.serial;
+package plugins.Library.event;
+
+import plugins.Library.serial.TaskAbortException;
 
 /**
 ** An abstraction of the progress of a task.
@@ -25,6 +27,11 @@ public interface Progress {
 	** throw an exception if the task has aborted.
 	*/
 	public ProgressParts getParts() throws TaskAbortException;
+
+	/**
+	** Whether the progress has started.
+	*/
+	public boolean isStarted();
 
 	/**
 	** Whether the progress has completed successfully, or throw an exception

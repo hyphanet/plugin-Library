@@ -3,8 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
+import plugins.Library.event.Progress;
 import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.Progress;
 
 import java.util.Date;
 
@@ -25,7 +25,7 @@ import java.util.Date;
 ** @author MikeB
 ** @author infinity0
 */
-public interface Request<T> extends Progress /*implements Runnable*/ {
+public interface Request<T> extends Progress {
 
 	/**
 	** Returns the Date object representing the time at which this request was

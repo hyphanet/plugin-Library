@@ -8,7 +8,7 @@ import freenet.support.HTMLNode;
 import plugins.Library.Library;
 import plugins.Library.index.Request;
 import plugins.Library.index.AbstractRequest;
-import plugins.Library.serial.ProgressParts;
+import plugins.Library.event.ProgressParts;
 import plugins.Library.serial.TaskAbortException;
 
 import freenet.support.Logger;
@@ -25,8 +25,8 @@ import java.util.Set;
 import plugins.Library.index.CompositeRequest;
 import plugins.Library.index.TermEntry;
 import plugins.Library.search.ResultSet.ResultOperation;
-import plugins.Library.serial.CompositeProgress;
-import plugins.Library.serial.Progress;
+import plugins.Library.event.CompositeProgress;
+import plugins.Library.event.Progress;
 import plugins.Library.ui.ResultNodeGenerator;
 
 /**
@@ -140,9 +140,9 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 					|| resultOperation == ResultOperation.DIFFERENTINDEXES )
 				&& requests.size()<2)
 			throw new InvalidSearchException(resultOperation.toString() + " operations need more than one term");
-		
+
 		query = query.toLowerCase(Locale.US).trim();
-		
+
 		// Create a temporary list of sub searches then make it unmodifiable
 		List<Request<Set<TermEntry>>> tempsubsearches = new ArrayList();
 		for (Request request : requests) {
@@ -382,7 +382,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	/**
 	 * Creates a string which uniquly identifies this Search object for comparison
 	 * and lookup, wont make false positives but can make false negatives as search and indexuri aren't standardised
-	 * 
+	 *
 	 * @param search
 	 * @param indexuri
 	 * @return
@@ -442,7 +442,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	public boolean hasGeneratedResultNode(){
 		return pageEntryNode != null;
 	}
-	
+
 	/**
 	 * After this finishes running, the status of this Search object will be correct, stimulates the creation of the result if all subreqquests are complete and the result isn't made
 	 * @throws plugins.Library.serial.TaskAbortException
@@ -496,7 +496,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 				// Done , do nothing
 		}
 	}
-	
+
 	/**
 	 * @return true if all are Finished, false otherwise
 	 */
@@ -506,7 +506,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 				return false;
 		return true;
 	}
-	
+
 
 	/**
 	 * Return the set of results or null if it is not ready <br />
@@ -515,7 +515,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	@Override public Set<TermEntry> getResult() throws TaskAbortException {
 		if(!isDone())
 			return null;
-		
+
 		removeSearch(this);
 		Set<TermEntry> rs = resultset;
 		return rs;

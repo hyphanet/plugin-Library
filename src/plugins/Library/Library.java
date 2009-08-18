@@ -4,8 +4,8 @@
 package plugins.Library;
 
 import java.io.IOException;
-import plugins.Library.library.Index;
-import plugins.Library.library.WriteableIndex;
+import plugins.Library.Index;
+import plugins.Library.WriteableIndex;
 import plugins.Library.index.xml.XMLIndex;
 import plugins.Library.index.ProtoIndex;
 import plugins.Library.index.ProtoIndexSerialiser;
@@ -48,6 +48,7 @@ import freenet.client.events.ExpectedMIMEEvent;
 import freenet.node.RequestStarter;
 import freenet.node.RequestClient;
 import freenet.node.NodeClientCore;
+import freenet.support.Executor;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -62,13 +63,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.security.MessageDigest;
+import java.util.Collections;
 
 
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces
  * @author MikeB
  */
-public class Library {
+final public class Library {
 
 	public static final String BOOKMARK_PREFIX = "bookmark:";
 	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "freenetindex";
@@ -96,7 +98,8 @@ public class Library {
 		return lib;
 	}
 
-	private PluginRespirator pr;
+	final private PluginRespirator pr;
+	final private Executor exec;
 
 	/**
 	 * Method to setup Library class so it has access to PluginRespirator, and load bookmarks
@@ -104,6 +107,7 @@ public class Library {
 	 */
 	private Library(PluginRespirator pr){
 		this.pr = pr;
+		this.exec = pr.getNode().executor;
 		File persistentFile = new File("LibraryPersistent");
 		if(persistentFile.canRead()){
 			try {
@@ -120,11 +124,12 @@ public class Library {
 		}
 	}
 
-	public void saveState(){
+	public synchronized void saveState(){
 		File persistentFile = new File("LibraryPersistent");
 		try {
 			ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(persistentFile));
 			os.writeObject(bookmarks);
+			os.close();
 		} catch (IOException ex) {
 			Logger.error(this, "Error writing out Library state to file.", ex);
 		}
@@ -339,13 +344,26 @@ public class Library {
 	 * @param uri of new bookmark
 	 * @return reference of new bookmark
 	 */
-	public String addBookmark(String name, String uri) {
+	public synchronized String addBookmark(String name, String uri) {
 		bookmarks.put(name, uri);
 		saveState();
 		return name;
 	}
+
+	public synchronized void removeBookmark(String name) {
+		bookmarks.remove(name);
+		saveState();
+	}
+
+	public synchronized String getBookmark(String bm) {
+		return bookmarks.get(bm);
+	}
+	/**
+	 * Returns the Set of bookmark names, unmodifiable
+	 * @return The set of bookmarks
+	 */
 	public Set<String> bookmarkKeys() {
-		return bookmarks.keySet();
+		return Collections.unmodifiableSet(bookmarks.keySet());
 	}
 
 	/**
@@ -401,11 +419,17 @@ public class Library {
 		if (rtab.containsKey(indexuri))
 			return rtab.get(indexuri);
 
-		try {
-			Object indexkey = getAddressTypeFromString(indexuri);
-			Class<?> indextype;
-			Index index;
+		Class<?> indextype;
+		Index index;
+		Object indexkey;
 
+		try{
+			indexkey = getAddressTypeFromString(indexuri);
+		}catch(UnsupportedOperationException e){
+			throw new TaskAbortException("Did not recognise index type in : \""+indexuri+"\"", e);
+		}
+
+		try {
 			if (indexkey instanceof File) {
 				indextype = getIndexType((File)indexkey);
 			} else if (indexkey instanceof FreenetURI) {

@@ -21,6 +21,22 @@ td.progress-bar-outline { padding: 0px 3px; width:300px; border:1px solid grey; 
 div.progress-bar-inner-final { background-color: red; height:20px; z-index:-1; border-spacing: 0px; }
 div.progress-bar-inner-nonfinal { background-color: pink; height:20px; z-index:-1; border-spacing: 0px; }
 input.index { font-size: 0.63em; width: 170px; height:1.1em; }
+input.index-bookmark-delete {
+    width: 12px;
+    height: 11px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+    border-top-width: 0px;
+    border-bottom-width: 0px;
+    border-left-width: 0px;
+    border-right-width: 0px;
+    background-color: DarkSkyBlue;
+	color: red;
+	font-size: xx-small;
+}
+input.index-other-add {  }
 li.index {  }
 td.sskeditionbracket { background: black; width: 2px; padding: 0px; }
 ul.index-bookmark-list { list-style: none; }
@@ -29,3 +45,4 @@ div#content th, td { border: none; }
 div.authorization-box { background: darksalmon; border: 1px solid darkred; padding: 8px; }
 div.authorization-box h1 { font-size: 16pt; font-weight: bold; margin-top: 0px; }
 div.authorization-box a:link { color: blue; }
+

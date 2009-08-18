@@ -1,9 +1,9 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.serial;
+package plugins.Library.event;
 
-import plugins.Library.serial.Serialiser.*;
+import plugins.Library.serial.TaskAbortException;
 
 /**
 ** A progress that accumulates its data from the given group of progresses.
@@ -75,6 +75,13 @@ public class BaseCompositeProgress implements CompositeProgress {
 	/*@Override**/ public Iterable<? extends Progress> getSubProgress() {
 		// TODO make this check that subprogress is immutable, and if not return a wrapper
 		return subprogress;
+	}
+
+	/*@Override**/ public boolean isStarted() {
+		for (Progress p: subprogress) {
+			if (p != null && p.isStarted()) { return true; }
+		}
+		return false;
 	}
 
 	/*@Override**/ public boolean isDone() throws TaskAbortException {

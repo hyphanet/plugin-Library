@@ -3,7 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.serial.CompositeProgress;
+import plugins.Library.event.CompositeProgress;
 
 /**
  * For Requests which are composed of multiple parallel subrequests

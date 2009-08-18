@@ -10,8 +10,8 @@ import java.util.ArrayList;
 import plugins.Library.index.AbstractRequest;
 import plugins.Library.index.ChainedRequest;
 import plugins.Library.index.Request;
-import plugins.Library.serial.Progress;
-import plugins.Library.serial.ProgressParts;
+import plugins.Library.event.Progress;
+import plugins.Library.event.ProgressParts;
 import plugins.Library.serial.TaskAbortException;
 
 
@@ -169,6 +169,10 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 
 		public ProgressParts getParts() throws TaskAbortException {
 			return parts;
+		}
+
+		public boolean isStarted() {
+			return true;
 		}
 
 		public boolean isDone() throws TaskAbortException {

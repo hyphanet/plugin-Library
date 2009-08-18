@@ -41,7 +41,7 @@ import java.util.SortedMap;
 import java.util.HashMap;
 
 import plugins.Library.Library;
-import plugins.Library.library.Index;
+import plugins.Library.Index;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.index.Request;
 import plugins.Library.serial.TaskAbortException;
@@ -123,6 +123,9 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			waitingOnMainIndex.clear();
 		}catch(Exception e){
 			fetchStatus = FetchStatus.FAILED;
+			for (FindRequest findRequest : waitingOnMainIndex) {
+				findRequest.setError(new TaskAbortException("Failure parsing "+toString(), e));
+			}
 			Logger.error(this, indexuri, e);
 		} finally {
 			bucket.free();
@@ -170,6 +173,9 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			}
 		}
 		fetchStatus = FetchStatus.FAILED;
+		for (FindRequest findRequest : waitingOnMainIndex) {
+			findRequest.setError(new TaskAbortException("Failure fetching rootindex of "+toString(), e));
+		}
 		Logger.error(this, "Fetch failed on "+toString() + " -- state = "+state, e);
 	}
 
@@ -252,7 +258,8 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 					subIndiceList.add(key);
 					String stillbase;
 					try{
-						stillbase = (new FreenetURI(indexuri)).sskForUSK().toString();
+						FreenetURI furi = new FreenetURI(indexuri);
+						stillbase = ( furi.isUSK() ? furi.sskForUSK() : furi ).toString();
 					}catch(MalformedURLException e){
 						stillbase = indexuri;
 					}
@@ -442,7 +449,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 								}
 								parsingSubindex.clear();
 								is.close();
-							} catch (Exception err) {	
+							} catch (Exception err) {
 								Logger.error(this, "Error parsing "+filename, err);
 								throw new TaskAbortException("Could not parse XML: ", err);
 							}

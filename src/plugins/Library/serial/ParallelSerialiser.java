@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.serial;
 
+import plugins.Library.event.Progress;
 import plugins.Library.serial.Serialiser.*;
 import plugins.Library.util.concurrent.Scheduler;
 

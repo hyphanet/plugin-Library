@@ -14,6 +14,7 @@
 - PRIORITY better USK support for the FreenetArchiver, both insert and request
 - OPTIMISE should have a better format than having BinInfo point to a top-level CHK
   - use MHK or have metadata directly in the parent node (latter reduces node fan-out to 400-500 max)
+- FIXME fix the race condition in SkeletonBTreeMap.inflate()
 
 == Resource usage ==
 

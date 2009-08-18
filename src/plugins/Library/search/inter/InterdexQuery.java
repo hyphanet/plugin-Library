@@ -3,11 +3,11 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search.inter;
 
-import plugins.Library.library.Index;
+import plugins.Library.Index;
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermIndexEntry;
 import plugins.Library.index.TermTermEntry;
-import plugins.Library.serial.CompositeProgress;
+import plugins.Library.event.CompositeProgress;
 
 import freenet.keys.FreenetURI;
 

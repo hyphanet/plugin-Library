@@ -3,9 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
+import plugins.Library.event.Progress;
+import plugins.Library.event.ProgressParts;
 import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.Progress;
-import plugins.Library.serial.ProgressParts;
 
 import java.util.Date;
 
@@ -49,24 +49,17 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	private T result;
 
 	/**
-	** Create a Request with the given subject, and immediately starts it.
-	*/
-	public AbstractRequest(String sub) {
-		this(sub, true);
-	}
-
-	/**
 	** Create a Request with the given subject.
 	**
 	** @param sub The subject
-	** @param start Whether to automatically start executing the request.
 	*/
-	public AbstractRequest(String sub, boolean autostart) {
+	public AbstractRequest(String sub) {
 		this.subject = sub;
-		if (autostart) { setStartDate(); }
+		setStartDate();
 	}
 
 	protected synchronized void setStartDate() {
+		if (start != null) { throw new IllegalStateException("Request is already running"); }
 		start = new Date();
 	}
 
@@ -107,9 +100,13 @@ public abstract class AbstractRequest<T> implements Request<T> {
 
 	abstract public ProgressParts getParts() throws TaskAbortException;
 
-	/*@Override**/ public boolean isDone() throws TaskAbortException {
+	/*@Override**/ public synchronized boolean isDone() throws TaskAbortException {
 		if (error != null) { throw error; }
 		return result != null;
+	}
+
+	/*@Override**/ public synchronized boolean isStarted() {
+		return start != null;
 	}
 
 	/*@Override**/ public synchronized void join() throws InterruptedException, TaskAbortException {

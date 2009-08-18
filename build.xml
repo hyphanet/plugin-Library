@@ -4,7 +4,6 @@
 <project name="plugins-Library" default="dist" basedir=".">
 	<property name="freenet-cvs-snapshot.location" location="../fred/lib/freenet-cvs-snapshot.jar"/>
 	<property name="freenet-ext.location" location="../fred/lib/freenet-ext.jar"/>
-	<property name="svn.revision" value="@custom@"/>
 	<property name="source-version" value="1.5"/>
 	<property name="target-version" value="1.5"/>
 	<property name="build" location="build/"/>
@@ -27,6 +26,22 @@
 		</fileset>
 	</path>
 
+	<exec executable="git"
+		failifexecutionfails="false"
+		errorProperty="git.errror"
+		outputproperty="git.describe"
+		resultproperty="git.result">
+		<arg value="describe" />
+		<arg value="--always" />
+		<arg value="--abbrev=4" />
+	</exec>
+	<condition property="git.revision" value="${git.describe}" else="@unknown@">
+		<and>
+			<equals arg1="${git.result}" arg2="0" />
+			<isset property="git.describe" />
+		</and>
+	</condition>
+
 	<!-- ================================================== -->
 	<target name="mkdir">
 		<mkdir dir="${build}"/>
@@ -37,13 +52,7 @@
 		<echo message="Using ${freenet-ext.location} as freenet-ext.jar"/>
 	</target>
 
-	<target name="setver" if="version.present">
-		<!-- Update the Version.java file -->
-		<replace file="src/plugins/Library/Version.java">
-			<replacefilter token="@custom@" value="${svn.revision}"/>
-		</replace>
-	</target>
-
+	<!-- ================================================== -->
 	<target name="build-dep">
 		<mkdir dir="lib/"/>
 		<mkdir dir="${tmp}"/>
@@ -119,13 +128,41 @@
 	</target>-->
 
 	<!-- ================================================== -->
+	<target name="setver" if="version.present">
+		<!-- Update the Version.java file in ${build}-->
+		<copy file="src/plugins/Library/Version.java" tofile="${build}/plugins/Library/Version.java"/>
+		<delete file="${build}/plugins/Library/Version.class"/>
+		<replace file="${build}/plugins/Library/Version.java">
+			<replacefilter token="@custom@" value="${git.revision}"/>
+		</replace>
+		<echo message="Updated build version to ${git.revision} in ${build}/plugins/Library/Version.java"/>
+	</target>
+
+	<!-- ================================================== -->
 	<target name="compile" depends="mkdir,build-dep,setver" >
 		<tstamp/>
-		<javac srcdir="src/" destdir="${build}" classpathref="lib.path"
-		debug="on" optimize="on" source="${source-version}" target="${target-version}">
+
+		<javac srcdir="src/" destdir="${build}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
+			<!--<compilerarg value="-Xlint"/>-->
+			<sourcepath>
+				<pathelement path="${build}"/>
+			</sourcepath>
+			<classpath>
+				<path refid="lib.path"/>
+			</classpath>
 			<include name="**/*.java"/>
-			<!--<compilerarg value="-Xlint:unchecked"/>-->
+			<exclude name="**/package-info.java"/>
+			<exclude name="plugins/Library/Version.java"/>
 		</javac>
+
+		<!-- Force compile of Version.java in case compile of ${src} didn't trigger it -->
+		<javac srcdir="${build}" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
+			<classpath>
+				<path refid="lib.path"/>
+			</classpath>
+			<include name="plugins/Library/Version.java"/>
+		</javac>
+
 		<!-- Copy web interface static files to the build dir -->
 		<copy todir="${build}/plugins/Library/ui/staticfiles">
 			<fileset dir="src/plugins/Library/ui/staticfiles"/>

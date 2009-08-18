@@ -1,7 +1,9 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.serial;
+package plugins.Library.event;
+
+import plugins.Library.serial.TaskAbortException;
 
 /**
 ** Basic progress implementation. The number of parts known is implicily equal
@@ -212,6 +214,16 @@ public class SimpleProgress implements Progress {
 		// in mid-update so we don't need to synchronize here.
 		if (abort != null) { throw abort; }
 		return new ProgressParts(pdone, known, known, estimate);
+	}
+
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation returns {@code true}; it's assume that the task has
+	** already started by the time you construct one of these objects.
+	*/
+	/*@Override**/ public boolean isStarted() {
+		return true;
 	}
 
 	/*@Override**/ public boolean isDone() throws TaskAbortException {

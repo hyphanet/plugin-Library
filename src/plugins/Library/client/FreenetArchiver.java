@@ -5,8 +5,8 @@ package plugins.Library.client;
 
 import plugins.Library.serial.LiveArchiver;
 import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.SimpleProgress;
-import plugins.Library.serial.ProgressParts;
+import plugins.Library.event.SimpleProgress;
+import plugins.Library.event.ProgressParts;
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
 

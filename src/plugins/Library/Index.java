@@ -1,7 +1,7 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.library;
+package plugins.Library;
 
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.URIEntry;
@@ -19,7 +19,7 @@ import java.util.Collection;
 public interface Index {
 
 	/**
-	** Fetch the TokenEntries associated with a given term.
+	** Non-blocking fetch of the entries associated with a given term.
 	**
 	** DOCUMENT
 	*/

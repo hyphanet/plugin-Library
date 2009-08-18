@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.serial;
 
+import plugins.Library.event.SimpleProgress;
 import plugins.Library.serial.Serialiser.*;
 import plugins.Library.serial.TaskAbortException;
 import plugins.Library.serial.Packer;

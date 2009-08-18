@@ -3,18 +3,19 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.library.Index;
+import plugins.Library.Index;
 import plugins.Library.serial.Serialiser;
 import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.Progress;
-import plugins.Library.serial.ProgressParts;
 import plugins.Library.serial.ProgressTracker;
-import plugins.Library.serial.ChainedProgress;
+import plugins.Library.event.Progress;
+import plugins.Library.event.ProgressParts;
+import plugins.Library.event.ChainedProgress;
 import plugins.Library.util.Skeleton;
 import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.DataNotLoadedException;
+import plugins.Library.util.concurrent.Executors;
 
 import freenet.keys.FreenetURI;
 
@@ -28,6 +29,8 @@ import java.util.HashMap;
 import java.util.TreeSet;
 import java.util.LinkedHashMap;
 import java.util.Date;
+
+import java.util.concurrent.Executor;
 
 /**
 ** Prototype B-tree based index. DOCUMENT
@@ -44,6 +47,9 @@ final public class ProtoIndex implements Index {
 	// DEBUG make final again later
 	/*final*/ public static int BTREE_NODE_MIN = 0x1000;
 	final public static int BTREE_ENT_MAX = (BTREE_NODE_MIN<<1) - 1;
+
+	protected static Executor exec = Executors.DEFAULT_EXECUTOR;
+	public static void setExecutor(Executor e) { exec = e; }
 
 	/**
 	** Request ID for this index
@@ -124,8 +130,7 @@ final public class ProtoIndex implements Index {
 		if (request == null) {
 			request = new getTermEntriesHandler(term);
 			getTermEntriesProgress.put(term, request);
-			// TODO use ThreadPoolExecutor
-			new Thread((Runnable)request).start();
+			exec.execute((getTermEntriesHandler)request);
 		}
 		return request;
 	}
@@ -139,6 +144,7 @@ final public class ProtoIndex implements Index {
 
 
 	public class getTermEntriesHandler extends AbstractRequest<Collection<TermEntry>> implements Runnable, ChainedProgress {
+		// TODO have a Runnable field instead of extending Runnable
 
 		final Map<Object, ProgressTracker> trackers = new LinkedHashMap<Object, ProgressTracker>();
 		Object current_meta;
