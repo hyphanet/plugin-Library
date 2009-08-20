@@ -21,22 +21,19 @@ import plugins.Library.Library;
  * Encapsulates the MainPage in a Toadlet
  * @author MikeB
  */
-class MainPageToadlet extends Toadlet {
+public class MainPageToadlet extends Toadlet {
 	private NodeClientCore core;
 	private final Library library;
 	private final PluginRespirator pr;
 
-
-	MainPageToadlet(HighLevelSimpleClient client, Library library, NodeClientCore core, PluginRespirator pr) {
+	public MainPageToadlet(HighLevelSimpleClient client, Library library, NodeClientCore core, PluginRespirator pr) {
 		super(client);
 		this.core = core;
 		this.library = library;
 		this.pr = pr;
 	}
 
-
-	@Override
-	public void handleGet(URI uri, final HTTPRequest request, final ToadletContext ctx) 
+	public void handleMethodGET(URI uri, final HTTPRequest request, final ToadletContext ctx) 
 	throws ToadletContextClosedException, IOException, RedirectException {
 		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
 		Thread.currentThread().setContextClassLoader(Library.class.getClassLoader());
@@ -69,9 +66,8 @@ class MainPageToadlet extends Toadlet {
 			Thread.currentThread().setContextClassLoader(origClassLoader);
 		}
 	}
-	
-	@Override
-	public void handlePost(URI uri, HTTPRequest request, final ToadletContext ctx) throws ToadletContextClosedException, IOException, RedirectException {
+
+	public void handleMethodPOST(URI uri, HTTPRequest request, final ToadletContext ctx) throws ToadletContextClosedException, IOException, RedirectException {
 		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
 		Thread.currentThread().setContextClassLoader(Library.class.getClassLoader());
 
@@ -114,10 +110,6 @@ class MainPageToadlet extends Toadlet {
 	
 	@Override public String path() {
 		return MainPage.path();
-	}
-	
-	@Override public String supportedMethods() {
-		return "GET, POST";
 	}
 
 	public String name() {

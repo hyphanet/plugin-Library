@@ -22,9 +22,9 @@ import plugins.Library.Library;
  * Encapsulates a WebPage in a Toadlet
  * @author MikeB
  */
-class StaticToadlet extends Toadlet {
+public class StaticToadlet extends Toadlet {
 	
-	StaticToadlet(HighLevelSimpleClient client) {
+	public StaticToadlet(HighLevelSimpleClient client) {
 		super(client);
 	}
 
@@ -37,16 +37,10 @@ class StaticToadlet extends Toadlet {
 		return ROOT_URL;
 	}
 
-	@Override
-	public String supportedMethods() {
-		return "GET";
-	}
-	
 	public static final String ROOT_URL = "/library/static/";
 	public static final String ROOT_PATH = "staticfiles/";
 
-	@Override
-	public void handleGet(URI uri, final HTTPRequest httprequest, final ToadletContext ctx)
+	public void handleMethodGET(URI uri, final HTTPRequest httprequest, final ToadletContext ctx)
 	throws ToadletContextClosedException, IOException, RedirectException {
 		String path = uri.getPath();
 		if (!path.startsWith(ROOT_URL))
