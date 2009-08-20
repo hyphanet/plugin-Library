@@ -7,6 +7,7 @@ import junit.framework.TestCase;
 
 import plugins.Library.util.Generators;
 import plugins.Library.util.SkeletonTreeMap;
+import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.io.serial.Packer.Bin;
 import plugins.Library.io.serial.Serialiser.*;
 
