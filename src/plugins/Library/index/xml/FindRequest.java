@@ -6,23 +6,28 @@ package plugins.Library.index.xml;
 import freenet.client.events.ClientEvent;
 import freenet.client.events.SplitfileProgressEvent;
 import freenet.support.Logger;
+
+import java.util.Collections;
 import java.util.ArrayList;
-import plugins.Library.index.AbstractRequest;
-import plugins.Library.index.ChainedRequest;
-import plugins.Library.index.Request;
-import plugins.Library.event.Progress;
-import plugins.Library.event.ProgressParts;
-import plugins.Library.serial.TaskAbortException;
+import java.util.Set;
+
+import plugins.Library.util.exec.AbstractExecution;
+import plugins.Library.util.exec.ChainedExecution;
+import plugins.Library.util.exec.Execution;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.index.TermPageEntry;
+import plugins.Library.index.TermEntry;
 
 
 /**
- * A Request implementation for xmlindex operations which have distinct parts working in serial
+ * An {@link Execution} implementation for xmlindex operations which have distinct parts working in serial
  * eg a search for 1 term on 1 index. Only used for XMLIndex
  * @author MikeB
- * @param <E> Return type
  */
-public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Request>, ChainedRequest<E> {
-	private E resultnotfinished;
+public class FindRequest extends AbstractExecution<Set<TermEntry>> implements Comparable<Execution>, ChainedExecution<Set<TermEntry>> {
+	private Set<TermPageEntry> resultnotfinished;
 	private SubProgress currentProgress;
 
 	public enum Stages {
@@ -59,8 +64,8 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	 * Stores an unfinished result, call setFinished() to mark as complete
 	 * @param result
 	 */
-	@Override
-	public void setResult(E result){
+	//@Override
+	public void setResult(Set<TermPageEntry> result){
 		resultnotfinished = result;
 	}
 
@@ -68,12 +73,12 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	 * Moves the unfinished result so that the Progress is marked as finsihed
 	 */
 	public void setFinished(){
-		super.setResult(resultnotfinished);
+		super.setResult(Collections.<TermEntry>unmodifiableSet(resultnotfinished));
 		resultnotfinished = null;
 		setStage(Stages.DONE);
 	}
 
-	public int compareTo(Request right){
+	public int compareTo(Execution right){
 		return subject.compareTo(right.getSubject());
 	}
 
@@ -102,7 +107,7 @@ public class FindRequest<E> extends AbstractRequest<E> implements Comparable<Req
 	 * Returns the result which hasnt been marked as completed
 	 * @return
 	 */
-	E getUnfinishedResult() {
+	Set<TermPageEntry> getUnfinishedResult() {
 		return resultnotfinished;
 	}
 

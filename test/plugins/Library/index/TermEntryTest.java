@@ -5,10 +5,10 @@ package plugins.Library.index;
 
 import junit.framework.TestCase;
 
-import plugins.Library.serial.Serialiser.*;
-import plugins.Library.serial.FileArchiver;
-import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.Packer;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.io.serial.FileArchiver;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.io.serial.Packer;
 
 import plugins.Library.io.YamlReaderWriter;
 

@@ -3,8 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.serial.Serialiser;
-import plugins.Library.serial.TaskAbortException;
+import plugins.Library.io.serial.Serialiser;
+import plugins.Library.util.exec.TaskAbortException;
 
 /**
 ** Defines an interface for an extension of a data structure which is only

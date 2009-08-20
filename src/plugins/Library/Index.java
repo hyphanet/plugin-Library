@@ -5,11 +5,11 @@ package plugins.Library;
 
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.URIEntry;
-import plugins.Library.index.Request;
+import plugins.Library.util.exec.Execution;
 
 import freenet.keys.FreenetURI;
 
-import java.util.Collection;
+import java.util.Set;
 
 /**
 ** Represents the data for an index.
@@ -23,8 +23,8 @@ public interface Index {
 	**
 	** DOCUMENT
 	*/
-	public Request<Collection<TermEntry>> getTermEntries(String term);
+	public Execution<Set<TermEntry>> getTermEntries(String term);
 
-	public Request<URIEntry> getURIEntry(FreenetURI uri);
+	public Execution<URIEntry> getURIEntry(FreenetURI uri);
 
 }

@@ -4,24 +4,25 @@
 package plugins.Library.index;
 
 import plugins.Library.Index;
-import plugins.Library.serial.Serialiser;
-import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.ProgressTracker;
-import plugins.Library.event.Progress;
-import plugins.Library.event.ProgressParts;
-import plugins.Library.event.ChainedProgress;
+import plugins.Library.io.serial.Serialiser;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.io.serial.ProgressTracker;
 import plugins.Library.util.Skeleton;
 import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.DataNotLoadedException;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.ChainedProgress;
+import plugins.Library.util.exec.Execution;
+import plugins.Library.util.exec.AbstractExecution;
 import plugins.Library.util.concurrent.Executors;
 
 import freenet.keys.FreenetURI;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.Collection;
 import java.util.Set;
 import java.util.Map;
 import java.util.SortedSet;
@@ -122,11 +123,11 @@ final public class ProtoIndex implements Index {
 
 
 
-	private Map<String, Request<Collection<TermEntry>>> getTermEntriesProgress = new
-	HashMap<String, Request<Collection<TermEntry>>>();
+	private Map<String, Execution<Set<TermEntry>>> getTermEntriesProgress = new
+	HashMap<String, Execution<Set<TermEntry>>>();
 
-	public Request<Collection<TermEntry>> getTermEntries(String term) {
-		Request<Collection<TermEntry>> request = getTermEntriesProgress.get(term);
+	public Execution<Set<TermEntry>> getTermEntries(String term) {
+		Execution<Set<TermEntry>> request = getTermEntriesProgress.get(term);
 		if (request == null) {
 			request = new getTermEntriesHandler(term);
 			getTermEntriesProgress.put(term, request);
@@ -138,12 +139,12 @@ final public class ProtoIndex implements Index {
 
 
 
-	public Request<URIEntry> getURIEntry(FreenetURI uri) {
+	public Execution<URIEntry> getURIEntry(FreenetURI uri) {
 		throw new UnsupportedOperationException("not implemented");
 	}
 
 
-	public class getTermEntriesHandler extends AbstractRequest<Collection<TermEntry>> implements Runnable, ChainedProgress {
+	public class getTermEntriesHandler extends AbstractExecution<Set<TermEntry>> implements Runnable, ChainedProgress {
 		// TODO have a Runnable field instead of extending Runnable
 
 		final Map<Object, ProgressTracker> trackers = new LinkedHashMap<Object, ProgressTracker>();
@@ -156,7 +157,7 @@ final public class ProtoIndex implements Index {
 
 		@Override public ProgressParts getParts() throws TaskAbortException {
 			// TODO tidy this up
-			Collection<TermEntry> result = getResult();
+			Set<TermEntry> result = getResult();
 			int started = trackers.size();
 			int known = started;
 			int done = started - 1;

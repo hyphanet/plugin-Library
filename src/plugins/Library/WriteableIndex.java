@@ -5,11 +5,11 @@ package plugins.Library;
 
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.URIEntry;
-import plugins.Library.index.Request;
+import plugins.Library.util.exec.Execution;
 
 import freenet.keys.FreenetURI;
 
-import java.util.Collection;
+import java.util.Set;
 
 /**
 ** Represents a writable Index.
@@ -20,18 +20,18 @@ import java.util.Collection;
 */
 public interface WriteableIndex extends Index {
 
-	public Request<Collection<TermEntry>> clearTermEntries(String term);
+	public Execution<Set<TermEntry>> clearTermEntries(String term);
 
-	public Request<TermEntry> putTermEntry(TermEntry entry);
+	public Execution<TermEntry> putTermEntry(TermEntry entry);
 
-	public Request<TermEntry> remTermEntry(TermEntry entry);
+	public Execution<TermEntry> remTermEntry(TermEntry entry);
 
-	public Request<URIEntry> clearURIEntry(FreenetURI uri);
+	public Execution<URIEntry> clearURIEntry(FreenetURI uri);
 
-	public Request<URIEntry> putURIEntry(URIEntry entry);
+	public Execution<URIEntry> putURIEntry(URIEntry entry);
 
-	public Request<URIEntry> remURIEntry(URIEntry entry);
+	public Execution<URIEntry> remURIEntry(URIEntry entry);
 
-	public Request<Object> commitAndPush();
+	public Execution<Object> commitAndPush();
 
 }

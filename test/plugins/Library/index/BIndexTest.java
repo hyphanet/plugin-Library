@@ -6,8 +6,9 @@ package plugins.Library.index;
 import junit.framework.TestCase;
 
 import plugins.Library.util.*;
-import plugins.Library.serial.*;
-import plugins.Library.serial.Serialiser.*;
+import plugins.Library.util.exec.*;
+import plugins.Library.io.serial.*;
+import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.index.*;
 
 import freenet.keys.FreenetURI;
@@ -245,18 +246,18 @@ public class BIndexTest extends TestCase {
 		srl.push(task);
 
 		System.out.print("deflated in " + timeDiff() + " ms, root at " + task.meta + ", ");
-		plugins.Library.serial.FileArchiver.setTestMode();
+		plugins.Library.io.serial.FileArchiver.setTestMode();
 
 		System.out.println("Requesting entries for term " + sterm);
-		Request<Collection<TermEntry>> rq1 = idx.getTermEntries(sterm);
-		Request<Collection<TermEntry>> rq2 = idx.getTermEntries(sterm);
-		Request<Collection<TermEntry>> rq3 = idx.getTermEntries(sterm);
+		Execution<Set<TermEntry>> rq1 = idx.getTermEntries(sterm);
+		Execution<Set<TermEntry>> rq2 = idx.getTermEntries(sterm);
+		Execution<Set<TermEntry>> rq3 = idx.getTermEntries(sterm);
 
 		assertTrue(rq1 == rq2);
 		assertTrue(rq2 == rq3);
 		assertTrue(rq3 == rq1);
 
-		Collection<TermEntry> entries;
+		Set<TermEntry> entries;
 		while ((entries = rq1.getResult()) == null) {
 			System.out.println(rq1.getStatus());
 			try { Thread.sleep(1000); } catch (InterruptedException x) { }

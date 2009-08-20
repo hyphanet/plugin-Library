@@ -3,12 +3,12 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.serial.Serialiser.*;
-import plugins.Library.serial.Translator;
-import plugins.Library.serial.MapSerialiser;
-import plugins.Library.serial.DataFormatException;
-import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.TaskCompleteException;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.io.serial.Translator;
+import plugins.Library.io.serial.MapSerialiser;
+import plugins.Library.io.DataFormatException;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.exec.TaskCompleteException;
 
 import java.util.Iterator;
 import java.util.Comparator;

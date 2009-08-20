@@ -4,11 +4,11 @@
 package plugins.Library;
 
 import plugins.Library.client.*;
-import plugins.Library.event.*;
+import plugins.Library.util.exec.*;
 import plugins.Library.index.*;
 import plugins.Library.io.*;
-import plugins.Library.serial.*;
-import plugins.Library.serial.Serialiser.*;
+import plugins.Library.io.serial.*;
+import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.*;
 import plugins.Library.*;
 

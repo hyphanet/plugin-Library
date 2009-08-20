@@ -19,6 +19,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 import plugins.Library.index.TermPageEntry;
+import plugins.Library.index.TermEntry;
 
 /**
  * Required for using SAX parser on XML indices
@@ -37,22 +38,22 @@ public class LibrarianHandler extends DefaultHandler {
 	private HashMap<String, String> titles;
 	/** file id -> wordCount */
 	private HashMap<String, Integer> wordCounts;
-	
+
 	// About the whole index
 	private int totalFileCount;
-	
+
 	// Requests and matches being made
 	private List<FindRequest> requests;
 	private List<FindRequest> wordMatches;
-	
+
 	private int inWordFileCount;
 
-	// About the file tag being processed 
+	// About the file tag being processed
 	private StringBuilder characters;
 	private String inFileTitle;
 	private FreenetURI inFileURI;
 	private int inFileWordCount;
-	
+
 
 	/**
 	 * Construct a LibrarianHandler to look for many terms
@@ -143,7 +144,7 @@ public class LibrarianHandler extends DefaultHandler {
 							inFileWordCount = wordCounts.get(attrs.getValue("id")).intValue();
 						else
 							inFileWordCount = -1;
-						
+
 						characters = new StringBuilder();
 					}
 				}
@@ -207,7 +208,7 @@ public class LibrarianHandler extends DefaultHandler {
 
 
 
-			for(FindRequest<Set<TermPageEntry>> match : wordMatches){
+			for(FindRequest match : wordMatches){
 				Set<TermPageEntry> result = match.getUnfinishedResult();
 				TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), inFileURI, inFileTitle, termpositions);
 				result.add(pageEntry);

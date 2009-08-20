@@ -4,29 +4,31 @@
 package plugins.Library.index;
 
 import plugins.Library.Library;
+import plugins.Library.client.FreenetArchiver;
 import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
-import plugins.Library.event.ProgressParts;
-import plugins.Library.event.Progress;
-import plugins.Library.event.SimpleProgress;
-import plugins.Library.event.BaseCompositeProgress;
-import plugins.Library.serial.Serialiser.*;
-import plugins.Library.serial.Serialiser;
-import plugins.Library.serial.Translator;
-import plugins.Library.serial.ProgressTracker;
-import plugins.Library.serial.Archiver;
-import plugins.Library.serial.IterableSerialiser;
-import plugins.Library.serial.MapSerialiser;
-import plugins.Library.serial.LiveArchiver;
-import plugins.Library.serial.ParallelSerialiser;
-import plugins.Library.serial.Packer;
-import plugins.Library.serial.FileArchiver;
-import plugins.Library.serial.DataFormatException;
-import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.TaskInProgressException;
-import plugins.Library.client.FreenetArchiver;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.SimpleProgress;
+import plugins.Library.util.exec.BaseCompositeProgress;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.io.serial.Serialiser;
+import plugins.Library.io.serial.Translator;
+import plugins.Library.io.serial.ProgressTracker;
+import plugins.Library.io.serial.Archiver;
+import plugins.Library.io.serial.IterableSerialiser;
+import plugins.Library.io.serial.MapSerialiser;
+import plugins.Library.io.serial.LiveArchiver;
+import plugins.Library.io.serial.ParallelSerialiser;
+import plugins.Library.io.serial.Packer;
+import plugins.Library.io.serial.FileArchiver;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.exec.TaskInProgressException;
+import plugins.Library.io.DataFormatException;
 import plugins.Library.io.YamlReaderWriter;
+
+import freenet.keys.FreenetURI;
 
 import java.util.Collection;
 import java.util.Set;
@@ -38,8 +40,6 @@ import java.util.HashMap;
 import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.Date;
-
-import freenet.keys.FreenetURI;
 
 /**
 ** Serialiser for the components of a ProtoIndex.

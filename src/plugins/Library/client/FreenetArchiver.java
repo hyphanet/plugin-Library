@@ -3,10 +3,10 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.client;
 
-import plugins.Library.serial.LiveArchiver;
-import plugins.Library.serial.TaskAbortException;
-import plugins.Library.event.SimpleProgress;
-import plugins.Library.event.ProgressParts;
+import plugins.Library.util.exec.SimpleProgress;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.io.serial.LiveArchiver;
+import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
 

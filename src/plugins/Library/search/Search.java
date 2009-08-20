@@ -6,10 +6,10 @@ package plugins.Library.search;
 import freenet.support.Executor;
 import freenet.support.HTMLNode;
 import plugins.Library.Library;
-import plugins.Library.index.Request;
-import plugins.Library.index.AbstractRequest;
-import plugins.Library.event.ProgressParts;
-import plugins.Library.serial.TaskAbortException;
+import plugins.Library.util.exec.Execution;
+import plugins.Library.util.exec.AbstractExecution;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.TaskAbortException;
 
 import freenet.support.Logger;
 
@@ -22,11 +22,11 @@ import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import plugins.Library.index.CompositeRequest;
 import plugins.Library.index.TermEntry;
 import plugins.Library.search.ResultSet.ResultOperation;
-import plugins.Library.event.CompositeProgress;
-import plugins.Library.event.Progress;
+import plugins.Library.util.exec.CompositeProgress;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.CompositeExecution;
 import plugins.Library.ui.ResultNodeGenerator;
 
 /**
@@ -34,15 +34,15 @@ import plugins.Library.ui.ResultNodeGenerator;
  * TODO review documentation
  * @author MikeB
  */
-public class Search extends AbstractRequest<Set<TermEntry>>
-				implements CompositeRequest<Set<TermEntry>> {
+public class Search extends AbstractExecution<Set<TermEntry>>
+				implements CompositeExecution<Set<TermEntry>> {
 
 	private static Library library;
 	private static Executor executor;
 
 	private ResultOperation resultOperation;
 
-	private List<Request<Set<TermEntry>>> subsearches;
+	private List<Execution<Set<TermEntry>>> subsearches;
 
 	private String query;
 	private String indexURI;
@@ -105,7 +105,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 			return newSearch;
 		}else{
 			// create search for multiple terms over multiple indices
-			ArrayList<Request<Set<TermEntry>>> indexrequests = new ArrayList(indices.length);
+			ArrayList<Execution<Set<TermEntry>>> indexrequests = new ArrayList(indices.length);
 			for (String index : indices){
 				Search indexsearch = startSearch(search, index);
 				if(indexsearch==null)
@@ -127,7 +127,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * @param resultOperation Which set operation to do on the results of the subrequests
 	 * @throws InvalidSearchException if the search is invalid
 	 **/
-	private Search(String query, String indexURI, List<? extends Request<Set<TermEntry>>> requests, ResultOperation resultOperation)
+	private Search(String query, String indexURI, List<? extends Execution<Set<TermEntry>>> requests, ResultOperation resultOperation)
 	throws InvalidSearchException{
 		super(makeString(query, indexURI));
 		if(resultOperation==ResultOperation.SINGLE && requests.size()!=1)
@@ -144,8 +144,8 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		query = query.toLowerCase(Locale.US).trim();
 
 		// Create a temporary list of sub searches then make it unmodifiable
-		List<Request<Set<TermEntry>>> tempsubsearches = new ArrayList();
-		for (Request request : requests) {
+		List<Execution<Set<TermEntry>>> tempsubsearches = new ArrayList();
+		for (Execution<Set<TermEntry>> request : requests) {
 			if(request != null || resultOperation == ResultOperation.PHRASE)
 				tempsubsearches.add(request);
 			else
@@ -173,7 +173,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * @param indexURI the index uri this search is made on, only for reference
 	 * @param request Request to encapsulate
 	 */
-	private Search(String query, String indexURI, Request<Set<TermEntry>> request){
+	private Search(String query, String indexURI, Execution<Set<TermEntry>> request){
 		super(makeString(query, indexURI));
 		if(request == null)
 			throw new NullPointerException("Search cannot encapsulate null (query=\""+query+"\" indexURI=\""+indexURI+"\")");
@@ -205,7 +205,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 			// return null if stopword
 			if(isStopWord(query))
 				return null;
-			Request request = library.getIndex(indexuri).getTermEntries(query);
+			Execution<Set<TermEntry>> request = library.getIndex(indexuri).getTermEntries(query);
 			if (request == null)
 				throw new InvalidSearchException( "Something wrong with query=\""+query+"\" or indexURI=\""+indexuri+"\", maybe something is wrong with the index or it's uri is wrong." );
 			return new Search(query, indexuri, request );
@@ -213,7 +213,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 
 		// Make phrase search
 		if(query.matches("\\A\"[^\"]*\"\\Z")){
-			ArrayList<Request<Set<TermEntry>>> phrasesearches = new ArrayList();
+			ArrayList<Execution<Set<TermEntry>>> phrasesearches = new ArrayList();
 			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split(" ");
 			Logger.minor(Search.class, "Phrase split"+query);
 			for (String subquery : phrase){
@@ -278,7 +278,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 
 		// Make complement search
 		if (formattedquery.contains("^^(")){
-			ArrayList<Request<Set<TermEntry>>> complementsearches = new ArrayList();
+			ArrayList<Execution<Set<TermEntry>>> complementsearches = new ArrayList();
 			String[] splitup = formattedquery.split("(\\^\\^\\(|\\))", 3);
 			Search add = startSearch(splitup[0]+splitup[2], indexuri);
 			Search subtract = startSearch(splitup[1], indexuri);
@@ -308,7 +308,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 		}
 		// Split Unions
 		if (formattedquery.contains("||")){
-			ArrayList<Request<Set<TermEntry>>> unionsearches = new ArrayList();
+			ArrayList<Execution<Set<TermEntry>>> unionsearches = new ArrayList();
 			String[] unions = formattedquery.split("\\|\\|");
 			for (String subquery : unions){
 				Search add = startSearch(subquery, indexuri);
@@ -412,11 +412,11 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 			return subsearches;
 		// Everything else is split into leaves
 		List<Progress> subprogresses = new ArrayList();
-		for (Request<Set<TermEntry>> request : subsearches) {
+		for (Execution<Set<TermEntry>> request : subsearches) {
 			if(request == null)
 				continue;
 			if( request instanceof CompositeProgress && ((CompositeProgress) request).getSubProgress()!=null && ((CompositeProgress) request).getSubProgress().iterator().hasNext()){
-				for (Iterator<? extends Progress> it = ((CompositeRequest)request).getSubProgress().iterator(); it.hasNext();) {
+				for (Iterator<? extends Progress> it = ((CompositeExecution)request).getSubProgress().iterator(); it.hasNext();) {
 					Progress progress1 = it.next();
 					subprogresses.add(progress1);
 				}
@@ -445,7 +445,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 
 	/**
 	 * After this finishes running, the status of this Search object will be correct, stimulates the creation of the result if all subreqquests are complete and the result isn't made
-	 * @throws plugins.Library.serial.TaskAbortException
+	 * @throws plugins.Library.util.exec.TaskAbortException
 	 */
 	private synchronized void setStatus() throws TaskAbortException{
 		switch (status){
@@ -453,7 +453,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 				status = SearchStatus.Busy;
 			case Busy :
 				if(!isSubRequestsComplete())
-					for (Request<Set<TermEntry>> request : subsearches)
+					for (Execution<Set<TermEntry>> request : subsearches)
 						if(request != null && (!(request instanceof Search) || ((Search)request).status==SearchStatus.Busy))
 							return;	// If Busy & still waiting for subrequests to complete, status remains Busy
 				status = SearchStatus.Combining_First;	// If Busy and waiting for subrequests to combine, status -> Combining_First
@@ -501,7 +501,7 @@ public class Search extends AbstractRequest<Set<TermEntry>>
 	 * @return true if all are Finished, false otherwise
 	 */
 	private boolean isSubRequestsComplete() throws TaskAbortException{
-		for(Request r : subsearches)
+		for(Execution<Set<TermEntry>> r : subsearches)
 			if(r != null && !r.isDone())
 				return false;
 		return true;
