@@ -6,7 +6,7 @@ package plugins.Library.search;
 import freenet.support.Logger;
 import java.util.Collection;
 import java.util.HashMap;
-import plugins.Library.index.Request;
+import plugins.Library.event.Execution;
 import plugins.Library.index.TermPageEntry;
 import java.util.Iterator;
 import java.util.List;
@@ -55,7 +55,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 *
 	 * TODO reevaluate relevance for all combinations, and find a way to calculate relevance of phrases
 	 */
-	ResultSet(String subject, ResultOperation resultOperation, List<Request<Set<TermEntry>>> subRequests) throws TaskAbortException {
+	ResultSet(String subject, ResultOperation resultOperation, List<Execution<Set<TermEntry>>> subRequests) throws TaskAbortException {
 		if(resultOperation==ResultOperation.SINGLE && subRequests.size()!=1)
 			throw new IllegalArgumentException(subRequests.size() + " requests supplied with SINGLE operation");
 		if(resultOperation==ResultOperation.REMOVE && subRequests.size()!=2)
@@ -71,7 +71,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 		this.subject = subject;
 		internal = new HashMap();
 		this.resultOperation = resultOperation;
-		
+
 		// Make sure any TaskAbortExceptions are found here and not when it's run
 		subresults = getResultSets(subRequests);
 	}
@@ -206,8 +206,8 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 
 
 
-	
-	
+
+
 	// Private internal functions for changing the set
 	// TODO relevences, metadata extra, check copy constructors
 
@@ -218,7 +218,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	/**
 	 * Overwrite add all entries in result to the internal Set converted to this
 	 * ResultSet's subject. If the Set already has anything inside it
-	 * you should use addAllInternal below. 
+	 * you should use addAllInternal below.
 	 * @param result
 	 */
 	private void addAllToEmptyInternal(Collection<? extends TermEntry> result) {
@@ -307,7 +307,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 			if(termPageEntry.getPositions() == null)
 				continue;
 			Map<Integer, String> positions = new HashMap(termPageEntry.getPositions());
-			
+
 			int i;	// Iterate over the other collections, checking for following
 			for (i = 1; positions != null && i < collections.length && positions.size() > 0; i++) {
 				Collection<? extends TermEntry> collection = collections[i];
@@ -363,7 +363,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 		for (int i = 1; i < entries.length; i++)
 			if(!entries[0].equalsTarget(entries[i]))
 				throw new IllegalArgumentException("entries were not equal : "+entries[0].toString()+" & "+entries[i].toString());
-		
+
 		TermEntry combination = entries[0];
 
 		// This mess could be replaced by a method in the TermEntrys which returns a new TermEntry with a changed subject
@@ -378,7 +378,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 
 		if(entries[0].getRelevance()>0)
 			combination.setRelevance(entries[0].getRelevance());
-		
+
 		for (int i = 1; i < entries.length; i++) {
 			TermEntry termEntry = entries[i];
 			combination = combine(combination, termEntry);
@@ -434,7 +434,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 * @return
 	 * @throws plugins.Library.serial.TaskAbortException from SubRequests {@link Request.getResult()}
 	 */
-	private Set<TermEntry>[] getResultSets(List<Request<Set<TermEntry>>> subRequests) throws TaskAbortException{
+	private Set<TermEntry>[] getResultSets(List<Execution<Set<TermEntry>>> subRequests) throws TaskAbortException{
 		Set<TermEntry>[] sets = new Set[subRequests.size()];
 		for (int i = 0; i < subRequests.size(); i++) {
 			if(subRequests.get(i) == null){

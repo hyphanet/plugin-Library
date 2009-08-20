@@ -212,6 +212,7 @@
 
 	<!-- ================================================== -->
 	<target name="javadoc" description="generate javadocs">
+		<delete dir="${javadoc}"/>
 		<javadoc classpathref="lib.path" destdir="${javadoc}" author="true" version="true" use="true" private="true">
 			<doclet name="info.bliki.doclet.standard.Standard" path="doc/bliki-doclet.jar"/>
 			<!--<doclet name="com.visural.doclets.markdown.standard.Standard" path="doc/MarkdownDoclet.jar"/>-->
@@ -233,7 +234,6 @@
 		<delete dir="${build-test}"/>
 		<delete dir="${run-test}"/>
 		<delete dir="${dist}"/>
-		<delete dir="${javadoc}"/>
 	</target>
 
 </project>

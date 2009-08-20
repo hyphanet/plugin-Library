@@ -35,6 +35,7 @@ import java.net.MalformedURLException;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Set;
 import java.util.List;
 import java.util.TreeMap;
 import java.util.SortedMap;
@@ -42,8 +43,10 @@ import java.util.HashMap;
 
 import plugins.Library.Library;
 import plugins.Library.Index;
+import plugins.Library.index.TermEntry;
+import plugins.Library.index.URIEntry;
 import plugins.Library.search.InvalidSearchException;
-import plugins.Library.index.Request;
+import plugins.Library.event.Execution;
 import plugins.Library.serial.TaskAbortException;
 
 
@@ -295,7 +298,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	/**
 	 * Find the term in this Index
 	 */
-	public synchronized Request getTermEntries(String term){
+	public synchronized Execution<Set<TermEntry>> getTermEntries(String term){
 		try {
 			FindRequest request = new FindRequest(term);
 			setdependencies(request);
@@ -310,7 +313,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		}
 	}
 
-	public Request getURIEntry(FreenetURI uri){
+	public Execution<URIEntry> getURIEntry(FreenetURI uri){
 		throw new UnsupportedOperationException("getURIEntry not Implemented in XMLIndex");
 	}
 

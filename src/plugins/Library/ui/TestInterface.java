@@ -5,7 +5,7 @@
 package plugins.Library.ui;
 
 
-import plugins.Library.index.Request;
+import plugins.Library.event.Execution;
 import plugins.Library.search.Search;
 import plugins.Library.*;
 
@@ -17,7 +17,7 @@ import java.io.InputStreamReader;
 
 
 public class TestInterface{
-	static HashMap<String,Request> requests = new HashMap<String,Request>();
+	static HashMap<String,Execution> requests = new HashMap<String,Execution>();
 	static int requestcount =0;
 
 	public static void main(String[] args){
