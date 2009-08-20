@@ -46,8 +46,8 @@ import plugins.Library.Index;
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.URIEntry;
 import plugins.Library.search.InvalidSearchException;
-import plugins.Library.event.Execution;
-import plugins.Library.serial.TaskAbortException;
+import plugins.Library.util.exec.Execution;
+import plugins.Library.util.exec.TaskAbortException;
 
 
 /**

@@ -3,14 +3,14 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.serial.Serialiser.*;
-import plugins.Library.serial.IterableSerialiser;
-import plugins.Library.serial.ScheduledSerialiser;
-import plugins.Library.serial.MapSerialiser;
-import plugins.Library.serial.Translator;
-import plugins.Library.serial.DataFormatException;
-import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.TaskCompleteException;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.io.serial.IterableSerialiser;
+import plugins.Library.io.serial.ScheduledSerialiser;
+import plugins.Library.io.serial.MapSerialiser;
+import plugins.Library.io.serial.Translator;
+import plugins.Library.io.DataFormatException;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.exec.TaskCompleteException;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -28,12 +28,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.TimeUnit;
-import plugins.Library.event.Progress;
-import plugins.Library.event.ProgressParts;
-import plugins.Library.event.BaseCompositeProgress;
-import plugins.Library.serial.Serialiser;
-import plugins.Library.serial.ProgressTracker;
-import plugins.Library.serial.TaskCompleteException;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.BaseCompositeProgress;
+import plugins.Library.io.serial.Serialiser;
+import plugins.Library.io.serial.ProgressTracker;
+import plugins.Library.util.exec.TaskCompleteException;
 import plugins.Library.util.concurrent.Scheduler;
 
 /**
@@ -430,7 +430,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			do {
 
 				for (Map.Entry<PullTask<SkeletonNode>, TaskAbortException> en: error.entrySet()) {
-					assert(!(en.getValue() instanceof plugins.Library.serial.TaskInProgressException)); // by contract of ScheduledSerialiser
+					assert(!(en.getValue() instanceof plugins.Library.util.exec.TaskInProgressException)); // by contract of ScheduledSerialiser
 					if (!(en.getValue() instanceof TaskCompleteException)) {
 						// TODO maybe dump it somewhere else and throw it at the end...
 						throw en.getValue();

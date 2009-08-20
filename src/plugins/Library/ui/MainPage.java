@@ -19,11 +19,11 @@ import java.util.HashMap;
 import plugins.Library.Library;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.search.Search;
-import plugins.Library.event.ChainedProgress;
-import plugins.Library.event.CompositeProgress;
-import plugins.Library.event.Progress;
-import plugins.Library.event.ProgressParts;
-import plugins.Library.serial.TaskAbortException;
+import plugins.Library.util.exec.ChainedProgress;
+import plugins.Library.util.exec.CompositeProgress;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.TaskAbortException;
 
 
 

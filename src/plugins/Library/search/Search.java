@@ -6,10 +6,10 @@ package plugins.Library.search;
 import freenet.support.Executor;
 import freenet.support.HTMLNode;
 import plugins.Library.Library;
-import plugins.Library.event.Execution;
-import plugins.Library.event.AbstractExecution;
-import plugins.Library.event.ProgressParts;
-import plugins.Library.serial.TaskAbortException;
+import plugins.Library.util.exec.Execution;
+import plugins.Library.util.exec.AbstractExecution;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.TaskAbortException;
 
 import freenet.support.Logger;
 
@@ -24,9 +24,9 @@ import java.util.Map;
 import java.util.Set;
 import plugins.Library.index.TermEntry;
 import plugins.Library.search.ResultSet.ResultOperation;
-import plugins.Library.event.CompositeProgress;
-import plugins.Library.event.Progress;
-import plugins.Library.event.CompositeExecution;
+import plugins.Library.util.exec.CompositeProgress;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.CompositeExecution;
 import plugins.Library.ui.ResultNodeGenerator;
 
 /**
@@ -445,7 +445,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 
 	/**
 	 * After this finishes running, the status of this Search object will be correct, stimulates the creation of the result if all subreqquests are complete and the result isn't made
-	 * @throws plugins.Library.serial.TaskAbortException
+	 * @throws plugins.Library.util.exec.TaskAbortException
 	 */
 	private synchronized void setStatus() throws TaskAbortException{
 		switch (status){

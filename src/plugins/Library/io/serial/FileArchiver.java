@@ -1,14 +1,15 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.serial;
+package plugins.Library.io.serial;
 
-import plugins.Library.event.SimpleProgress;
-import plugins.Library.serial.Serialiser.*;
-import plugins.Library.serial.TaskAbortException;
-import plugins.Library.serial.Packer;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.io.serial.Packer;
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
+import plugins.Library.util.exec.SimpleProgress;
+import plugins.Library.util.exec.TaskAbortException;
 
 import freenet.keys.FreenetURI;
 

@@ -1,10 +1,13 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.serial;
+package plugins.Library.io.serial;
 
-import plugins.Library.event.Progress;
-import plugins.Library.serial.Serialiser.*;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.exec.TaskInProgressException;
+import plugins.Library.util.exec.TaskCompleteException;
 import plugins.Library.util.concurrent.Scheduler;
 
 import java.util.Iterator;

@@ -3,7 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io;
 
-import plugins.Library.serial.DataFormatException;
+import plugins.Library.io.DataFormatException;
 
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.YAMLException;
@@ -29,7 +29,7 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 
 /* class definitions added to the extended Yaml processor */
-import plugins.Library.serial.Packer;
+import plugins.Library.io.serial.Packer;
 import freenet.keys.FreenetURI;
 
 /**

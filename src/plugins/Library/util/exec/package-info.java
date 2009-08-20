@@ -2,9 +2,8 @@
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
 /**
-** Contains the serialisation engine and related classes, such as progress
-** trackers.
+** Contains classes to represent and monitor execution of tasks.
 **
 ** @author infinity0
 */
-package plugins.Library.io.serial;
+package plugins.Library.util.exec;

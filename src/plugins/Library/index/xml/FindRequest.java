@@ -11,12 +11,12 @@ import java.util.Collections;
 import java.util.ArrayList;
 import java.util.Set;
 
-import plugins.Library.event.AbstractExecution;
-import plugins.Library.event.ChainedExecution;
-import plugins.Library.event.Execution;
-import plugins.Library.event.Progress;
-import plugins.Library.event.ProgressParts;
-import plugins.Library.serial.TaskAbortException;
+import plugins.Library.util.exec.AbstractExecution;
+import plugins.Library.util.exec.ChainedExecution;
+import plugins.Library.util.exec.Execution;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.index.TermPageEntry;
 import plugins.Library.index.TermEntry;
 

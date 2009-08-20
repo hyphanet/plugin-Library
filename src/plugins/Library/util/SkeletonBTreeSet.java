@@ -3,11 +3,11 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.serial.Serialiser.*;
-import plugins.Library.serial.IterableSerialiser;
-import plugins.Library.serial.MapSerialiser;
-import plugins.Library.serial.Translator;
-import plugins.Library.serial.TaskAbortException;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.io.serial.IterableSerialiser;
+import plugins.Library.io.serial.MapSerialiser;
+import plugins.Library.io.serial.Translator;
+import plugins.Library.util.exec.TaskAbortException;
 
 import java.util.Comparator;
 import java.util.Collection;
@@ -64,7 +64,7 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 	}
 
 	// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
-	public plugins.Library.event.BaseCompositeProgress getPPP() { return ((SkeletonBTreeMap<E, E>)bkmap).ppp; }
+	public plugins.Library.util.exec.BaseCompositeProgress getPPP() { return ((SkeletonBTreeMap<E, E>)bkmap).ppp; }
 
 	/**
 	** Creates a translator for the nodes of the B-tree. This method just calls

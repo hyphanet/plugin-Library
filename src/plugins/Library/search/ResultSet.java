@@ -6,7 +6,7 @@ package plugins.Library.search;
 import freenet.support.Logger;
 import java.util.Collection;
 import java.util.HashMap;
-import plugins.Library.event.Execution;
+import plugins.Library.util.exec.Execution;
 import plugins.Library.index.TermPageEntry;
 import java.util.Iterator;
 import java.util.List;
@@ -15,7 +15,7 @@ import java.util.Set;
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermIndexEntry;
 import plugins.Library.index.TermTermEntry;
-import plugins.Library.serial.TaskAbortException;
+import plugins.Library.util.exec.TaskAbortException;
 
 /**
  * Unmodifiable Set which makes sure all data in results being combined is
@@ -50,7 +50,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 * @param subject for each of the entries in the Set
 	 * @param resultOperation to be performed on each of the given Sets {@see ResultOperation}
 	 * @param subRequets List of subrequests to test each getResult()
-	 * @throws plugins.Library.serial.TaskAbortException if thrown from a higher getResult() method
+	 * @throws plugins.Library.util.exec.TaskAbortException if thrown from a higher getResult() method
 	 * @throws plugins.Library.search.IllegalArgumentException if the number of subRequests is not acceptable {@see ResultOperation}
 	 *
 	 * TODO reevaluate relevance for all combinations, and find a way to calculate relevance of phrases
@@ -432,7 +432,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 * Strip all results out of List of requests
 	 * @param subRequests
 	 * @return
-	 * @throws plugins.Library.serial.TaskAbortException from SubRequests {@link Request.getResult()}
+	 * @throws plugins.Library.util.exec.TaskAbortException from SubRequests {@link Request.getResult()}
 	 */
 	private Set<TermEntry>[] getResultSets(List<Execution<Set<TermEntry>>> subRequests) throws TaskAbortException{
 		Set<TermEntry>[] sets = new Set[subRequests.size()];
