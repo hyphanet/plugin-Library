@@ -51,9 +51,6 @@
 
 == Packaging structure ==
 
-- TODO move event.* and serial.Task*Exception to util.exec
-- TODO move serial.DataFormatException to io
-
 - TODO get rid of unnecessary Prefix* files
 - TODO restructure the Serialiser.* stuff
 - TODO Skeleton/SkeletonMap is does what we need for now, but might able to be generalised a bit

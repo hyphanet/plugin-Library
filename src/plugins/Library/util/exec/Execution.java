@@ -13,8 +13,7 @@ import java.util.Date;
 ** Interface for an execution being handled concurrently to the threads which
 ** need to know its status and results.
 **
-** TODO maybe have {@code Execution<K, V>}, {@code K getSubject()} and {@code
-** V getResult()}.
+** TODO maybe have {@code Execution<K, V>} and {@code K getSubject()}
 **
 ** @param <T> Type of result of the execution
 ** @author MikeB
