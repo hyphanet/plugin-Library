@@ -27,7 +27,8 @@ public interface ScheduledSerialiser<T> extends IterableSerialiser<T> {
 	**
 	** Implementations should only add to the output and error queues when the
 	** action represented by the task has '''completed'''. For example, the
-	** error map should not contain any {@link TaskInProgressException}.
+	** error map should not contain any instances of {@link
+	** plugins.Library.util.exec.TaskInProgressException}.
 	**
 	** @param input Queue to add task requests to
 	** @param output Queue to pop completed tasks from
@@ -46,7 +47,8 @@ public interface ScheduledSerialiser<T> extends IterableSerialiser<T> {
 	**
 	** Implementations should only add to the output and error queues when the
 	** action represented by the task has '''completed'''. For example, the
-	** error map should not contain any {@link TaskInProgressException}.
+	** error map should not contain any instances of {@link
+	** plugins.Library.util.exec.TaskInProgressException}.
 	**
 	** @param input Queue to add task requests to
 	** @param output Queue to pop completed tasks from

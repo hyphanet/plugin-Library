@@ -8,10 +8,10 @@ import java.util.Set;
 import java.util.HashSet;
 
 /**
-** A partial implementation of {@link Request}, defining some higher-level
+** A partial implementation of {@link Execution}, defining some higher-level
 ** functionality in terms of lower-level ones.
 **
-** To implement {@link Request} fully from this class, the programmer needs to
+** To implement {@link Execution} fully from this class, the programmer needs to
 ** implement the following methods:
 **
 ** * {@link Progress#getParts()}
@@ -55,17 +55,17 @@ public abstract class AbstractExecution<V> implements Execution<V> {
 	private V result;
 
 	/**
-	** Create a Request with the given subject.
+	** Create an {@code Execution} with the given subject.
 	**
-	** @param sub The subject
+	** @param subj The subject
 	*/
-	public AbstractExecution(String sub) {
-		this.subject = sub;
+	public AbstractExecution(String subj) {
+		this.subject = subj;
 		setStartDate();
 	}
 
 	protected synchronized void setStartDate() {
-		if (start != null) { throw new IllegalStateException("Request is already running"); }
+		if (start != null) { throw new IllegalStateException("Execution is already running"); }
 		start = new Date();
 		for (ExecutionAcceptor<V> acc: accept) { offerStarted(acc); }
 	}
@@ -79,7 +79,7 @@ public abstract class AbstractExecution<V> implements Execution<V> {
 	}
 
 	protected synchronized void setResult(V res) {
-		if (stop != null) { throw new IllegalStateException("Task has already finished."); }
+		if (stop != null) { throw new IllegalStateException("Execution has already finished."); }
 		result = res;
 		stop = new Date();
 		notifyAll();
@@ -95,7 +95,7 @@ public abstract class AbstractExecution<V> implements Execution<V> {
 	}
 
 	protected synchronized void setError(TaskAbortException err) {
-		if (stop != null) { throw new IllegalStateException("Task has already finished."); }
+		if (stop != null) { throw new IllegalStateException("Execution has already finished."); }
 		error = err;
 		stop = new Date();
 		notifyAll();

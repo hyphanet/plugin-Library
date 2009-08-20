@@ -12,7 +12,7 @@ import java.util.Date;
 **
 ** TODO maybe have {@code Execution<K, V>} and {@code K getSubject()}
 **
-** @param <T> Type of result of the execution
+** @param <V> Type of result of the execution
 ** @author MikeB
 ** @author infinity0
 */

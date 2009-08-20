@@ -3,13 +3,10 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util.exec;
 
-import java.io.IOException;
-
 /**
 ** Thrown when a task aborts. DOCUMENT
 **
 ** @author infinity0
-** @see Serialiser
 */
 public class TaskAbortException extends Exception {
 
@@ -28,8 +25,9 @@ public class TaskAbortException extends Exception {
 	/**
 	** Whether the failure is temporary, and the client should try again at
 	** a later time. Eg. this should be {@code true} for abortions caused by
-	** {@link IOException}, and {@code false} for abortions caused by {@link
-	** DataFormatException}. Defaults to {@code false}.
+	** {@link java.io.IOException}, and {@code false} for abortions caused by
+	** {@link plugins.Library.io.DataFormatException}. Defaults to {@code
+	** false}.
 	*/
 	final protected boolean retry;
 

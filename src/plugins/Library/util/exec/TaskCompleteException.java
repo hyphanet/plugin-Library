@@ -8,7 +8,6 @@ package plugins.Library.util.exec;
 ** another thread.
 **
 ** @author infinity0
-** @see Serialiser
 */
 public class TaskCompleteException extends TaskAbortException {
 

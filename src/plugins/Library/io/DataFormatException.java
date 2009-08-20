@@ -7,7 +7,6 @@ package plugins.Library.io;
 ** Thrown when data is not in a recognised format.
 **
 ** @author infinity0
-** @see Serialiser
 */
 public class DataFormatException extends RuntimeException {
 

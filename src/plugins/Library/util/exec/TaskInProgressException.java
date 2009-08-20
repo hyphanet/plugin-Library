@@ -7,7 +7,6 @@ package plugins.Library.util.exec;
 ** Thrown when a task is already in progress elsewhere.
 **
 ** @author infinity0
-** @see Serialiser
 */
 public class TaskInProgressException extends TaskAbortException {
 
