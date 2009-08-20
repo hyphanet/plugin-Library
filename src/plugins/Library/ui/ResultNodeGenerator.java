@@ -1,13 +1,17 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-
 package plugins.Library.ui;
 
+import plugins.Library.index.TermEntry;
+import plugins.Library.index.TermIndexEntry;
+import plugins.Library.index.TermPageEntry;
+import plugins.Library.index.TermTermEntry;
 
 import freenet.keys.FreenetURI;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;
+
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -15,11 +19,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import plugins.Library.index.TermEntry;
-import plugins.Library.index.TermIndexEntry;
-import plugins.Library.index.TermPageEntry;
-import plugins.Library.index.TermTermEntry;
-
 
 /**
  * Class for parsing and formatting search results, once isDone() return true, the nodes are ready to use
@@ -156,7 +155,7 @@ public class ResultNodeGenerator implements Runnable {
 			groupmap = null;
 		}
     }
-	
+
 	private HTMLNode generateIndexEntryNode(){
 		return new HTMLNode("#", "TermIndexEntry code not done yet");
 	}
@@ -173,11 +172,11 @@ public class ResultNodeGenerator implements Runnable {
 
 		int results = 0;
 		// Loop to separate results into SSK groups
-		
+
 		if(groupmap != null){	// Produce grouped list of pages
 			SortedSet<TermPageGroupEntry> groupSet = new TreeSet(RelevanceComparator.comparator);
 			groupSet.addAll(groupmap.values());
-			
+
 			// Loop over keys
 			Iterator<TermPageGroupEntry> it2 = groupSet.iterator();
 			while (it2.hasNext()) {
@@ -260,7 +259,7 @@ public class ResultNodeGenerator implements Runnable {
 		}
 		pageNode.addChild("br");
 		pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realurl, (newestVersion ? "result-url-new" : "result-url-old"), uri.toString()}, showurl);
-		
+
 		return pageNode;
 	}
 }

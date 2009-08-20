@@ -1,4 +1,6 @@
-
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.ui;
 
 import java.util.Collections;
@@ -6,6 +8,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermPageEntry;
 

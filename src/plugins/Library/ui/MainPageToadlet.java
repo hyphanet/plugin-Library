@@ -1,7 +1,9 @@
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.ui;
 
-import java.io.IOException;
-import java.net.URI;
+import plugins.Library.Library;
 
 import freenet.client.HighLevelSimpleClient;
 import freenet.clients.http.PageNode;
@@ -14,8 +16,9 @@ import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLNode;
 import freenet.support.MultiValueTable;
 import freenet.support.api.HTTPRequest;
-import plugins.Library.Library;
 
+import java.io.IOException;
+import java.net.URI;
 
 /**
  * Encapsulates the MainPage in a Toadlet
@@ -33,7 +36,7 @@ public class MainPageToadlet extends Toadlet {
 		this.pr = pr;
 	}
 
-	public void handleMethodGET(URI uri, final HTTPRequest request, final ToadletContext ctx) 
+	public void handleMethodGET(URI uri, final HTTPRequest request, final ToadletContext ctx)
 	throws ToadletContextClosedException, IOException, RedirectException {
 		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
 		Thread.currentThread().setContextClassLoader(Library.class.getClassLoader());
@@ -80,7 +83,7 @@ public class MainPageToadlet extends Toadlet {
 			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/style.css", "text/css"});
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
-			
+
 			MainPage page = MainPage.processPostRequest(request, contentNode, formPassword!=null && formPassword.equals(core.formPassword), library, pr);
 			if(page==null)
 				page = new MainPage(library,pr);
@@ -105,9 +108,9 @@ public class MainPageToadlet extends Toadlet {
 			Thread.currentThread().setContextClassLoader(origClassLoader);
 		}
 	}
-	
-	
-	
+
+
+
 	@Override public String path() {
 		return MainPage.path();
 	}

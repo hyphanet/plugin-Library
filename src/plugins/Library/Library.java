@@ -6,14 +6,14 @@ package plugins.Library;
 import java.io.IOException;
 import plugins.Library.Index;
 import plugins.Library.WriteableIndex;
-import plugins.Library.index.xml.XMLIndex;
+import plugins.Library.client.FreenetArchiver;
 import plugins.Library.index.ProtoIndex;
 import plugins.Library.index.ProtoIndexSerialiser;
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.client.FreenetArchiver;
+import plugins.Library.index.xml.XMLIndex;
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.search.InvalidSearchException;
 
 /* KEYEXPLORER

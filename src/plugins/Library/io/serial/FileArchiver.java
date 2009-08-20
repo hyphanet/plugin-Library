@@ -4,7 +4,6 @@
 package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.io.serial.Packer;
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;

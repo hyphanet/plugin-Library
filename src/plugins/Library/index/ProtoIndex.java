@@ -5,7 +5,6 @@ package plugins.Library.index;
 
 import plugins.Library.Index;
 import plugins.Library.io.serial.Serialiser;
-import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.io.serial.ProgressTracker;
 import plugins.Library.util.Skeleton;
 import plugins.Library.util.SkeletonTreeMap;
@@ -17,6 +16,7 @@ import plugins.Library.util.exec.ProgressParts;
 import plugins.Library.util.exec.ChainedProgress;
 import plugins.Library.util.exec.Execution;
 import plugins.Library.util.exec.AbstractExecution;
+import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.concurrent.Executors;
 
 import freenet.keys.FreenetURI;

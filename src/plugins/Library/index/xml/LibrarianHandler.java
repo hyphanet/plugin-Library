@@ -3,23 +3,23 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index.xml;
 
+import plugins.Library.index.TermPageEntry;
+import plugins.Library.index.TermEntry;
+
+import freenet.support.Logger;
 import freenet.keys.FreenetURI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.ArrayList;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import freenet.support.Logger;
-
-import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
-import plugins.Library.index.TermPageEntry;
-import plugins.Library.index.TermEntry;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.HashMap;
 
 /**
  * Required for using SAX parser on XML indices

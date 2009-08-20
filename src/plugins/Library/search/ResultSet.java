@@ -3,19 +3,21 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search;
 
-import freenet.support.Logger;
-import java.util.Collection;
-import java.util.HashMap;
-import plugins.Library.util.exec.Execution;
-import plugins.Library.index.TermPageEntry;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermIndexEntry;
 import plugins.Library.index.TermTermEntry;
+import plugins.Library.index.TermPageEntry;
+import plugins.Library.util.exec.Execution;
 import plugins.Library.util.exec.TaskAbortException;
+
+import freenet.support.Logger;
+
+import java.util.Iterator;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.HashMap;
 
 /**
  * Unmodifiable Set which makes sure all data in results being combined is

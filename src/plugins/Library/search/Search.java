@@ -3,31 +3,31 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search;
 
-import freenet.support.Executor;
-import freenet.support.HTMLNode;
 import plugins.Library.Library;
+import plugins.Library.index.TermEntry;
 import plugins.Library.util.exec.Execution;
 import plugins.Library.util.exec.AbstractExecution;
+import plugins.Library.util.exec.CompositeExecution;
 import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.CompositeProgress;
+import plugins.Library.util.exec.Progress;
 import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.ui.ResultNodeGenerator;
+import plugins.Library.search.ResultSet.ResultOperation;
 
+import freenet.support.Executor;
+import freenet.support.HTMLNode;
 import freenet.support.Logger;
 
-import java.util.List;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.List;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import plugins.Library.index.TermEntry;
-import plugins.Library.search.ResultSet.ResultOperation;
-import plugins.Library.util.exec.CompositeProgress;
-import plugins.Library.util.exec.Progress;
-import plugins.Library.util.exec.CompositeExecution;
-import plugins.Library.ui.ResultNodeGenerator;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Performs asynchronous searches over many index or with many terms and search logic

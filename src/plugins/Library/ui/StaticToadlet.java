@@ -1,3 +1,6 @@
+/* This code is part of Freenet. It is distributed under the GNU General
+ * Public License, version 2 (or at your option any later version). See
+ * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.ui;
 
 import java.io.IOException;
@@ -15,6 +18,7 @@ import freenet.clients.http.ToadletContext;
 import freenet.clients.http.ToadletContextClosedException;
 import freenet.support.api.Bucket;
 import freenet.support.api.HTTPRequest;
+
 import plugins.Library.Library;
 
 
@@ -23,7 +27,7 @@ import plugins.Library.Library;
  * @author MikeB
  */
 public class StaticToadlet extends Toadlet {
-	
+
 	public StaticToadlet(HighLevelSimpleClient client) {
 		super(client);
 	}
@@ -46,7 +50,7 @@ public class StaticToadlet extends Toadlet {
 		if (!path.startsWith(ROOT_URL))
 			return;	// doh!
 		path = path.substring(ROOT_URL.length());
-		
+
 		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
 		Thread.currentThread().setContextClassLoader(Library.class.getClassLoader());
 		try {
@@ -65,7 +69,7 @@ public class StaticToadlet extends Toadlet {
 			}
 			strm.close();
 			os.close();
-						
+
 			ctx.sendReplyHeaders(200, "OK", null, DefaultMIMETypes.guessMIMEType(path, false), data.size());
 			ctx.writeData(data);
 			data.free();

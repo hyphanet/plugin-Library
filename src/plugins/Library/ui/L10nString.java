@@ -1,7 +1,6 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-
 package plugins.Library.ui;
 
 import freenet.l10n.L10n;
@@ -10,14 +9,14 @@ import freenet.l10n.L10n.LANGUAGE;
 /**
  * Feeble attempt at a translation interface, this is best left until there is a
  * general Plugin method for doing this
- * 
+ *
  * @author MikeB
  */
 public class L10nString{
 
 
 	static LANGUAGE lang;
-	
+
 	public static String getString(String key){
 		lang = L10n.getSelectedLanguage();
 		if("Index".equals(key))
@@ -47,7 +46,7 @@ public class L10nString{
 		else
 			return key;
 	}
-	
+
 	public static void setLanguage(LANGUAGE newLanguage){
 		lang = newLanguage;
 	}

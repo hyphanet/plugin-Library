@@ -1,21 +1,8 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-
 package plugins.Library.ui;
 
-
-import freenet.keys.FreenetURI;
-import freenet.pluginmanager.PluginRespirator;
-import freenet.support.HTMLNode;
-import freenet.support.Logger;
-import freenet.support.MultiValueTable;
-import freenet.support.api.HTTPRequest;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.HashMap;
 import plugins.Library.Library;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.search.Search;
@@ -25,7 +12,18 @@ import plugins.Library.util.exec.Progress;
 import plugins.Library.util.exec.ProgressParts;
 import plugins.Library.util.exec.TaskAbortException;
 
+import freenet.keys.FreenetURI;
+import freenet.pluginmanager.PluginRespirator;
+import freenet.support.HTMLNode;
+import freenet.support.Logger;
+import freenet.support.MultiValueTable;
+import freenet.support.api.HTTPRequest;
 
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 /**
  * Generates the main search page

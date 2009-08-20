@@ -1,9 +1,7 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-
 package plugins.Library.ui;
-
 
 import plugins.Library.util.exec.Execution;
 import plugins.Library.search.Search;
@@ -14,7 +12,6 @@ import freenet.support.Logger;
 import java.util.HashMap;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-
 
 public class TestInterface{
 	static HashMap<String,Execution> requests = new HashMap<String,Execution>();
