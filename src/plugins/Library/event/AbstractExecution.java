@@ -1,13 +1,15 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.index;
+package plugins.Library.event;
 
 import plugins.Library.event.Progress;
 import plugins.Library.event.ProgressParts;
 import plugins.Library.serial.TaskAbortException;
 
 import java.util.Date;
+import java.util.Set;
+import java.util.HashSet;
 
 /**
 ** A partial implementation of {@link Request}, defining some higher-level
@@ -29,11 +31,19 @@ import java.util.Date;
 ** @author MikeB
 ** @author infinity0
 */
-public abstract class AbstractRequest<T> implements Request<T> {
+public abstract class AbstractExecution<V> implements Execution<V> {
 
 	protected Date start;
 	protected Date stop = null;
 
+	/**
+	** Keeps track of the acceptors.
+	*/
+	final protected Set<ExecutionAcceptor<V>> accept = new HashSet<ExecutionAcceptor<V>>();
+
+	/**
+	** Subject of the execution.
+	*/
 	final protected String subject;
 
 	/**
@@ -46,14 +56,14 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	** Holds the result of the operation once it completes. If {@link #error}
 	** is {@code null}, then returned by {@link #getResult()}.
 	*/
-	private T result;
+	private V result;
 
 	/**
 	** Create a Request with the given subject.
 	**
 	** @param sub The subject
 	*/
-	public AbstractRequest(String sub) {
+	public AbstractExecution(String sub) {
 		this.subject = sub;
 		setStartDate();
 	}
@@ -61,13 +71,31 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	protected synchronized void setStartDate() {
 		if (start != null) { throw new IllegalStateException("Request is already running"); }
 		start = new Date();
+		for (ExecutionAcceptor<V> acc: accept) { offerStarted(acc); }
 	}
 
-	protected synchronized void setResult(T res) {
+	protected void offerStarted(ExecutionAcceptor<V> acc) {
+		try {
+			acc.acceptStarted(this);
+		} catch (RuntimeException e) {
+			// TODO maybe log this somewhere
+		}
+	}
+
+	protected synchronized void setResult(V res) {
 		if (stop != null) { throw new IllegalStateException("Task has already finished."); }
 		result = res;
 		stop = new Date();
 		notifyAll();
+		for (ExecutionAcceptor<V> acc: accept) { offerDone(acc); }
+	}
+
+	protected void offerDone(ExecutionAcceptor<V> acc) {
+		try {
+			acc.acceptDone(this, result);
+		} catch (RuntimeException e) {
+			// TODO maybe log this somewhere
+		}
 	}
 
 	protected synchronized void setError(TaskAbortException err) {
@@ -75,17 +103,15 @@ public abstract class AbstractRequest<T> implements Request<T> {
 		error = err;
 		stop = new Date();
 		notifyAll();
+		for (ExecutionAcceptor<V> acc: accept) { offerAborted(acc); }
 	}
 
-	/**
-	** Get the time taken for the operation to finish. If this is negative, the
-	** task has not yet completed.
-	**
-	** TODO put this into {@link Request}?
-	*/
-	public long getTimeTaken() {
-		if (stop == null) { return -1; }
-		return stop.getTime() - start.getTime();
+	protected void offerAborted(ExecutionAcceptor<V> acc) {
+		try {
+			acc.acceptAborted(this, error);
+		} catch (RuntimeException e) {
+			// TODO maybe log this somewhere
+		}
 	}
 
 	/*========================================================================
@@ -115,7 +141,7 @@ public abstract class AbstractRequest<T> implements Request<T> {
 	}
 
 	/*========================================================================
-	  public interface Request
+	  public interface Execution
 	 ========================================================================*/
 
 	/*@Override**/ public Date getStartDate() {
@@ -126,15 +152,28 @@ public abstract class AbstractRequest<T> implements Request<T> {
 		return System.currentTimeMillis() - start.getTime();
 	}
 
+	/*@Override**/ public long getTimeTaken() {
+		if (stop == null) { return -1; }
+		return stop.getTime() - start.getTime();
+	}
+
 	/**
 	** {@inheritDoc}
 	**
 	** This implementation returns {@link #result} if {@link #error} is {@code
 	** null}, otherwise it throws it.
 	*/
-	/*@Override**/ public T getResult() throws TaskAbortException {
+	/*@Override**/ public V getResult() throws TaskAbortException {
 		if (error != null) { throw error; }
 		return result;
+	}
+
+	/*@Override**/ public synchronized void addAcceptor(ExecutionAcceptor<V> acc) {
+		accept.add(acc);
+		// trigger the event if the task is already done/aborted
+		if (start != null) { offerStarted(acc); }
+		if (error != null) { offerDone(acc); }
+		if (result != null) { offerAborted(acc); }
 	}
 
 }

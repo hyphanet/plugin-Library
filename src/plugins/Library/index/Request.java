@@ -1,31 +1,26 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.index;
+package plugins.Library.event;
 
 import plugins.Library.event.Progress;
 import plugins.Library.serial.TaskAbortException;
 
 import java.util.Date;
+//import java.util.concurrent.Future;
 
 /**
-** Interface for a request being handled asynchronously from the threads which
+** Interface for an execution being handled concurrently to the threads which
 ** need to know its status and results.
 **
-** ;RequestState : what is happening currently with this request
-** ;Stage : non-parallel sequence of subevents that comprise the whole
-** operation, eg. loading the base of an index before loading needed parts
-**
-** TODO maybe have {@code Request<K, V>} and {@code K getSubject()} and {@code
+** TODO maybe have {@code Execution<K, V>}, {@code K getSubject()} and {@code
 ** V getResult()}.
 **
-** TODO rename this to Operation?
-**
-** @param <T> Type of result of the operation
+** @param <T> Type of result of the execution
 ** @author MikeB
 ** @author infinity0
 */
-public interface Request<T> extends Progress {
+public interface Execution<V> extends Progress/*, Future<V>*/ {
 
 	/**
 	** Returns the Date object representing the time at which this request was
@@ -39,8 +34,47 @@ public interface Request<T> extends Progress {
 	public long getTimeElapsed();
 
 	/**
-	** Gets the result of this operation.
+	** Get the number of milliseconds it took for the execution to complete or
+	** abort, or {@code -1} if it has not yet done so.
 	*/
-	public T getResult() throws TaskAbortException;
+	public long getTimeTaken();
+
+	/**
+	** Gets the result of this operation, or throws the error that caused it to
+	** abort.
+	*/
+	public V getResult() throws TaskAbortException;
+
+	/**
+	** Attach an {@link ExecutionAcceptor} to this execution.
+	**
+	** Implementations should trigger the appropriate methods on all acceptors
+	** as the corresponding events are triggered, and on newly-added acceptors
+	** if events have already happened, ''in the same order in which they
+	** happened'''. (This is slightly different from a listener, where past
+	** events are missed by newly-added listeners.)
+	**
+	** Generally, adding an acceptor twice should not give different results,
+	** but this is up to the implementation. Unchecked exceptions (ie. {@link
+	** RuntimeException}s) thrown by any acceptor should be caught (and ideally
+	** handled).
+	*/
+	public void addAcceptor(ExecutionAcceptor<V> acc);
+
+	/*========================================================================
+	  public interface Future
+	 ========================================================================*/
+
+	// TODO could retrofit this if it's ever needed...
+
+	//*@Override**/ public boolean cancel(boolean mayInterruptIfRunning);
+
+	//*@Override**/ public V get();
+
+	//*@Override**/ public V get(long timeout, TimeUnit unit);
+
+	//*@Override**/ public boolean isCancelled();
+
+	//*@Override**/ public boolean isDone();
 
 }
