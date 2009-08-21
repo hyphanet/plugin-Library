@@ -99,7 +99,7 @@ public class YamlMapTest extends TestCase {
 		}
 
 		private class RepresentCustom implements Represent {
-			@Override public Node representData(Object data) {
+			public Node representData(Object data) {
 				return representScalar("!Custom", ((Custom) data).toString());
 			}
 		}
@@ -112,11 +112,11 @@ public class YamlMapTest extends TestCase {
 		}
 
 		private class ConstructCustom implements Construct {
-			@Override public Object construct(Node node) {
+			public Object construct(Node node) {
 				String str = (String) constructScalar((ScalarNode)node);
 				return new Custom(str);
 			}
-			@Override public void construct2ndStep(Node node, Object object) { }
+			public void construct2ndStep(Node node, Object object) { }
 		}
 	}
 
