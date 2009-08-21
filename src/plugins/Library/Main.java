@@ -46,13 +46,23 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	// FredPluginHTTP
 	// TODO remove this later
 	public String handleHTTPGet(freenet.support.api.HTTPRequest request) {
+		Throwable th;
 		try {
 			Class<?> tester = Class.forName("plugins.Library.Tester");
 			java.lang.reflect.Method method = tester.getMethod("runTest", Library.class, String.class);
-			return (String)method.invoke(null, library, request.getParam("plugins.Library.Tester"));
-		} catch (Throwable t) {
+			try {
+				return (String)method.invoke(null, library, request.getParam("plugins.Library.Tester"));
+			} catch (java.lang.reflect.InvocationTargetException e) {
+				throw e.getCause();
+			}
+		} catch (ClassNotFoundException e) {
 			return "Tester not compiled in; give -Dtester= to ant";
+		} catch (Throwable t) {
+			th = t;
 		}
+		java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+		th.printStackTrace(new java.io.PrintStream(bytes));
+		return "<pre>" + bytes + "</pre>";
 	}
 	// TODO remove this later
 	public String handleHTTPPost(freenet.support.api.HTTPRequest request) { return null; }

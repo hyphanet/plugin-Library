@@ -157,6 +157,12 @@
 		</javac>
 	</target>
 
+	<target name="delete-tester" depends="compile" unless="tester">
+		<delete verbose="true">
+			<fileset dir="${build}" includes="plugins/Library/Tester.* plugins/Library/Tester$*" />
+		</delete>
+	</target>
+
 	<target name="run" depends="dist">
 		<java classname="${packagebase}.ui.TestInterface">
 			<classpath>
@@ -202,7 +208,7 @@
 	</target>
 
 	<!-- ================================================== -->
-	<target name="jar" depends="compile,compile-tester,junit" description="create a jar package">
+	<target name="jar" depends="compile,compile-tester,delete-tester,junit" description="create a jar package">
 		<jar jarfile="${dist}/Library.jar" duplicate="fail">
 			<manifest>
 				<attribute name="Main-Class" value="${packagebase}.ui.TestInterface"/>
