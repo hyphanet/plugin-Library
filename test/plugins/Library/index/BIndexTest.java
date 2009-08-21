@@ -82,17 +82,9 @@ public class BIndexTest extends TestCase {
 			int n = rand.nextInt(0xF0) + 0x10;
 			totalentries += n;
 
-			try {
-				for (int j=0; j<n; ++j) {
-					TermEntry e = new TermPageEntry(key, new FreenetURI("CHK@" + Generators.rndStr().replace('-', 'Z')));
-					e.setRelevance((float)Math.random());
-					entries.add(e);
-				}
-			} catch (java.net.MalformedURLException e) {
-				// should not happen
-				throw new RuntimeException(e);
+			for (int j=0; j<n; ++j) {
+				entries.add(Generators.rndEntry(key));
 			}
-
 			idx.ttab.put(key, entries);
 		}
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
@@ -150,16 +142,9 @@ public class BIndexTest extends TestCase {
 			int n = rand.nextInt(0xF0) + 0x10;
 			totalentries += n;
 
-			try {
-				for (int j=0; j<n; ++j) {
-					TermEntry e = new TermPageEntry(word, new FreenetURI("CHK@" + Generators.rndStr().replace('-', 'Z')));
-					e.setRelevance((float)Math.random());
-					entries.add(e);
-				}
-			} catch (java.net.MalformedURLException e) {
-				// pass
+			for (int j=0; j<n; ++j) {
+				entries.add(Generators.rndEntry(word));
 			}
-
 			idx.ttab.put(word, entries);
 		}
 
@@ -220,17 +205,9 @@ public class BIndexTest extends TestCase {
 			int n = rand.nextInt(0x200) + 0x200;
 			totalentries += n;
 
-			try {
-				for (int j=0; j<n; ++j) {
-					TermEntry e = new TermPageEntry(key, new FreenetURI("CHK@" + Generators.rndStr().replace('-', 'Z')));
-					e.setRelevance((float)Math.random());
-					entries.add(e);
-				}
-			} catch (java.net.MalformedURLException e) {
-				// should not happen
-				throw new RuntimeException(e);
+			for (int j=0; j<n; ++j) {
+				entries.add(Generators.rndEntry(key));
 			}
-
 			idx.ttab.put(key, entries);
 		}
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");

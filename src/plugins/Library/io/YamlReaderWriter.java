@@ -20,7 +20,9 @@ import org.yaml.snakeyaml.constructor.AbstractConstruct;
 import org.yaml.snakeyaml.constructor.ConstructorException;
 
 import java.util.Collections;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.LinkedHashMap;
 import java.io.File;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -30,7 +32,12 @@ import java.io.IOException;
 
 /* class definitions added to the extended Yaml processor */
 import plugins.Library.io.serial.Packer;
+import plugins.Library.index.TermEntry;
+import plugins.Library.index.TermPageEntry;
+import plugins.Library.index.TermIndexEntry;
+import plugins.Library.index.TermTermEntry;
 import freenet.keys.FreenetURI;
+
 
 /**
 ** Converts between an object and a stream containing a YAML document. By
@@ -97,14 +104,32 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		}
 	}
 
+	static ObjectBlueprint<TermTermEntry> t_1;
+	static ObjectBlueprint<TermIndexEntry> t_2;
+	static ObjectBlueprint<TermPageEntry> t_3;
+	static {
+		try {
+			t_1 = new ObjectBlueprint<TermTermEntry>(TermTermEntry.class, Arrays.asList("subj", "rel", "term"));
+			t_2 = new ObjectBlueprint<TermIndexEntry>(TermIndexEntry.class, Arrays.asList("subj", "rel", "index"));
+			t_3 = new ObjectBlueprint<TermPageEntry>(TermPageEntry.class, Arrays.asList("subj", "rel", "page", "pos"));
+		} catch (NoSuchFieldException e) {
+			throw new AssertionError(e);
+		} catch (NoSuchMethodException e) {
+			throw new AssertionError(e);
+		}
+	}
 
 	/************************************************************************
 	** DOCUMENT
 	*/
 	public static class ExtendedRepresenter extends Representer {
+
 		public ExtendedRepresenter() {
 			this.representers.put(FreenetURI.class, new RepresentFreenetURI());
 			this.representers.put(Packer.BinInfo.class, new RepresentPackerBinInfo());
+			this.representers.put(TermPageEntry.class, new RepresentTermEntry());
+			this.representers.put(TermIndexEntry.class, new RepresentTermEntry());
+			this.representers.put(TermTermEntry.class, new RepresentTermEntry());
 		}
 
 		private class RepresentFreenetURI implements Represent {
@@ -120,6 +145,30 @@ implements ObjectStreamReader, ObjectStreamWriter {
 				return representMapping("!BinInfo", map, true);
 			}
 		}
+
+		private class RepresentTermEntry implements Represent {
+			/*@Override**/ public Node representData(Object data) {
+				TermEntry en = (TermEntry)data;
+				Map<String, Object> map = new LinkedHashMap<String, Object>();
+				// PRIORITY WORK OUT A BETTER FORMAT THAN THIS
+				// PRIORITY WORK OUT A BETTER FORMAT THAN THIS
+				// PRIORITY WORK OUT A BETTER FORMAT THAN THIS
+				map.put("type", en.entryType().ordinal());
+				switch (en.entryType()) {
+				case TERM:
+					map.putAll(t_1.objectAsMap((TermTermEntry)en));
+					break;
+				case INDEX:
+					map.putAll(t_2.objectAsMap((TermIndexEntry)en));
+					break;
+				case PAGE:
+					map.putAll(t_3.objectAsMap((TermPageEntry)en));
+					break;
+				}
+				return representMapping("!TermEntry", map, true);
+			}
+		}
+
 	}
 
 
@@ -130,6 +179,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		public ExtendedConstructor() {
 			this.yamlConstructors.put("!FreenetURI", new ConstructFreenetURI());
 			this.yamlConstructors.put("!BinInfo", new ConstructPackerBinInfo());
+			this.yamlConstructors.put("!TermEntry", new ConstructTermEntry());
 		}
 
 		private class ConstructFreenetURI extends AbstractConstruct {
@@ -153,6 +203,33 @@ implements ObjectStreamReader, ObjectStreamWriter {
 					return new Packer.BinInfo(en.getKey(), (Integer)en.getValue());
 				}
 				throw new AssertionError();
+			}
+		}
+
+		private class ConstructTermEntry extends AbstractConstruct {
+			/*@Override**/ public Object construct(Node node) {
+				TermEntry en = null;
+				Map map = (Map)constructMapping((MappingNode)node);
+				map.put("rel", new Float(((Double)map.get("rel")).floatValue()));
+				try {
+					switch(TermEntry.EntryType.values()[(Integer)map.remove("type")]) {
+					case TERM:
+						en = t_1.objectFromMap(map);
+						break;
+					case INDEX:
+						en = t_2.objectFromMap(map);
+						break;
+					case PAGE:
+						en = t_3.objectFromMap(map);
+						break;
+					}
+				} catch (Exception e) {
+					//java.lang.InstantiationException
+					//java.lang.IllegalArgumentException
+					//java.lang.reflect.InvocationTargetException
+					throw new ConstructorException("while constructing a TermEntry", node.getStartMark(), "could not instantiate map " + map, null, e) {};
+				}
+				return en;
 			}
 		}
 	}

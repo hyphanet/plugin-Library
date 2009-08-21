@@ -40,7 +40,7 @@ import java.util.concurrent.Executor;
 */
 final public class ProtoIndex implements Index {
 
-	final static long serialVersionUID = 0xf82a40726c1e5ba6L;
+	final static long serialVersionUID = 0xf8ea40b26c1e5b36L;
 
 	final public static String MIME_TYPE = ProtoIndexSerialiser.MIME_TYPE;
 	final public static String DEFAULT_FILE = "index" + ProtoIndexSerialiser.FILE_EXTENSION;

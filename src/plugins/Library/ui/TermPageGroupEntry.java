@@ -20,11 +20,11 @@ public class TermPageGroupEntry extends TermEntry {
 	private final SortedMap<Long, SortedSet<TermPageEntry>> editions = new TreeMap<Long, SortedSet<TermPageEntry>>();
 
 	TermPageGroupEntry(String sitebase) {
-		super(sitebase);
+		super(sitebase, 0);
 	}
 
 	@Override
-	protected int entryType() {
+	public TermEntry.EntryType entryType() {
 		throw new UnsupportedOperationException("Not supported yet.");
 	}
 
@@ -39,8 +39,9 @@ public class TermPageGroupEntry extends TermEntry {
 			editions.put(uskEdition, new TreeSet(RelevanceComparator.comparator));
 		editions.get(uskEdition).add(pageEntry);
 
-		if(rel < pageEntry.getRelevance())	// TODO enter better algorithm for calculating relevance here
-			rel = pageEntry.getRelevance();	// relevance should be on a per-edition basis, probably shouldnt use TermEntry at all
+		// URGENT rework this... TermEntry is supposed to be immutable
+		//if(rel < pageEntry.rel)	// TODO enter better algorithm for calculating relevance here
+		//	rel = pageEntry.rel;	// relevance should be on a per-edition basis, probably shouldnt use TermEntry at all
 	}
 
 	SortedMap<Long, SortedSet<TermPageEntry>> getEditions() {

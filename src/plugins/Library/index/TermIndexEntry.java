@@ -3,6 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
+import plugins.Library.index.TermEntry.EntryType;
+
 import freenet.keys.FreenetURI;
 
 /**
@@ -15,25 +17,12 @@ public class TermIndexEntry extends TermEntry {
 	/**
 	** Index target of this entry.
 	*/
-	protected FreenetURI index;
+	final public FreenetURI index;
 
-	/**
-	** Empty constructor for the JavaBean convention.
-	*/
-	public TermIndexEntry() { }
-
-	public TermIndexEntry(String s, FreenetURI i) {
-		super(s);
-		setIndex(i);
-	}
-
-	public FreenetURI getIndex() {
-		return index;
-	}
-
-	// OPTIMISE have some intern pool of FreenetURIs like we have for Token.
-	// Or just use a string instead?
-	public void setIndex(FreenetURI i) {
+	public TermIndexEntry(String s, float r, FreenetURI i) {
+		super(s, r);
+		// OPTIMISE have some intern pool of FreenetURIs like we have for Token.
+		// Or just use a string instead?
 		index = i;
 	}
 
@@ -41,9 +30,9 @@ public class TermIndexEntry extends TermEntry {
 	  abstract public class TermEntry
 	 ========================================================================*/
 
-	@Override public int entryType() {
+	@Override public EntryType entryType() {
 		assert(getClass() == TermIndexEntry.class);
-		return TermEntry.TYPE_INDEX;
+		return EntryType.INDEX;
 	}
 
 	@Override public int compareTo(TermEntry o) {

@@ -148,6 +148,15 @@
 		</copy>
 	</target>
 
+	<target name="compile-tester" depends="compile" if="tester">
+		<javac srcdir="test/" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
+			<classpath>
+				<path refid="lib.path"/>
+			</classpath>
+			<include name="plugins/Library/Tester.java"/>
+		</javac>
+	</target>
+
 	<target name="run" depends="dist">
 		<java classname="${packagebase}.ui.TestInterface">
 			<classpath>
@@ -193,7 +202,7 @@
 	</target>
 
 	<!-- ================================================== -->
-	<target name="jar" depends="compile,junit" description="create a jar package">
+	<target name="jar" depends="compile,compile-tester,junit" description="create a jar package">
 		<jar jarfile="${dist}/Library.jar" duplicate="fail">
 			<manifest>
 				<attribute name="Main-Class" value="${packagebase}.ui.TestInterface"/>

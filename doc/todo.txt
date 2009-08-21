@@ -41,7 +41,7 @@
 
 == TermEntry ==
 
-- PRIORITY make TokenEntries immutable, and make Yaml stuff to create/uncreate these...
+- PRIORITY revise the Yaml representation of TermEntry
 - TODO there should be only one entry per URI per Token (enforce this in the code at some point)
 
 == Serialisation ==

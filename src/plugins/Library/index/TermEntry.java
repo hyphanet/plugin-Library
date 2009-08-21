@@ -15,8 +15,6 @@ package plugins.Library.index;
 ** * {@link #equals(Object)}
 ** * {@link #hashCode()}
 **
-** TODO make these immutable and make Yaml constructors/representers for them
-**
 ** TODO better way to compare FreenetURIs than toString().compareTo() (this
 ** applies for TermIndexEntry, TokenPageEntry)
 **
@@ -24,50 +22,29 @@ package plugins.Library.index;
 */
 abstract public class TermEntry implements Comparable<TermEntry> {
 
-	// TODO maybe turn this into an enum at some point
-	final public static int TYPE_URI = 0x00;
-	final public static int TYPE_INDEX = 0xF1;
-	final public static int TYPE_TERM = 0xF2;
+	public enum EntryType {
+		INDEX, TERM, PAGE
+	};
 
 	/**
 	** Subject term of this entry.
 	*/
-	protected String subj;
+	final public String subj;
 
 	/**
 	** Relevance rating. Must be in the half-closed interval (0,1].
 	** a relevance of 0 indicates that the relevance is unset
 	*/
-	protected float rel;
+	final public float rel;
 
-	/**
-	** Empty constructor for the JavaBean convention.
-	*/
-	public TermEntry() { }
-
-	public TermEntry(String s) {
-		setSubject(s);
-	}
-
-	public String getSubject() {
-		return subj;
-	}
-
-	public void setSubject(String s) {
+	public TermEntry(String s, float r) {
 		if (s == null) {
 			throw new IllegalArgumentException("can't have a null subject!");
 		}
-		subj = s.intern();
-	}
-
-	public float getRelevance() {
-		return rel;
-	}
-
-	public void setRelevance(float r) {
 		if (r <= 0 || r > 1) {
-			throw new IllegalArgumentException("Relevance must be in the half-closed interval (0,1]. Supplied : "+r);
+			throw new IllegalArgumentException("Relevance must be in the half-closed interval (0,1]. Supplied: " + r);
 		}
+		subj = s.intern();
 		rel = r;
 	}
 
@@ -75,7 +52,7 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 	** Returns the type of TermEntry. This '''must''' be constant for
 	** instances of the same class, and different between classes.
 	*/
-	abstract protected int entryType();
+	abstract public EntryType entryType();
 
 	/**
 	** {@inheritDoc}
@@ -97,9 +74,8 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 		if (this == o) { return 0; }
 		if (rel != o.rel) { return (rel > o.rel)? -1: 1; }
 
-		int a = entryType(), b = o.entryType();
-		if (a != b) { return (a < b)? -1: 1; }
-		return 0;
+		EntryType a = entryType(), b = o.entryType();
+		return a.compareTo(b);
 	}
 
 	/**

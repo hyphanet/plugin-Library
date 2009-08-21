@@ -210,17 +210,18 @@ public class LibrarianHandler extends DefaultHandler {
 
 			for(FindRequest match : wordMatches){
 				Set<TermPageEntry> result = match.getUnfinishedResult();
-				TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), inFileURI, inFileTitle, termpositions);
-				result.add(pageEntry);
+				float relevance = 0;
 
 //					Logger.minor(this, "termcount "+termpositions.size()+" filewordcount = "+inFileWordCount);
 				if(termpositions!=null && termpositions.size()>0 && inFileWordCount>0 ){
-					float relevance = (float)(termpositions.size()/(float)inFileWordCount);
+					relevance = (float)(termpositions.size()/(float)inFileWordCount);
 					if( totalFileCount > 0 && inWordFileCount > 0)
 						relevance *=  Math.log( (float)totalFileCount/(float)inWordFileCount);
-					pageEntry.setRelevance( relevance );
-					Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.getRelevance()+" - "+pageEntry.toString());
+					//Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.rel+" - "+pageEntry.toString());
 				}
+
+				TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), relevance, inFileURI, inFileTitle, termpositions);
+				result.add(pageEntry);
 				//Logger.minor(this, "added "+inFileURI+ " to "+ match);
 			}
 		}

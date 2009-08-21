@@ -5,13 +5,20 @@ package plugins.Library.util;
 
 import junit.framework.TestCase;
 
+import plugins.Library.index.*;
+
+import freenet.keys.FreenetURI;
+
 import java.util.UUID;
 import java.util.Random;
+import java.net.MalformedURLException;
 
 /**
 ** @author infinity0
 */
-abstract public class Generators {
+final public class Generators {
+
+	private Generators() {}
 
 	public static String rndStr() {
 		return UUID.randomUUID().toString();
@@ -22,5 +29,13 @@ abstract public class Generators {
 	}
 
 	public static Random rand = new Random();
+
+	public static TermPageEntry rndEntry(String key) {
+		try {
+			return new TermPageEntry(key, (float)Math.random(), new FreenetURI("CHK@" + rndStr().replace('-', 'Z')), null);
+		} catch (MalformedURLException e) {
+			throw new AssertionError("Bad URL generation code");
+		}
+	}
 
 }

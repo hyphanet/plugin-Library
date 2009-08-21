@@ -111,7 +111,7 @@ public class ResultNodeGenerator implements Runnable {
 				long uskEdition = Long.MIN_VALUE;
 				// Get the key and name
 				FreenetURI uri;
-				uri = pageEntry.getURI();
+				uri = pageEntry.page;
 				// convert usk's
 				if(uri.isSSKForUSK()){
 					uri = uri.uskForSSK();
@@ -181,7 +181,7 @@ public class ResultNodeGenerator implements Runnable {
 			Iterator<TermPageGroupEntry> it2 = groupSet.iterator();
 			while (it2.hasNext()) {
 				TermPageGroupEntry group = it2.next();
-				String keybase = group.getSubject();
+				String keybase = group.subj;
 				SortedMap<Long, SortedSet<TermPageEntry>> siteMap = group.getEditions();
 				HTMLNode siteNode = pageEntryNode.addChild("div", "style", "padding-bottom: 6px;");
 				// Create a block for old versions of this SSK
@@ -243,15 +243,15 @@ public class ResultNodeGenerator implements Runnable {
 	 * @return
 	 */
 	private HTMLNode termPageEntryNode(TermPageEntry entry,boolean newestVersion) {
-		FreenetURI uri = entry.getURI();
-		String showtitle = entry.getTitle();
+		FreenetURI uri = entry.page;
+		String showtitle = entry.title;
 		String showurl = uri.toShortString();
 		if (showtitle == null || showtitle.trim().length() == 0) {
 			showtitle = showurl;
 		}
 		String realurl = "/" + uri.toString();
 		HTMLNode pageNode = new HTMLNode("div", new String[]{"class", "style"}, new String[]{"result-entry", ""});
-		pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realurl, (newestVersion ? "result-title-new" : "result-title-old"), (entry.getRelevance()>0)?"Relevance : "+(entry.getRelevance()*100)+"%":"Relevance unknown"}, showtitle);
+		pageNode.addChild("a", new String[]{"href", "class", "title"}, new String[]{realurl, (newestVersion ? "result-title-new" : "result-title-old"), (entry.rel>0)?"Relevance : "+(entry.rel*100)+"%":"Relevance unknown"}, showtitle);
 		// create usk url
 		if (uri.isSSKForUSK()) {
 			String realuskurl = "/" + uri.uskForSSK().toString();

@@ -32,20 +32,16 @@ public class TermEntryTest extends TestCase {
 
 		Map<String, Object> map = new HashMap<String, Object>();
 
-		TermTermEntry w  = new TermTermEntry("test", "lol");
-		w.setRelevance(0.8f);
+		TermTermEntry w  = new TermTermEntry("test", 0.8f, "lol");
 		TermIndexEntry x = null;
 		TermPageEntry z = null;
 		try {
-			x = new TermIndexEntry("test", new FreenetURI("CHK@yeah"));
-			x.setRelevance(0.8f);
-			z = new TermPageEntry("lol", new FreenetURI("CHK@yeah"));
-			z.setRelevance(0.8f);
+			x = new TermIndexEntry("test", 0.8f, new FreenetURI("CHK@yeah"));
+			z = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@yeah"), null);
 		} catch (MalformedURLException e) {
 			// pass
 		}
-		TermTermEntry y  = new TermTermEntry("test", "lol2");
-		y.setRelevance(0.8f);
+		TermTermEntry y  = new TermTermEntry("test", 0.8f, "lol2");
 
 		List<TermEntry> l = new ArrayList<TermEntry>();
 		l.add(w);

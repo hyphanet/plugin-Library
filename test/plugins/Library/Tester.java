@@ -156,14 +156,8 @@ public class Tester {
 						SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
 						ProtoIndexComponentSerialiser.get().setSerialiserFor(entries);
 						int n = rand.nextInt(0x200) + 0x200;
-						try {
-							for (int j=0; j<n; ++j) {
-								TermEntry e = new TermPageEntry(key, new FreenetURI("CHK@fake~~~~" + UUID.randomUUID().toString().replace('-','~')));
-								e.setRelevance((float)Math.random());
-								entries.add(e);
-							}
-						} catch (java.net.MalformedURLException e) {
-							throw new AssertionError(e);
+						for (int j=0; j<n; ++j) {
+							entries.add(Generators.rndEntry(key));
 						}
 						// URGENT use a WriteableIndex and make ProtoIndex's ttab protected again
 						idx.ttab.put(key, entries);

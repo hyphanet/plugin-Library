@@ -270,7 +270,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 		for (Iterator<? extends TermEntry> it = firstCollection.iterator(); it.hasNext();) {
 			TermEntry termEntry = it.next();
 			// if term entry is contained in all the other collections add it
-			float combinedrelevance = termEntry.getRelevance();
+			float combinedrelevance = termEntry.rel;
 
 			int i;
 			for (i = 1; i < collections.length; i++) {
@@ -281,12 +281,10 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 				if ( termEntry2 == null )
 					break;
 				else	// add to combined relevance
-					combinedrelevance += termEntry2.getRelevance();
+					combinedrelevance += termEntry2.rel;
 			}
 			if (i==collections.length){
-				TermEntry newEntry = convertEntry(termEntry);
-				if(combinedrelevance != 0)
-					newEntry.setRelevance(combinedrelevance/collections.length);	// New relevance is mean of the others
+				TermEntry newEntry = convertEntry(termEntry, combinedrelevance/collections.length);
 				addInternal(newEntry);
 			}
 		}
@@ -306,9 +304,9 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 				continue;
 			// if term entry is followed in all the others, add it to this
 			TermPageEntry termPageEntry = (TermPageEntry)termEntry;
-			if(termPageEntry.getPositions() == null)
+			if(termPageEntry.pos == null)
 				continue;
-			Map<Integer, String> positions = new HashMap(termPageEntry.getPositions());
+			Map<Integer, String> positions = new HashMap(termPageEntry.pos);
 
 			int i;	// Iterate over the other collections, checking for following
 			for (i = 1; positions != null && i < collections.length && positions.size() > 0; i++) {
@@ -317,36 +315,38 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 					continue;	// Treat stop words as blanks, dont check
 				// See if collection follows termEntry
 				TermPageEntry termPageEntry1 = (TermPageEntry)getIgnoreSubject(termPageEntry, collection);
-				if(termPageEntry1==null || termPageEntry1.getPositions()==null)	// If collection doesnt contain this termpageentry or has not positions, it does not follow
+				if(termPageEntry1==null || termPageEntry1.pos==null)	// If collection doesnt contain this termpageentry or has not positions, it does not follow
 					positions = null;
 				else{
 					for (Iterator<Integer> it = positions.keySet().iterator(); it.hasNext();) {
 						int posi = it.next();
-						if ( !termPageEntry1.getPositions().containsKey(posi+i) )
+						if ( !termPageEntry1.pos.containsKey(posi+i) )
 							it.remove();
 						else
-							Logger.minor(this, termPageEntry.getURI() + "["+positions.keySet()+"] is followed by "+termPageEntry1.getURI()+"["+termPageEntry1.getPositions().keySet()+"] +"+i);
+							Logger.minor(this, termPageEntry.page + "["+positions.keySet()+"] is followed by "+termPageEntry1.page+"["+termPageEntry1.pos.keySet()+"] +"+i);
 					}
 				}
 			}
 			// if this termentry has any positions remaining, add it
 			if(positions != null && positions.size() > 0)
-				addInternal(new TermPageEntry(subject, termPageEntry.getURI(), termPageEntry.getTitle(), positions));
+				addInternal(new TermPageEntry(subject, termPageEntry.rel, termPageEntry.page, termPageEntry.title, positions));
 		}
 	}
 
 	private TermEntry convertEntry(TermEntry termEntry) {
+		return convertEntry(termEntry, termEntry.rel);
+	}
+
+	private TermEntry convertEntry(TermEntry termEntry, float rel) {
 		TermEntry entry;
 		if (termEntry instanceof TermTermEntry)
-			entry = new TermTermEntry( subject, ((TermTermEntry)termEntry).getTerm() );
+			entry = new TermTermEntry(subject, rel, ((TermTermEntry)termEntry).term );
 		else if (termEntry instanceof TermPageEntry)
-			entry = new TermPageEntry( subject, ((TermPageEntry)termEntry).getURI(), ((TermPageEntry)termEntry).getTitle(), ((TermPageEntry)termEntry).getPositions() );
+			entry = new TermPageEntry(subject, rel, ((TermPageEntry)termEntry).page, ((TermPageEntry)termEntry).title, ((TermPageEntry)termEntry).pos );
 		else if (termEntry instanceof TermIndexEntry)
-			entry = new TermIndexEntry( subject, ((TermIndexEntry)termEntry).getIndex() );
+			entry = new TermIndexEntry(subject, rel, ((TermIndexEntry)termEntry).index );
 		else
 			throw new UnsupportedOperationException("The TermEntry type " + termEntry.getClass().getName() + " is not currently supported in ResultSet");
-		if(termEntry.getRelevance()>0)
-			entry.setRelevance(termEntry.getRelevance());
 		return entry;
 	}
 
@@ -370,16 +370,13 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 
 		// This mess could be replaced by a method in the TermEntrys which returns a new TermEntry with a changed subject
 		if(combination instanceof TermIndexEntry){
-			combination = new TermIndexEntry(subject, ((TermIndexEntry)combination).getIndex());
+			combination = new TermIndexEntry(subject, entries[0].rel, ((TermIndexEntry)combination).index);
 		} else if(combination instanceof TermPageEntry){
-			combination = new TermPageEntry(subject, ((TermPageEntry)combination).getURI(), ((TermPageEntry)combination).getTitle(), ((TermPageEntry)combination).getPositions());
+			combination = new TermPageEntry(subject, entries[0].rel, ((TermPageEntry)combination).page, ((TermPageEntry)combination).title, ((TermPageEntry)combination).pos);
 		} else if(combination instanceof TermTermEntry){
-			combination = new TermTermEntry(subject, ((TermTermEntry)combination).getTerm());
+			combination = new TermTermEntry(subject, entries[0].rel, ((TermTermEntry)combination).term);
 		} else
 			throw new IllegalArgumentException("Unknown type : "+combination.getClass().toString());
-
-		if(entries[0].getRelevance()>0)
-			combination.setRelevance(entries[0].getRelevance());
 
 		for (int i = 1; i < entries.length; i++) {
 			TermEntry termEntry = entries[i];
@@ -393,41 +390,36 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 		if(!entry1.equalsTarget(entry2))
 			throw new IllegalArgumentException("Combine can only be performed on equal TermEntrys");
 
-		TermEntry newTermEntry;
+		float newRel = entry1.rel / ((entry2.rel == 0)? 1 : 2 ) + entry2.rel / ((entry1.rel == 0)? 1 : 2 );
 
 		if(entry1 instanceof TermPageEntry){
 			TermPageEntry pageentry1 = (TermPageEntry)entry1;
 			TermPageEntry pageentry2 = (TermPageEntry)entry2;
 			// Merge positions
 			Map newPos = null;
-			if(pageentry1.getPositions() == null && pageentry2.getPositions() != null)
-				newPos = new HashMap(pageentry2.getPositions());
-			else if(pageentry1.getPositions() != null){
-				newPos = new HashMap(pageentry1.getPositions());
-				if(pageentry2.getPositions() != null)
-					newPos.putAll(pageentry2.getPositions());
+			if(pageentry1.pos == null && pageentry2.pos != null)
+				newPos = new HashMap(pageentry2.pos);
+			else if(pageentry1.pos != null){
+				newPos = new HashMap(pageentry1.pos);
+				if(pageentry2.pos != null)
+					newPos.putAll(pageentry2.pos);
 			}
+			return new TermPageEntry(pageentry1.subj, newRel, pageentry1.page, (pageentry1.title!=null)?pageentry1.title:pageentry2.title, newPos);
 
-			newTermEntry = new TermPageEntry(pageentry1.getSubject(), pageentry1.getURI(), (pageentry1.getTitle()!=null)?pageentry1.getTitle():pageentry2.getTitle(), newPos);
 		} else if(entry1 instanceof TermIndexEntry){
 			TermIndexEntry castEntry = (TermIndexEntry) entry1;
 			// nothing to merge, no optional fields	except relevance
-			newTermEntry = new TermIndexEntry(castEntry.getSubject(), castEntry.getIndex());
+			return new TermIndexEntry(castEntry.subj, newRel, castEntry.index);
+
 		} else if(entry1 instanceof TermTermEntry){
 			// nothing to merge, no optional fields	except relevance
 			TermTermEntry castEntry = (TermTermEntry) entry1;
 
-			newTermEntry = new TermTermEntry(castEntry.getSubject(), castEntry.getTerm());
+			return new TermTermEntry(castEntry.subj, newRel, castEntry.term);
+
 		} else
 			throw new UnsupportedOperationException("This type of TermEntry is not yet supported in the combine code : "+entry1.getClass().getName());
 
-
-		// Merge rel
-		float newRel = entry1.getRelevance() / ((entry2.getRelevance() == 0)? 1 : 2 ) + entry2.getRelevance() / ((entry1.getRelevance() == 0)? 1 : 2 );
-		if(newRel>0)
-			newTermEntry.setRelevance(newRel);
-
-		return newTermEntry;
 	}
 
 	/**

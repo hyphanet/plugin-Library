@@ -16,11 +16,11 @@ public class RelevanceComparator extends IdentityComparator<TermEntry>  {
 
 
 	public static final RelevanceComparator comparator = new RelevanceComparator();
-	
+
 	@Override
 	public int compare(TermEntry o1, TermEntry o2) {
-		float rel1 = o1.getRelevance();
-		float rel2 = o2.getRelevance();
+		float rel1 = o1.rel;
+		float rel2 = o2.rel;
 
 		if(rel1 == rel2)
 			return super.compare(o1, o2);

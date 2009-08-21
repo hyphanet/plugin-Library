@@ -3,6 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
+import plugins.Library.index.TermEntry.EntryType;
+
 /**
 ** A {@link TermEntry} that associates a subject term with a related term.
 **
@@ -13,48 +15,23 @@ public class TermTermEntry extends TermEntry {
 	/**
 	** Related term target for this entry.
 	*/
-	protected String term;
+	final public String term;
 
-	/**
-	** Empty constructor for the JavaBean convention.
-	*/
-	public TermTermEntry() { }
-
-	public TermTermEntry(String s, String t) {
-		super(s);
-		setTerm(t);
-	}
-
-	/**
-	** Allow an entry with relevance=1 only in the constructor. This is used
-	** by Interdex's recursive search algorithm.
-	*/
-	public TermTermEntry(boolean d) {
-		if (d) { rel = 1; }
-	}
-
-	public String getTerm() {
-		return term;
-	}
-
-	public void setTerm(String t) {
-		term = (t == null)? null: t.intern();
-	}
-
-	@Override public void setRelevance(float r) {
-		if (r < 0 || r >= 1) {
-			throw new IllegalArgumentException("Relevance must be in the half-open interval [0,1).");
+	public TermTermEntry(String s, float r, String t) {
+		super(s, r);
+		if (t == null) {
+			throw new IllegalArgumentException("can't have a null term!");
 		}
-		super.setRelevance(r);
+		term = t.intern();
 	}
 
 	/*========================================================================
 	  abstract public class TermEntry
 	 ========================================================================*/
 
-	@Override public int entryType() {
+	@Override public EntryType entryType() {
 		assert(getClass() == TermTermEntry.class);
-		return TermEntry.TYPE_TERM;
+		return EntryType.TERM;
 	}
 
 	@Override public int compareTo(TermEntry o) {
