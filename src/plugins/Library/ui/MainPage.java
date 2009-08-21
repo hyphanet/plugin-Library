@@ -182,7 +182,7 @@ class MainPage {
 				//Logger.normal(this, "starting search for "+query+" on "+indexuri);
 				page.search = Search.startSearch(page.query, page.indexstring);
 				if(page.search == null)
-					page.messages.append("Stopwords too prominent in search term, try removing words like 'the, 'and' and 'that' and any words less than 3 characters");
+					page.messages.append("Stopwords too prominent in search term, try removing words like 'the', 'and' and 'that' and any words less than 3 characters");
 				else{
 					page.search.setMakeResultNode(page.groupusk, page.showold, true);	// for the moment js will always be on for results, js detecting isnt being used
 
