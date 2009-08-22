@@ -72,7 +72,7 @@ public class Tester {
 		if (push_progress_thread == null) {
 			push_progress_thread = new Thread() {
 				YamlReaderWriter yamlrw = new YamlReaderWriter();
-				FreenetArchiver arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000);
+				FreenetArchiver<Map<String, Integer>> arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000);
 
 				@Override public void run() {
 					push_progress_start = new Date();

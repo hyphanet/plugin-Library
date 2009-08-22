@@ -63,7 +63,7 @@ public class TermPageEntry extends TermEntry {
 		super(s, r);
 		page = u; // OPTIMISE make the translator use the same URI object as from the URI table?
 		title = t;
-		pos = Collections.unmodifiableMap(p); // TODO could be more efficient...
+		pos = (p == null)? Collections.<Integer, String>emptyMap(): Collections.unmodifiableMap(p); // TODO could be more efficient...
 	}
 
 	/*========================================================================
