@@ -225,7 +225,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 					}
 				} catch (Exception e) {
 					//java.lang.InstantiationException
-					//java.lang.IllegalArgumentException
+					//java.lang.IllegalAccessException
 					//java.lang.reflect.InvocationTargetException
 					throw new ConstructorException("while constructing a TermEntry", node.getStartMark(), "could not instantiate map " + map, null, e) {};
 				}

@@ -352,7 +352,7 @@ public class ObjectBlueprint<T> {
 		** through the properties in the same order in which they were added
 		** to the builder.
 		*/
-		final public Map<String, String> props = new LinkedHashMap<String, String>();
+		final protected Map<String, String> props = new LinkedHashMap<String, String>();
 
 		/**
 		** Construct a builder for an {@link ObjectBlueprint} for the given

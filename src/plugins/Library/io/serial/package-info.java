@@ -2,8 +2,8 @@
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
 /**
-** Contains the serialisation engine and related classes, such as progress
-** trackers.
+** Contains the serialisation engine and related classes and interfaces, such
+** as {@link ProgressTracker} and {@link Translator}
 **
 ** @author infinity0
 */
