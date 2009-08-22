@@ -25,7 +25,7 @@ import java.lang.reflect.InvocationTargetException;
 **
 ** The class will automatically look for a constructor for the target class
 ** whose parameters match up to the types of the properties defined for the
-** blueprint. See {@link #ObjectBlueprint()} for more details.
+** blueprint. See {@link #ObjectBlueprint(Class, Map)} for more details.
 **
 ** TODO maybe make the map-view mutable, and split off the constructor into
 ** a separate class so it's not necessary to have the params match up?
@@ -134,6 +134,33 @@ public class ObjectBlueprint<T> {
 		return cls;
 	}
 
+	final static Map<Class<?>, Class<?>> boxes = new IdentityHashMap<Class<?>, Class<?>>();
+	static {
+		boxes.put(boolean.class, Boolean.class);
+		boxes.put(byte.class, Byte.class);
+		boxes.put(char.class, Character.class);
+		boxes.put(short.class, Short.class);
+		boxes.put(int.class, Integer.class);
+		boxes.put(long.class, Long.class);
+		boxes.put(float.class, Float.class);
+		boxes.put(double.class, Double.class);
+	}
+
+	/**
+	** Casts a value to the reference type corresponding to the primitive type.
+	**
+	** @param cls The primitive class
+	** @param val The value to cast
+	** @throws ClassCastException if the cast cannot be made
+	*/
+	protected static <T> Object boxCast(Class<T> cls, Object val) throws ClassCastException {
+		Class<?> tcls = boxes.get(cls);
+		if (tcls == null) {
+			throw new IllegalArgumentException("Input class must be a primitive type.");
+		}
+		return tcls.cast(val);
+	}
+
 	/**
 	** Constructs a new object from the given map of properties and their
 	** desired values.
@@ -159,26 +186,6 @@ public class ObjectBlueprint<T> {
 			initargs[i++] = value;
 		}
 		return constructor.newInstance(initargs);
-	}
-
-	final static Map<Class<?>, Class<?>> boxes = new IdentityHashMap<Class<?>, Class<?>>();
-	static {
-		boxes.put(boolean.class, Boolean.class);
-		boxes.put(byte.class, Byte.class);
-		boxes.put(char.class, Character.class);
-		boxes.put(short.class, Short.class);
-		boxes.put(int.class, Integer.class);
-		boxes.put(long.class, Long.class);
-		boxes.put(float.class, Float.class);
-		boxes.put(double.class, Double.class);
-	}
-
-	protected static <T> Object boxCast(Class<T> cls, Object val) {
-		Class<?> tcls = boxes.get(cls);
-		if (tcls == null) {
-			throw new IllegalArgumentException("Can't cast an object to void");
-		}
-		return tcls.cast(val);
 	}
 
 	/**
