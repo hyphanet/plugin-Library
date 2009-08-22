@@ -30,62 +30,68 @@ import java.lang.reflect.InvocationTargetException;
 ** TODO maybe make the map-view mutable, and split off the constructor into
 ** a separate class so it's not necessary to have the params match up?
 **
+** TODO probably move this to another package, maybe util.reflect
+**
 ** @author infinity0
 */
 public class ObjectBlueprint<T> {
 
+	/**
+	** The class that this blueprint represents.
+	*/
 	final protected Class<T> cls;
 
+	/**
+	** Map of properties to their method names. A null or empty name implies
+	** a field with the same name as the property.
+	*/
 	final protected Map<String, String> properties;
 
+	/**
+	** Map of properties to their corresponding fields. This is automatically
+	** generated from the {@link #properties} map.
+	*/
 	final private Map<String, Field> prop_fields = new HashMap<String, Field>();
 
+	/**
+	** Map of properties to their corresponding getter methods. This is
+	** automatically generated from the {@link #properties} map.
+	*/
 	final private Map<String, Method> prop_methods = new HashMap<String, Method>();
 
+	/**
+	** Map of properties to their corresponding types. This is automatically
+	** generated from the {@link #properties} map.
+	*/
 	final protected Map<String, Class<?>> param_type = new LinkedHashMap<String, Class<?>>();
 
+	/**
+	** A constructor for the class, whose parameter types are the values of
+	** {@link #param_type} in the same iteration order. This is automatically
+	** from the class object, and must exist (otherwise construction of the
+	** blueprint will throw {@link NoSuchMethodException}).
+	*/
 	final protected Constructor<T> constructor;
 
 	/**
-	** Constructs a blueprint from the given collection of field names. This
-	** constructor just creates a blueprint map to delegate to the other
-	** constructor, with the keys being the items of the collection, and the
-	** values being {@code null}. The iteration order is preserved, with
-	** duplicate elements being ignored.
-	**
-	** @param fields Collection of field names.
-	** @throws NoSuchFieldException if Java reflection can't find an inferred
-	**         field
-	** @throws NoSuchMethodException if Java reflection can't find a given
-	**         method or the inferred constructor
-	*/
-	public ObjectBlueprint(Class<T> c, Collection<String> fields) throws NoSuchFieldException, NoSuchMethodException {
-		this(c, makeBlueprintFromFields(fields));
-	}
-
-	private static Map<String, String> makeBlueprintFromFields(Collection<String> fields) {
-		Map<String, String> blueprint = new LinkedHashMap<String, String>();
-		for (String s: fields) {
-			blueprint.put(s, null);
-		}
-		return blueprint;
-	}
-
-	/**
 	** Constructs a blueprint from the given properties map. The keys are the
-	** property names; the values are the names of the methods to invoke to
-	** retrieve the property-values. (If any map-value is null, then the field
-	** with the same name as its map-key will be used instead.)
+	** property names; the values are the names of the nullary methods to
+	** invoke to retrieve the property-values. (If any map-value is null, then
+	** the field with the same name as its map-key will be used instead.)
 	**
 	** Once the properties have been parsed, a constructor will be inferred,
 	** whose argument types are the types of the properties in which they were
 	** encountered in the blueprint map. For example, if your class has two
-	** fields {@code int field_a} and {@code float field_b} and you gave a
-	** {@link LinkedHashMap} mapping {"field_b":null, "field_a":null}, a
-	** constructor with parameters {@code (float, int)} will be searched for.
-	** If it does not exist, {@link NoSuchMethodException} will be thrown.
+	** fields {@code int field_a} and {@code float field_b} and {@code
+	** blueprint} is a {@link LinkedHashMap} mapping <code>{"field_b":null,
+	** "field_a":null}</code>, this method will search for the constructor with
+	** parameters {@code (float, int)}. If it doesn't exist, {@link
+	** NoSuchMethodException} will be thrown.
 	**
-	** TODO maybe split off this constructor inferring into a subclass?
+	** '''Note''': if you don't have the map ready at hand, and it's a mixture
+	** of methods and fields, consider using {@link #init(Class)} instead.
+	**
+	** TODO maybe split off the constructor-inferring into a subclass?
 	**
 	** @param c The class to represent
 	** @param blueprint The map of properties
@@ -118,6 +124,56 @@ public class ObjectBlueprint<T> {
 		constructor = cls.getConstructor(param_type.values().toArray(new Class<?>[param_type.size()]));
 	}
 
+	/**
+	** Returns a builder for an {@link ObjectBlueprint} for the given class.
+	** This should make construction of blueprints neater in source code, eg:
+	**
+	**   ObjectBlueprint<MyClass> bprint =
+	**     ObjectBlueprint.init(MyClass.class)
+	**       .addFields("name", "origin", "date")
+	**       .addMethod("height", "getHeight")
+	**       .addMethod("width", "getWidth")
+	**       .build();
+	**
+	** @see <a href="http://en.wikipedia.org/wiki/Builder_pattern">Builder
+	**      Pattern</a>
+	*/
+	public static <T> Builder<T> init(Class<T> cls) {
+		return new Builder(cls);
+	}
+
+	/**
+	** Constructs a blueprint from the given collection of field names. This
+	** constructor just creates a blueprint map to delegate to the other
+	** constructor, with the keys being the items of the collection, and the
+	** values being {@code null}. The iteration order is preserved, with
+	** duplicate elements being ignored.
+	**
+	** @param fields Collection of field names.
+	** @throws NoSuchFieldException if Java reflection can't find an inferred
+	**         field
+	** @throws NoSuchMethodException if Java reflection can't find a given
+	**         method or the inferred constructor
+	*/
+	public ObjectBlueprint(Class<T> c, Collection<String> fields) throws NoSuchFieldException, NoSuchMethodException {
+		this(c, makePropertiesFromFields(fields));
+	}
+
+	/**
+	** Helper method for {@link #ObjectBlueprint(Class, Collection)}.
+	*/
+	private static Map<String, String> makePropertiesFromFields(Collection<String> fields) {
+		Map<String, String> blueprint = new LinkedHashMap<String, String>();
+		for (String s: fields) {
+			blueprint.put(s, null);
+		}
+		return blueprint;
+	}
+
+	public Class<T> getObjectClass() {
+		return cls;
+	}
+
 	public Constructor<T> getObjectConstructor() {
 		return constructor;
 	}
@@ -125,16 +181,20 @@ public class ObjectBlueprint<T> {
 	/**
 	** Constructs a new object by invoking the inferred constructor with the
 	** given list of arguments.
+	**
+	** @see Constructor#newInstance(Object[])
 	*/
 	public T newInstance(Object... initargs) throws InstantiationException, IllegalAccessException, InvocationTargetException {
 		return constructor.newInstance(initargs);
 	}
 
-	public Class<T> getObjectClass() {
-		return cls;
-	}
-
-	final static Map<Class<?>, Class<?>> boxes = new IdentityHashMap<Class<?>, Class<?>>();
+	/**
+	** Map of primitive classes to their object classes.
+	**
+	** TODO would be better to use google-collections' ImmutableMap but this
+	** will add 500KB as a dependency..
+	*/
+	final private static Map<Class<?>, Class<?>> boxes = new IdentityHashMap<Class<?>, Class<?>>();
 	static {
 		boxes.put(boolean.class, Boolean.class);
 		boxes.put(byte.class, Byte.class);
@@ -147,11 +207,12 @@ public class ObjectBlueprint<T> {
 	}
 
 	/**
-	** Casts a value to the reference type corresponding to the primitive type.
+	** Casts a value to the object type for the given primitive type.
 	**
 	** @param cls The primitive class
 	** @param val The value to cast
 	** @throws ClassCastException if the cast cannot be made
+	** @throws IllegalArgumentException if the input class is not a primitive
 	*/
 	protected static <T> Object boxCast(Class<T> cls, Object val) throws ClassCastException {
 		Class<?> tcls = boxes.get(cls);
@@ -166,6 +227,7 @@ public class ObjectBlueprint<T> {
 	** desired values.
 	**
 	** @param map Map of properties to their desired values.
+	** @see Constructor#newInstance(Object[])
 	*/
 	public T objectFromMap(Map<?, ?> map) throws InstantiationException, IllegalAccessException, InvocationTargetException {
 		Object[] initargs = new Object[param_type.size()];
@@ -192,13 +254,17 @@ public class ObjectBlueprint<T> {
 	** Returns a map-view of an object. The keys are its properties as defined
 	** by the blueprint, and the values are the values of those properties.
 	** The map is backed by the object, so changes to the object (if any) are
+	** reflected in the map. The map itself is immutable, however (for now;
+	** this might be changed later).
 	**
-	** NOTE: the below implementation is technically not optimal since
-	** AbstractMap's remove methods (inc. its entry/key/value views') actually
-	** iterate over the map looking for the key. However, most objects only
-	** have a small (<20) number of properties so this shouldn't be much of an
-	** issue. If it is for you, then feel free to implement the more optimal
-	** solution.
+	** NOTE: the below implementation is technically not optimal since {@link
+	** AbstractMap}'s remove methods (and that of its entry/key/value views)
+	** actually iterate over the map looking for the key. However, this
+	** shouldn't be an issue since the map doesn't support remove (calling it
+	** will only throw {@link UnsupportedOperationException} when the key is
+	** found), and most objects only have a small (<20) number of properties.
+	** If you find that you need such functionality, feel free to implement a
+	** more optimal solution.
 	**
 	** @param object The object to view as a map.
 	*/
@@ -274,47 +340,78 @@ public class ObjectBlueprint<T> {
 	}
 
 	/**
-	** Returns a {@code ObjectBlueprintBuilder} for the given class.
+	** Builder for a {@link ObjectBlueprint}. This class is protected; use
+	** {@link ObjectBlueprint#init(Class)} to create one of these.
 	*/
-	public static <T> ObjectBlueprintBuilder<T> init(Class<T> cls) {
-		return new ObjectBlueprintBuilder(cls);
-	}
-
-	/**
-	** Builder for a {@link ObjectBlueprint}.
-	*/
-	public static class ObjectBlueprintBuilder<T> {
+	protected static class Builder<T> {
 
 		final public Class<T> cls;
 
+		/**
+		** Properties map. This uses {@link LinkedHashMap}, which iterates
+		** through the properties in the same order in which they were added
+		** to the builder.
+		*/
 		final public Map<String, String> props = new LinkedHashMap<String, String>();
 
-		public ObjectBlueprintBuilder(Class<T> c) {
+		/**
+		** Construct a builder for an {@link ObjectBlueprint} for the given
+		** class.
+		*/
+		public Builder(Class<T> c) {
 			cls = c;
 		}
 
-		public ObjectBlueprintBuilder<T> addMethodProperty(String property, String method_name) {
+		/**
+		** @return {@code this}
+		*/
+		public Builder<T> addMethod(String property, String method_name) {
 			props.put(property, method_name);
 			return this;
 		}
 
-		public ObjectBlueprintBuilder<T> addFieldProperty(String field) {
+		/**
+		** @return {@code this}
+		*/
+		public Builder<T> addField(String field) {
 			props.put(field, null);
 			return this;
 		}
 
-		public ObjectBlueprintBuilder<T> addMethodProperties(Map<String, String> properties) {
+		/**
+		** @return {@code this}
+		*/
+		public Builder<T> addMethods(Map<String, String> properties) {
 			props.putAll(properties);
 			return this;
 		}
 
-		public ObjectBlueprintBuilder<T> addFieldProperties(Collection<String> fields) {
+		/**
+		** @return {@code this}
+		*/
+		public Builder<T> addFields(Collection<String> fields) {
 			for (String field: fields) {
 				props.put(field, null);
 			}
 			return this;
 		}
 
+		/**
+		** @return {@code this}
+		*/
+		public Builder<T> addFields(String... fields) {
+			for (String field: fields) {
+				props.put(field, null);
+			}
+			return this;
+		}
+
+		/**
+		** Build a blueprint from the properties given to the builder so far.
+		**
+		** @return The built blueprint
+		** @see ObjectBlueprint#ObjectBlueprint(Class, Map)
+		*/
 		public ObjectBlueprint<T> build() throws NoSuchFieldException, NoSuchMethodException {
 			return new ObjectBlueprint(cls, props);
 		}
