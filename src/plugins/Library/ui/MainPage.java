@@ -242,6 +242,12 @@ class MainPage {
 	 * freenet.support.HTMLNode)
 	 */
 	public void writeContent(HTMLNode contentNode, MultiValueTable<String, String> headers) {
+		HTMLNode errorDiv = contentNode.addChild("div", "id", "errors");
+
+		for (Exception exception : exceptions) {
+			addError(errorDiv, exception, messages);
+		}
+		
 		try{
 			//Logger.normal(this, "Writing page for "+ query + " " + search + " " + indexuri);
 			contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", "/library/static/script.js"}).addChild("%", " ");
@@ -257,9 +263,6 @@ class MainPage {
 			contentNode.addChild(searchBox());
 
 
-			// Show any errors
-			HTMLNode errorDiv = contentNode.addChild("div", "id", "errors");
-			contentNode.addChild("p", messages.toString());
 
 
 			// If showing a search
@@ -288,9 +291,6 @@ class MainPage {
 			}
 
 
-			for (Exception exception : exceptions) {
-				addError(errorDiv, exception, messages);
-			}
 
 
 			// Don't refresh if there is no request option, if it is finished or there is an error to show or js is enabled
@@ -305,8 +305,11 @@ class MainPage {
 		}catch(TaskAbortException e) {
 			exceptions.add(e);
 			search = null;
-			writeContent(contentNode, headers);
+			addError(errorDiv, e, messages);
 		}
+
+		// Show any errors
+		errorDiv.addChild("p", messages.toString());
 	}
 
 

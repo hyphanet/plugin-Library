@@ -4,7 +4,6 @@
 package plugins.Library.index.xml;
 
 import plugins.Library.index.TermPageEntry;
-import plugins.Library.index.TermEntry;
 
 import freenet.support.Logger;
 import freenet.keys.FreenetURI;

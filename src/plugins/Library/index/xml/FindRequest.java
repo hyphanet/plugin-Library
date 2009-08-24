@@ -71,6 +71,7 @@ public class FindRequest extends AbstractExecution<Set<TermEntry>> implements Co
 
 	/**
 	 * Moves the unfinished result so that the Progress is marked as finsihed
+	 * TODO get rid of this way of doing it
 	 */
 	public void setFinished(){
 		super.setResult(Collections.<TermEntry>unmodifiableSet(resultnotfinished));
@@ -99,7 +100,8 @@ public class FindRequest extends AbstractExecution<Set<TermEntry>> implements Co
 	}
 
 	@Override
-	public boolean isDone(){
+	public boolean isDone() throws TaskAbortException{
+		super.isDone();
 		return currentProgress.stage==Stages.DONE;
 	}
 

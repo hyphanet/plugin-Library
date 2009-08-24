@@ -465,6 +465,8 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				fetchStatus = FetchStatus.FAILED;
 				this.error = e;
 				Logger.error(this, "Dropping from subindex run loop", e);
+				for (FindRequest r : parsingSubindex)
+					r.setError(e);
 				for (FindRequest r : waitingOnSubindex)
 					r.setError(e);
 			}

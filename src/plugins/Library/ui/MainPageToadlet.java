@@ -14,6 +14,7 @@ import freenet.clients.http.ToadletContextClosedException;
 import freenet.node.NodeClientCore;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLNode;
+import freenet.support.Logger;
 import freenet.support.MultiValueTable;
 import freenet.support.api.HTTPRequest;
 
@@ -55,7 +56,8 @@ public class MainPageToadlet extends Toadlet {
 			page.writeContent(contentNode, headers);
 			// write reply
 			writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
-		} catch(RuntimeException e) {
+		} catch(RuntimeException e) {	// this way isnt working particularly well, i think the ctx only gives out one page maker
+			Logger.error(this, "Runtime Exception writing main page", e);
 			PageNode p = ctx.getPageMaker().getPageNode(Library.plugName, ctx);
 			// Style
 			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/style.css", "text/css"});
@@ -94,6 +96,7 @@ public class MainPageToadlet extends Toadlet {
 			// write reply
 			writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
 		} catch(RuntimeException e) {
+			Logger.error(this, "Runtime Exception writing main page", e);
 			PageNode p = ctx.getPageMaker().getPageNode(Library.plugName, ctx);
 			// Style
 			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/style.css", "text/css"});

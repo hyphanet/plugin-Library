@@ -41,7 +41,7 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 		if (s == null) {
 			throw new IllegalArgumentException("can't have a null subject!");
 		}
-		if (r <= 0 || r > 1) {
+		if (r < 0 || r > 1) {
 			throw new IllegalArgumentException("Relevance must be in the half-closed interval (0,1]. Supplied: " + r);
 		}
 		subj = s.intern();
