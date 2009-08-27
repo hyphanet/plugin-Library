@@ -21,6 +21,9 @@ public class TermIndexEntry extends TermEntry {
 
 	public TermIndexEntry(String s, float r, FreenetURI i) {
 		super(s, r);
+		if (i == null) {
+			throw new IllegalArgumentException("can't have a null index");
+		}
 		// OPTIMISE have some intern pool of FreenetURIs like we have for Token.
 		// Or just use a string instead?
 		index = i;

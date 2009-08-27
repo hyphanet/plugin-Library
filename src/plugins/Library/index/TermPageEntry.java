@@ -61,6 +61,9 @@ public class TermPageEntry extends TermEntry {
 	*/
 	public TermPageEntry(String s, float r, FreenetURI u, String t, Map<Integer, String> p) {
 		super(s, r);
+		if (u == null) {
+			throw new IllegalArgumentException("can't have a null page");
+		}
 		page = u; // OPTIMISE make the translator use the same URI object as from the URI table?
 		title = t;
 		pos = (p == null)? Collections.<Integer, String>emptyMap(): Collections.unmodifiableMap(p); // TODO could be more efficient...

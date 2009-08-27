@@ -11,11 +11,11 @@ import java.io.IOException;
 **
 ** @author infinity0
 */
-public interface ObjectStreamReader {
+public interface ObjectStreamReader<T> {
 
 	/**
 	** Read and return the object from the given stream.
 	*/
-	public Object readObject(InputStream is) throws IOException;
+	public T readObject(InputStream is) throws IOException;
 
 }

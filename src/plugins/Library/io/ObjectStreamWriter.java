@@ -11,11 +11,11 @@ import java.io.IOException;
 **
 ** @author infinity0
 */
-public interface ObjectStreamWriter {
+public interface ObjectStreamWriter<T> {
 
 	/**
 	** Write the given object to the given stream.
 	*/
-	public void writeObject(Object o, OutputStream os) throws IOException;
+	public void writeObject(T o, OutputStream os) throws IOException;
 
 }
