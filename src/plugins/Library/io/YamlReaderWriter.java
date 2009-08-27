@@ -7,6 +7,7 @@ import plugins.Library.io.DataFormatException;
 
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.YAMLException;
+import org.yaml.snakeyaml.error.Mark;
 import org.yaml.snakeyaml.Loader;
 import org.yaml.snakeyaml.Dumper;
 import org.yaml.snakeyaml.DumperOptions;
@@ -17,7 +18,6 @@ import org.yaml.snakeyaml.nodes.ScalarNode;
 import org.yaml.snakeyaml.nodes.MappingNode;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.constructor.AbstractConstruct;
-import org.yaml.snakeyaml.constructor.ConstructorException;
 
 import java.util.Collections;
 import java.util.Arrays;
@@ -104,14 +104,14 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		}
 	}
 
-	final public static ObjectBlueprint<TermTermEntry> t_1;
-	final public static ObjectBlueprint<TermIndexEntry> t_2;
-	final public static ObjectBlueprint<TermPageEntry> t_3;
+	final public static ObjectBlueprint<TermTermEntry> tebp_term;
+	final public static ObjectBlueprint<TermIndexEntry> tebp_index;
+	final public static ObjectBlueprint<TermPageEntry> tebp_page;
 	static {
 		try {
-			t_1 = new ObjectBlueprint<TermTermEntry>(TermTermEntry.class, Arrays.asList("subj", "rel", "term"));
-			t_2 = new ObjectBlueprint<TermIndexEntry>(TermIndexEntry.class, Arrays.asList("subj", "rel", "index"));
-			t_3 = new ObjectBlueprint<TermPageEntry>(TermPageEntry.class, Arrays.asList("subj", "rel", "page", "pos"));
+			tebp_term = new ObjectBlueprint<TermTermEntry>(TermTermEntry.class, Arrays.asList("subj", "rel", "term"));
+			tebp_index = new ObjectBlueprint<TermIndexEntry>(TermIndexEntry.class, Arrays.asList("subj", "rel", "index"));
+			tebp_page = new ObjectBlueprint<TermPageEntry>(TermPageEntry.class, Arrays.asList("subj", "rel", "page", "pos"));
 		} catch (NoSuchFieldException e) {
 			throw new AssertionError(e);
 		} catch (NoSuchMethodException e) {
@@ -125,48 +125,37 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	public static class ExtendedRepresenter extends Representer {
 
 		public ExtendedRepresenter() {
-			this.representers.put(FreenetURI.class, new RepresentFreenetURI());
-			this.representers.put(Packer.BinInfo.class, new RepresentPackerBinInfo());
-			this.representers.put(TermPageEntry.class, new RepresentTermEntry());
-			this.representers.put(TermIndexEntry.class, new RepresentTermEntry());
-			this.representers.put(TermTermEntry.class, new RepresentTermEntry());
-		}
-
-		private class RepresentFreenetURI implements Represent {
-			/*@Override**/ public Node representData(Object data) {
-				return representScalar("!FreenetURI", ((FreenetURI) data).toString());
-			}
-		}
-
-		private class RepresentPackerBinInfo implements Represent {
-			/*@Override**/ public Node representData(Object data) {
-				Packer.BinInfo inf = (Packer.BinInfo)data;
-				Map<Object, Object> map = Collections.<Object, Object>singletonMap(inf.getID(), inf.getWeight());
-				return representMapping("!BinInfo", map, true);
-			}
-		}
-
-		private class RepresentTermEntry implements Represent {
-			/*@Override**/ public Node representData(Object data) {
-				TermEntry en = (TermEntry)data;
-				Map<String, Object> map = new LinkedHashMap<String, Object>();
-				// PRIORITY WORK OUT A BETTER FORMAT THAN THIS
-				// PRIORITY WORK OUT A BETTER FORMAT THAN THIS
-				// PRIORITY WORK OUT A BETTER FORMAT THAN THIS
-				map.put("type", en.entryType().ordinal());
-				switch (en.entryType()) {
-				case TERM:
-					map.putAll(t_1.objectAsMap((TermTermEntry)en));
-					break;
-				case INDEX:
-					map.putAll(t_2.objectAsMap((TermIndexEntry)en));
-					break;
-				case PAGE:
-					map.putAll(t_3.objectAsMap((TermPageEntry)en));
-					break;
+			this.representers.put(FreenetURI.class, new Represent() {
+				/*@Override**/ public Node representData(Object data) {
+					return representScalar("!FreenetURI", ((FreenetURI) data).toString());
 				}
-				return representMapping("!TermEntry", map, true);
+			});
+			this.representers.put(Packer.BinInfo.class, new Represent() {
+				/*@Override**/ public Node representData(Object data) {
+					Packer.BinInfo inf = (Packer.BinInfo)data;
+					Map<Object, Object> map = Collections.<Object, Object>singletonMap(inf.getID(), inf.getWeight());
+					return representMapping("!BinInfo", map, true);
+				}
+			});
+			this.representers.put(TermTermEntry.class, new RepresentTermEntry(tebp_term));
+			this.representers.put(TermIndexEntry.class, new RepresentTermEntry(tebp_index));
+			this.representers.put(TermPageEntry.class, new RepresentTermEntry(tebp_page));
+		}
+
+		public class RepresentTermEntry<T extends TermEntry> implements Represent {
+
+			final ObjectBlueprint<T> blueprint;
+			final String tag;
+
+			public RepresentTermEntry(ObjectBlueprint<T> bp) {
+				blueprint = bp;
+				tag = "!" + bp.getObjectClass().getSimpleName();
 			}
+
+			/*@Override**/ public Node representData(Object data) {
+				return representMapping(tag, blueprint.objectAsMap((T)data), true);
+			}
+
 		}
 
 	}
@@ -177,61 +166,66 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	*/
 	public static class ExtendedConstructor extends Constructor {
 		public ExtendedConstructor() {
-			this.yamlConstructors.put("!FreenetURI", new ConstructFreenetURI());
-			this.yamlConstructors.put("!BinInfo", new ConstructPackerBinInfo());
-			this.yamlConstructors.put("!TermEntry", new ConstructTermEntry());
+			this.yamlConstructors.put("!FreenetURI", new AbstractConstruct() {
+				/*@Override**/ public Object construct(Node node) {
+					String uri = (String) constructScalar((ScalarNode)node);
+					try {
+						return new FreenetURI(uri);
+					} catch (java.net.MalformedURLException e) {
+						throw new ConstructorException("while constructing a FreenetURI", node.getStartMark(), "found malformed URI " + uri, null);
+					}
+				}
+			});
+			this.yamlConstructors.put("!BinInfo", new AbstractConstruct() {
+				/*@Override**/ public Object construct(Node node) {
+					Map<?, ?> map = (Map) constructMapping((MappingNode)node);
+					if (map.size() != 1) {
+						throw new ConstructorException("while constructing a Packer.BinInfo", node.getStartMark(), "found incorrectly sized map data " + map, null);
+					}
+					for (Map.Entry en: map.entrySet()) {
+						return new Packer.BinInfo(en.getKey(), (Integer)en.getValue());
+					}
+					throw new AssertionError();
+				}
+			});
+			this.yamlConstructors.put("!TermTermEntry", new ConstructTermEntry(tebp_term));
+			this.yamlConstructors.put("!TermIndexEntry", new ConstructTermEntry(tebp_index));
+			this.yamlConstructors.put("!TermPageEntry", new ConstructTermEntry(tebp_page));
 		}
 
-		private class ConstructFreenetURI extends AbstractConstruct {
-			/*@Override**/ public Object construct(Node node) {
-				String uri = (String) constructScalar((ScalarNode)node);
-				try {
-					return new FreenetURI(uri);
-				} catch (java.net.MalformedURLException e) {
-					throw new ConstructorException("while constructing a FreenetURI", node.getStartMark(), "found malformed URI " + uri, null) {};
-				}
+		public class ConstructTermEntry<T extends TermEntry> extends AbstractConstruct {
+
+			final ObjectBlueprint<T> blueprint;
+
+			public ConstructTermEntry(ObjectBlueprint<T> bp) {
+				blueprint = bp;
 			}
-		}
 
-		private class ConstructPackerBinInfo extends AbstractConstruct {
 			/*@Override**/ public Object construct(Node node) {
-				Map<?, ?> map = (Map) constructMapping((MappingNode)node);
-				if (map.size() != 1) {
-					throw new ConstructorException("while constructing a Packer.BinInfo", node.getStartMark(), "found incorrectly sized map data " + map, null) {};
-				}
-				for (Map.Entry en: map.entrySet()) {
-					return new Packer.BinInfo(en.getKey(), (Integer)en.getValue());
-				}
-				throw new AssertionError();
-			}
-		}
-
-		private class ConstructTermEntry extends AbstractConstruct {
-			/*@Override**/ public Object construct(Node node) {
-				TermEntry en = null;
 				Map map = (Map)constructMapping((MappingNode)node);
 				map.put("rel", new Float(((Double)map.get("rel")).floatValue()));
 				try {
-					switch(TermEntry.EntryType.values()[(Integer)map.remove("type")]) {
-					case TERM:
-						en = t_1.objectFromMap(map);
-						break;
-					case INDEX:
-						en = t_2.objectFromMap(map);
-						break;
-					case PAGE:
-						en = t_3.objectFromMap(map);
-						break;
-					}
+					return blueprint.objectFromMap(map);
 				} catch (Exception e) {
 					//java.lang.InstantiationException
 					//java.lang.IllegalAccessException
 					//java.lang.reflect.InvocationTargetException
-					throw new ConstructorException("while constructing a TermEntry", node.getStartMark(), "could not instantiate map " + map, null, e) {};
+					throw new ConstructorException("while constructing a " + blueprint.getObjectClass().getSimpleName(), node.getStartMark(), "could not instantiate map " + map, null, e);
 				}
-				return en;
 			}
+
 		}
 	}
+
+	// for some reason SnakeYAML doesn't make this class publicly constructible
+	public static class ConstructorException extends org.yaml.snakeyaml.constructor.ConstructorException {
+		public ConstructorException(String context, Mark contextMark, String problem, Mark problemMark) {
+			super(context, contextMark, problem, problemMark);
+		}
+		public ConstructorException(String context, Mark contextMark, String problem, Mark problemMark, Throwable cause) {
+			super(context, contextMark, problem, problemMark, cause);
+		}
+	}
+
 
 }
