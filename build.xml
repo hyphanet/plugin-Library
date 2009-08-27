@@ -63,9 +63,9 @@
 		<delete dir="${tmp}"/>
 	</target>
 
-	<property name="SnakeYAML.mirror" value="http://snakeyaml.googlecode.com/files/SnakeYAML-all-1.3.zip" />
-	<property name="SnakeYAML.md5" value="c7cc57854c70a39533877f475ca1954d" />
-	<property name="SnakeYAML.sha" value="10996d5ed81185bd87a558531397e53aebe06594" />
+	<property name="SnakeYAML.mirror" value="http://snakeyaml.googlecode.com/files/SnakeYAML-all-1.4.zip" />
+	<property name="SnakeYAML.md5" value="c4c34accffc9f4940d33479f8fcecc0d" />
+	<property name="SnakeYAML.sha" value="16a098a511c74271d92df39faeae3a4fe68865ee" />
 	<available property="SnakeYAML.exist" classname="org.yaml.snakeyaml.Yaml" classpathref="lib.path"/>
 	<target name="SnakeYAML-get" unless="SnakeYAML.exist">
 		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/SnakeYAML.zip" />
@@ -81,7 +81,7 @@
 		</fail>
 		<unzip src="${tmp}/SnakeYAML.zip" dest="lib/">
 			<patternset>
-				<include name="**/SnakeYAML*.jar"/>
+				<include name="snakeyaml/target/snakeyaml-1.4.jar"/>
 			</patternset>
 			<mapper type="flatten"/>
 		</unzip>
@@ -235,7 +235,7 @@
 				<include name="**/*.java"/>
 			</fileset>
 			<link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
-			<link href="http://snakeyamlrepo.appspot.com/releases/1.3/site/apidocs"/>
+			<link href="http://snakeyamlrepo.appspot.com/releases/1.4/site/apidocs"/>
 		</javadoc>
 	</target>
 
