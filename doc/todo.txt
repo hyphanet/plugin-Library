@@ -46,6 +46,7 @@
 
 == Serialisation ==
 
+- OPTIMISE have the Translators to maps generate map VIEWS of data
 - TODO maybe have deflate/inflate throw a different checked exception from
   TaskAbortException, forcing them to handle the TaskAbortException thrown by
   pull/push?

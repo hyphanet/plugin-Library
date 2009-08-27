@@ -3,7 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 /**
 ** Contains the serialisation engine and related classes and interfaces, such
-** as {@link ProgressTracker} and {@link Translator}
+** as {@link plugins.Library.io.serial.ProgressTracker} and {@link
+** plugins.Library.io.serial.Translator}
 **
 ** @author infinity0
 */

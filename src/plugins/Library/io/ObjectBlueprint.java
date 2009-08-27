@@ -5,10 +5,12 @@ package plugins.Library.io;
 
 import java.util.Iterator;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.Map;
 import java.util.AbstractMap;
 import java.util.AbstractSet;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.IdentityHashMap;
@@ -19,16 +21,11 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
 /**
-** A blueprint for an object. This class provides methods to construct new
-** objects from a list or map of property parameters, and to present
-** (currently immutable) map-views of existing objects.
+** An (immutable) blueprint for an object. This class provides methods to
+** construct new objects from a list or map of property parameters, and to
+** present (currently immutable) map-views of existing objects.
 **
-** The class will automatically look for a constructor for the target class
-** whose parameters match up to the types of the properties defined for the
-** blueprint. See {@link #ObjectBlueprint(Class, Map)} for more details.
-**
-** TODO maybe make the map-view mutable, and split off the constructor into
-** a separate class so it's not necessary to have the params match up?
+** TODO maybe make the map-view mutable
 **
 ** TODO probably move this to another package, maybe util.reflect
 **
@@ -42,8 +39,10 @@ public class ObjectBlueprint<T> {
 	final protected Class<T> cls;
 
 	/**
-	** Map of properties to their method names. A null or empty name implies
-	** a field with the same name as the property.
+	** Map of properties to their method names. The keys are the property
+	** names; the values are the names of the nullary methods to invoke to
+	** retrieve the property-values. If any map-value is null, then the field
+	** with the same name as its map-key will be used instead.
 	*/
 	final protected Map<String, String> properties;
 
@@ -51,13 +50,13 @@ public class ObjectBlueprint<T> {
 	** Map of properties to their corresponding fields. This is automatically
 	** generated from the {@link #properties} map.
 	*/
-	final private Map<String, Field> prop_fields = new HashMap<String, Field>();
+	final protected Map<String, Field> prop_fields = new HashMap<String, Field>();
 
 	/**
 	** Map of properties to their corresponding getter methods. This is
 	** automatically generated from the {@link #properties} map.
 	*/
-	final private Map<String, Method> prop_methods = new HashMap<String, Method>();
+	final protected Map<String, Method> prop_methods = new HashMap<String, Method>();
 
 	/**
 	** Map of properties to their corresponding types. This is automatically
@@ -74,35 +73,127 @@ public class ObjectBlueprint<T> {
 	final protected Constructor<T> constructor;
 
 	/**
-	** Constructs a blueprint from the given properties map. The keys are the
-	** property names; the values are the names of the nullary methods to
-	** invoke to retrieve the property-values. (If any map-value is null, then
-	** the field with the same name as its map-key will be used instead.)
+	** Constructs a blueprint from the given {@link #properties} map. If you
+	** don't have the map ready at hand, and it's a mixture of methods and
+	** fields, consider using {@link #init(Class)} instead.
 	**
-	** Once the properties have been parsed, a constructor will be inferred,
-	** whose argument types are the types of the properties in which they were
-	** encountered in the blueprint map. For example, if your class has two
-	** fields {@code int field_a} and {@code float field_b} and {@code
-	** blueprint} is a {@link LinkedHashMap} mapping <code>{"field_b":null,
-	** "field_a":null}</code>, this method will search for the constructor with
+	** The constructor's parameter types are given by {@code ctor_params}. This
+	** '''must be a subset''' of {@code blueprint}; otherwise the blueprint
+	** constructor will not be able to determine the types of those parameters.
+	** For example, if your class has two fields {@code int field_a} and
+	** {@code float field_b}, and {@code blueprint} maps <code>{"field_b":null,
+	** "field_a":null}</code>, and {@code ctor_params} lists <code>["field_b",
+	** "field_a"]</code>, then this method will search for the constructor with
 	** parameters {@code (float, int)}. If it doesn't exist, {@link
 	** NoSuchMethodException} will be thrown.
 	**
-	** '''Note''': if you don't have the map ready at hand, and it's a mixture
-	** of methods and fields, consider using {@link #init(Class)} instead.
-	**
-	** TODO maybe split off the constructor-inferring into a subclass?
+	** If {@code ctor_params} is {@code null}, the parameter types will instead
+	** be inferred from the keys of the properties map; the end result will be
+	** the same as if it was equal to {@code blueprint.keySet()}.
 	**
 	** @param c The class to represent
 	** @param blueprint The map of properties
+	** @param ctor_params Properties corresponding to the input parametrs of
+	**        the object constructor.
 	** @throws NoSuchFieldException if Java reflection can't find an inferred
 	**         field
 	** @throws NoSuchMethodException if Java reflection can't find a given
 	**         method or the inferred constructor
+	** @throws NullPointerException if {@code c} or {@code blueprint} is {@code
+	**         null}
 	*/
-	public ObjectBlueprint(Class<T> c, Map<String, String> blueprint) throws NoSuchFieldException, NoSuchMethodException {
+	public ObjectBlueprint(Class<T> c, Map<String, String> blueprint, Iterable<String> ctor_params)
+	throws NoSuchFieldException, NoSuchMethodException {
+		if (c == null || blueprint == null) { throw new NullPointerException(); }
 		cls = c;
 		properties = blueprint;
+		setProperties();
+		if (ctor_params == null) {
+			constructor = cls.getConstructor(param_type.values().toArray(new Class<?>[param_type.size()]));
+		} else {
+			List<Class<?>> types = new ArrayList<Class<?>>();
+			for (String property: ctor_params) { types.add(param_type.get(property)); }
+			constructor = cls.getConstructor(types.toArray(new Class<?>[types.size()]));
+		}
+	}
+
+	/**
+	** Constructs a blueprint from the given {@link #properties} map. If you
+	** don't have the map ready at hand, and it's a mixture of methods and
+	** fields, consider using {@link #init(Class)} instead.
+	**
+	** This constructor just delegates to {@link #ObjectBlueprint(Class, Map,
+	** Iterable) ObjectBlueprint(c, blueprint, null)}.
+	**
+	** @see #ObjectBlueprint(Class, Map, Iterable)
+	*/
+	public ObjectBlueprint(Class<T> c, Map<String, String> blueprint)
+	throws NoSuchFieldException, NoSuchMethodException {
+		this(c, blueprint, (Iterable<String>)null);
+	}
+
+	/**
+	** Constructs a blueprint from the given collection of field names. This
+	** constructor just creates the appropriate blueprint map to delegate to
+	** {@link #ObjectBlueprint(Class, Map)}.
+	**
+	** @see #ObjectBlueprint(Class, Map)
+	*/
+	public ObjectBlueprint(Class<T> c, Collection<String> fields)
+	throws NoSuchFieldException, NoSuchMethodException {
+		this(c, makePropertiesFromFields(fields));
+	}
+
+	/**
+	** Helper method for {@link #ObjectBlueprint(Class, Collection)}.
+	*/
+	private static Map<String, String> makePropertiesFromFields(Collection<String> fields) {
+		Map<String, String> blueprint = new LinkedHashMap<String, String>();
+		for (String s: fields) {
+			blueprint.put(s, null);
+		}
+		return blueprint;
+	}
+
+	/**
+	** Constructs a blueprint from the given properties map and the given
+	** object constructor. If you don't have the map ready at hand, and it's a
+	** mixture of methods and fields, consider using {@link #init(Class)}
+	** instead.
+	**
+	** If {@code ctor} is {@code null}, then any calls to the blueprint's
+	** {@link #objectFromMap(Map)} and {@link #newInstance(Object[])}
+	** will throw {@link NullPointerException}.
+	**
+	** @param c The class to represent
+	** @param blueprint The map of properties
+	** @param ctor The object constructor
+	** @throws NoSuchFieldException if Java reflection can't find an inferred
+	**         field
+	** @throws NoSuchMethodException if Java reflection can't find a given
+	**         method or the inferred constructor
+	** @throws NullPointerException if {@code c} or {@code blueprint} is {@code
+	**         null}
+	*/
+	public ObjectBlueprint(Class<T> c, Map<String, String> blueprint, Constructor<T> ctor)
+	throws NoSuchFieldException, NoSuchMethodException {
+		if (c == null || blueprint == null) { throw new NullPointerException(); }
+		cls = c;
+		properties = blueprint;
+		setProperties();
+		constructor = ctor;
+	}
+
+	/**
+	** Helper method for the constructors. Sets {@link #prop_fields},
+	** {@link #prop_methods} and {@link #param_type} from {@link #properties}.
+	*/
+	private void setProperties() throws NoSuchFieldException, NoSuchMethodException {
+		assert(properties != null);
+		prop_fields.clear();
+		prop_methods.clear();
+		param_type.clear();
+
 		for (Map.Entry<String, String> en: properties.entrySet()) {
 			String property = en.getKey();
 			String method_name = en.getValue();
@@ -121,7 +212,6 @@ public class ObjectBlueprint<T> {
 				param_type.put(property, m.getReturnType());
 			}
 		}
-		constructor = cls.getConstructor(param_type.values().toArray(new Class<?>[param_type.size()]));
 	}
 
 	/**
@@ -135,39 +225,13 @@ public class ObjectBlueprint<T> {
 	**       .addMethod("width", "getWidth")
 	**       .build();
 	**
+	**
+	** @throws NullPointerException if {@code cls} is {@code null}
 	** @see <a href="http://en.wikipedia.org/wiki/Builder_pattern">Builder
 	**      Pattern</a>
 	*/
 	public static <T> Builder<T> init(Class<T> cls) {
 		return new Builder(cls);
-	}
-
-	/**
-	** Constructs a blueprint from the given collection of field names. This
-	** constructor just creates a blueprint map to delegate to the other
-	** constructor, with the keys being the items of the collection, and the
-	** values being {@code null}. The iteration order is preserved, with
-	** duplicate elements being ignored.
-	**
-	** @param fields Collection of field names.
-	** @throws NoSuchFieldException if Java reflection can't find an inferred
-	**         field
-	** @throws NoSuchMethodException if Java reflection can't find a given
-	**         method or the inferred constructor
-	*/
-	public ObjectBlueprint(Class<T> c, Collection<String> fields) throws NoSuchFieldException, NoSuchMethodException {
-		this(c, makePropertiesFromFields(fields));
-	}
-
-	/**
-	** Helper method for {@link #ObjectBlueprint(Class, Collection)}.
-	*/
-	private static Map<String, String> makePropertiesFromFields(Collection<String> fields) {
-		Map<String, String> blueprint = new LinkedHashMap<String, String>();
-		for (String s: fields) {
-			blueprint.put(s, null);
-		}
-		return blueprint;
 	}
 
 	public Class<T> getObjectClass() {
@@ -182,6 +246,8 @@ public class ObjectBlueprint<T> {
 	** Constructs a new object by invoking the inferred constructor with the
 	** given list of arguments.
 	**
+	** @throws NullPointerException if no constructor was supplied to this
+	**         class' own constructor.
 	** @see Constructor#newInstance(Object[])
 	*/
 	public T newInstance(Object... initargs) throws InstantiationException, IllegalAccessException, InvocationTargetException {
@@ -227,6 +293,7 @@ public class ObjectBlueprint<T> {
 	** desired values.
 	**
 	** @param map Map of properties to their desired values.
+	** @throws NullPointerException if no constructor has been set
 	** @see Constructor#newInstance(Object[])
 	*/
 	public T objectFromMap(Map<?, ?> map) throws InstantiationException, IllegalAccessException, InvocationTargetException {
@@ -347,18 +414,25 @@ public class ObjectBlueprint<T> {
 
 		final public Class<T> cls;
 
+		protected Iterable<String> ctor_params;
+
+		protected Constructor<T> constructor;
+
+		protected boolean use_ctor;
+
 		/**
-		** Properties map. This uses {@link LinkedHashMap}, which iterates
-		** through the properties in the same order in which they were added
-		** to the builder.
+		** Properties map. This uses {@link LinkedHashMap}, which iterates through
+		** the properties in the same order in which they were added to the builder.
 		*/
 		final protected Map<String, String> props = new LinkedHashMap<String, String>();
 
 		/**
-		** Construct a builder for an {@link ObjectBlueprint} for the given
-		** class.
+		** Construct a builder for an {@link ObjectBlueprint} for the given class.
+		**
+		** @throws NullPointerException if {@code c} is {@code null}
 		*/
 		public Builder(Class<T> c) {
+			if (c == null) { throw new NullPointerException(); }
 			cls = c;
 		}
 
@@ -407,13 +481,42 @@ public class ObjectBlueprint<T> {
 		}
 
 		/**
+		** Sets an object constructor, and tell {@link #build()} to use {@link
+		** ObjectBlueprint#ObjectBlueprint(Class, Map, Constructor)}.
+		**
+		** @return {@code this}
+		*/
+		public Builder<T> setConstructor(Constructor<T> ctor) {
+			use_ctor = true;
+			constructor = ctor;
+			return this;
+		}
+
+		/**
+		** Sets the constructor parameters, and tell {@link #build()} to use {@link
+		** ObjectBlueprint#ObjectBlueprint(Class, Map, Iterable)}. (This is the
+		** default).
+		**
+		** @return {@code this}
+		*/
+		public Builder<T> setCtorParams(Iterable<String> params) {
+			use_ctor = false;
+			ctor_params = params;
+			return this;
+		}
+
+		/**
 		** Build a blueprint from the properties given to the builder so far.
 		**
 		** @return The built blueprint
 		** @see ObjectBlueprint#ObjectBlueprint(Class, Map)
 		*/
 		public ObjectBlueprint<T> build() throws NoSuchFieldException, NoSuchMethodException {
-			return new ObjectBlueprint(cls, props);
+			if (use_ctor) {
+				return new ObjectBlueprint(cls, props, constructor);
+			} else {
+				return new ObjectBlueprint(cls, props, ctor_params);
+			}
 		}
 
 	}

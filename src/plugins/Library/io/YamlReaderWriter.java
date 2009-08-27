@@ -104,9 +104,9 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		}
 	}
 
-	static ObjectBlueprint<TermTermEntry> t_1;
-	static ObjectBlueprint<TermIndexEntry> t_2;
-	static ObjectBlueprint<TermPageEntry> t_3;
+	final public static ObjectBlueprint<TermTermEntry> t_1;
+	final public static ObjectBlueprint<TermIndexEntry> t_2;
+	final public static ObjectBlueprint<TermPageEntry> t_3;
 	static {
 		try {
 			t_1 = new ObjectBlueprint<TermTermEntry>(TermTermEntry.class, Arrays.asList("subj", "rel", "term"));

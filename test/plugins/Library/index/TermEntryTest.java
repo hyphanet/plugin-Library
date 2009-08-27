@@ -21,27 +21,30 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.UUID;
 import java.net.MalformedURLException;
+import java.io.*;
 
 /**
 ** @author infinity0
 */
 public class TermEntryTest extends TestCase {
 
-	public void testBasic() throws TaskAbortException {
-		FileArchiver<Map<String, Object>> ym = new FileArchiver<Map<String, Object>>(new YamlReaderWriter(), "test", null, ".yml");
-
-		Map<String, Object> map = new HashMap<String, Object>();
-
-		TermTermEntry w  = new TermTermEntry("test", 0.8f, "lol");
-		TermIndexEntry x = null;
-		TermPageEntry z = null;
+	final static TermTermEntry w  = new TermTermEntry("test", 0.8f, "lol");
+	final static TermIndexEntry x;
+	final static TermPageEntry z;
+	static {
 		try {
 			x = new TermIndexEntry("test", 0.8f, new FreenetURI("CHK@yeah"));
 			z = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@yeah"), null);
 		} catch (MalformedURLException e) {
-			// pass
+			throw new AssertionError();
 		}
-		TermTermEntry y  = new TermTermEntry("test", 0.8f, "lol2");
+	}
+	final static TermTermEntry y  = new TermTermEntry("test", 0.8f, "lol2");
+
+	public void testBasic() throws TaskAbortException {
+		FileArchiver<Map<String, Object>> ym = new FileArchiver<Map<String, Object>>(new YamlReaderWriter(), "test", null, ".yml");
+
+		Map<String, Object> map = new HashMap<String, Object>();
 
 		List<TermEntry> l = new ArrayList<TermEntry>();
 		l.add(w);
@@ -77,6 +80,12 @@ public class TermEntryTest extends TestCase {
 		assertTrue(m.get("test2") instanceof Packer.BinInfo);
 		Packer.BinInfo inf = (Packer.BinInfo)m.get("test2");
 		assertTrue(inf.getID() instanceof FreenetURI);
+	}
+
+	public static void assertEqualButNotIdentical(Object a, Object b) {
+		assertTrue(a != b);
+		assertTrue(a.equals(b));
+		assertTrue(a.hashCode() == b.hashCode());
 	}
 
 }
