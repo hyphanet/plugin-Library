@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
+import plugins.Library.io.DataFormatException;
 import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.io.serial.IterableSerialiser;
 import plugins.Library.io.serial.MapSerialiser;
@@ -149,7 +150,7 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 			return trans.app((SkeletonBTreeMap<E, E>)tree.bkmap);
 		}
 
-		/*@Override**/ public SkeletonBTreeSet<E> rev(Map<String, Object> tree) {
+		/*@Override**/ public SkeletonBTreeSet<E> rev(Map<String, Object> tree) throws DataFormatException {
 			return new SkeletonBTreeSet<E>(trans.rev(tree));
 		}
 

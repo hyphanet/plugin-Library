@@ -104,7 +104,7 @@ implements Archiver<ProtoIndex>,
 		}
 		try {
 			task.data = trans.rev(serialisable.data);
-		} catch (RuntimeException e) {
+		} catch (DataFormatException e) {
 			throw new TaskAbortException("Could not construct index from data", e);
 		}
 	}
@@ -161,7 +161,7 @@ implements Archiver<ProtoIndex>,
 			return map;
 		}
 
-		/*@Override**/ public ProtoIndex rev(Map<String, Object> map) {
+		/*@Override**/ public ProtoIndex rev(Map<String, Object> map) throws DataFormatException {
 			long magic = (Long)map.get("serialVersionUID");
 
 			if (magic == ProtoIndex.serialVersionUID) {

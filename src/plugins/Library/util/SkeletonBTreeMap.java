@@ -285,6 +285,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			} catch (TaskCompleteException e) {
 				assert(rnodes.get(key).entries != null);
+			} catch (DataFormatException e) {
+				throw new TaskAbortException("Could not inflate BTreeMap Node " + node.getRange(), e);
 			} catch (RuntimeException e) {
 				throw new TaskAbortException("Could not inflate BTreeMap Node " + node.getRange(), e);
 			}
@@ -501,6 +503,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			ppp.setEstimate(ProgressParts.TOTAL_FINALIZED);
 
+		} catch (DataFormatException e) {
+			throw new TaskAbortException("interrupted", e);
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("interrupted", e);
 		} finally {
@@ -598,7 +602,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return map;
 		}
 
-		/*@Override**/ public SkeletonNode rev(Map<String, Object> map) {
+		/*@Override**/ public SkeletonNode rev(Map<String, Object> map) throws DataFormatException {
 			try {
 				SkeletonNode node = new SkeletonNode(!map.containsKey("subnodes"),
 				                                     (mtr == null)? (SkeletonTreeMap<K, V>)map.get("entries")
@@ -664,7 +668,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return map;
 		}
 
-		/*@Override**/ public SkeletonBTreeMap<K, V> rev(Map<String, Object> map) {
+		/*@Override**/ public SkeletonBTreeMap<K, V> rev(Map<String, Object> map) throws DataFormatException {
 			try {
 				SkeletonBTreeMap<K, V> tree = new SkeletonBTreeMap<K, V>((Integer)map.get("node_min"));
 				tree.size = (Integer)map.get("size");

@@ -260,7 +260,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 
 		} catch (TaskCompleteException e) {
 			assert(skmap.get(key).isLoaded);
-		} catch (RuntimeException e) {
+		} catch (DataFormatException e) {
 			throw new TaskAbortException("Could not complete inflate operation", e);
 		}
 	}
@@ -344,7 +344,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** @param map The data structue to populate with metadata
 		** @param ktr A translator between key and {@link String}
 		*/
-		public static <K, V> SkeletonTreeMap<K, V> rev(Map<String, Object> intm, SkeletonTreeMap<K, V> map, Translator<K, String> ktr) {
+		public static <K, V> SkeletonTreeMap<K, V> rev(Map<String, Object> intm, SkeletonTreeMap<K, V> map, Translator<K, String> ktr) throws DataFormatException {
 			if (ktr == null) {
 				try {
 					for (Map.Entry<String, Object> en: intm.entrySet()) {

@@ -8,7 +8,7 @@ package plugins.Library.io;
 **
 ** @author infinity0
 */
-public class DataFormatException extends RuntimeException {
+public class DataFormatException extends java.io.IOException {
 
 	/**
 	** The parent, if any, of the unrecognised data.

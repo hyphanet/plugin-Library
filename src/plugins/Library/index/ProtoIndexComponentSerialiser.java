@@ -208,7 +208,7 @@ public class ProtoIndexComponentSerialiser {
 				leaf_arx,
 				null,
 				new SkeletonBTreeSet.TreeTranslator<TermEntry, TermEntry>(null, term_data_mtr) {
-					@Override public SkeletonBTreeSet<TermEntry> rev(Map<String, Object> tree) {
+					@Override public SkeletonBTreeSet<TermEntry> rev(Map<String, Object> tree) throws DataFormatException {
 						return setSerialiserFor(super.rev(tree));
 					}
 				}
@@ -222,7 +222,7 @@ public class ProtoIndexComponentSerialiser {
 				leaf_arx,
 				null,
 				new SkeletonBTreeMap.TreeTranslator<FreenetURI, URIEntry>(null, null) {
-					@Override public SkeletonBTreeMap<FreenetURI, URIEntry> rev(Map<String, Object> tree) {
+					@Override public SkeletonBTreeMap<FreenetURI, URIEntry> rev(Map<String, Object> tree) throws DataFormatException {
 						return setSerialiserFor(super.rev(tree));
 					}
 				}
@@ -305,7 +305,7 @@ public class ProtoIndexComponentSerialiser {
 			return app(map, new TreeMap<String, Object>(), ktr);
 		}
 
-		/*@Override**/ public SkeletonTreeMap<K, V> rev(Map<String, Object> map) {
+		/*@Override**/ public SkeletonTreeMap<K, V> rev(Map<String, Object> map) throws DataFormatException {
 			return rev(map, new SkeletonTreeMap<K, V>(), ktr);
 		}
 	}
@@ -358,9 +358,13 @@ public class ProtoIndexComponentSerialiser {
 			PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(ghost.getMeta());
 			p.setSubject("Pulling " + name + ": " + ghost.getRange());
 			p.enteredSerialiser();
-			subsrl.pullLive(serialisable, p);
-			ghost.setMeta(serialisable.meta); task.data = trans.rev(serialisable.data);
-			p.exitingSerialiser();
+			try {
+				subsrl.pullLive(serialisable, p);
+				ghost.setMeta(serialisable.meta); task.data = trans.rev(serialisable.data);
+				p.exitingSerialiser();
+			} catch (DataFormatException e) {
+				p.abort(new TaskAbortException("Could not pull B-tree node", e));
+			}
 		}
 
 		/*@Override**/ public void pushLive(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) throws TaskAbortException {
@@ -473,7 +477,7 @@ public class ProtoIndexComponentSerialiser {
 
 				task.data = map;
 				p.exitingSerialiser();
-			} catch (RuntimeException e) {
+			} catch (DataFormatException e) {
 				p.abort(new TaskAbortException("Could not retrieve data from bin " + t.data.keySet(), e));
 			}
 		}

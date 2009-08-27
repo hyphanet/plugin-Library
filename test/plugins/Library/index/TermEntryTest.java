@@ -32,10 +32,12 @@ public class TermEntryTest extends TestCase {
 	final static TermTermEntry w  = new TermTermEntry("test", 0.8f, "lol");
 	final static TermIndexEntry x;
 	final static TermPageEntry z;
+	final static TermPageEntry v;
 	static {
 		try {
 			x = new TermIndexEntry("test", 0.8f, new FreenetURI("CHK@MIh5-viJQrPkde5gmRZzqjBrqOuh~Wbjg02uuXJUzgM,rKDavdwyVF9Z0sf5BMRZsXj7yiWPFUuewoe0CPesvXE,AAIC--8"));
 			z = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), null);
+			v = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), "title", null);
 		} catch (MalformedURLException e) {
 			throw new AssertionError();
 		}
@@ -87,6 +89,7 @@ public class TermEntryTest extends TestCase {
 		TermEntryReaderWriter rw = TermEntryReaderWriter.getInstance();
 		ByteArrayOutputStream bo = new ByteArrayOutputStream();
 		DataOutputStream oo = new DataOutputStream(bo);
+		rw.writeObject(v, oo);
 		rw.writeObject(w, oo);
 		rw.writeObject(x, oo);
 		rw.writeObject(y, oo);
@@ -94,11 +97,13 @@ public class TermEntryTest extends TestCase {
 		oo.close();
 		ByteArrayInputStream bi = new ByteArrayInputStream(bo.toByteArray());
 		DataInputStream oi = new DataInputStream(bi);
+		TermEntry v1 = rw.readObject(oi);
 		TermEntry w1 = rw.readObject(oi);
 		TermEntry x1 = rw.readObject(oi);
 		TermEntry y1 = rw.readObject(oi);
 		TermEntry z1 = rw.readObject(oi);
 		oi.close();
+		assertEqualButNotIdentical(v, v1);
 		assertEqualButNotIdentical(w, w1);
 		assertEqualButNotIdentical(x, x1); // this will fail before fred@a6e73dbbaa7840bd20d5e3fb95cd2c678a106e85
 		assertEqualButNotIdentical(y, y1);
