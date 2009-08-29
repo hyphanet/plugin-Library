@@ -63,14 +63,14 @@
 		<delete dir="${tmp}"/>
 	</target>
 
-	<property name="SnakeYAML.mirror" value="http://snakeyaml.googlecode.com/files/SnakeYAML-all-1.4.zip" />
-	<property name="SnakeYAML.md5" value="c4c34accffc9f4940d33479f8fcecc0d" />
-	<property name="SnakeYAML.sha" value="16a098a511c74271d92df39faeae3a4fe68865ee" />
+	<property name="SnakeYAML.mirror" value="http://snakeyamlrepo.appspot.com/repository/org/yaml/snakeyaml/1.4/snakeyaml-1.4.jar" />
+	<property name="SnakeYAML.md5" value="d9cc1c39d8a946f11a60eb04cfee86f8" />
+	<property name="SnakeYAML.sha" value="11c237079e8523cb4d3440b6afd99faaa6a1393d" />
 	<available property="SnakeYAML.exist" classname="org.yaml.snakeyaml.Yaml" classpathref="lib.path"/>
 	<target name="SnakeYAML-get" unless="SnakeYAML.exist">
-		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/SnakeYAML.zip" />
-		<checksum file="${tmp}/SnakeYAML.zip" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
-		<checksum file="${tmp}/SnakeYAML.zip" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
+		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/snakeyaml-1.4.jar" />
+		<checksum file="${tmp}/snakeyaml-1.4.jar" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
+		<checksum file="${tmp}/snakeyaml-1.4.jar" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
 		<fail message="SnakeYAML.zip checksum mismatch">
 			<condition>
 				<or>
@@ -79,12 +79,7 @@
 				</or>
 			</condition>
 		</fail>
-		<unzip src="${tmp}/SnakeYAML.zip" dest="lib/">
-			<patternset>
-				<include name="snakeyaml/target/snakeyaml-1.4.jar"/>
-			</patternset>
-			<mapper type="flatten"/>
-		</unzip>
+		<move file="${tmp}/snakeyaml-1.4.jar" todir="lib/" />
 	</target>
 
 	<!--<property name="KeyExplorer.mirror" value="http://cloud.github.com/downloads/freenet/plugin-Library-staging/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" />
