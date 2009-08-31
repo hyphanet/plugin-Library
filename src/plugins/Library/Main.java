@@ -3,6 +3,12 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library;
 
+import freenet.pluginmanager.PluginReplySender;
+import freenet.support.SimpleFieldSet;
+import freenet.support.api.Bucket;
+import java.io.IOException;
+import java.util.logging.Level;
+import plugins.Library.index.TermEntry;
 import plugins.Library.search.Search;
 import plugins.Library.ui.WebInterface;
 import plugins.Library.util.concurrent.Executors;
@@ -16,14 +22,24 @@ import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Executor;
 import freenet.l10n.L10n.LANGUAGE;
 
+import freenet.pluginmanager.FredPluginFCP;
+import freenet.support.Logger;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.EOFException;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.security.MessageDigest;
+import plugins.Library.index.TermEntryReaderWriter;
 
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces
  * @author MikeB
  */
 public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmanager.FredPluginHTTP, // TODO remove this later
-		FredPluginRealVersioned, FredPluginThreadless, FredPluginL10n {
+		FredPluginRealVersioned, FredPluginThreadless, FredPluginL10n, FredPluginFCP {
 
 	private static PluginRespirator pr;
 	private Library library;
@@ -116,6 +132,30 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			return convertToHex(md5hash);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
+		}
+	}
+
+	public void handle(PluginReplySender replysender, SimpleFieldSet params, Bucket data, int accesstype) {
+		if("pushBuffer".equals(params.get("command"))){
+			Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes, not implemented yet, saved to file : buffer");
+			File f = new File("buffer");
+			try {
+				f.createNewFile();
+				FileWriter w = new FileWriter(f);
+				InputStream is = data.getInputStream();
+				try{
+					while(true){	// Keep going til an EOFExcepiton is thrown
+						TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
+						w.write(readObject.toString()+"\n");
+					}
+				}catch(EOFException e){
+					// EOF, do nothing
+				}
+			} catch (IOException ex) {
+				java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		} else {
+			Logger.error(this, "Unknown command : \""+params.get("command"));
 		}
 	}
 
