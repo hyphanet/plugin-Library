@@ -1,25 +1,36 @@
 = TODO =
 
+== Schedule ==
+
+ - implement interdex algorithm
+ - implement filters 2 days
+ - implement WriteableIndex and commit algorithms 4-6 days
+ - implement crawler...
+
+
 == Documentation of Quirks and Stuff That Future Programmers Must Know ==
 
 - PRIORITY document TaskComplete handling...
 - PRIORITY document SkeletonBTreeMap reliance on isLeaf() and nodeSize() being
   called in the correct places.
 
-== Freenet serialisation ==
+== Serialisation ==
 
 - PRIORITY make getIndex() unblocking
   - use LiveArchiver for index root serialiser
   - use SnoopMetadata
+- FIXME fix the race condition in SkeletonBTreeMap.inflate()
+  - essentially, ParallelSerialiser.TaskHandler.isActive() will return false if
+    nothing has started yet.
 - PRIORITY better USK support for the FreenetArchiver, both insert and request
+
 - OPTIMISE should have a better format than having BinInfo point to a top-level CHK
   - use MHK or have metadata directly in the parent node (latter reduces node fan-out to 400-500 max)
-- FIXME fix the race condition in SkeletonBTreeMap.inflate()
+- OPTIMISE use B+-trees instead of B-trees
 
 == Resource usage ==
 
-- Memory handling; discard index data after we're done with it.
-- ThreadPoolExecutor vs NativeThread/PooledExecutor? ask toad...
+- OPTIMISE Memory handling; discard index data after we're done with it.
 
 == Execution/Progress ==
 
@@ -39,14 +50,16 @@
 - TODO index: "suggested tokens" - suggest what other people should tag this
   index as; they are free to ignore this suggestion (very low priority for now)
 
-== TermEntry ==
+== TermEntry / URIEntry ==
 
-- PRIORITY revise the Yaml representation of TermEntry
+- PRIORITY (fred-staging) make FreenetURI Comparable so we can use that instead of
+  toString().compareTo() in the TermEntry comparisons
+- PRIORITY decide whether URIKeys are really necessary...
 - TODO there should be only one entry per URI per Token (enforce this in the code at some point)
 
 == Serialisation ==
 
-- OPTIMISE have the Translators to maps generate map VIEWS of data
+- OPTIMISE have the MapCollectionTranslators generate map VIEWS of data
 - TODO maybe have deflate/inflate throw a different checked exception from
   TaskAbortException, forcing them to handle the TaskAbortException thrown by
   pull/push?
@@ -101,19 +114,4 @@ our purposes, lol (and we wouldn't have to hash them into Tokens)... actually i
 might do just that instead of coding a custom algorithm. atm though i'm going
 to carry on other parts of the project, i can mess about with fine-tuning the
 data structure more after the rest is working.
-
-
-
-== Schedule ==
-
- - build interdex skeleton 2-3 days
- - implement interdex algorithm 4-5 days
-
---- gsoc end ---
-
- - implement filters 2 days
- - implement WriteableIndex and commit algorithms 4-6 days
- - implement crawler...
-
-
 

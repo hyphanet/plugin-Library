@@ -22,6 +22,7 @@ import java.util.HashSet;
 ** using {@code super}.
 **
 ** The programmer might also wish to override the following:
+**
 ** * {@link #join()}
 **
 ** @author MikeB

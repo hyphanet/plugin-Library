@@ -5,7 +5,6 @@
 - can have terms containing spaces by eg. having crawler add "x y" to its dictionary of
 terms to index, if it encounters this combination more than a few times on multiple pages.
 
-
 - notes for synchronization:
 
 read operations should be able to occur concurrently
@@ -18,12 +17,7 @@ deflate/inflate should be able to occur concurrently on different nodes/keys
 it should block put/remove operations, but not read operations
 
 
-ttab: BTreeMap<String, BTreeSet<TermEntry>>
-utab: BTreeMap<URIKey, BTreeMap<FreenetURI, URIEntry>>
-
-
-
-BTreeMap commit algorithm:
+=== BTreeMap commit algorithm: ===
 
 have a "modCount" for each node. merge/split/rotate & put/remove update this
 
@@ -37,12 +31,10 @@ NOTE: stuff below tbhis section is out of data wrt the format of the indexes
 
 
 
-== Purpose ==
-
-Internal representation of an index.
 
 == Functionality ==
 
+TODO sort this out
 
 FetchTokenEntries [term]
 ClearTokenEntries [term]
@@ -60,86 +52,67 @@ PullIndex [index]
 PushIndex [index]
 
 
-== Format of data ==
 
-(not fully implemented)
 
-=== Index ===
 
-(PTM stands for PrefixTreeMap - see the javadoc for more details.)
+
+== Data elements ==
+
+A "term" is a discrete phrase that results are associated with. This is just a
+Java String, and can contain any character including whitespace.
+
+A TermEntry stores data about a particular result for a term. Each entry has a
+subject term and a relevance rating in [0,1]. Further types are:
+
+ : TermTermEntry - redirects to another search term
+ : TermIndexEntry - redirects to another index
+ : TermPageEntry - final target for term
+
+A URIKey is the node routing-key part of a FreenetURI and is used as the key
+into the URI table. FreenetURIs from the same "site" will have the same URIKey
+and will be stored close together in the table. (TODO: this might not be
+necessary, especially if we use B+-trees instead of B-trees.)
+
+A URIEntry stores data about a particular FreenetURI. Each entry has a quality
+rating in [0,1]. Further types are:
+ : etc? TODO
+
+=== Unimplemented features ===
+
+At the time of writing, there is no support for terms containing whitespace in
+either XMLSpider or the syntax of the queries in the end-user interface.
+
+There is also no support for URIEntrys in the spider or the interface.
+
+== Data structure ==
 
  |-- contains
  :   subclass of
 
 Index
- |-- metadata                                                  SSK@X/index-n/index.yml
- |-- utab    Map<URIKey,SortedMap<FreenetURI, URIEntry>> utab  SSK@X/index-n/u*
- |-- tktab   Map<Token,SortedSet<TermEntry>> tktab            SSK@X/index-n/tk*
- |-- filtab  Map<Token,TokenFilter> filtab                     SSK@X/index-n/fil*
+ |-- metadata
+ |-- ttab: BTreeMap<String, BTreeSet<TermEntry>>
+ |-- utab: BTreeMap<URIKey, BTreeMap<FreenetURI, URIEntry>>
 
-=== Token table ===
+The index root would usually be stored as an SSK splitfile.
 
-A term is a discrete phrase that results are associated with. A Token is the
-md5 version of a term, and is used as a key into the token and filter tables.
+Conceptually, the ttab (term table) structure maps a term to (the collection of
+entries for that term), and the utab (URI table) maps a FreenetURI to a single
+unique URIEntry.
 
-A TermEntry stores data about a particular result for a Token.
+Structurally, both the ttab and utab are doubly-nested B-trees. There is a top
+level B-tree, which maps a key to a further B-tree, which in turn holds data.
 
-TermEntry - has relevance rating (TODO remove quality from the java class)
- : TermTermEntry - redirects to another search term
- : TermIndexEntry - redirects to another index
- : TermPageEntry - final target for term
+For the ttab, the top level B-tree maps a term to its entries collection, which
+is a B-tree and can be nagivated. For the utab, the top level B-tree maps a
+URIKey to a lower level B-tree that maps a FreenetURI to its URIEntry.
 
-TokenEntries are stored in tk*.tab*.yml, where tk* is the prefix of the node in
-the PTM where its corresponding Token is stored, and tab* is the splitfiles
-that the entries are stored under. All TokenEntries for a given Token is
-ordered by relevance and stored in this order in a contiguous subset of the
-map files, eg. tab13, tab14, tab15.
 
-To aid query retrieval times, for each token, the 16 (or some other number)
-most relevant token entries from different sites, have their URIEntry (see
-below) stored along with the TermEntry in the same splitfile, as well as in
-the URI table.
+DOCUMENT usage of Bins
 
-=== URI table ===
 
-A URIKey is the routingKey part of a FreenetURI and is used as the key into the
-uri table.
-
-URIEntry - has quality rating (TODO code this)
- : etc? TODO
-
-URIEntries are stored in u*.tab*.yml, where u* is the prefix of the node in the
-PTM where its corresponding URIKey is stored, and tab* is the splitfiles that
-the entries are stored under. All URIEntries for a given URIKey is ordered by
-the String form of its corresponding FreenetURI, and stored in this order in a
-contiguous subset of the map files, eg. tab13, tab14, tab15.
-
-=== Filter table ===
+== Filters ==
 
 TODO implement filters, think about how to do this...
 
 
-
-
-=== Search algorithm for a single index ===
-
-parse index.yml
-TODO parse filters
-parse tk*.yml
-parse tk*.map*.yml, display the results to the user
-
-something like:
-
-site A: result 1 [site data]
- - site A: result 2 [site data]
- - (show more results from this site)
-site B: result 1 [site data]
-site C: result 1 [site data]
-site D: result 1 (click to retrieve site data)
-
-in the meantime, keep pulling URIEntry data in the background, and update the
-page as necessary.
-
-
-Results are ordered by relevance^3 * quality. If the URIEntry has not been
-loaded yet, we assume the quality is 0.9.

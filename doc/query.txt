@@ -5,3 +5,26 @@
 Code to perform queries on the network of indexes
 
 mikeb is doing this part...
+
+== Search algorithm for a single index ==
+
+This algorithm is for when URIEntry and filter support is added to the spider
+and the query interface; atm it is unimplementable.
+
+- parse index root
+- parse filters
+
+something like:
+
+site A: result 1 [site data]
+ - site A: result 2 [site data]
+ - (show more results from this site)
+site B: result 1 [site data]
+site C: result 1 [site data]
+site D: result 1 (click to retrieve site data)
+
+in the meantime, keep pulling URIEntry data in the background, and update the
+page as necessary.
+
+Results are ordered by relevance^3 * quality. If the URIEntry has not been
+loaded yet, we assume the quality is 0.9.
