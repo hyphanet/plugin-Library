@@ -9,6 +9,7 @@ import plugins.Library.util.exec.Execution;
 
 import freenet.keys.FreenetURI;
 
+import java.util.Collection;
 import java.util.Set;
 
 /**
@@ -20,18 +21,12 @@ import java.util.Set;
 */
 public interface WriteableIndex extends Index {
 
-	public Execution<Set<TermEntry>> clearTermEntries(String term);
+	public Execution<FreenetURI> putTermEntries(Collection<TermEntry> entries);
 
-	public Execution<TermEntry> putTermEntry(TermEntry entry);
+	public Execution<FreenetURI> remTermEntries(Collection<TermEntry> entries);
 
-	public Execution<TermEntry> remTermEntry(TermEntry entry);
+	public Execution<FreenetURI> putURIEntries(Collection<URIEntry> entries);
 
-	public Execution<URIEntry> clearURIEntry(FreenetURI uri);
-
-	public Execution<URIEntry> putURIEntry(URIEntry entry);
-
-	public Execution<URIEntry> remURIEntry(URIEntry entry);
-
-	public Execution<Object> commitAndPush();
+	public Execution<FreenetURI> remURIEntries(Collection<URIEntry> entries);
 
 }
