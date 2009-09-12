@@ -11,7 +11,7 @@ import java.util.Arrays;
 /**
 ** @author infinity0
 */
-public class IntMethodsTest extends TestCase {
+public class IntegersTest extends TestCase {
 
 	public Random rnd = new Random();
 
@@ -35,7 +35,7 @@ public class IntMethodsTest extends TestCase {
 		for (int i=0; i<totals.length; ++i) {
 			int[] testsh = shares[i];
 			int j=0;
-			for (Integer ii: IntMethods.allocateEvenly(totals[i], nums[i])) {
+			for (Integer ii: Integers.allocateEvenly(totals[i], nums[i])) {
 				assertTrue(ii == testsh[j]);
 				++j;
 			}
@@ -49,7 +49,7 @@ public class IntMethodsTest extends TestCase {
 			int num = rnd.nextInt(total);
 			int share[] = new int[num];
 
-			Iterable<Integer> it = IntMethods.allocateEvenly(total, num);
+			Iterable<Integer> it = Integers.allocateEvenly(total, num);
 			//System.out.println(total + "/" + num + ": [" + it + "]");
 
 			int j=0;

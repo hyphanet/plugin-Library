@@ -41,7 +41,6 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	** It is up to the calling code to ensure that this holds.
 	*/
 	protected SortedMapSet(M m) {
-		assert(verifyBackingMapIntegrity(m));
 		bkmap = m;
 	}
 
@@ -51,12 +50,14 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	** Note: this test is disabled (will always return true) since it is
 	** impossible to test this for partially-loaded data structures. Code kept
 	** here to remind future programmers of this.
+	**
+	** @throws UnsupportedOperationException
 	*/
 	final static <E> boolean verifyBackingMapIntegrity(SortedMap<E, E> m) {
 		/*for (Map.Entry<E, E> en: m.entrySet()) {
 			assert(en.getKey() == en.getValue());
 		}*/
-		return true;
+		throw new UnsupportedOperationException("impossible to implement");
 	}
 
 	/**

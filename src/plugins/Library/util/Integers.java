@@ -11,9 +11,9 @@ import java.util.NoSuchElementException;
 **
 ** @author infinity0
 */
-public class IntMethods {
+public class Integers {
 
-	private IntMethods() { }
+	private Integers() { }
 
 	/**
 	** Allocate {@code total} resources evenly over {@code num} recipients.
