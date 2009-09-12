@@ -36,4 +36,13 @@ public class SortedArraySetTest extends TestCase {
 		assertTrue(sub.size() == 8);
 	}
 
+	public void testNoDuplicates() {
+		try {
+			SortedArraySet<Integer> arr = new SortedArraySet<Integer>(new Integer[]{0,1,1,2,3,4,5,6,7,8,9,10,11,12,13,14});
+			assertTrue(false);
+		} catch (RuntimeException e) {
+			assertTrue(e instanceof IllegalArgumentException);
+		}
+	}
+
 }

@@ -17,6 +17,8 @@ import java.util.AbstractSet;
 /**
 ** An immutable {@link SortedSet} backed by a sorted array.
 **
+** DOCUMENT
+**
 ** @author infinity0
 */
 public class SortedArraySet<E> extends AbstractSet<E>
@@ -49,7 +51,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 
 	public SortedArraySet(E[] arr, Comparator<? super E> cmp, boolean sort) {
 		this(arr, 0, arr.length, cmp);
-		if (sort) { Arrays.sort(bkarr); }
+		if (sort) { Arrays.sort(bkarr, noDuplicateComparator(cmp)); }
 	}
 
 	protected SortedArraySet(E[] arr, int l, int r, Comparator<? super E> cmp) {
@@ -58,6 +60,26 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 		li = l;
 		ri = r;
 		comparator = cmp;
+	}
+
+	public static <E> Comparator<? super E> noDuplicateComparator(final Comparator<? super E> cmp) {
+		if (cmp == null) {
+			return new Comparator<E>() {
+				public int compare(E e1, E e2) {
+					int d = ((Comparable<E>)e1).compareTo(e2);
+					if (d == 0) { throw new IllegalArgumentException("A set cannot have two duplicate elements"); }
+					return d;
+				}
+			};
+		} else {
+			return new Comparator<E>() {
+				public int compare(E e1, E e2) {
+					int d = cmp.compare(e1, e2);
+					if (d == 0) { throw new IllegalArgumentException("A set cannot have two duplicate elements"); }
+					return d;
+				}
+			};
+		}
 	}
 
 	/*========================================================================
