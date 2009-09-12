@@ -27,7 +27,6 @@ and update the map.
 
 ==== BTreeMap bulk-loading algorithm ====
 
-- need an algorithm to split N into k * (n or n+1) evenly
 - need to build a SortedSet wrapper around an array
 
 node.putAll(SortedSet<K> set, Node parent)

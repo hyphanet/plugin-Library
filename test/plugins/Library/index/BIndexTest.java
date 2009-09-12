@@ -23,9 +23,9 @@ import java.io.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 2;
-	final public static int it_partial = 2;
-	final public static boolean disabled_progress = false;
+	final public static int it_basic = 0;
+	final public static int it_partial = 0;
+	final public static boolean disabled_progress = true;
 
 	static {
 		ProtoIndex.BTREE_NODE_MIN = 0x40; // DEBUG 0x40 so we see tree splits

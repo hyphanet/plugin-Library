@@ -49,6 +49,11 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		return pr;
 	}
 
+	// FredPluginL10n
+	public void setLanguage(freenet.l10n.BaseL10n.LANGUAGE lang) {
+		// TODO implement
+	}
+
 	// FredPluginVersioned
 	public String getVersion() {
 		return library.getVersion() + " " + Version.vcsRevision();
