@@ -27,7 +27,7 @@ and update the map.
 
 ==== BTreeMap bulk-loading algorithm ====
 
-node.putAll(SortedSet<K> set, Node parent)
+node.putAll(SortedSet<K> set, Node parent):
 
 	assert(node.lkey <= set.first && set.last <= node.rkey)
 

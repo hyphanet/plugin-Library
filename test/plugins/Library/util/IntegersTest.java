@@ -50,7 +50,7 @@ public class IntegersTest extends TestCase {
 			int share[] = new int[num];
 
 			Iterable<Integer> it = Integers.allocateEvenly(total, num);
-			//System.out.println(total + "/" + num + ": [" + it + "]");
+			//System.out.println(it);
 
 			int j=0;
 			for (Integer ii: it) {

@@ -19,6 +19,9 @@ import java.util.AbstractSet;
 **
 ** DOCUMENT
 **
+** OPTIMISE make a SortedArrayMap out of this, and make the BTreeMap node use
+** that (or a SortedArrayTripleMap<K, V, L, R>) instead of TreeMap
+**
 ** @author infinity0
 */
 public class SortedArraySet<E> extends AbstractSet<E>
@@ -46,12 +49,23 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 
 
 	public SortedArraySet(E[] arr) {
-		this(arr, null, true);
+		this(arr, null, false);
 	}
 
-	public SortedArraySet(E[] arr, Comparator<? super E> cmp, boolean sort) {
+	/**
+	** Construct a new set from the given array, sorted according to the given
+	** comparator. The new set will be '''backed''' by the array, so it must
+	** not be changed elsewhere in a program. Ideally, all references to it
+	** should be discarded, and all access to the array should occur through
+	** this wrapper class.
+	**
+	** @param arr The backing array
+	**
+	**
+	*/
+	public SortedArraySet(E[] arr, Comparator<? super E> cmp, boolean sorted) {
 		this(arr, 0, arr.length, cmp);
-		if (sort) { Arrays.sort(bkarr, noDuplicateComparator(cmp)); }
+		if (!sorted) { Arrays.sort(bkarr, noDuplicateComparator(cmp)); }
 	}
 
 	protected SortedArraySet(E[] arr, int l, int r, Comparator<? super E> cmp) {

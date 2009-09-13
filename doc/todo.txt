@@ -2,10 +2,10 @@
 
 == Schedule ==
 
- - implement interdex algorithm
- - implement filters 2 days
- - implement WriteableIndex and commit algorithms 4-6 days
- - implement crawler...
+- implement interdex algorithm
+- implement filters 2 days
+- implement WriteableIndex and commit algorithms 4-6 days
+- implement crawler...
 
 
 == Documentation of Quirks and Stuff That Future Programmers Must Know ==
@@ -49,6 +49,8 @@
   that class for more details.
 - TODO index: "suggested tokens" - suggest what other people should tag this
   index as; they are free to ignore this suggestion (very low priority for now)
+
+- OPTIMISE make SortedArraySet mutable and into a map, so we can use it instead of TreeMap in BTreeMap.Node
 
 == TermEntry / URIEntry ==
 

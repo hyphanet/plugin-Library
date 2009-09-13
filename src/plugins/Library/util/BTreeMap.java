@@ -1265,28 +1265,15 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				// this is the number of nodes at this level
 				int k = (map.size() + NODE_MAX) / NODE_MAX;
 
-				// number of entries in each node (or one less than this)
-				int n = map.size() / k;
-				// how many nodes will have n entries (as opposed to n-1)
-				int leftovers = map.size() % k;
-
-				// TODO find a better algorithm that distributes the weights
-				// more evenly that just "heaviest first"
-				assert(n >= ENT_MIN);
-
 				nextlnodes = new HashMap<K, Node>(k<<1);
 				nextmap = new TreeMap<K, V>();
 
 				Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
 				K prevkey = null; // NULLNOTICE
-				int i=0;
-				for (; i<=leftovers; ++i) {
+
+				// allocate all entries into k nodes, except for k-1 parents
+				for (Integer n: Integers.allocateEvenly(map.size()-k+1, k)) {
 					// put n entries into a new leaf
-					Map.Entry<K, V> en = makeNode(it, n, prevkey, lnodes, nextlnodes);
-					if (en != null) { nextmap.put(prevkey = en.getKey(), en.getValue()); }
-				}
-				--n;
-				for (; i<k; ++i) {
 					Map.Entry<K, V> en = makeNode(it, n, prevkey, lnodes, nextlnodes);
 					if (en != null) { nextmap.put(prevkey = en.getKey(), en.getValue()); }
 				}

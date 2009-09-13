@@ -19,7 +19,7 @@ public class Integers {
 	** Allocate {@code total} resources evenly over {@code num} recipients.
 	**
 	** @return An {@link Iterable} of {@link Integer}, that "contains" {@code
-	**         num} elements, each of which is either {@code k} or {@code k+1}.
+	**         num} elements, each of which is either {@code k+1} or {@code k}.
 	**         The {@code k+1} will themselves also be dispersed evenly
 	**         throughout the iteration.
 	*/
@@ -32,6 +32,7 @@ public class Integers {
 		}
 
 		return new Iterable<Integer>() {
+
 			final int k = total / num;
 			final int r = total % num;
 			final double step = (double)num / r;
@@ -69,7 +70,7 @@ public class Integers {
 				for (Integer ii: this) {
 					xs[j++] = (ii == k)? ' ': '+';
 				}
-				return new String(xs);
+				return total + "/" + num + ": " + k + "+[" + new String(xs) + "]";
 			}
 
 		};
