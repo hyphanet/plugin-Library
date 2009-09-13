@@ -1271,7 +1271,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
 				K prevkey = null; // NULLNOTICE
 
-				// allocate all entries into k nodes, except for k-1 parents
+				// allocate all entries into these k nodes, except for k-1 parents
 				for (Integer n: Integers.allocateEvenly(map.size()-k+1, k)) {
 					// put n entries into a new leaf
 					Map.Entry<K, V> en = makeNode(it, n, prevkey, lnodes, nextlnodes);

@@ -60,12 +60,26 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	** this wrapper class.
 	**
 	** @param arr The backing array
-	**
-	**
+	** @param cmp The comparator used for sorting. A {@code null} value means
+	**        {@linkplain Comparable natural ordering} is used.
+	** @param sorted Whether the array is already sorted. If this is {@code
+	**        true}, the input array will not be sorted again.
+	** @throws IllegalArgumentException if the array contains duplicate
+	**         elements, or if {@code sorted} is {@code true} but the array is
+	**         not actually sorted.
 	*/
 	public SortedArraySet(E[] arr, Comparator<? super E> cmp, boolean sorted) {
 		this(arr, 0, arr.length, cmp);
-		if (!sorted) { Arrays.sort(bkarr, noDuplicateComparator(cmp)); }
+		if (!sorted) {
+			Arrays.sort(bkarr, noDuplicateComparator(cmp));
+		} else {
+			Comparator<? super E> dcmp = noDuplicateComparator(cmp);
+			for (int i=0, j=1; j<arr.length; i=j++) {
+				if (dcmp.compare(arr[i], arr[j]) > 0) {
+					throw new IllegalArgumentException("Array is not sorted");
+				}
+			}
+		}
 	}
 
 	protected SortedArraySet(E[] arr, int l, int r, Comparator<? super E> cmp) {
