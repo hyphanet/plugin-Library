@@ -72,7 +72,6 @@ public class ResultNodeGenerator implements Runnable {
 	/**
 	 * Return the generated HTMLNode of PageEntrys, only call this after checking isDone()
 	 * @throws RuntimeException if a RuntimeException was caught while generating the node
-	 * @return
 	 */
 	public HTMLNode getPageEntryNode(){
 		if(exception != null)
@@ -83,7 +82,6 @@ public class ResultNodeGenerator implements Runnable {
 	/**
 	 * Whether this ResultNodegenerator has finished formatting and get methods can be called
 	 * @throws RuntimeException if a RuntimeException was caught while generating the node
-	 * @return
 	 */
 	public boolean isDone(){
 		if(exception != null)
@@ -237,10 +235,9 @@ public class ResultNodeGenerator implements Runnable {
 	}
 
 	/**
-	 * formats a TermPageEntry into a HTMLNode for display in a browser
+	 * Returns an {@link HTMLNode} representation of a {@link TermPageEntry} for display in a browser
 	 * @param entry
 	 * @param newestVersion	if set, the result is shown in full brightness, if unset the result is greyed out
-	 * @return
 	 */
 	private HTMLNode termPageEntryNode(TermPageEntry entry,boolean newestVersion) {
 		FreenetURI uri = entry.page;

@@ -1,6 +1,6 @@
 /**
  * Web reuqest handlers
- * 
+ *
  * @author j16sdiz (1024D/75494252)
  */
 package plugins.Library.ui;
@@ -25,8 +25,8 @@ public class WebInterface {
 	private StaticToadlet staticToadlet;
 
 	/**
-	 * @param spider
-	 * @param client 
+	 * // @param spider
+	 * // @param client
 	 */
 	public WebInterface(Library library, PluginRespirator pr) {
 		this.library = library;
@@ -52,7 +52,7 @@ public class WebInterface {
 		toadletContainer.register(pluginsToadlet, null, "/plugins/plugin.Library.FreesiteSearch", true, null, null, true, null );
 		staticToadlet = new StaticToadlet(client);
 		toadletContainer.register(staticToadlet, null, "/library/static/", true, false);
-		
+
 	}
 
 	/**

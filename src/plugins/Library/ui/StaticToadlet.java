@@ -34,7 +34,6 @@ public class StaticToadlet extends Toadlet {
 
 	/**
 	 * Get the path to this page
-	 * @return
 	 */
 	@Override
 	public String path() {

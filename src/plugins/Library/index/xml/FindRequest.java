@@ -107,7 +107,6 @@ public class FindRequest extends AbstractExecution<Set<TermEntry>> implements Co
 
 	/**
 	 * Returns the result which hasnt been marked as completed
-	 * @return
 	 */
 	Set<TermPageEntry> getUnfinishedResult() {
 		return resultnotfinished;
@@ -115,7 +114,7 @@ public class FindRequest extends AbstractExecution<Set<TermEntry>> implements Co
 
 	/**
 	 * Set the stage number, between 0 & 4 inclusive TODO : now stage is not used in Progress make this an enum
-	 * @param i
+	 * @param stage The stage number to set
 	 */
 	void setStage(Stages stage) {
 		currentProgress= new SubProgress(stage);

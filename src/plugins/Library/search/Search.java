@@ -385,7 +385,6 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 	 *
 	 * @param search
 	 * @param indexuri
-	 * @return
 	 */
 	public static String makeString(String search, String indexuri){
 		return search + "@" + indexuri;
@@ -437,7 +436,6 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 
 	/**
 	 * Returns whether the generator has formatted the results
-	 * @return
 	 */
 	public boolean hasGeneratedResultNode(){
 		return pageEntryNode != null;
@@ -570,11 +568,12 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		"the", "and", "that", "have", "for"		// English stop words
 	});
 	/**
-	 * returns true, that word is a stopword if it is less than 3 letters long or included in the stopWords list
-	 * @param word
-	 * @return
+	 * Whether the given word is a stopword. Currently this is defined as: words
+	 * less than 3 letters long or included in the stopWords list.
+	 *
+	 * @param word The word to check
 	 */
-	private  static boolean isStopWord(String word) {
+	private static boolean isStopWord(String word) {
 		return word.length() <3 || stopWords.contains(word);
 	}
 }

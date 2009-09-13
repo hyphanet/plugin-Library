@@ -49,11 +49,10 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	private final String subject;
 
 	/**
-	 * @param subject for each of the entries in the Set
-	 * @param resultOperation to be performed on each of the given Sets {@see ResultOperation}
-	 * @param subRequets List of subrequests to test each getResult()
-	 * @throws plugins.Library.util.exec.TaskAbortException if thrown from a higher getResult() method
-	 * @throws plugins.Library.search.IllegalArgumentException if the number of subRequests is not acceptable {@see ResultOperation}
+	 * @param subject The subject for each of the entries in the Set
+	 * @param resultOperation {@link ResultOperation} to be performed on each of the given Sets
+	 * @param subRequests List of subrequests to test each getResult()
+	 * @throws TaskAbortException if thrown from a higher getResult() method
 	 *
 	 * TODO reevaluate relevance for all combinations, and find a way to calculate relevance of phrases
 	 */
@@ -232,7 +231,6 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 
 	/**
 	 * Add all entries in the first collection but not in the second
-	 * @param result
 	 */
 	private void exclude(Collection<? extends TermEntry> add, Collection<? extends TermEntry> subtract) {
 		for (TermEntry termEntry : add){
@@ -359,7 +357,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 * with priority being put on those earliest in the arguments
 	 *
 	 * @param entries
-	 * @return
+	 * @return The merged entry
 	 */
 	private TermEntry mergeEntries(TermEntry... entries) {
 		for (int i = 1; i < entries.length; i++)
@@ -425,8 +423,8 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	/**
 	 * Strip all results out of List of requests
 	 * @param subRequests
-	 * @return
-	 * @throws plugins.Library.util.exec.TaskAbortException from SubRequests {@link Request.getResult()}
+	 * @return An array containing the stripped sets
+	 * @throws {@link TaskAbortException} from subRequests' {@link Execution#getResult()}
 	 */
 	private Set<TermEntry>[] getResultSets(List<Execution<Set<TermEntry>>> subRequests) throws TaskAbortException{
 		Set<TermEntry>[] sets = new Set[subRequests.size()];
@@ -446,7 +444,6 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 * Gets a TermEntry from the collection which is equal to entry ignoring subject
 	 * @param entry
 	 * @param collection
-	 * @return
 	 */
 	private TermEntry getIgnoreSubject(TermEntry entry, Collection<? extends TermEntry> collection){
 		TermEntry result = null;
@@ -464,9 +461,8 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	}
 
 	/**
-	 * Returns true if the ResultSet has completed it's operations
+	 * Returns true if the ResultSet has completed its operations
 	 * @throws RuntimeException if a RuntimeException was caught while generating the Set
-	 * @return
 	 */
 	public boolean isDone(){
 		if(exception != null)
@@ -476,7 +472,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 
 
 	/**
-	 * Iterator which doesnt allow remove()
+	 * Iterator which doesn't allow remove()
 	 */
 	class ResultIterator implements Iterator<TermEntry> {
 		Iterator<TermEntry> internal;

@@ -247,7 +247,7 @@ class MainPage {
 		for (Exception exception : exceptions) {
 			addError(errorDiv, exception, messages);
 		}
-		
+
 		try{
 			//Logger.normal(this, "Writing page for "+ query + " " + search + " " + indexuri);
 			contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", "/library/static/script.js"}).addChild("%", " ");
@@ -315,11 +315,13 @@ class MainPage {
 
 	/**
 	 * Create search form
-	 * @param search already started
-	 * @param indexuri
-	 * @param js whether js has been detected
-	 * @param showold
-	 * @return
+	 *
+	 * // @param search already started
+	 * // @param indexuri
+	 * // @param js whether js has been detected
+	 * // @param showold
+	 *
+	 * @return an {@link HTMLNode} representing the search form
 	 */
 	private HTMLNode searchBox(){
 		HTMLNode searchDiv = new HTMLNode("div", new String[]{"id", "style"}, new String[]{"searchbar", "text-align: center;"});
@@ -382,10 +384,12 @@ class MainPage {
 
 	/**
 	 * Draw progress box with bars
-	 * @param search
-	 * @param indexuri
-	 * @param request request to get progress from
-	 * @return
+	 *
+	 * // @param search
+	 * // @param indexuri
+	 * // @param request request to get progress from
+	 *
+	 * @return an {@link HTMLNode} representing a progress box
 	 */
 	private HTMLNode progressBox() throws TaskAbortException{
 			HTMLNode progressDiv = new HTMLNode("div", "id", "progress");
@@ -433,8 +437,8 @@ class MainPage {
 
 	/**
 	 * Draw progress bars and describe progress, CompositeProgess are drawn as a table with each row containing a subProgress
-	 * @param request
-	 * @return
+	 * @param progress The progress to represent
+	 * @return an {@link HTMLNode} representing a progress bar
 	 */
 	public static HTMLNode progressBar(Progress progress) throws TaskAbortException {
 		synchronized (progress){
