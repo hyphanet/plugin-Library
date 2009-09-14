@@ -54,10 +54,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	**
 	** Eg. a {@code BTreeMap<String, BTreeSet<TermEntry>>} would have this
 	** {@code true} for the map, and {@code false} for the map backing the set.
-
+	*/
 	//final protected boolean internal_entries;
-
-	TODO disable for now, since I can't think of a good way to implement
+	/*
+	** TODO disable for now, since I can't think of a good way to implement
 	** this tidily.
 	**
 	** three options:

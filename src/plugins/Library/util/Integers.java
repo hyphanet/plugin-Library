@@ -11,7 +11,7 @@ import java.util.NoSuchElementException;
 **
 ** @author infinity0
 */
-public class Integers {
+final public class Integers {
 
 	private Integers() { }
 

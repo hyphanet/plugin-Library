@@ -25,19 +25,22 @@ WriteableIndex keeps a "node -> modCount" map
 at each commit, push all nodes that have a different modCount,
 and update the map.
 
-==== BTreeMap bulk-loading algorithm ====
+==== BTreeMap bulk-merge algorithm ====
 
 node.putAll(SortedSet<K> set, Node parent):
 
-	assert(node.lkey <= set.first && set.last <= node.rkey)
+	assert(node.lkey < set.first && set.last < node.rkey)
 
 	if this is leaf:
 		merge set with this node
 
 	else:
-		for N in subnodes:
-			subset = { K in set: A < K < B }
-			N.putAll(subset, this)
+		for n in subnodes:
+			if n.lkey in set: update its value
+
+			subset = { K in set: n.lkey < K < n.rkey }
+			if subset is empty: continue
+			n.putAll(subset, node)
 
 	if size > node_max and parent != null:
 		split this node up to respect the B-tree constraints
@@ -52,7 +55,69 @@ tree.putAll(SortedSet<K> set):
 		split old root
 		attach these to new root
 
-- make the above algorithm parallel & concurrent
+==== Parallel BTreeMap bulk-merge algorithm ====
+
+handle_node(Node node, SortedSet set, PriorityQueue pull_queue):
+
+	assert(node.lkey < set.first && set.last < node.rkey)
+
+	if node is leaf:
+		merge set with this node
+
+	else:
+		for n in subnodes:
+			if n.lkey in set: callback(k, v)
+
+			subset = { K in set: n.lkey < K < n.rkey }
+			if subset is empty: continue
+			pull_queue.push((n, node, subset))
+
+
+split_node(Node node, Node parent):
+
+	if size > node_max and parent != null:
+		split this node up to respect the B-tree constraints
+		attach the split_nodes to the parent
+
+		for n in split_nodes:
+			push_queue.push((n, parent))
+
+
+execute(SortedSet<K> set):
+
+	PriorityBlockingQueue inflated // output queue for pull-scheduler
+	PriorityBlockingQueue pull_queue // input queue for pull-scheduler
+
+	PriorityQueue handled
+
+	PriorityBlockingQueue deflated // output queue for push-scheduler
+	PriorityBlockingQueue push_queue // input queue for push-scheduler
+
+	inflated.push([root, null, set])
+
+	while job not done:
+
+		while inflated not empty:
+			(node, parent, subset) = inflated.pop()
+			handle_node(node, parent, subset)
+
+		while deflated not empty:
+			(node, parent) = deflated.pop()
+
+			if all subnodes of parent have been popped:
+				handled.push((node, parent))
+
+		while handled not empty:
+			(node, parent) = handled.pop()
+			split_node(node, parent)
+
+
+- enter handle_node
+- subnodes pull request
+- subnodes handled
+- enter split_node
+- subnodes push request
+- node handled
 
 == Functionality ==
 

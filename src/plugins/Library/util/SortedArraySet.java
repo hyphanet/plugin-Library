@@ -196,7 +196,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 
 	/*@Override**/ public SortedSet<E> headSet(E to) {
 		int d = Fields.binarySearch(bkarr, li, ri, to, comparator);
-		if (d < 0) { d = ~d;}
+		if (d < 0) { d = ~d; }
 		if (d < li || ri < d) {
 			throw new IllegalArgumentException("Argument not in this subset's range");
 		}
@@ -205,7 +205,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 
 	/*@Override**/ public SortedSet<E> tailSet(E fr) {
 		int d = Fields.binarySearch(bkarr, li, ri, fr, comparator);
-		if (d < 0) { d = ~d;}
+		if (d < 0) { d = ~d; }
 		if (d < li || ri < d) {
 			throw new IllegalArgumentException("Argument not in this subset's range");
 		}
