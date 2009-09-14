@@ -57,7 +57,7 @@ tree.putAll(SortedSet<K> set):
 
 ==== Parallel BTreeMap bulk-merge algorithm ====
 
-handle_node(Node node, SortedSet set, PriorityQueue pull_queue):
+inflate_subnodes(Node node, SortedSet set, PriorityQueue pull_queue, Map wait_map):
 
 	assert(node.lkey < set.first && set.last < node.rkey)
 
@@ -72,16 +72,34 @@ handle_node(Node node, SortedSet set, PriorityQueue pull_queue):
 			if subset is empty: continue
 			pull_queue.push((n, node, subset))
 
+	wait_map.put(node, subnodes_added_to_pull_queue)
 
-split_node(Node node, Node parent):
+split(Node node, Node parent):
 
 	if size > node_max and parent != null:
 		split this node up to respect the B-tree constraints
-		attach the split_nodes to the parent
+		attach split_nodes to the parent
+	else:
+		split_nodes = [this]
 
-		for n in split_nodes:
-			push_queue.push((n, parent))
+	for n in split_nodes:
+		push_queue.push((n, parent))
 
+life cycle of a node:
+
+- node gets popped from inflated
+- enter inflate_subnodes
+  - subnodes get pushed into pull_queue
+  - (recurse for each subnode)
+    - subnodes get popped from inflated
+    - etc
+    - subnodes get pushed into push_queue
+- wait for all:
+  - subnodes get popped from deflated
+- enter split
+  - split_nodes gets pushed into push_queue (needs exception for the root node)
+
+!!! PriorityQueues must produce nodes in depth-first order !!!
 
 execute(SortedSet<K> set):
 
@@ -98,26 +116,14 @@ execute(SortedSet<K> set):
 	while job not done:
 
 		while inflated not empty:
-			(node, parent, subset) = inflated.pop()
-			handle_node(node, parent, subset)
+			// TODO
 
 		while deflated not empty:
-			(node, parent) = deflated.pop()
-
-			if all subnodes of parent have been popped:
-				handled.push((node, parent))
+			// TODO
 
 		while handled not empty:
-			(node, parent) = handled.pop()
-			split_node(node, parent)
+			// TODO
 
-
-- enter handle_node
-- subnodes pull request
-- subnodes handled
-- enter split_node
-- subnodes push request
-- node handled
 
 == Functionality ==
 
