@@ -57,33 +57,48 @@ tree.putAll(SortedSet<K> set):
 
 ==== Parallel BTreeMap bulk-merge algorithm ====
 
-inflate_subnodes(Node node, SortedSet set, PriorityQueue pull_queue, Map wait_map):
+Closure<Node> inflate_subnodes(Node parent, SortedSet set):
 
-	assert(node.lkey < set.first && set.last < node.rkey)
+	invoke(Node node):
 
-	if node is leaf:
-		merge set with this node
+		assert(node.lkey < set.first && set.last < node.rkey)
 
-	else:
-		for n in subnodes:
-			if n.lkey in set: callback(k, v)
+		if node is leaf:
+			merge set with this node
+			(new split(parent)).invoke(node)
 
-			subset = { K in set: n.lkey < K < n.rkey }
-			if subset is empty: continue
-			pull_queue.push((n, node, subset))
+		else:
+			wait_map.put(node, node_waiters = {})
 
-	wait_map.put(node, subnodes_added_to_pull_queue)
+			for n in subnodes:
+				if n.lkey in set: callback(k, v)
 
-split(Node node, Node parent):
+				subset = { K in set: n.lkey < K < n.rkey }
+				if subset is empty: continue
+				pull_queue.push(n)
+				inflate_closures.put(n, new inflate_subnodes(node, subset))
+				node_waiters.put(n)
 
-	if size > node_max and parent != null:
-		split this node up to respect the B-tree constraints
-		attach split_nodes to the parent
-	else:
-		split_nodes = [this]
+			split_closures.put(node, new split(parent))
 
-	for n in split_nodes:
-		push_queue.push((n, parent))
+Closure<Node> split(Node parent):
+
+	invoke(Node node):
+
+		if size > node_max and parent != null:
+			split this node up to respect the B-tree constraints
+			attach split_nodes to the parent
+		else:
+			split_nodes = [this]
+
+		node_waiters = wait_map.get(node)
+
+		for n in split_nodes:
+			push_queue.push(n)
+			node_waiters.put(n)
+
+		if node not in split_nodes:
+			node_waiters.remove(node)
 
 life cycle of a node:
 
@@ -106,23 +121,36 @@ execute(SortedSet<K> set):
 	PriorityBlockingQueue inflated // output queue for pull-scheduler
 	PriorityBlockingQueue pull_queue // input queue for pull-scheduler
 
-	PriorityQueue handled
-
 	PriorityBlockingQueue deflated // output queue for push-scheduler
 	PriorityBlockingQueue push_queue // input queue for push-scheduler
 
+	IdentityHashMap<Node, [Node]> wait_map // wait queue for split_nodes
+
+	IDMap<Node, Closure<Node>> inflate_closures
+	IDMap<Node, Closure<Node>> split_closures
+
 	inflated.push([root, null, set])
 
-	while job not done:
+	do:
 
 		while inflated not empty:
-			// TODO
+			node = inflated.pop()
+
+			inflate_closures.remove(ghost_node).invoke(node)
+			// FIXME get ghost_node from node
 
 		while deflated not empty:
-			// TODO
+			node = deflated.pop()
 
-		while handled not empty:
-			// TODO
+			// FIXME get parent from node
+			node_waiters = wait_map.get(parent)
+			node_waiters.remove(node)
+			assert(something was removed)
+
+			if node_waiters.isEmpty():
+				split_closures.remove(parent).invoke(parent)
+
+	while (inflated + deflated + inflate_closures + split_closures) not empty
 
 
 == Functionality ==
