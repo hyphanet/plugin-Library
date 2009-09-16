@@ -29,12 +29,9 @@ package plugins.Library.util.func;
 **
 **   my_closure.invoke($2(3, "test"));
 **
-** Note that (for n > 2) each n-tuple class extends the (n-1)-tuple class,
+** Note that (for n > 0) each n-tuple class extends the (n-1)-tuple class,
 ** recursively, so that you can give any (k+e)-tuple to a {@code Closure} that
 ** takes a k-tuple, assuming the types also match.
-**
-** TODO decide whether we want to add 0-tuple / 1-tuple classes. Seems kind of
-** pointless but would be more "complete".
 **
 ** @author infinity0
 */
@@ -43,15 +40,24 @@ final public class Tuples {
 	private Tuples() {}
 
 	/**
+	** An immutable 0-tuple.
+	*/
+	public static class $0 { }
+
+	/**
+	** An immutable 1-tuple.
+	*/
+	public static class $1<T0> extends $0 {
+		final public T0 _0;
+		public $1(T0 v0) { super(); _0 = v0; }
+	}
+
+	/**
 	** An immutable 2-tuple.
 	*/
-	public static class $2<T0, T1> {
-		final public T0 _0;
+	public static class $2<T0, T1> extends $1<T0> {
 		final public T1 _1;
-		public $2(T0 v0, T1 v1) {
-			_0 = v0;
-			_1 = v1;
-		}
+		public $2(T0 v0, T1 v1) { super(v0); _1 = v1; }
 	}
 
 	/**
@@ -59,10 +65,7 @@ final public class Tuples {
 	*/
 	public static class $3<T0, T1, T2> extends $2<T0, T1> {
 		final public T2 _2;
-		public $3(T0 v0, T1 v1, T2 v2) {
-			super(v0, v1);
-			_2 = v2;
-		}
+		public $3(T0 v0, T1 v1, T2 v2) { super(v0, v1); _2 = v2; }
 	}
 
 	/**
@@ -70,10 +73,23 @@ final public class Tuples {
 	*/
 	public static class $4<T0, T1, T2, T3> extends $3<T0, T1, T2> {
 		final public T3 _3;
-		public $4(T0 v0, T1 v1, T2 v2, T3 v3) {
-			super(v0, v1, v2);
-			_3 = v3;
-		}
+		public $4(T0 v0, T1 v1, T2 v2, T3 v3) { super(v0, v1, v2); _3 = v3; }
+	}
+
+	final public static $0 $0 = new $0();
+
+	/**
+	** Returns a {@link $0 0-tuple}.
+	*/
+	public static $0 $0() {
+		return $0;
+	}
+
+	/**
+	** Creates a new {@link $1 1-tuple} from the given parameters.
+	*/
+	public static <T0> $1 $1(T0 v0) {
+		return new $1(v0);
 	}
 
 	/**
