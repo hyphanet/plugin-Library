@@ -189,6 +189,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				for (PushTask<SkeletonNode> task: tasks) {
 					try {
 						GhostNode ghost = (GhostNode)task.meta;
+						// URGENT replace this with attachGhost() and detachGhost() methods so we don't
+						// need to manually do ++ghost and --ghost
 						ghost.parent = this;
 
 						lnodes.put(ghost.rkey, ghost);
@@ -252,6 +254,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			} catch (RuntimeException e) {
 				throw new TaskAbortException("Could not deflate BTreeMap Node " + node.getRange(), e);
 			}
+
 		}
 
 		/**

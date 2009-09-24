@@ -39,6 +39,10 @@ life cycle of a node:
 - wait for all:
   - subnodes get popped from deflated
 - enter split
+  - for each item in the original node's value_clo
+    - release the item and acquire it on
+      - the parent's value_clo if the item is a separator
+      - a new value_clo if the item is now in a split_node
 - for each split_node:
   - wait for all:
     - values get popped from values_complete
@@ -47,14 +51,6 @@ life cycle of a node:
 
 
 !!! PriorityQueues must produce nodes in depth-first order !!!
-
-class CountingClosure()
-	counter = 0
-	construct(): ++counter
-	acquire(): ++counter
-	release(): --counter
-	close(): --counter
-	invoke(): counter == 0 || throw new IllegalStateException()
 
 execute(SortedMap<K, V> map):
 
@@ -92,16 +88,15 @@ execute(SortedMap<K, V> map):
 			task = deflated.pop()
 
 			clo = split_closures.remove(task)
-			if clo.release() == 0:
-				// FIXME get parent, somehow
-				clo.invoke(parent)
+N-			if clo.release() == 0:
+				clo.invoke()
 
 		while value_complete not empty:
 			k = value_complete.pop()
 			// TODO update value
 
 			clo = deflate_closures.remove(k)
-			if clo.release(k) == 0:
+V-			if clo.release(k) == 0:
 				clo.invoke()
 
 	while (inflated + deflated + inflate_closures + split_closures + deflate_closures) not empty
@@ -121,12 +116,12 @@ Closure<Node> inflate_subnodes(
 		value_clo = new NullTrackingTrigger(parent)
 
 		// closure to be called when all subnodes have been handled
-		node_clo = new split_node(parent, value_clo, parent_node_clo, parent_value_clo)
+		node_clo = new split_node(node, parent, value_clo, parent_node_clo, parent_value_clo)
 
 		mergesort map & node:
 
 			items added locally to the node:
-				value_clo.acquire(k)
+V+				value_clo.acquire(k)
 				deflate_closures.put(k, value_clo)
 				init_value_handler(k, v)
 
@@ -136,7 +131,7 @@ Closure<Node> inflate_subnodes(
 					as "added locally"
 
 				else:
-					node_clo.acquire()
+O+					node_clo.acquire()
 					inflate_closures.put(task = new PullTask(n), new inflate_subnodes(node, submap, node_clo, value_clo))
 					pull_queue.push(task)
 
@@ -146,14 +141,15 @@ Closure<Node> inflate_subnodes(
 			node_clo.invoke(node)
 
 
-Closure<Node> split_node(
+Runnable split_node(
+	Node node
 	Node parent
 	TrackingTrigger value_clo
 	CountingTrigger parent_node_clo
 	TrackingTrigger parent_value_clo
 	):
 
-	invoke(Node node):
+	run():
 
 		// FIXME consider case where parent == null, node == root
 
@@ -168,8 +164,8 @@ Closure<Node> split_node(
 			// it from the current trigger and re-assign it to the parent trigger
 			// NOTE: if the overall algorithm is ever made concurrent, this section
 			// MUST be made atomic
-			parent_value_clo.acquire(k)
-			value_clo.release(k)
+S+			parent_value_clo.acquire(k)
+S-			value_clo.release(k)
 			old = deflate_closures.put(k, parent_value_clo)
 			assert(old == value_clo)
 
@@ -179,23 +175,25 @@ Closure<Node> split_node(
 			vclo = new deflate_splitnode(n)
 			for (k,v) in n & value_clo:
 				// same deal as for the previous section
-				vclo.acquire(k)
-				value_clo.release(k)
+T+				vclo.acquire(k)
+T-				value_clo.release(k)
 				old = deflate_closures.put(k, vclo)
 				assert(old == value_clo)
 			vclo.close()
 
-			parent_node_clo.acquire()
+N+			parent_node_clo.acquire()
 			split_closures.put(task = new PushTask(node), parent_node_clo)
 
 		value_clo.close()
 		assert(value_clo.count == 0)
 
 		// original (unsplit) node acquired a ticket on parent_node_clo, release it now
-		parent_node_clo.release()
+O-		parent_node_clo.release()
 
 
-Closure<Node> deflate_splitnode(PushTask<Node> task):
+Runnable deflate_splitnode(
+	PushTask<Node> task
+	):
 
 	invoke():
 		push_queue.push(task)
