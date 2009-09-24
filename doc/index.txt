@@ -58,23 +58,26 @@ class CountingClosure()
 
 execute(SortedMap<K, V> map):
 
-	PriorityBlockingQueue<PullTask<Node>> pull_queue // input queue for pull-scheduler
-	PriorityBlockingQueue<PullTask<Node>> inflated // output queue for pull-scheduler
+	final PriorityBlockingQueue<PullTask<Node>> pull_queue // input queue for pull-scheduler
+	final PriorityBlockingQueue<PullTask<Node>> inflated // output queue for pull-scheduler
 	// FIXME error maps
 
-	PriorityBlockingQueue<PushTask<Node>> push_queue // input queue for push-scheduler
-	PriorityBlockingQueue<PushTask<Node>> deflated // output queue for push-scheduler
+	final PriorityBlockingQueue<PushTask<Node>> push_queue // input queue for push-scheduler
+	final PriorityBlockingQueue<PushTask<Node>> deflated // output queue for push-scheduler
 	// FIXME error maps
 
-	PriorityBlockingQueue<K> value_pending // input queue for value-handler
-	PriorityBlockingQueue<K> value_complete // output queue for value-handler
+	final PriorityBlockingQueue<K> value_pending // input queue for value-handler
+	final PriorityBlockingQueue<K> value_complete // output queue for value-handler
 	// FIXME correct type instead of <K>
 	// FIXME error maps
 
-	IDMap<PullTask<Node>, Closure<Node>> inflate_closures
-	IDMap<PushTask<Node>, CountingTrigger<Node>> split_closures
-	IDMap<K, TrackingTrigger<Node>> deflate_closures
+	final IDMap<PullTask<Node>, Closure<Node>> inflate_closures
+	final IDMap<PushTask<Node>, CountingTrigger<Node>> split_closures
+	final IDMap<K, TrackingTrigger<Node>> deflate_closures
 
+	final Callback init_value_handler(k, v)
+
+	// FIXME right types
 	inflate_closures.put(root, new inflate_subnodes(null, map, null, null))
 	inflated.push(root)
 
@@ -109,7 +112,6 @@ Closure<Node> inflate_subnodes(
 	SortedMap map
 	CountingTrigger parent_node_clo
 	TrackingTrigger parent_value_clo
-	Callback init_value_handler(k, v)
 	):
 
 	invoke(Node node):
@@ -120,9 +122,6 @@ Closure<Node> inflate_subnodes(
 
 		// closure to be called when all subnodes have been handled
 		node_clo = new split_node(parent, value_clo, parent_node_clo, parent_value_clo)
-
-		node_clo.open()
-		value_clo.open()
 
 		mergesort map & node:
 
@@ -138,8 +137,8 @@ Closure<Node> inflate_subnodes(
 
 				else:
 					node_clo.acquire()
-					pull_queue.push(new PullTask(n))
-					inflate_closures.put(n, new inflate_subnodes(node, submap, node_clo, value_clo))
+					inflate_closures.put(task = new PullTask(n), new inflate_subnodes(node, submap, node_clo, value_clo))
+					pull_queue.push(task)
 
 		node_clo.close()
 
@@ -169,34 +168,37 @@ Closure<Node> split_node(
 			// it from the current trigger and re-assign it to the parent trigger
 			// NOTE: if the overall algorithm is ever made concurrent, this section
 			// MUST be made atomic
-			value_clo.release(k)
 			parent_value_clo.acquire(k)
+			value_clo.release(k)
 			old = deflate_closures.put(k, parent_value_clo)
 			assert(old == value_clo)
-
-		value_clo.close()
-		assert(value_clo.count == 0)
 
 		for n in split_nodes:
 			// for each split node, create a trigger that will fire when all
 			// its (k,v) pairs have been popped from value_complete
 			vclo = new deflate_splitnode(n)
-			vclo.open()
 			for (k,v) in n & value_clo:
-				deflate_closures.put(k, vclo)
-				vclo.acquire()
+				// same deal as for the previous section
+				vclo.acquire(k)
+				value_clo.release(k)
+				old = deflate_closures.put(k, vclo)
+				assert(old == value_clo)
 			vclo.close()
 
 			parent_node_clo.acquire()
+			split_closures.put(task = new PushTask(node), parent_node_clo)
 
-		// original node still holds a resource, release it
+		value_clo.close()
+		assert(value_clo.count == 0)
+
+		// original (unsplit) node acquired a ticket on parent_node_clo, release it now
 		parent_node_clo.release()
 
 
-Closure<Node> deflate_splitnode(Node node):
+Closure<Node> deflate_splitnode(PushTask<Node> task):
 
 	invoke():
-		push_queue.push(new PushTask(node))
+		push_queue.push(task)
 
 
 == Functionality ==
