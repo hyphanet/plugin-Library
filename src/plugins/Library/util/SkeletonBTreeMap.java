@@ -504,7 +504,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			ppp.setEstimate(ProgressParts.TOTAL_FINALIZED);
 
 		} catch (DataFormatException e) {
-			throw new TaskAbortException("interrupted", e);
+			throw new TaskAbortException("Bad data format", e);
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("interrupted", e);
 		} finally {

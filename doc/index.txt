@@ -25,80 +25,7 @@ WriteableIndex keeps a "node -> modCount" map
 at each commit, push all nodes that have a different modCount,
 and update the map.
 
-==== BTreeMap bulk-merge algorithm ====
-
-node.putAll(SortedSet<K> set, Node parent):
-
-	assert(node.lkey < set.first && set.last < node.rkey)
-
-	if this is leaf:
-		merge set with this node
-
-	else:
-		for n in subnodes:
-			if n.lkey in set: update its value
-
-			subset = { K in set: n.lkey < K < n.rkey }
-			if subset is empty: continue
-			n.putAll(subset, node)
-
-	if size > node_max and parent != null:
-		split this node up to respect the B-tree constraints
-		attach the split nodes to the parent
-
-tree.putAll(SortedSet<K> set):
-
-	root.putAll(set, null)
-
-	while root.size > node_max:
-		create a new root
-		split old root
-		attach these to new root
-
 ==== Parallel BTreeMap bulk-merge algorithm ====
-
-Closure<Node> inflate_subnodes(Node parent, SortedSet set):
-
-	invoke(Node node):
-
-		assert(node.lkey < set.first && set.last < node.rkey)
-
-		if node is leaf:
-			merge set with this node
-			(new split(parent)).invoke(node)
-
-		else:
-			wait_map.put(node, node_waiters = {})
-
-			for n in subnodes:
-				if n.lkey in set: callback(k, v)
-
-				subset = { K in set: n.lkey < K < n.rkey }
-				if subset is empty: continue
-				pull_queue.push(n)
-				inflate_closures.put(n, new inflate_subnodes(node, subset))
-				node_waiters.put(n)
-
-			split_closures.put(node, new split(parent))
-
-Closure<Node> split(Node parent):
-
-	invoke(Node node):
-
-		if size > node_max and parent != null:
-			split this node up to respect the B-tree constraints
-			attach split_nodes to the parent
-		else:
-			split_nodes = [this]
-
-		node_waiters = wait_map.get(node)
-
-		for n in split_nodes:
-			push_queue.push(n)
-			node_waiters.put(n)
-
-		if node not in split_nodes:
-			node_waiters.remove(node)
 
 life cycle of a node:
 
@@ -112,45 +39,164 @@ life cycle of a node:
 - wait for all:
   - subnodes get popped from deflated
 - enter split
-  - split_nodes gets pushed into push_queue (needs exception for the root node)
+- for each split_node:
+  - wait for all:
+    - values get popped from values_complete
+  - enter deflate_splitnode
+    - split_nodes gets pushed into push_queue (needs exception for the root node)
+
 
 !!! PriorityQueues must produce nodes in depth-first order !!!
 
-execute(SortedSet<K> set):
+class CountingClosure()
+	counter = 0
+	construct(): ++counter
+	acquire(): ++counter
+	release(): --counter
+	close(): --counter
+	invoke(): counter == 0 || throw new IllegalStateException()
 
-	PriorityBlockingQueue inflated // output queue for pull-scheduler
-	PriorityBlockingQueue pull_queue // input queue for pull-scheduler
+execute(SortedMap<K, V> map):
 
-	PriorityBlockingQueue deflated // output queue for push-scheduler
-	PriorityBlockingQueue push_queue // input queue for push-scheduler
+	PriorityBlockingQueue<PullTask<Node>> pull_queue // input queue for pull-scheduler
+	PriorityBlockingQueue<PullTask<Node>> inflated // output queue for pull-scheduler
+	// FIXME error maps
 
-	IdentityHashMap<Node, [Node]> wait_map // wait queue for split_nodes
+	PriorityBlockingQueue<PushTask<Node>> push_queue // input queue for push-scheduler
+	PriorityBlockingQueue<PushTask<Node>> deflated // output queue for push-scheduler
+	// FIXME error maps
 
-	IDMap<Node, Closure<Node>> inflate_closures
-	IDMap<Node, Closure<Node>> split_closures
+	PriorityBlockingQueue<K> value_pending // input queue for value-handler
+	PriorityBlockingQueue<K> value_complete // output queue for value-handler
+	// FIXME correct type instead of <K>
+	// FIXME error maps
 
-	inflated.push([root, null, set])
+	IDMap<PullTask<Node>, Closure<Node>> inflate_closures
+	IDMap<PushTask<Node>, CountingTrigger<Node>> split_closures
+	IDMap<K, TrackingTrigger<Node>> deflate_closures
+
+	inflate_closures.put(root, new inflate_subnodes(null, map, null, null))
+	inflated.push(root)
 
 	do:
 
 		while inflated not empty:
-			node = inflated.pop()
+			task = inflated.pop()
 
-			inflate_closures.remove(ghost_node).invoke(node)
-			// FIXME get ghost_node from node
+			inflate_closures.remove(task).invoke(task.data)
 
 		while deflated not empty:
-			node = deflated.pop()
+			task = deflated.pop()
 
-			// FIXME get parent from node
-			node_waiters = wait_map.get(parent)
-			node_waiters.remove(node)
-			assert(something was removed)
+			clo = split_closures.remove(task)
+			if clo.release() == 0:
+				// FIXME get parent, somehow
+				clo.invoke(parent)
 
-			if node_waiters.isEmpty():
-				split_closures.remove(parent).invoke(parent)
+		while value_complete not empty:
+			k = value_complete.pop()
+			// TODO update value
 
-	while (inflated + deflated + inflate_closures + split_closures) not empty
+			clo = deflate_closures.remove(k)
+			if clo.release(k) == 0:
+				clo.invoke()
+
+	while (inflated + deflated + inflate_closures + split_closures + deflate_closures) not empty
+
+
+Closure<Node> inflate_subnodes(
+	Node parent
+	SortedMap map
+	CountingTrigger parent_node_clo
+	TrackingTrigger parent_value_clo
+	Callback init_value_handler(k, v)
+	):
+
+	invoke(Node node):
+		assert(node.lkey < map.first && map.last < node.rkey)
+
+		// a null trigger whose only purpose is to track unhandled (k,v) callbacks
+		value_clo = new NullTrackingTrigger(parent)
+
+		// closure to be called when all subnodes have been handled
+		node_clo = new split_node(parent, value_clo, parent_node_clo, parent_value_clo)
+
+		node_clo.open()
+		value_clo.open()
+
+		mergesort map & node:
+
+			items added locally to the node:
+				value_clo.acquire(k)
+				deflate_closures.put(k, value_clo)
+				init_value_handler(k, v)
+
+			submap not in node:
+
+				if node is leaf:
+					as "added locally"
+
+				else:
+					node_clo.acquire()
+					pull_queue.push(new PullTask(n))
+					inflate_closures.put(n, new inflate_subnodes(node, submap, node_clo, value_clo))
+
+		node_clo.close()
+
+		if node_clo.count == 0:
+			node_clo.invoke(node)
+
+
+Closure<Node> split_node(
+	Node parent
+	TrackingTrigger value_clo
+	CountingTrigger parent_node_clo
+	TrackingTrigger parent_value_clo
+	):
+
+	invoke(Node node):
+
+		// FIXME consider case where parent == null, node == root
+
+		if size > node_max and parent != null:
+			(split_nodes, separators) = node.split()
+			splice into parent
+		else:
+			(split_nodes, separators) = ([this], [])
+
+		for (k,v) in separators & value_clo:
+			// for each separator key that was moved to the parent node, deassign
+			// it from the current trigger and re-assign it to the parent trigger
+			// NOTE: if the overall algorithm is ever made concurrent, this section
+			// MUST be made atomic
+			value_clo.release(k)
+			parent_value_clo.acquire(k)
+			old = deflate_closures.put(k, parent_value_clo)
+			assert(old == value_clo)
+
+		value_clo.close()
+		assert(value_clo.count == 0)
+
+		for n in split_nodes:
+			// for each split node, create a trigger that will fire when all
+			// its (k,v) pairs have been popped from value_complete
+			vclo = new deflate_splitnode(n)
+			vclo.open()
+			for (k,v) in n & value_clo:
+				deflate_closures.put(k, vclo)
+				vclo.acquire()
+			vclo.close()
+
+			parent_node_clo.acquire()
+
+		// original node still holds a resource, release it
+		parent_node_clo.release()
+
+
+Closure<Node> deflate_splitnode(Node node):
+
+	invoke():
+		push_queue.push(new PushTask(node))
 
 
 == Functionality ==
