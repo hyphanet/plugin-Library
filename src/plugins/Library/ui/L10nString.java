@@ -3,8 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.ui;
 
-import freenet.l10n.L10n;
-import freenet.l10n.L10n.LANGUAGE;
+import freenet.l10n.BaseL10n;
+import freenet.l10n.NodeL10n;
+import freenet.l10n.BaseL10n.LANGUAGE;
 
 /**
  * Feeble attempt at a translation interface, this is best left until there is a
@@ -18,7 +19,7 @@ public class L10nString{
 	static LANGUAGE lang;
 
 	public static String getString(String key){
-		lang = L10n.getSelectedLanguage();
+		lang = NodeL10n.getBase().getSelectedLanguage();
 		if("Index".equals(key))
 			switch(lang){
 				case ENGLISH:

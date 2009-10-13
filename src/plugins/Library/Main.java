@@ -20,7 +20,7 @@ import freenet.pluginmanager.FredPluginThreadless;
 import freenet.pluginmanager.FredPluginVersioned;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Executor;
-import freenet.l10n.L10n.LANGUAGE;
+import freenet.l10n.BaseL10n.LANGUAGE;
 
 import freenet.pluginmanager.FredPluginFCP;
 import freenet.support.Logger;
@@ -105,10 +105,6 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 
 	public String getString(String key) {
 		return key;
-	}
-
-	public void setLanguage(LANGUAGE newLanguage) {
-
 	}
 
 	private static String convertToHex(byte[] data) {
