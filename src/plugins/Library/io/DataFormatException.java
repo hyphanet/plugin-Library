@@ -26,7 +26,8 @@ public class DataFormatException extends java.io.IOException {
 	final Object data;
 
 	public DataFormatException(String s, Throwable t, Object v, Object p, Object k) {
-		super(s, t);
+		super(s);
+		initCause(t);
 		data = v;
 		parent = p;
 		key = k;
