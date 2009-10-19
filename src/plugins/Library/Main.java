@@ -77,7 +77,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				throw e.getCause();
 			}
 		} catch (ClassNotFoundException e) {
-			return "Tester not compiled in; give -Dtester= to ant";
+			return "<p>To use Library, go to <b>Browsing -&gt; Search Freenet</b> in the main menu in FProxy.</p><p>This page is only where the test suite would be, if it had been compiled in (give -Dtester= to ant).</p>";
 		} catch (Throwable t) {
 			th = t;
 		}
