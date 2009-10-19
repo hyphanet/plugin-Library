@@ -24,8 +24,8 @@ package plugins.Library.util.func;
 **
 ** @param <P> Type of the input parameter. If you need more than one input
 **        parameter, consider using the classes in {@link Tuples}.
-** @param <E> Type of the thrown exception(s). If you want need to throw more
-**        than one type of exception, it's recommended to give the closest
+** @param <E> Type of the thrown exception(s). If your implementation throws
+**        more than one type of exception, it's recommended to give the closest
 **        superclass of all the exceptions, though {@link Exception} is always
 **        safe. If your implementation throws no checked exceptions, consider
 **        using {@link SafeClosure} instead of this class.
@@ -35,6 +35,6 @@ package plugins.Library.util.func;
 */
 public interface Closure<P, E extends Exception> {
 
-	public boolean invoke(P param) throws E;
+	public void invoke(P param) throws E;
 
 }
