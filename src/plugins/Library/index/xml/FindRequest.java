@@ -4,6 +4,9 @@
 package plugins.Library.index.xml;
 
 import freenet.client.events.ClientEvent;
+import freenet.client.events.ExpectedFileSizeEvent;
+import freenet.client.events.ExpectedMIMEEvent;
+import freenet.client.events.SendingToNetworkEvent;
 import freenet.client.events.SplitfileProgressEvent;
 import freenet.support.Logger;
 
@@ -202,6 +205,9 @@ public class FindRequest extends AbstractExecution<Set<TermEntry>> implements Co
 			if(ce instanceof SplitfileProgressEvent){
 				SplitfileProgressEvent spe = (SplitfileProgressEvent)ce;
 				parts = ProgressParts.normalise(spe.succeedBlocks, spe.minSuccessfulBlocks, spe.minSuccessfulBlocks, spe.finalizedTotal?ProgressParts.TOTAL_FINALIZED:ProgressParts.ESTIMATE_UNKNOWN);
+			}else if(ce instanceof SendingToNetworkEvent || ce instanceof ExpectedMIMEEvent || ce instanceof ExpectedFileSizeEvent) {
+				// Ignore.
+				return;
 			}else{
 				parts = ProgressParts.normalise(0, 0);
 				Logger.error(this, "Fetch progress will not update due to unrecognised ClientEvent : "+ce.getClass().getName());
