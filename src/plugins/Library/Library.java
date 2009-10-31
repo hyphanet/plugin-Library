@@ -107,7 +107,10 @@ final public class Library {
 	 */
 	private Library(PluginRespirator pr){
 		this.pr = pr;
-		this.exec = pr.getNode().executor;
+		if(pr!=null)
+			this.exec = pr.getNode().executor;
+		else
+			this.exec = null;
 		File persistentFile = new File("LibraryPersistent");
 		if(persistentFile.canRead()){
 			try {
