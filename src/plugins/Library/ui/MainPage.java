@@ -24,6 +24,7 @@ import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 /**
  * Generates the main search page
@@ -39,9 +40,9 @@ class MainPage {
 	}
 
 	private synchronized static void cleanUpPages(){
-		for (Integer integer : searchPages.keySet()) {
-			if (!Search.hasSearch(integer))
-				searchPages.remove(integer);
+		for (Iterator<Integer> it = searchPages.keySet().iterator(); it.hasNext();) {
+			if (!Search.hasSearch(it.next()))
+					it.remove();
 		}
 	}
 
