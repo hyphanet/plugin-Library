@@ -200,7 +200,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 	 * @throws InvalidSearchException if search query is invalid
 	 */
 	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException, TaskAbortException{
-		if(query.matches("\\A\\w*\\Z")) {
+		if(query.matches("\\A[\\w\\d]*\\Z")) {
 			// single search term
 			// return null if stopword
 			if(isStopWord(query))
@@ -214,7 +214,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		// Make phrase search
 		if(query.matches("\\A\"[^\"]*\"\\Z")){
 			ArrayList<Execution<Set<TermEntry>>> phrasesearches = new ArrayList();
-			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split(" ");
+			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split("[^\\w\\d]+");
 			Logger.minor(Search.class, "Phrase split"+query);
 			for (String subquery : phrase){
 				Search term = startSearch(subquery, indexuri);
@@ -240,6 +240,8 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 				return null;
 		}
 
+
+
 		Logger.minor(Search.class, "Splitting " + query);
 		String formattedquery="";
 		// Remove phrases, place them in arraylist and replace tem with references to the arraylist
@@ -251,18 +253,29 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 				formattedquery+=string;
 				if (++i < phraseparts.length){
 					string = phraseparts[i];
-					formattedquery+="$"+phrases.size();
+					formattedquery+="$"+phrases.size()+"£";
 					phrases.add(string);
 				}
 			}
 		else
 			formattedquery=query;
+		
+		
+		
+		
 		Logger.minor(Search.class, "phrases removed query : "+formattedquery);
-		formattedquery = formattedquery.replaceAll("\\s+or\\s+", "||");
-		formattedquery = formattedquery.replaceAll("\\s+(?:not\\s*|-)(\\S+)", "^^($1)");
-		Logger.minor(Search.class, "not query : "+formattedquery);
-		formattedquery = formattedquery.replaceAll("\\s+", "&&");
-		Logger.minor(Search.class, "and query : "+formattedquery);
+
+		// treat hyphens as phrases, as they are treated equivalently in spider so this is the most effective way now
+		query = query.replaceAll("((?:[\\d\\w]+-)+[\\d\\w]+)", "\"$1\"");
+		Logger.minor(Search.class, "Treat hyphenated words as phrases");
+
+		if(!query.contains("\"")){	// dont do the other splitting operations as we need to put phrases back in and call self
+			formattedquery = formattedquery.replaceAll("\\s+or\\s+", "||");
+			formattedquery = formattedquery.replaceAll("\\s+(?:not\\s*|-)(\\S+)", "^^($1)");
+			Logger.minor(Search.class, "not query : "+formattedquery);
+			formattedquery = formattedquery.replaceAll("\\s+", "&&");
+			Logger.minor(Search.class, "and query : "+formattedquery);
+		}
 
 		// Put phrases back in
 		phraseparts=formattedquery.split("\\$");
@@ -270,11 +283,12 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		for (int i = 1; i < phraseparts.length; i++) {
 			String string = phraseparts[i];
 			Logger.minor(Search.class, "replacing phrase "+string.replaceFirst("(\\d+).*", "$1"));
-			formattedquery += "\""+ phrases.get(Integer.parseInt(string.replaceFirst("(\\d+).*", "$1"))) +"\"" + string.replaceFirst("\\d+(.*)", "$1");
+			formattedquery += "\""+ phrases.get(Integer.parseInt(string.replaceFirst("(\\d+).*", "$1"))) +"\"" + string.replaceFirst("\\d+£(.*)", "$1");
 		}
 		Logger.minor(Search.class, "phrase back query : "+formattedquery);
 
-
+		if(query.contains("\""))	// recall self to remove phrases
+			return splitQuery(query, indexuri);
 
 		// Make complement search
 		if (formattedquery.contains("^^(")){
