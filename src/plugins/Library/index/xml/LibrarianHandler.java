@@ -166,8 +166,11 @@ public class LibrarianHandler extends DefaultHandler {
 								Logger.error(this, "Index Format not compatible " + e.toString(), e);
 							}
 							try {
-								int wordCount = Integer.parseInt(attrs.getValue("wordCount"));
-								wordCounts.put(id, wordCount);
+								String wordCountString = attrs.getValue("wordCount");
+								if(wordCountString != null) {
+									int wordCount = Integer.parseInt(attrs.getValue("wordCount"));
+									wordCounts.put(id, wordCount);
+								}
 							} catch (Exception e) {
 								//Logger.minor(this, "No wordcount found " + e.toString(), e);
 							}
