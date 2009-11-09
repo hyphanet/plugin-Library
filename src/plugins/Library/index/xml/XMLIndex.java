@@ -446,32 +446,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 							throw new TaskAbortException(msg, e);
 						}
 					}else if(fetchStatus==FetchStatus.FETCHED){
-						synchronized(parsingSubindex){
-							// Transfer all requests waiting on this subindex to the parsing list
-							synchronized (waitingOnSubindex){
-								parsingSubindex.addAll(waitingOnSubindex);
-								waitingOnSubindex.removeAll(parsingSubindex);
-							}
-							// Set status of all those about to be parsed to PARSE
-							for(FindRequest r : parsingSubindex)
-								r.setStage(FindRequest.Stages.PARSE);
-							SAXParserFactory factory = SAXParserFactory.newInstance();
-							try {
-								factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-								SAXParser saxParser = factory.newSAXParser();
-								InputStream is = bucket.getInputStream();
-								saxParser.parse(is, new LibrarianHandler(parsingSubindex));
-								Logger.minor(this, "parsing finished "+ parsingSubindex.toString());
-								for (FindRequest findRequest : parsingSubindex) {
-									findRequest.setFinished();
-								}
-								parsingSubindex.clear();
-								is.close();
-							} catch (Exception err) {
-								Logger.error(this, "Error parsing "+filename, err);
-								throw new TaskAbortException("Could not parse XML: ", err);
-							}
-						}
+						parseSubIndex();
 					} else {
 						break;
 					}
@@ -486,5 +461,36 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 					r.setError(e);
 			}
 		}
+		
+		public void parseSubIndex() throws TaskAbortException {
+			synchronized(parsingSubindex){
+				// Transfer all requests waiting on this subindex to the parsing list
+				synchronized (waitingOnSubindex){
+					parsingSubindex.addAll(waitingOnSubindex);
+					waitingOnSubindex.removeAll(parsingSubindex);
+				}
+				// Set status of all those about to be parsed to PARSE
+				for(FindRequest r : parsingSubindex)
+					r.setStage(FindRequest.Stages.PARSE);
+				SAXParserFactory factory = SAXParserFactory.newInstance();
+				try {
+					factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+					SAXParser saxParser = factory.newSAXParser();
+					InputStream is = bucket.getInputStream();
+					saxParser.parse(is, new LibrarianHandler(parsingSubindex));
+					Logger.minor(this, "parsing finished "+ parsingSubindex.toString());
+					for (FindRequest findRequest : parsingSubindex) {
+						findRequest.setFinished();
+					}
+					parsingSubindex.clear();
+					is.close();
+				} catch (Exception err) {
+					Logger.error(this, "Error parsing "+filename, err);
+					throw new TaskAbortException("Could not parse XML: ", err);
+				}
+			}
+		}
+		
 	}
+
 }
