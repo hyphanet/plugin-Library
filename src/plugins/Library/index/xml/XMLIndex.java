@@ -83,6 +83,12 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	private SortedMap<String, SubIndex> subIndice;
 	private ArrayList<FindRequest> waitingOnMainIndex = new ArrayList<FindRequest>();
 
+	static volatile boolean logMINOR;
+	static volatile boolean logDEBUG;
+	
+	static {
+		Logger.registerClass(XMLIndex.class);
+	}
 
 	/**
 	 * Create an XMLIndex from a URI
@@ -166,11 +172,13 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		fetchFailures++;
 		if(fetchFailures < 20 && e.newURI!=null){
 			try {
-				indexuri = e.newURI.setMetaString(null).toString();
-				startFetch();
+				if(logMINOR) Logger.minor(this, "Trying new URI: "+e.newURI);
+				indexuri = e.newURI.setMetaString(new String[]{""}).toString();
+				if(logMINOR) Logger.minor(this, "Trying new URI: "+e.newURI+" : "+indexuri);
+				startFetch(true);
 				return;
 			} catch (FetchException ex) {
-				Logger.error(this, "what?", ex);
+				e = ex;
 			} catch (MalformedURLException ex) {
 				Logger.error(this, "what?", ex);
 			}
@@ -197,8 +205,8 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	 * @throws freenet.client.FetchException
 	 * @throws java.net.MalformedURLException
 	 */
-	private synchronized void startFetch() throws FetchException, MalformedURLException {
-		if (fetchStatus != FetchStatus.UNFETCHED && fetchStatus != FetchStatus.FAILED)
+	private synchronized void startFetch(boolean retry) throws FetchException, MalformedURLException {
+		if ((!retry) && (fetchStatus != FetchStatus.UNFETCHED && fetchStatus != FetchStatus.FAILED))
 			return;
 		fetchStatus = FetchStatus.FETCHING;
 		String uri = indexuri + DEFAULT_FILE;
@@ -211,17 +219,18 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			return;
 		}
 
-//		Logger.normal(this, "Fetching "+uri);
+		if(logMINOR) Logger.minor(this, "Fetching "+uri);
 		// FreenetURI, try to fetch from freenet
 		FreenetURI u = new FreenetURI(uri);
 		while (true) {
 			try {
 				rootGetter = hlsc.fetch(u, -1, this, this, hlsc.getFetchContext().clone());
-//				Logger.normal(this, "Fetch started : "+toString());
+				Logger.normal(this, "Fetch started : "+toString());
 				break;
 			} catch (FetchException e) {
 				if (e.newURI != null) {
 					u = e.newURI;
+					if(logMINOR) Logger.minor(this, "New URI: "+uri);
 					continue;
 				} else
 					throw e;
@@ -329,7 +338,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		if (fetchStatus!=FetchStatus.FETCHED){
 			waitingOnMainIndex.add(request);
 			request.setStage(FindRequest.Stages.FETCHROOT);
-			startFetch();
+			startFetch(false);
 		}else{
 			request.setStage(FindRequest.Stages.FETCHSUBINDEX);
 			SubIndex subindex = getSubIndex(request.getSubject());
