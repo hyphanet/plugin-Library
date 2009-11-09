@@ -5,10 +5,12 @@ package plugins.Library.index.xml;
 
 import java.io.File;
 import java.net.MalformedURLException;
+
 import freenet.client.FetchException;
 import freenet.client.FetchResult;
 import freenet.client.HighLevelSimpleClient;
 import freenet.keys.FreenetURI;
+import freenet.support.Logger;
 import freenet.support.api.Bucket;
 import freenet.support.io.FileBucket;
 
@@ -20,6 +22,13 @@ import freenet.support.io.FileBucket;
  */
 public class Util {
 	
+	static volatile boolean logMINOR;
+	static volatile boolean logDEBUG;
+	
+	static {
+		Logger.registerClass(Util.class);
+	}
+
 	public static Bucket fetchBucket(String uri, HighLevelSimpleClient hlsc) throws FetchException, MalformedURLException {
 		// try local file first
 		File file = new File(uri);
@@ -29,6 +38,7 @@ public class Util {
 			throw new NullPointerException("No client or file "+uri+" found");
 		
 		// FreenetURI, try to fetch from freenet
+		if(logMINOR) Logger.minor(Util.class, "Fetching "+uri);
 		FreenetURI u = new FreenetURI(uri);
 		FetchResult res;
 		while (true) {
