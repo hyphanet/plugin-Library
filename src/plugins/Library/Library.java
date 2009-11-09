@@ -31,6 +31,7 @@ import freenet.support.io.BucketTools;
 */
 
 import freenet.keys.FreenetURI;
+import freenet.keys.USK;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Logger;
 
@@ -43,6 +44,10 @@ import freenet.client.FetchResult;
 import freenet.client.FetchWaiter;
 import freenet.client.async.ClientGetter;
 import freenet.client.async.ClientContext;
+import freenet.client.async.USKCallback;
+import freenet.client.async.USKManager;
+import freenet.client.async.USKRetriever;
+import freenet.client.async.USKRetrieverCallback;
 import freenet.client.events.ClientEventListener;
 import freenet.client.events.ClientEvent;
 import freenet.client.events.ExpectedMIMEEvent;
@@ -102,6 +107,13 @@ final public class Library implements URLUpdateHook {
 	final private PluginRespirator pr;
 	final private Executor exec;
 
+	static volatile boolean logMINOR;
+	static volatile boolean logDEBUG;
+	
+	static {
+		Logger.registerClass(Library.class);
+	}
+
 	/**
 	 * Method to setup Library class so it has access to PluginRespirator, and load bookmarks
 	 * TODO pull bookmarks from disk
@@ -117,13 +129,26 @@ final public class Library implements URLUpdateHook {
 			try {
 				ObjectInputStream is = new ObjectInputStream(new FileInputStream(persistentFile));	// These are annoying but it's better than nothing
 				bookmarks = (Map<String, String>)is.readObject();
+				USKManager uskManager = pr.getNode().clientCore.clientContext.uskManager;
+				for(Map.Entry<String, String> entry : bookmarks.entrySet()) {
+					String name = entry.getKey();
+					String target = entry.getValue();
+					FreenetURI uri = new FreenetURI(target);
+					if(uri.isUSK()) {
+						BookmarkCallback callback = new BookmarkCallback(name, uri.getAllMetaStrings());
+						bookmarkCallbacks.put(name, callback);
+						USK u = USK.create(uri);
+						uskManager.subscribe(u, callback, false, rc);
+						callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rc);
+					}
+				}
 			} catch (ClassNotFoundException ex) {
 				Logger.error(this, "Error trying to read bookmarks Map from file.", ex);
 			} catch (IOException ex) {
 				Logger.normal(this, "Error trying to read Library persistent data.", ex);
 			}
 		}else{
-			addBookmark("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/24/index.xml");
+			addBookmark("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/index.xml");
 			addBookmark("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/5/index.xml");
 		}
 	}
@@ -153,6 +178,8 @@ final public class Library implements URLUpdateHook {
 	** Holds all the bookmarks (aliases into the rtab).
 	*/
 	private Map<String, String> bookmarks = new HashMap<String, String>();
+	
+	private Map<String, BookmarkCallback> bookmarkCallbacks = new HashMap<String, BookmarkCallback>();
 
 	/**
 	** Get the index type giving a {@code FreenetURI}. This must not contain
@@ -348,10 +375,97 @@ final public class Library implements URLUpdateHook {
 	 * @param uri of new bookmark
 	 * @return reference of new bookmark
 	 */
-	public synchronized String addBookmark(String name, String uri) {
-		bookmarks.put(name, uri);
-		saveState();
+	public String addBookmark(String name, String uri) {
+		FreenetURI u;
+		USK uskNew = null;
+		BookmarkCallback callback = null;
+		try {
+			u = new FreenetURI(uri);
+			if(u.isUSK())
+				uskNew = USK.create(u);
+		} catch (MalformedURLException e) {
+			Logger.error(this, "Invalid new uri "+uri);
+			return null;
+		}
+		String old;
+		synchronized(this) {
+			old = bookmarks.put(name, uri);
+			callback = bookmarkCallbacks.get(name);
+			if(callback == null) {
+				bookmarkCallbacks.put(name, callback = new BookmarkCallback(name, u.getAllMetaStrings()));
+				old = null;
+			}
+			saveState();
+		}
+		boolean isSame = false;
+		USKManager uskManager = pr.getNode().clientCore.clientContext.uskManager;
+		if(old != null) {
+			try {
+				FreenetURI uold = new FreenetURI(old);
+				if(uold.isUSK()) {
+					USK usk = USK.create(uold);
+					if(!(uskNew != null && usk.equals(uskNew, false))) {
+						uskManager.unsubscribe(usk, callback);
+						uskManager.unsubscribeContent(usk, callback.ret, true);
+					} else
+						isSame = true;
+				}
+				
+			} catch (MalformedURLException e) {
+				// Ignore
+			}
+		}
+		if(!isSame) {
+			uskManager.subscribe(uskNew, callback, false, rc);
+			callback.ret = uskManager.subscribeContent(uskNew, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rc);
+		}
 		return name;
+	}
+	
+	final RequestClient rc = new RequestClient() {
+
+		public boolean persistent() {
+			return false;
+		}
+
+		public void removeFrom(ObjectContainer container) {
+			// Ignore
+		}
+		
+	};
+	
+	private class BookmarkCallback implements USKRetrieverCallback, USKCallback {
+
+		private final String bookmarkName;
+		private String[] metaStrings;
+		USKRetriever ret;
+		
+		public BookmarkCallback(String name, String[] allMetaStrings) {
+			this.bookmarkName = name;
+			this.metaStrings = allMetaStrings;
+		}
+
+		public short getPollingPriorityNormal() {
+			return RequestStarter.UPDATE_PRIORITY_CLASS;
+		}
+
+		public short getPollingPriorityProgress() {
+			return RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS;
+		}
+
+		public void onFound(USK origUSK, long edition, FetchResult data) {
+			data.asBucket().free();
+			if(logMINOR) Logger.minor(this, "Bookmark "+bookmarkName+" : fetching edition "+edition);
+		}
+
+		public void onFoundEdition(long l, USK key, ObjectContainer container, ClientContext context, boolean metadata, short codec, byte[] data, boolean newKnownGood, boolean newSlotToo) {
+			if(newKnownGood) {
+				String uri = key.copy(l).getURI().setMetaString(metaStrings).toString();
+				if(logMINOR) Logger.minor(this, "Bookmark "+bookmarkName+" new last known good edition "+l+" uri is now "+uri);
+				addBookmark(bookmarkName, uri);
+			}
+		}
+		
 	}
 
 	public synchronized void removeBookmark(String name) {
@@ -548,12 +662,6 @@ final public class Library implements URLUpdateHook {
 	}
 
 	public void update(String updateContext, String indexuri) {
-		try {
-			FreenetURI uri = new FreenetURI(indexuri);
-		} catch (MalformedURLException e) {
-			Logger.error(this, "Invalid new uri "+indexuri+" for "+updateContext);
-			return;
-		}
 		addBookmark(updateContext, indexuri);
 	}
 }
