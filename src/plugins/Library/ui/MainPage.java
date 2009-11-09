@@ -72,6 +72,13 @@ class MainPage {
 
 	private String addindexname;
 	private String addindexuri = "";
+	
+	static volatile boolean logMINOR;
+	static volatile boolean logDEBUG;
+	
+	static {
+		Logger.registerClass(MainPage.class);
+	}
 
 
 	MainPage(Exception e, Library library, PluginRespirator pr) {
@@ -180,7 +187,8 @@ class MainPage {
 		if (request.isPartSet(Commands.find.toString())){
 			// Start or continue a search
 			try {
-				//Logger.normal(this, "starting search for "+query+" on "+indexuri);
+				if(logMINOR)
+					Logger.minor(MainPage.class, "starting search for "+page.query+" on "+page.indexstring);
 				page.search = Search.startSearch(page.query, page.indexstring);
 				if(page.search == null)
 					page.messages.append("Stopwords too prominent in search term, try removing words like 'the', 'and' and 'that' and any words less than 3 characters");
