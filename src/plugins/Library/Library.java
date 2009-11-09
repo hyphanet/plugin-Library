@@ -33,6 +33,7 @@ import freenet.support.io.BucketTools;
 import freenet.keys.FreenetURI;
 import freenet.keys.USK;
 import freenet.pluginmanager.PluginRespirator;
+import freenet.pluginmanager.PluginStore;
 import freenet.support.Logger;
 
 import com.db4o.ObjectContainer;
@@ -44,6 +45,7 @@ import freenet.client.FetchResult;
 import freenet.client.FetchWaiter;
 import freenet.client.async.ClientGetter;
 import freenet.client.async.ClientContext;
+import freenet.client.async.DatabaseDisabledException;
 import freenet.client.async.USKCallback;
 import freenet.client.async.USKManager;
 import freenet.client.async.USKRetriever;
@@ -55,6 +57,7 @@ import freenet.node.RequestStarter;
 import freenet.node.RequestClient;
 import freenet.node.NodeClientCore;
 import freenet.support.Executor;
+import freenet.support.io.FileUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -114,6 +117,10 @@ final public class Library implements URLUpdateHook {
 		Logger.registerClass(Library.class);
 	}
 
+	private final PluginStore store;
+	
+	static final String STOREKEY = "indexuris";
+	
 	/**
 	 * Method to setup Library class so it has access to PluginRespirator, and load bookmarks
 	 * TODO pull bookmarks from disk
@@ -124,43 +131,84 @@ final public class Library implements URLUpdateHook {
 			this.exec = pr.getNode().executor;
 		else
 			this.exec = null;
+		PluginStore ps;
+		try {
+			ps = pr.getStore();
+		} catch (DatabaseDisabledException e) {
+			ps = null;
+		}
+		USKManager uskManager = pr.getNode().clientCore.clientContext.uskManager;
+		store = ps;
+		if(store != null && store.subStores.containsKey(STOREKEY)) {
+			for(Map.Entry<String, String> entry : store.subStores.get(STOREKEY).strings.entrySet()) {
+				String name = entry.getKey();
+				String target = entry.getValue();
+				bookmarks.put(name, target);
+			}
+		}
+		
 		File persistentFile = new File("LibraryPersistent");
+		boolean migrated = false;
 		if(persistentFile.canRead()){
 			try {
 				ObjectInputStream is = new ObjectInputStream(new FileInputStream(persistentFile));	// These are annoying but it's better than nothing
 				bookmarks = (Map<String, String>)is.readObject();
-				USKManager uskManager = pr.getNode().clientCore.clientContext.uskManager;
-				for(Map.Entry<String, String> entry : bookmarks.entrySet()) {
-					String name = entry.getKey();
-					String target = entry.getValue();
-					FreenetURI uri = new FreenetURI(target);
-					if(uri.isUSK()) {
-						BookmarkCallback callback = new BookmarkCallback(name, uri.getAllMetaStrings());
-						bookmarkCallbacks.put(name, callback);
-						USK u = USK.create(uri);
-						uskManager.subscribe(u, callback, false, rc);
-						callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rc);
-					}
-				}
+				is.close();
+				FileUtil.secureDelete(persistentFile, pr.getNode().fastWeakRandom);
+				Logger.error(this, "Moved LibraryPersistent contents into database and securely deleted old file.");
+				migrated = true;
 			} catch (ClassNotFoundException ex) {
 				Logger.error(this, "Error trying to read bookmarks Map from file.", ex);
 			} catch (IOException ex) {
 				Logger.normal(this, "Error trying to read Library persistent data.", ex);
 			}
-		}else{
+		}
+		for(Map.Entry<String, String> entry : bookmarks.entrySet()) {
+			String name = entry.getKey();
+			String target = entry.getValue();
+			FreenetURI uri;
+			try {
+				uri = new FreenetURI(target);
+			} catch (MalformedURLException e) {
+				Logger.error(this, "Invalid bookmark URI: "+target+" for "+name, e);
+				continue;
+			}
+			if(uri.isUSK()) {
+				BookmarkCallback callback = new BookmarkCallback(name, uri.getAllMetaStrings());
+				bookmarkCallbacks.put(name, callback);
+				USK u;
+				try {
+					u = USK.create(uri);
+				} catch (MalformedURLException e) {
+					Logger.error(this, "Invalid bookmark USK: "+target+" for "+name, e);
+					continue;
+				}
+				uskManager.subscribe(u, callback, false, rc);
+				callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rc);
+			}
+		}
+		if(bookmarks.isEmpty()) {
 			addBookmark("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/19/index.xml");
 			addBookmark("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/5/index.xml");
+			migrated = true;
+			Logger.normal(this, "Added default indexes");
 		}
+		if(migrated)
+			saveState();
 	}
 
 	public synchronized void saveState(){
-		File persistentFile = new File("LibraryPersistent");
+		if(store == null) return;
+		PluginStore inner;
+		inner = store.subStores.get(STOREKEY);
+		if(inner == null)
+			store.subStores.put(STOREKEY, inner = new PluginStore());
+		inner.strings.putAll(bookmarks);
 		try {
-			ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(persistentFile));
-			os.writeObject(bookmarks);
-			os.close();
-		} catch (IOException ex) {
-			Logger.error(this, "Error writing out Library state to file.", ex);
+			pr.putStore(store);
+			if(logMINOR) Logger.minor(this, "Stored state to database");
+		} catch (DatabaseDisabledException e) {
+			// Not much we can do...
 		}
 	}
 
