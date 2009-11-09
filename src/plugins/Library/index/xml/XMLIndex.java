@@ -68,6 +68,8 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	protected HashMap<String, String> indexMeta  = new HashMap<String, String>();
 	// TODO it could be tidier if this was converted to a FreenetURI
 	protected String indexuri;
+	private URLUpdateHook updateHook;
+	private String updateContext;
 
 	private HighLevelSimpleClient hlsc;
 
@@ -95,8 +97,10 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 	 * @param baseURI
 	 *            Base URI of the index (exclude the <tt>index.xml</tt> part)
 	 */
-	public XMLIndex(String baseURI, PluginRespirator pr) throws InvalidSearchException {
+	public XMLIndex(String baseURI, PluginRespirator pr, URLUpdateHook hook, String context) throws InvalidSearchException {
 		this.pr = pr;
+		this.updateHook = hook;
+		this.updateContext = context;
 		if (pr!=null)
 			executor = pr.getNode().executor;
 
@@ -176,6 +180,8 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				indexuri = e.newURI.setMetaString(new String[]{""}).toString();
 				if(logMINOR) Logger.minor(this, "Trying new URI: "+e.newURI+" : "+indexuri);
 				startFetch(true);
+				if(updateHook != null)
+					updateHook.update(updateContext, indexuri);
 				return;
 			} catch (FetchException ex) {
 				e = ex;

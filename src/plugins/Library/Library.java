@@ -9,6 +9,7 @@ import plugins.Library.WriteableIndex;
 import plugins.Library.client.FreenetArchiver;
 import plugins.Library.index.ProtoIndex;
 import plugins.Library.index.ProtoIndexSerialiser;
+import plugins.Library.index.xml.URLUpdateHook;
 import plugins.Library.index.xml.XMLIndex;
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
@@ -70,7 +71,7 @@ import java.util.Collections;
  * Library class is the api for others to use search facilities, it is used by the interfaces
  * @author MikeB
  */
-final public class Library {
+final public class Library implements URLUpdateHook {
 
 	public static final String BOOKMARK_PREFIX = "bookmark:";
 	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "freenetindex";
@@ -381,7 +382,7 @@ final public class Library {
 		ArrayList<Index> indices = new ArrayList<Index>(uris.length);
 
 		for ( String uri : uris){
-			indices.add(getIndex(uri));
+			indices.add(getIndex(uri, null));
 		}
 		return indices;
 	}
@@ -393,6 +394,10 @@ final public class Library {
 		return rtab.values();
 	}
 
+	public final Index getIndex(String indexuri) throws InvalidSearchException, TaskAbortException {
+		return getIndex(indexuri, null);
+	}
+	
 	/**
 	 * Gets an index using its id in the form {type}:{uri} <br />
 	 * known types are xml, bookmark
@@ -408,13 +413,13 @@ final public class Library {
 	 * @param indexuri index specifier
 	 * @return Index object
 	 */
-	public final Index getIndex(String indexuri) throws InvalidSearchException, TaskAbortException {
+	public final Index getIndex(String indexuri, String origIndexName) throws InvalidSearchException, TaskAbortException {
 		Logger.normal(this, "Getting index "+indexuri);
 		indexuri = indexuri.trim();
 		if (indexuri.startsWith(BOOKMARK_PREFIX)){
 			indexuri = indexuri.substring(BOOKMARK_PREFIX.length());
 			if (bookmarks.containsKey(indexuri))
-				return getIndex(bookmarks.get(indexuri));
+				return getIndex(bookmarks.get(indexuri), indexuri);
 			else
 				throw new InvalidSearchException("Index bookmark '"+indexuri+" does not exist");
 		}
@@ -449,7 +454,7 @@ final public class Library {
 				index = task.data;
 
 			} else if (indextype == XMLIndex.class) {
-				index = new XMLIndex(indexuri, pr);
+				index = new XMLIndex(indexuri, pr, this, origIndexName);
 
 			} else {
 				throw new AssertionError();
@@ -540,5 +545,15 @@ final public class Library {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public void update(String updateContext, String indexuri) {
+		try {
+			FreenetURI uri = new FreenetURI(indexuri);
+		} catch (MalformedURLException e) {
+			Logger.error(this, "Invalid new uri "+indexuri+" for "+updateContext);
+			return;
+		}
+		addBookmark(updateContext, indexuri);
 	}
 }
