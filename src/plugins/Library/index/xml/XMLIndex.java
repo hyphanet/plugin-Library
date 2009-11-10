@@ -6,6 +6,7 @@ package plugins.Library.index.xml;
 import plugins.Library.Library;
 import plugins.Library.Index;
 import plugins.Library.index.TermEntry;
+import plugins.Library.index.TermPageEntry;
 import plugins.Library.index.URIEntry;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.util.exec.Execution;
@@ -13,6 +14,7 @@ import plugins.Library.util.exec.TaskAbortException;
 
 import com.db4o.ObjectContainer;
 
+import freenet.support.Fields;
 import freenet.support.Logger;
 import freenet.support.api.Bucket;
 import freenet.support.io.FileBucket;
@@ -34,15 +36,26 @@ import freenet.support.Executor;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
-import org.xml.sax.SAXException;
 
+import org.xml.sax.Attributes;
+import org.xml.sax.Locator;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.File;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.util.logging.Level;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 import java.util.List;
 import java.util.TreeMap;
@@ -472,23 +485,379 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				// Set status of all those about to be parsed to PARSE
 				for(FindRequest r : parsingSubindex)
 					r.setStage(FindRequest.Stages.PARSE);
-				SAXParserFactory factory = SAXParserFactory.newInstance();
+				
+				// Multi-stage parse to minimise memory usage.
+				
+				// Stage 1: Extract the declaration (first tag), copy everything before "<files " to one bucket, plus everything after "</files>".
+				// Copy the declaration, plus everything between the two (inclusive) to another bucket.
+				
+				Bucket mainBucket, filesBucket;
+				
 				try {
+				InputStream is = bucket.getInputStream();
+				mainBucket = pr.getNode().clientCore.tempBucketFactory.makeBucket(-1);
+				filesBucket = pr.getNode().clientCore.tempBucketFactory.makeBucket(-1);
+				OutputStream mainOS = new BufferedOutputStream(mainBucket.getOutputStream());
+				OutputStream filesOS = new BufferedOutputStream(filesBucket.getOutputStream());
+				//OutputStream mainOS = new BufferedOutputStream(new FileOutputStream("main.tmp"));
+				//OutputStream filesOS = new BufferedOutputStream(new FileOutputStream("files.tmp"));
+				
+				BufferedInputStream bis = new BufferedInputStream(is);
+
+				byte greaterThan = ">".getBytes("UTF-8")[0];
+				byte[] filesPrefix = "<files ".getBytes("UTF-8");
+				byte[] filesEnd = "</files>".getBytes("UTF-8");
+				
+				final int MODE_SEEKING_DECLARATION = 1;
+				final int MODE_SEEKING_FILES = 2;
+				final int MODE_COPYING_FILES = 3;
+				final int MODE_COPYING_REST = 4;
+				int mode = MODE_SEEKING_DECLARATION;
+				int b;
+				byte[] declarationBuf = new byte[100];
+				int declarationPtr = 0;
+				byte[] prefixBuffer = new byte[filesPrefix.length];
+				int prefixPtr = 0;
+				byte[] endBuffer = new byte[filesEnd.length];
+				int endPtr = 0;
+				while((b = bis.read()) != -1) {
+					if(mode == MODE_SEEKING_DECLARATION) {
+						if(declarationPtr == declarationBuf.length)
+							throw new TaskAbortException("Could not split up XML: declaration too long", null);
+						declarationBuf[declarationPtr++] = (byte)b;
+						mainOS.write(b);
+						filesOS.write(b);
+						if(b == greaterThan) {
+							mode = MODE_SEEKING_FILES;
+						}
+					} else if(mode == MODE_SEEKING_FILES) {
+						if(prefixPtr != prefixBuffer.length) {
+							prefixBuffer[prefixPtr++] = (byte)b;
+						} else {
+							if(Fields.byteArrayEqual(filesPrefix, prefixBuffer)) {
+								mode = MODE_COPYING_FILES;
+								filesOS.write(prefixBuffer);
+								filesOS.write(b);
+							} else {
+								mainOS.write(prefixBuffer[0]);
+								System.arraycopy(prefixBuffer, 1, prefixBuffer, 0, prefixBuffer.length-1);
+								prefixBuffer[prefixBuffer.length-1] = (byte)b;
+							}
+						}
+					} else if(mode == MODE_COPYING_FILES) {
+						if(endPtr != endBuffer.length) {
+							endBuffer[endPtr++] = (byte)b;
+						} else {
+							if(Fields.byteArrayEqual(filesEnd, endBuffer)) {
+								mode = MODE_COPYING_REST;
+								filesOS.write(endBuffer);
+								mainOS.write(b);
+							} else {
+								filesOS.write(endBuffer[0]);
+								System.arraycopy(endBuffer, 1, endBuffer, 0, endBuffer.length-1);
+								endBuffer[endBuffer.length-1] = (byte)b;
+							}
+						}
+					} else if(mode == MODE_COPYING_REST) {
+						mainOS.write(b);
+					}
+				}
+				
+				if(mode != MODE_COPYING_REST)
+					throw new TaskAbortException("Could not split up XML: Last mode was "+mode, null);
+				
+				mainOS.close();
+				filesOS.close();
+				} catch (IOException e) {
+					throw new TaskAbortException("Could not split XML: ", e);
+				}
+				
+				if(logMINOR) Logger.minor(this, "Finished splitting XML");
+				
+				try {
+				
+					SAXParserFactory factory = SAXParserFactory.newInstance();
 					factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 					SAXParser saxParser = factory.newSAXParser();
-					InputStream is = bucket.getInputStream();
-					saxParser.parse(is, new LibrarianHandler(parsingSubindex));
+					
+					// Stage 2: Parse the first bucket, find the keyword we want, find the file id's.
+					
+					InputStream is = mainBucket.getInputStream();
+					StageTwoHandler stageTwoHandler = new StageTwoHandler();
+					saxParser.parse(is, stageTwoHandler);
+					if(logMINOR) Logger.minor(this, "Finished stage two XML parse");
+					is.close();
+				
+					// Stage 3: Parse the second bucket, extract the <file>'s for the specific ID's.
+					
+					is = filesBucket.getInputStream();
+					StageThreeHandler stageThreeHandler = new StageThreeHandler();
+					saxParser.parse(is, stageThreeHandler);
+					if(logMINOR) Logger.minor(this, "Finished stage three XML parse");
+					is.close();
+					
 					Logger.minor(this, "parsing finished "+ parsingSubindex.toString());
 					for (FindRequest findRequest : parsingSubindex) {
 						findRequest.setFinished();
 					}
 					parsingSubindex.clear();
-					is.close();
 				} catch (Exception err) {
 					Logger.error(this, "Error parsing "+filename, err);
 					throw new TaskAbortException("Could not parse XML: ", err);
 				}
 			}
+		}
+		
+		class WordMatch {
+			public WordMatch(ArrayList<FindRequest> searches, int inWordFileCount) {
+				this.searches = searches;
+				this.inWordFileCount = inWordFileCount;
+			}
+			final List<FindRequest> searches;
+			int inWordFileCount;
+		}
+		
+		class FileMatch {
+			public FileMatch(String id2, HashMap<Integer, String> termpositions2, WordMatch thisWordMatch) {
+				id = id2;
+				termpositions = termpositions2;
+				word = thisWordMatch;
+			}
+			final String id;
+			final HashMap<Integer, String> termpositions;
+			final WordMatch word;
+		}
+		
+		Map<String, ArrayList<FileMatch>> idToFileMatches = new HashMap<String, ArrayList<FileMatch>>();
+		
+		int totalFileCount = -1;
+		
+		// Parse the main XML file, including the keywords list.
+		// We do not see the files list.
+		class StageTwoHandler extends DefaultHandler {
+			
+			private boolean processingWord;
+			
+			// About the whole index
+			private int totalFileCount;
+			
+			// Requests and matches being made
+			private List<FindRequest> requests;
+			private List<FindRequest> wordMatches;
+
+			private int inWordFileCount;
+			
+			// About the file tag being processed
+			private StringBuilder characters;
+			
+			private String match;
+			
+			private ArrayList<FileMatch> fileMatches = new ArrayList<FileMatch>();
+			
+			private String id;
+			
+			private WordMatch thisWordMatch;
+
+			StageTwoHandler() {
+				this.requests = new ArrayList(parsingSubindex);
+				for (FindRequest r : parsingSubindex){
+					r.setResult(new HashSet<TermPageEntry>());
+				}
+			}
+			
+			@Override public void setDocumentLocator(Locator value) {
+
+			}
+
+			@Override public void endDocument() throws SAXException {
+			}
+
+			@Override public void startDocument() throws SAXException {
+				// Do nothing
+			}
+			
+			@Override public void startElement(String nameSpaceURI, String localName, String rawName, Attributes attrs)
+	        throws SAXException {
+				if(requests.size()==0&&(wordMatches == null || wordMatches.size()==0))
+					return;
+				if (rawName == null) {
+					rawName = localName;
+				}
+				String elt_name = rawName;
+
+				if (elt_name.equals("keywords"))
+					processingWord = true;
+				
+				/*
+				 * looks for the word in the given subindex file if the word is found then the parser
+				 * fetches the corresponding fileElements
+				 */
+				if (elt_name.equals("word")) {
+					try {
+						fileMatches.clear();
+						wordMatches = null;
+						match = attrs.getValue("v");
+						if (requests!=null){
+							wordMatches = new ArrayList<FindRequest>();
+							for (Iterator<FindRequest> it = requests.iterator(); it.hasNext();) {
+								FindRequest r = it.next();
+								if (match.equals(r.getSubject())){
+									wordMatches.add(r);
+									it.remove();
+									Logger.minor(this, "found word match "+wordMatches);
+								}
+							}
+							if(wordMatches.isEmpty())
+								wordMatches = null;
+							else {
+								if (attrs.getValue("fileCount")!=null)
+									inWordFileCount = Integer.parseInt(attrs.getValue("fileCount"));
+								thisWordMatch = new WordMatch(new ArrayList<FindRequest>(wordMatches), inWordFileCount);
+							}
+						}
+					} catch (Exception e) {
+						throw new SAXException(e);
+					}
+				}
+
+				if (elt_name.equals("file")) {
+					if (processingWord == true &&  wordMatches!=null) {
+						try{
+							id = attrs.getValue("id");
+							synchronized(this){
+								characters = new StringBuilder();
+							}
+						}
+						catch (Exception e) {
+							Logger.error(this, "Index format may be outdated " + e.toString(), e);
+						}
+
+					}
+				}
+			}
+			
+			@Override public void characters(char[] ch, int start, int length) {
+				if(processingWord && wordMatches!= null && characters!=null){
+					characters.append(ch, start, length);
+				}
+			}
+			
+			@Override
+			public void endElement(String namespaceURI, String localName, String qName) {
+				if(processingWord && wordMatches != null && qName.equals("file")){
+					HashMap<Integer, String> termpositions = null;
+					if(characters!=null){
+						String[] termposs = characters.toString().split(",");
+						termpositions = new HashMap<Integer, String>();
+						for (String pos : termposs) {
+							try{
+								termpositions.put(Integer.valueOf(pos), null);
+							}catch(NumberFormatException e){
+								Logger.error(this, "Position in index not an integer :"+pos, e);
+							}
+						}
+						characters = null;
+					}
+					
+					FileMatch thisFile = new FileMatch(id, termpositions, thisWordMatch);
+					
+					ArrayList<FileMatch> matchList = idToFileMatches.get(id);
+					if(matchList == null) {
+						matchList = new ArrayList<FileMatch>();
+						idToFileMatches.put(id, matchList);
+					}
+					if(logMINOR) Logger.minor(this, "Match: id="+id+" for word "+match);
+					matchList.add(thisFile);
+				}
+				
+			}
+			
+		}
+		
+		class StageThreeHandler extends DefaultHandler {
+			
+			@Override public void setDocumentLocator(Locator value) {
+
+			}
+
+			@Override public void endDocument() throws SAXException {
+			}
+
+			@Override public void startElement(String nameSpaceURI, String localName, String rawName, Attributes attrs)
+	        throws SAXException {
+				
+				if(idToFileMatches.isEmpty())
+					return;
+				if (rawName == null) {
+					rawName = localName;
+				}
+				String elt_name = rawName;
+
+				if (elt_name.equals("files")){
+					String fileCount = attrs.getValue("", "totalFileCount");
+					if(fileCount != null)
+						totalFileCount = Integer.parseInt(fileCount);
+					Logger.minor(this, "totalfilecount = "+totalFileCount);
+				}
+
+				if (elt_name.equals("file")) {
+					try {
+						String id = attrs.getValue("id");
+						
+						ArrayList<FileMatch> matches = idToFileMatches.get(id);
+						
+						if(matches != null) {
+							
+							for(FileMatch match : matches) {
+								
+								String key = attrs.getValue("key");
+								int l = attrs.getLength();
+								String title = null;
+								int wordCount = -1;
+								if (l >= 3) {
+									try {
+										title = attrs.getValue("title");
+									} catch (Exception e) {
+										Logger.error(this, "Index Format not compatible " + e.toString(), e);
+									}
+									try {
+										String wordCountString = attrs.getValue("wordCount");
+										if(wordCountString != null) {
+											wordCount = Integer.parseInt(attrs.getValue("wordCount"));
+										}
+									} catch (Exception e) {
+										//Logger.minor(this, "No wordcount found " + e.toString(), e);
+									}
+								}
+								
+								for(FindRequest req : match.word.searches) {
+									
+									Set<TermPageEntry> result = req.getUnfinishedResult();
+									float relevance = 0;
+									
+									// Logger.minor(this, "termcount "+termpositions.size()+" filewordcount = "+inFileWordCount);
+									if(match.termpositions!=null && match.termpositions.size()>0 && wordCount>0 ){
+										relevance = (float)(match.termpositions.size()/(float)wordCount);
+										if( totalFileCount > 0 && match.word.inWordFileCount > 0)
+											relevance *=  Math.log( (float)totalFileCount/(float)match.word.inWordFileCount);
+										//Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.rel+" - "+pageEntry.toString());
+									}
+									
+									TermPageEntry pageEntry = new TermPageEntry(req.getSubject(), relevance, new FreenetURI(key), title, match.termpositions);
+									result.add(pageEntry);
+									//Logger.minor(this, "added "+inFileURI+ " to "+ match);
+								}
+								
+							}
+						}
+						
+					}
+					catch (Exception e) {
+						Logger.error(this, "File id and key could not be retrieved. May be due to format clash", e);
+					}
+				}
+			}
+
 		}
 		
 	}
