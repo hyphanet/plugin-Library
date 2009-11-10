@@ -638,9 +638,6 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			
 			private boolean processingWord;
 			
-			// About the whole index
-			private int totalFileCount;
-			
 			// Requests and matches being made
 			private List<FindRequest> requests;
 			private List<FindRequest> wordMatches;
@@ -724,9 +721,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 					if (processingWord == true &&  wordMatches!=null) {
 						try{
 							id = attrs.getValue("id");
-							synchronized(this){
-								characters = new StringBuilder();
-							}
+							characters = new StringBuilder();
 						}
 						catch (Exception e) {
 							Logger.error(this, "Index format may be outdated " + e.toString(), e);
