@@ -830,12 +830,12 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 									Set<TermPageEntry> result = req.getUnfinishedResult();
 									float relevance = 0;
 									
-									// Logger.minor(this, "termcount "+termpositions.size()+" filewordcount = "+inFileWordCount);
+									if(logDEBUG) Logger.debug(this, "termcount "+(match.termpositions == null ? 0 : match.termpositions.size())+" filewordcount = "+wordCount);
 									if(match.termpositions!=null && match.termpositions.size()>0 && wordCount>0 ){
 										relevance = (float)(match.termpositions.size()/(float)wordCount);
 										if( totalFileCount > 0 && match.word.inWordFileCount > 0)
 											relevance *=  Math.log( (float)totalFileCount/(float)match.word.inWordFileCount);
-										//Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.rel+" - "+pageEntry.toString());
+										if(logDEBUG) Logger.debug(this, "Set relevance of "+title+" to "+relevance+" - "+key);
 									}
 									
 									TermPageEntry pageEntry = new TermPageEntry(req.getSubject(), relevance, new FreenetURI(key), title, match.termpositions);
