@@ -695,18 +695,18 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 						wordMatches = null;
 						match = attrs.getValue("v");
 						if (requests!=null){
-							wordMatches = new ArrayList<FindRequest>();
+							
 							for (Iterator<FindRequest> it = requests.iterator(); it.hasNext();) {
 								FindRequest r = it.next();
 								if (match.equals(r.getSubject())){
+									if(wordMatches == null)
+										wordMatches = new ArrayList<FindRequest>();
 									wordMatches.add(r);
 									it.remove();
 									Logger.minor(this, "found word match "+wordMatches);
 								}
 							}
-							if(wordMatches.isEmpty())
-								wordMatches = null;
-							else {
+							if(wordMatches != null) {
 								if (attrs.getValue("fileCount")!=null)
 									inWordFileCount = Integer.parseInt(attrs.getValue("fileCount"));
 								thisWordMatch = new WordMatch(new ArrayList<FindRequest>(wordMatches), inWordFileCount);
