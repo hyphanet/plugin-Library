@@ -506,6 +506,8 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 
 				byte greaterThan = ">".getBytes("UTF-8")[0];
 				byte[] filesPrefix = "<files ".getBytes("UTF-8");
+				byte[] filesPrefixAlt = "<files>".getBytes("UTF-8");
+				assert(filesPrefix.length == filesPrefixAlt.length);
 				byte[] filesEnd = "</files>".getBytes("UTF-8");
 				
 				final int MODE_SEEKING_DECLARATION = 1;
@@ -534,7 +536,8 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 						if(prefixPtr != prefixBuffer.length) {
 							prefixBuffer[prefixPtr++] = (byte)b;
 						} else {
-							if(Fields.byteArrayEqual(filesPrefix, prefixBuffer)) {
+							if(Fields.byteArrayEqual(filesPrefix, prefixBuffer)
+									|| Fields.byteArrayEqual(filesPrefixAlt, prefixBuffer)) {
 								mode = MODE_COPYING_FILES;
 								filesOS.write(prefixBuffer);
 								filesOS.write(b);
