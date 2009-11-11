@@ -82,7 +82,7 @@ import java.util.Collections;
 final public class Library implements URLUpdateHook {
 
 	public static final String BOOKMARK_PREFIX = "bookmark:";
-	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "freenetindex";
+	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "wanna";
 	private static int version = 5;
 	public static final String plugName = "Library " + getVersion();
 
