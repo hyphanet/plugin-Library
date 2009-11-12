@@ -599,12 +599,17 @@ final public class Library implements URLUpdateHook {
 			throw new TaskAbortException("Did not recognise index type in : \""+indexuri+"\"", e);
 		}
 
+		long edition = -1;
+		
 		try {
 			if (indexkey instanceof File) {
 				indextype = getIndexType((File)indexkey);
 			} else if (indexkey instanceof FreenetURI) {
 				// PRIORITY maybe make this non-blocking. though getting the top block(s) shouldn't take long?
-				indextype = getIndexType((FreenetURI)indexkey);
+				FreenetURI uri = (FreenetURI)indexkey;
+				if(uri.isUSK())
+					edition = uri.getEdition();
+				indextype = getIndexType(uri);
 			} else {
 				throw new AssertionError();
 			}
@@ -616,7 +621,7 @@ final public class Library implements URLUpdateHook {
 				index = task.data;
 
 			} else if (indextype == XMLIndex.class) {
-				index = new XMLIndex(indexuri, pr, this, origIndexName);
+				index = new XMLIndex(indexuri, edition, pr, this, origIndexName);
 
 			} else {
 				throw new AssertionError();
