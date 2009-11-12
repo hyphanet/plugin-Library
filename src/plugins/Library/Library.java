@@ -167,14 +167,17 @@ final public class Library implements URLUpdateHook {
 			String name = entry.getKey();
 			String target = entry.getValue();
 			FreenetURI uri;
+			long edition = -1;
 			try {
 				uri = new FreenetURI(target);
+				if(uri.isUSK())
+					edition = uri.getEdition();
 			} catch (MalformedURLException e) {
 				Logger.error(this, "Invalid bookmark URI: "+target+" for "+name, e);
 				continue;
 			}
 			if(uri.isUSK()) {
-				BookmarkCallback callback = new BookmarkCallback(name, uri.getAllMetaStrings());
+				BookmarkCallback callback = new BookmarkCallback(name, uri.getAllMetaStrings(), edition);
 				bookmarkCallbacks.put(name, callback);
 				USK u;
 				try {
@@ -427,10 +430,13 @@ final public class Library implements URLUpdateHook {
 		FreenetURI u;
 		USK uskNew = null;
 		BookmarkCallback callback = null;
+		long edition = -1;
 		try {
 			u = new FreenetURI(uri);
-			if(u.isUSK())
+			if(u.isUSK()) {
 				uskNew = USK.create(u);
+				edition = uskNew.suggestedEdition;
+			}
 		} catch (MalformedURLException e) {
 			Logger.error(this, "Invalid new uri "+uri);
 			return null;
@@ -440,7 +446,7 @@ final public class Library implements URLUpdateHook {
 			old = bookmarks.put(name, uri);
 			callback = bookmarkCallbacks.get(name);
 			if(callback == null) {
-				bookmarkCallbacks.put(name, callback = new BookmarkCallback(name, u.getAllMetaStrings()));
+				bookmarkCallbacks.put(name, callback = new BookmarkCallback(name, u.getAllMetaStrings(), edition));
 				old = null;
 			}
 			saveState();
@@ -487,8 +493,9 @@ final public class Library implements URLUpdateHook {
 		private final String bookmarkName;
 		private String[] metaStrings;
 		USKRetriever ret;
+		private long origEdition;
 		
-		public BookmarkCallback(String name, String[] allMetaStrings) {
+		public BookmarkCallback(String name, String[] allMetaStrings, long origEdition) {
 			this.bookmarkName = name;
 			this.metaStrings = allMetaStrings;
 		}
@@ -507,6 +514,10 @@ final public class Library implements URLUpdateHook {
 		}
 
 		public void onFoundEdition(long l, USK key, ObjectContainer container, ClientContext context, boolean metadata, short codec, byte[] data, boolean newKnownGood, boolean newSlotToo) {
+			if(l < origEdition) {
+				Logger.error(this, "Wrong edition: "+l+" less than "+origEdition);
+				return;
+			}
 			if(newKnownGood) {
 				String uri = key.copy(l).getURI().setMetaString(metaStrings).toString();
 				if(logMINOR) Logger.minor(this, "Bookmark "+bookmarkName+" new last known good edition "+l+" uri is now "+uri);
