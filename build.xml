@@ -14,6 +14,7 @@
 	<property name="javadoc" location="javadoc/"/>
 	<property name="junit.location" value="/usr/share/java/junit.jar"/>
 	<property name="packagebase" value="plugins.Library" />
+	<property name="minNodeVersion" value="1239"/>
 
 	<property name="version.src" value="plugins/Library/Version.java" />
 	<property name="version.build" value="plugins/Library/Version.class" />
@@ -208,6 +209,7 @@
 			<manifest>
 				<attribute name="Main-Class" value="${packagebase}.ui.TestInterface"/>
 				<attribute name="Plugin-Main-Class" value="${packagebase}.Main"/>
+				<attribute name="Required-Node-Version" value="${minNodeVersion}"/>
 			</manifest>
 			<fileset dir="src/" casesensitive="no">
 				<include name="**/*.txt"/>
