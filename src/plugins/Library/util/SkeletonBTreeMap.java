@@ -173,6 +173,34 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return ((SkeletonTreeMap<K, V>)entries).isBare();
 		}
 
+		/**
+		** Attaches a child GhostNode. It is assumed that there is already a
+		** SkeletonNode in its place; the ghost will replace it. It is up to the
+		** caller to ensure that this holds.
+		**
+		** @param ghost The GhostNode to attach
+		*/
+		/*@Override**/ protected void attachGhost(GhostNode ghost) {
+			ghost.parent = this;
+
+			lnodes.put(ghost.rkey, ghost);
+			rnodes.put(ghost.lkey, ghost);
+			++ghosts;
+		}
+
+		/**
+		** Attaches a child SkeletonNode. It is assumed that there is already a
+		** GhostNode in its place; the skeleton will replace it. It is up to the
+		** caller to ensure that this holds.
+		**
+		** @param skel The SkeletonNode to attach
+		*/
+		/*@Override**/ protected void attachSkeleton(SkeletonNode skel) {
+			lnodes.put(skel.rkey, skel);
+			rnodes.put(skel.lkey, skel);
+			--ghosts;
+		}
+
 		/*@Override**/ public void deflate() throws TaskAbortException {
 			if (!isLeaf()) {
 				List<PushTask<SkeletonNode>> tasks = new ArrayList<PushTask<SkeletonNode>>(rnodes.size() - ghosts);
@@ -188,15 +216,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				nsrl.push(tasks);
 				for (PushTask<SkeletonNode> task: tasks) {
 					try {
-						GhostNode ghost = (GhostNode)task.meta;
-						// URGENT replace this with attachGhost() and detachGhost() methods so we don't
-						// need to manually do ++ghost and --ghost
-						ghost.parent = this;
-
-						lnodes.put(ghost.rkey, ghost);
-						rnodes.put(ghost.lkey, ghost);
-						++ghosts;
-
+						attachGhost((GhostNode)task.meta);
 					} catch (RuntimeException e) {
 						throw new TaskAbortException("Could not deflate BTreeMap Node " + getRange(), e);
 					}
@@ -240,13 +260,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			PushTask<SkeletonNode> task = new PushTask<SkeletonNode>((SkeletonNode)node);
 			try {
 				nsrl.push(task);
-
-				GhostNode ghost = (GhostNode)task.meta;
-				ghost.parent = this;
-
-				lnodes.put(ghost.rkey, ghost);
-				rnodes.put(ghost.lkey, ghost);
-				++ghosts;
+				attachGhost((GhostNode)task.meta);
 
 			// TODO maybe just ignore all non-error abortions
 			} catch (TaskCompleteException e) {
@@ -278,9 +292,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					throw new DataFormatException("BTreeMap Node lkey/rkey does not match", null, task.data);
 				}
 
-				lnodes.put(task.data.rkey, task.data);
-				rnodes.put(task.data.lkey, task.data);
-				--ghosts;
+				attachSkeleton(task.data);
 
 				if (auto) {
 					task.data.inflate();
@@ -471,10 +483,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					if (!compare0(ghost.lkey, node.lkey) || !compare0(ghost.rkey, node.rkey)) {
 						throw new DataFormatException("BTreeMap Node lkey/rkey does not match", null, task.data);
 					}
-					parent.lnodes.put(node.rkey, node);
-					parent.rnodes.put(node.lkey, node);
-					--parent.ghosts;
-
+					parent.attachSkeleton(node);
 					nodequeue.add(node);
 				}
 
