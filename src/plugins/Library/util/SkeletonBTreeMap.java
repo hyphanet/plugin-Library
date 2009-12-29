@@ -180,7 +180,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		** @param ghost The GhostNode to attach
 		*/
-		/*@Override**/ protected void attachGhost(GhostNode ghost) {
+		protected void attachGhost(GhostNode ghost) {
 			ghost.parent = this;
 
 			lnodes.put(ghost.rkey, ghost);
@@ -195,7 +195,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		** @param skel The SkeletonNode to attach
 		*/
-		/*@Override**/ protected void attachSkeleton(SkeletonNode skel) {
+		protected void attachSkeleton(SkeletonNode skel) {
 			lnodes.put(skel.rkey, skel);
 			rnodes.put(skel.lkey, skel);
 			--ghosts;

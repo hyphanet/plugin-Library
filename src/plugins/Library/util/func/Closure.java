@@ -14,9 +14,9 @@ package plugins.Library.util.func;
 ** blocks waiting for some of its parameters to arrive.
 **
 ** This interface defines a checked exception to be thrown from the {@link
-** #invoke()} method; if you call it on a general {@code Closure} then you will
-** also need to catch {@link Exception}. If you don't wish to do this, use and
-** implement {@link SafeClosure} instead.
+** #invoke(Object)} method; if you call it on a general {@code Closure} then
+** you will also need to catch {@link Exception}. If you don't need to do this,
+** use {@link SafeClosure} instead.
 **
 ** (Unfortunately, using a type paramater to indicate the type of exception
 ** thrown is unacceptable; the signature {@code throws T} disallows throwing
