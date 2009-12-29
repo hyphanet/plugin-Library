@@ -1,7 +1,0 @@
-= Library =
-
-== Purpose ==
-
-A collection of indexes. Provides the following services:
-
-TODO
