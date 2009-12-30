@@ -3,8 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util.event;
 
-import plugins.Library.util.event.Sweeper.SweeperState;
-
 /**
 ** A partial implementation of {@link Sweeper}, defining some high-level
 ** methods in terms of lower ones.
@@ -15,7 +13,7 @@ import plugins.Library.util.event.Sweeper.SweeperState;
 */
 abstract public class AbstractSweeper<T> implements Sweeper<T> {
 
-	protected SweeperState state;
+	protected State state;
 
 	/**
 	** Construct a new sweeper.
@@ -23,7 +21,7 @@ abstract public class AbstractSweeper<T> implements Sweeper<T> {
 	** @param autostart Whether to construct the sweeper already open.
 	*/
 	public AbstractSweeper(boolean autostart) {
-		state = (autostart)? SweeperState.OPEN: SweeperState.NEW;
+		state = (autostart)? State.OPEN: State.NEW;
 	}
 
 	/**
@@ -48,11 +46,11 @@ abstract public class AbstractSweeper<T> implements Sweeper<T> {
 	** @param it The iterator to remove an element from.
 	*/
 	protected void releaseFrom(java.util.Iterator<T> it) {
-		if (state == SweeperState.NEW) { throw new IllegalStateException("Sweeper: not yet opened"); }
-		if (state == SweeperState.CLEARED) { throw new IllegalStateException("Sweeper: already cleared"); }
+		if (state == State.NEW) { throw new IllegalStateException("Sweeper: not yet opened"); }
+		if (state == State.CLEARED) { throw new IllegalStateException("Sweeper: already cleared"); }
 
 		it.remove();
-		if (state == SweeperState.CLOSED && !it.hasNext()) { state = SweeperState.CLEARED; }
+		if (state == State.CLOSED && !it.hasNext()) { state = State.CLEARED; }
 	}
 
 	/*========================================================================
@@ -63,15 +61,15 @@ abstract public class AbstractSweeper<T> implements Sweeper<T> {
 	** {@inheritDoc}
 	*/
 	/*@Override**/ public void open() {
-		if (state != SweeperState.NEW) { throw new IllegalStateException("Sweeper: already opened"); }
-		state = SweeperState.OPEN;
+		if (state != State.NEW) { throw new IllegalStateException("Sweeper: already opened"); }
+		state = State.OPEN;
 	}
 
 	/**
 	** {@inheritDoc}
 	*/
 	/*@Override**/ public boolean acquire(T object) {
-		if (state != SweeperState.OPEN) { throw new IllegalStateException("Sweeper: not open"); }
+		if (state != State.OPEN) { throw new IllegalStateException("Sweeper: not open"); }
 
 		return add(object);
 	}
@@ -80,11 +78,11 @@ abstract public class AbstractSweeper<T> implements Sweeper<T> {
 	** {@inheritDoc}
 	*/
 	/*@Override**/ public boolean release(T object) {
-		if (state == SweeperState.NEW) { throw new IllegalStateException("Sweeper: not yet opened"); }
-		if (state == SweeperState.CLEARED) { throw new IllegalStateException("Sweeper: already cleared"); }
+		if (state == State.NEW) { throw new IllegalStateException("Sweeper: not yet opened"); }
+		if (state == State.CLEARED) { throw new IllegalStateException("Sweeper: already cleared"); }
 
 		boolean b = remove(object);
-		if (state == SweeperState.CLOSED && size() == 0) { state = SweeperState.CLEARED; }
+		if (state == State.CLOSED && size() == 0) { state = State.CLEARED; }
 		return b;
 	}
 
@@ -92,15 +90,15 @@ abstract public class AbstractSweeper<T> implements Sweeper<T> {
 	** {@inheritDoc}
 	*/
 	/*@Override**/ public void close() {
-		if (state != SweeperState.OPEN) { throw new IllegalStateException("Sweeper: not open"); }
-		state = SweeperState.CLOSED;
-		if (size() == 0) { state = SweeperState.CLEARED; }
+		if (state != State.OPEN) { throw new IllegalStateException("Sweeper: not open"); }
+		state = State.CLOSED;
+		if (size() == 0) { state = State.CLEARED; }
 	}
 
 	/**
 	** {@inheritDoc}
 	*/
-	/*@Override**/ public SweeperState getState() {
+	/*@Override**/ public State getState() {
 		return state;
 	}
 

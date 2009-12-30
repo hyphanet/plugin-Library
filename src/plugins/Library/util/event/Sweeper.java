@@ -11,7 +11,7 @@ package plugins.Library.util.event;
 */
 public interface Sweeper<T> extends java.io.Closeable {
 
-	public enum SweeperState { NEW, OPEN, CLOSED, CLEARED }
+	public enum State { NEW, OPEN, CLOSED, CLEARED }
 
 	/**
 	** Start accepting objects. If the trigger condition is reached whilst the
@@ -19,7 +19,7 @@ public interface Sweeper<T> extends java.io.Closeable {
 	** #close()} is called.
 	**
 	** @throws IllegalStateException if the current state is not {@link
-	**         SweeperState#NEW NEW}
+	**         State#NEW NEW}
 	*/
 	public void open();
 
@@ -28,19 +28,19 @@ public interface Sweeper<T> extends java.io.Closeable {
 	**
 	** @return Whether the object was acquired
 	** @throws IllegalStateException if the current state is not {@link
-	**         SweeperState#OPEN OPEN}
+	**         State#OPEN OPEN}
 	*/
 	public boolean acquire(T object);
 
 	/**
 	** Release the given object from being tracked.
 	**
-	** When the sweeper is {@link SweeperState#CLOSED CLOSED} and there are no
-	** more objects to track, it becomes {@link SweeperState#CLEARED CLEARED}.
+	** When the sweeper is {@link State#CLOSED CLOSED} and there are no
+	** more objects to track, it becomes {@link State#CLEARED CLEARED}.
 	**
 	** @return Whether the object was released
 	** @throws IllegalStateException if the current state is not {@link
-	**         SweeperState#OPEN OPEN} or {@link SweeperState#CLOSED CLOSED}.
+	**         State#OPEN OPEN} or {@link State#CLOSED CLOSED}.
 	*/
 	public boolean release(T object);
 
@@ -48,14 +48,14 @@ public interface Sweeper<T> extends java.io.Closeable {
 	** Stop accepting objects.
 	**
 	** @throws IllegalStateException if the current state is not {@link
-	**         SweeperState#OPEN OPEN}.
+	**         State#OPEN OPEN}.
 	*/
 	public void close();
 
 	/**
 	** Returns the current state.
 	*/
-	public SweeperState getState();
+	public State getState();
 
 	/**
 	** Returns the number of objects held by the sweeper.
