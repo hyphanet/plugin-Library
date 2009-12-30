@@ -102,4 +102,11 @@ abstract public class AbstractSweeper<T> implements Sweeper<T> {
 		return state;
 	}
 
+	/**
+	** {@inheritDoc}
+	*/
+	/*@Override**/ public boolean isCleared() {
+		return state == State.CLEARED;
+	}
+
 }

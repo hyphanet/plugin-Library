@@ -592,7 +592,84 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final IdentityHashMap<K, TrackingSweeper<Node>> deflate_closures
 		= new IdentityHashMap<K, TrackingSweeper<Node>>();
 
-		//final Callback init_value_handler<K, V>;
+		//final Callback<K, V> initKVHandler;
+
+		class DeflateSplitNode extends TrackingSweeper implements Runnable {
+
+			final PushTask<Node> task;
+
+			protected DeflateSplitNode(PushTask<Node> t) {
+				super(true);
+				task = t;
+			}
+
+			public void run() {
+				push_queue.put(task);
+			}
+
+		}
+
+		class SplitNode extends CountingSweeper implements Runnable {
+
+			final Node node;
+			final Node parent;
+			final TrackingSweeper<K> nodeVClo;
+			final CountingSweeper<Node> parNClo;
+			final TrackingSweeper<K> parVClo;
+
+			protected SplitNode(Node n, Node p, TrackingSweeper<K> vc, CountingSweeper<Node> pnc, TrackingSweeper<K> pvc) {
+				super(true);
+				node = n;
+				parent = p;
+				nodeVClo = vc;
+				parNClo = pnc;
+				parVClo = pvc;
+			}
+
+			public void run() {
+
+				// TODO consider case where parent == null, node == root
+
+				// TODO splicing crap, etc
+
+				// for each separator key that was moved to the parent node, deassign it
+				// from the current sweeper and reassign it to the parent sweeper.
+				K k = null; // TODO for (something) {
+					floatToSweeper(parVClo, k);
+				// }
+
+				// for each split node, create a sweeper that will run when all its (k, v)
+				// pairs have been popped from value_complete
+				Node n = null; // TODO for (something) {
+					DeflateSplitNode vClo = new DeflateSplitNode(new PushTask<Node>(n));
+					K k2 = null; // TODO for (something) {
+						floatToSweeper(vClo, k2);
+					// }
+					vClo.close();
+
+					parNClo.acquire(parent);
+					PushTask<Node> task = new PushTask<Node>(node);
+					split_closures.put(task, parNClo);
+				// }
+
+				nodeVClo.close();
+				assert(nodeVClo.size() == 0);
+
+				// original (unsplit) node had a ticket on the parNClo sweeper, release it
+				parNClo.release(node);
+
+			}
+
+			// NOTE: if the overall co-ordinator algorithm is ever made concurrent,
+			// this section MUST be made atomic
+			private void floatToSweeper(TrackingSweeper clo, K key) {
+				clo.acquire(key);
+				nodeVClo.release(key);
+				TrackingSweeper old = deflate_closures.put(key, clo);
+				assert(old == nodeVClo);
+			}
+
+		}
 
 		class InflateChildNodes implements SafeClosure<Node> {
 
@@ -609,43 +686,20 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 
 			public void invoke(Node node) {
+				assert(compareL(node.lkey, map.firstKey()) < 0);
+				assert(compareR(map.lastKey(), node.rkey) < 0);
 
-			}
+				// a jobless sweeper whose only purpose is to track unhandled (k,v) callbacks
+				TrackingSweeper vClo = new TrackingSweeper<Node>(true);
 
-		}
+				// closure to be called when all subnodes have been handled
+				SplitNode nClo = new SplitNode(node, parent, vClo, parNClo, parVClo);
 
-		class SplitNode implements Runnable {
+				// mergesort map & node
+				// TODO
 
-			final Node node;
-			final Node parent;
-			final TrackingSweeper<K> vClo;
-			final CountingSweeper<Node> parNClo;
-			final TrackingSweeper<K> parVClo;
-
-			protected SplitNode(Node n, Node p, TrackingSweeper<K> vc, CountingSweeper<Node> pnc, TrackingSweeper<K> pvc) {
-				node = n;
-				parent = p;
-				vClo = vc;
-				parNClo = pnc;
-				parVClo = pvc;
-			}
-
-			public void run() {
-
-			}
-
-		}
-
-		class DeflateSplitNode implements Runnable {
-
-			final PushTask<Node> task;
-
-			protected DeflateSplitNode(PushTask<Node> t) {
-				task = t;
-			}
-
-			public void run() {
-
+				nClo.close();
+				if (nClo.isCleared()) { nClo.run(); }
 			}
 
 		}

@@ -58,6 +58,11 @@ public interface Sweeper<T> extends java.io.Closeable {
 	public State getState();
 
 	/**
+	** Returns whether the sweeper is {@link State#CLEARED CLEARED}.
+	*/
+	public boolean isCleared();
+
+	/**
 	** Returns the number of objects held by the sweeper.
 	*/
 	public int size();
