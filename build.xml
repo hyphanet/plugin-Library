@@ -64,14 +64,14 @@
 		<delete dir="${tmp}"/>
 	</target>
 
-	<property name="SnakeYAML.mirror" value="http://snakeyamlrepo.appspot.com/repository/org/yaml/snakeyaml/1.4/snakeyaml-1.4.jar" />
-	<property name="SnakeYAML.md5" value="d9cc1c39d8a946f11a60eb04cfee86f8" />
-	<property name="SnakeYAML.sha" value="11c237079e8523cb4d3440b6afd99faaa6a1393d" />
+	<property name="SnakeYAML.mirror" value="http://snakeyamlrepo.appspot.com/repository/org/yaml/snakeyaml/1.5/snakeyaml-1.5.jar" />
+	<property name="SnakeYAML.md5" value="1788db5d529a981b090632b8e49b8cd2" />
+	<property name="SnakeYAML.sha" value="a3654035d0b68db775034afa5425a62250de8184" />
 	<available property="SnakeYAML.exist" classname="org.yaml.snakeyaml.Yaml" classpathref="lib.path"/>
 	<target name="SnakeYAML-get" unless="SnakeYAML.exist">
-		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/snakeyaml-1.4.jar" />
-		<checksum file="${tmp}/snakeyaml-1.4.jar" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
-		<checksum file="${tmp}/snakeyaml-1.4.jar" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
+		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/snakeyaml-1.5.jar" />
+		<checksum file="${tmp}/snakeyaml-1.5.jar" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
+		<checksum file="${tmp}/snakeyaml-1.5.jar" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
 		<fail message="SnakeYAML.zip checksum mismatch">
 			<condition>
 				<or>
@@ -80,7 +80,7 @@
 				</or>
 			</condition>
 		</fail>
-		<move file="${tmp}/snakeyaml-1.4.jar" todir="lib/" />
+		<move file="${tmp}/snakeyaml-1.5.jar" todir="lib/" />
 	</target>
 
 	<!--<property name="KeyExplorer.mirror" value="http://cloud.github.com/downloads/freenet/plugin-Library-staging/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" />
@@ -114,7 +114,7 @@
 	</target>
 
 	<!-- ================================================== -->
-	<target name="compile" depends="mkdir,build-dep,setver" >
+	<target name="compile" depends="mkdir,build-dep,setver">
 		<tstamp/>
 
 		<javac srcdir="src/" destdir="${build}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
@@ -223,7 +223,7 @@
 	</target>
 
 	<!-- ================================================== -->
-	<target name="javadoc" description="generate javadocs">
+	<target name="javadoc" description="generate javadocs" depends="build-dep">
 		<delete dir="${javadoc}"/>
 		<javadoc classpathref="lib.path" destdir="${javadoc}" author="true" version="true" use="true" private="true">
 			<doclet name="info.bliki.doclet.standard.Standard" path="doc/bliki-doclet.jar"/>
@@ -232,7 +232,7 @@
 				<include name="**/*.java"/>
 			</fileset>
 			<link href="http://java.sun.com/j2se/1.5.0/docs/api"/>
-			<link href="http://snakeyamlrepo.appspot.com/releases/1.4/site/apidocs"/>
+			<link href="http://snakeyamlrepo.appspot.com/releases/1.5/site/apidocs"/>
 		</javadoc>
 	</target>
 
