@@ -594,6 +594,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		//final Callback<K, V> initKVHandler;
 
+		/**
+		** Deflates a node that has been split.
+		**
+		** To be called after everything else on it has been taken care of.
+		*/
 		class DeflateSplitNode extends TrackingSweeper implements Runnable {
 
 			final PushTask<Node> task;
@@ -609,6 +614,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		}
 
+		/**
+		** Splits a node.
+		**
+		** To be called after all its children have been taken care of.
+		*/
 		class SplitNode extends CountingSweeper implements Runnable {
 
 			final Node node;
@@ -671,6 +681,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		}
 
+		/**
+		** Merge the relevant parts of the map into the node, and then inflate
+		** its children.
+		**
+		** To be called after a node is inflated.
+		*/
 		class InflateChildNodes implements SafeClosure<Node> {
 
 			final Node parent;
