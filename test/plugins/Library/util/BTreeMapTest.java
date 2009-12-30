@@ -20,13 +20,16 @@ public class BTreeMapTest extends SortedMapTestSkeleton {
 		return new BTreeMap<String, Integer>(0x40);
 	}
 
+	final public static int sz0 = 0x400;
+	final public static int sz1 = sz0<<2; //sz0<<6;
+
 	public void testBasic() {
 
 		BTreeMap<String, String> testmap = new BTreeMap<String, String>(0x40);
 		Map<String, String> backmap = new HashMap<String, String>();
 		try {
-			for (int i=0; i<0x10000;) {
-				for (int j=0; j<0x400; ++j, ++i) {
+			for (int i=0; i<sz1;) {
+				for (int j=0; j<sz0; ++j, ++i) {
 					String k = Generators.rndKey(), v = Generators.rndStr();
 					testmap.put(k, v);
 					backmap.put(k, v);
@@ -34,11 +37,11 @@ public class BTreeMapTest extends SortedMapTestSkeleton {
 				testmap.verifyTreeIntegrity();
 			}
 			int s = testmap.size(); // random there so could be dupes
-			assertTrue(s <= 0x10000 && testmap.size() == backmap.size());
+			assertTrue(s <= sz1 && testmap.size() == backmap.size());
 
 			Iterator<String> it = backmap.keySet().iterator();
 			for (int i=0; i<s;) {
-				for (int j=0; j<0x400 && i<s; ++j, ++i) {
+				for (int j=0; j<sz0 && i<s; ++j, ++i) {
 					testmap.remove(it.next());
 					it.remove();
 				}
@@ -75,11 +78,11 @@ public class BTreeMapTest extends SortedMapTestSkeleton {
 		BTreeMap<Integer, Integer> testmap = new BTreeMap<Integer, Integer>(0x40);
 		int i=0;
 
-		for (i=0; i<0x10000; ++i) {
+		for (i=0; i<sz1; ++i) {
 			testmap.put(i, i);
 		}
 
-		for (i=0; i<0x10000; ++i) {
+		for (i=0; i<sz1; ++i) {
 			assertTrue(testmap.getEntry(i).getKey().equals(i));
 		}
 

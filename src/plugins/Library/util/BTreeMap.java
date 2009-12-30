@@ -82,6 +82,10 @@ import java.util.ConcurrentModificationException;
 **
 ** PRIORITY DOCUMENT SkeletonBTreeMap dependency on use of nodeSize() & isLeaf()...
 **
+** * essentially, programmers who wish to maintain this class MUST read the
+**   behavioural contract for nodeSize() and isLeaf(); otherwise you risk
+**   breaking {@link SkeletonBTreeMap}.
+**
 ** @author infinity0
 ** @see TreeMap
 ** @see Comparator
