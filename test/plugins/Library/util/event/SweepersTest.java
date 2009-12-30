@@ -112,6 +112,7 @@ public class SweepersTest extends TestCase {
 		assertTrue(sw.getState() == Sweeper.SweeperState.OPEN);
 		sw.close();
 		assertTrue(sw.getState() == Sweeper.SweeperState.CLOSED);
+		testAfterClose(sw);
 		sw.release(testobj[0]);
 		sw.release(testobj[1]);
 		sw.release(testobj[2]);
@@ -131,8 +132,20 @@ public class SweepersTest extends TestCase {
 		sw.acquire(testobj[2]);
 		sw.close();
 		assertTrue(sw.getState() == Sweeper.SweeperState.CLOSED);
+		testAfterClose(sw);
 		for (Iterator it = sw.iterator(); it.hasNext();) { it.next(); it.remove(); }
 		assertTrue(sw.getState() == Sweeper.SweeperState.CLEARED);
+	}
+
+	@SuppressWarnings("unchecked")
+	public void testAfterClose(final Sweeper sw) {
+		assertTrue(sw.getState() == Sweeper.SweeperState.CLOSED);
+		int s = sw.size();
+		assertTrue(s > 0);
+		testIllegalStateException(new Runnable() { public void run() { sw.open(); } }, "opening when closed");
+		testIllegalStateException(new Runnable() { public void run() { sw.acquire(testobj[0]); } }, "acquiring when closed");
+		assertTrue(sw.getState() == Sweeper.SweeperState.CLOSED);
+		assertTrue(sw.size() == s);
 	}
 
 	@SuppressWarnings("unchecked")
