@@ -596,13 +596,16 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		class InflateChildNodes implements SafeClosure<Node> {
 
-			protected InflateChildNodes(
-				Node parent,
-				SortedMap<K, V> mmap,
-				CountingSweeper<Node> parent_node_clo,
-				TrackingSweeper<K> parent_value_clo
-			) {
+			final Node parent;
+			final SortedMap<K, V> map;
+			final CountingSweeper<Node> parNClo;
+			final TrackingSweeper<K> parVClo;
 
+			protected InflateChildNodes(Node p, SortedMap<K, V> m, CountingSweeper<Node> pnc, TrackingSweeper<K> pvc) {
+				parent = p;
+				map = m;
+				parNClo = pnc;
+				parVClo = pvc;
 			}
 
 			public void invoke(Node node) {
@@ -613,16 +616,18 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		class SplitNode implements Runnable {
 
+			final Node node;
+			final Node parent;
+			final TrackingSweeper<K> vClo;
+			final CountingSweeper<Node> parNClo;
+			final TrackingSweeper<K> parVClo;
 
-			protected SplitNode(
-				Node node,
-				Node parent,
-				TrackingSweeper<K> value_clo,
-				CountingSweeper<Node> parent_node_clo,
-				TrackingSweeper<K> parent_value_clo
-			) {
-
-
+			protected SplitNode(Node n, Node p, TrackingSweeper<K> vc, CountingSweeper<Node> pnc, TrackingSweeper<K> pvc) {
+				node = n;
+				parent = p;
+				vClo = vc;
+				parNClo = pnc;
+				parVClo = pvc;
 			}
 
 			public void run() {
@@ -633,8 +638,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		class DeflateSplitNode implements Runnable {
 
-			protected DeflateSplitNode(PushTask<Node> task) {
+			final PushTask<Node> task;
 
+			protected DeflateSplitNode(PushTask<Node> t) {
+				task = t;
 			}
 
 			public void run() {
