@@ -3,18 +3,15 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util.event;
 
-import plugins.Library.util.event.Sweeper.SweeperState;
-
 /**
-** A {@link Sweeper} which only counts the number of objects tracked. It does
+** A {@link Sweeper} which only counts the number of objects added. It does
 ** not care about which objects these are; it assumes the user handles this.
 **
 ** @author infinity0
 */
-public class CountingSweeper<T> implements Sweeper<T> {
+public class CountingSweeper<T> extends AbstractSweeper<T> {
 
-	protected SweeperState state;
-	protected int objects = 0;
+	protected int count = 0;
 
 	/**
 	** Construct a new sweeper.
@@ -22,56 +19,37 @@ public class CountingSweeper<T> implements Sweeper<T> {
 	** @param autostart Whether to construct the sweeper already open.
 	*/
 	public CountingSweeper(boolean autostart) {
-		state = (autostart)? SweeperState.OPEN: SweeperState.NEW;
+		super(autostart);
+	}
+
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation will always return true, since it does not keep
+	** track of the actual count in the collection.
+	*/
+	@Override protected boolean add(T object) {
+		++count;
+		return true;
+	}
+
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation will always return true, since it does not keep
+	** track of the actual count in the collection.
+	*/
+	@Override protected boolean remove(T object) {
+		if (count == 0) { throw new IllegalStateException("CountingSweeper: no objects to release: " + object); }
+		--count;
+		return true;
 	}
 
 	/**
 	** {@inheritDoc}
 	*/
-	/*@Override**/ public void open() {
-		if (state != SweeperState.NEW) { throw new IllegalStateException("Sweeper: already opened"); }
-		state = SweeperState.OPEN;
-	}
-
-	/**
-	** {@inheritDoc}
-	*/
-	/*@Override**/ public int acquire(T object) {
-		if (state != SweeperState.OPEN) { throw new IllegalStateException("Sweeper: not open"); }
-		return objects++;
-	}
-
-	/**
-	** {@inheritDoc}
-	*/
-	/*@Override**/ public int release(T object) {
-		if (state == SweeperState.NEW) { throw new IllegalStateException("Sweeper: not yet opened"); }
-		if (state == SweeperState.CLEARED) { throw new IllegalStateException("Sweeper: already cleared"); }
-		--objects;
-		if (objects > 0) {
-			/* test most likely scenario first */
-		} else if (objects == 0) {
-			if (state == SweeperState.CLOSED) { state = SweeperState.CLEARED; }
-		} else {
-			assert(state == SweeperState.OPEN);
-			throw new IllegalStateException("Sweeper: tried to release too many objects " + object);
-		}
-		return objects;
-	}
-
-	/**
-	** {@inheritDoc}
-	*/
-	/*@Override**/ public void close() {
-		if (state != SweeperState.OPEN) { throw new IllegalStateException("Sweeper: not open"); }
-		state = SweeperState.CLOSED;
-	}
-
-	/**
-	** {@inheritDoc}
-	*/
-	/*@Override**/ public SweeperState getState() {
-		return state;
+	/*@Override**/ public int size() {
+		return count;
 	}
 
 }

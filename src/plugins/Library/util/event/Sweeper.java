@@ -4,8 +4,8 @@
 package plugins.Library.util.event;
 
 /**
-** A class which keeps track of objects for the purposes of delaying an action
-** until all objects have been released.
+** A class which holds a group of objects, eg. for the purposes of delaying an
+** action until all objects have been released.
 **
 ** @author infinity0
 */
@@ -26,11 +26,11 @@ public interface Sweeper<T> extends java.io.Closeable {
 	/**
 	** Acquire the given object for tracking.
 	**
-	** @return Number of objects held *after* the operation
+	** @return Whether the object was acquired
 	** @throws IllegalStateException if the current state is not {@link
 	**         SweeperState#OPEN OPEN}
 	*/
-	public int acquire(T object);
+	public boolean acquire(T object);
 
 	/**
 	** Release the given object from being tracked.
@@ -38,11 +38,11 @@ public interface Sweeper<T> extends java.io.Closeable {
 	** When the sweeper is {@link SweeperState#CLOSED CLOSED} and there are no
 	** more objects to track, it becomes {@link SweeperState#CLEARED CLEARED}.
 	**
-	** @return Number of objects held *after* the operation
+	** @return Whether the object was released
 	** @throws IllegalStateException if the current state is not {@link
 	**         SweeperState#OPEN OPEN} or {@link SweeperState#CLOSED CLOSED}.
 	*/
-	public int release(T object);
+	public boolean release(T object);
 
 	/**
 	** Stop accepting objects.
@@ -56,5 +56,10 @@ public interface Sweeper<T> extends java.io.Closeable {
 	** Returns the current state.
 	*/
 	public SweeperState getState();
+
+	/**
+	** Returns the number of objects held by the sweeper.
+	*/
+	public int size();
 
 }
