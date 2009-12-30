@@ -65,7 +65,9 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 	}
 
 	// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
-	public plugins.Library.util.exec.BaseCompositeProgress getPPP() { return ((SkeletonBTreeMap<E, E>)bkmap).ppp; }
+	public plugins.Library.util.exec.BaseCompositeProgress getProgressInflate() {
+		return ((SkeletonBTreeMap<E, E>)bkmap).pr_inf;
+	}
 
 	/**
 	** Creates a translator for the nodes of the B-tree. This method just calls

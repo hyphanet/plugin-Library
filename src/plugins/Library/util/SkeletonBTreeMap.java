@@ -36,6 +36,14 @@ import plugins.Library.io.serial.ProgressTracker;
 import plugins.Library.util.exec.TaskCompleteException;
 import plugins.Library.util.concurrent.Scheduler;
 
+import java.util.SortedMap;
+import java.util.IdentityHashMap;
+import plugins.Library.util.event.TrackingSweeper;
+import plugins.Library.util.event.CountingSweeper;
+import plugins.Library.util.func.Closure;
+import plugins.Library.util.func.SafeClosure;
+
+
 /**
 ** {@link Skeleton} of a {@link BTreeMap}. DOCUMENT
 **
@@ -549,6 +557,91 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 
 	public void parallelInflateMergeDeflate(SortedMap<K, V> newmap) throws TaskAbortException {
+
+		// input queue for pull-scheduler
+		final PriorityBlockingQueue<PullTask<Node>> pull_queue
+		= new PriorityBlockingQueue<PullTask<Node>>();
+		// output queue for pull-scheduler
+		final PriorityBlockingQueue<PullTask<Node>> inflated
+		= new PriorityBlockingQueue<PullTask<Node>>();
+		// FIXME error maps
+
+		// input queue for push-scheduler
+		final PriorityBlockingQueue<PushTask<Node>> push_queue
+		= new PriorityBlockingQueue<PushTask<Node>>();
+		// output queue for push-scheduler
+		final PriorityBlockingQueue<PushTask<Node>> deflated
+		= new PriorityBlockingQueue<PushTask<Node>>();
+		// FIXME error maps
+
+		// input queue for value-handler
+		final PriorityBlockingQueue<K> value_pending
+		= new PriorityBlockingQueue<K>();
+		// output queue for value-handler
+		final PriorityBlockingQueue<K> value_complete
+		= new PriorityBlockingQueue<K>();
+		// FIXME correct type instead of <K>
+		// FIXME error maps
+
+		final IdentityHashMap<PullTask<Node>, SafeClosure<Node>> inflate_closures
+		= new IdentityHashMap<PullTask<Node>, SafeClosure<Node>>();
+
+		final IdentityHashMap<PushTask<Node>, CountingSweeper<Node>> split_closures
+		= new IdentityHashMap<PushTask<Node>, CountingSweeper<Node>>();
+
+		final IdentityHashMap<K, TrackingSweeper<Node>> deflate_closures
+		= new IdentityHashMap<K, TrackingSweeper<Node>>();
+
+		//final Callback init_value_handler<K, V>;
+
+		class InflateChildNodes implements SafeClosure<Node> {
+
+			protected InflateChildNodes(
+				Node parent,
+				SortedMap<K, V> mmap,
+				CountingSweeper<Node> parent_node_clo,
+				TrackingSweeper<K> parent_value_clo
+			) {
+
+			}
+
+			public void invoke(Node node) {
+
+			}
+
+		}
+
+		class SplitNode implements Runnable {
+
+
+			protected SplitNode(
+				Node node,
+				Node parent,
+				TrackingSweeper<K> value_clo,
+				CountingSweeper<Node> parent_node_clo,
+				TrackingSweeper<K> parent_value_clo
+			) {
+
+
+			}
+
+			public void run() {
+
+			}
+
+		}
+
+		class DeflateSplitNode implements Runnable {
+
+			protected DeflateSplitNode(PushTask<Node> task) {
+
+			}
+
+			public void run() {
+
+			}
+
+		}
 
 	}
 
