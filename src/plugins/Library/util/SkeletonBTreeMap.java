@@ -37,6 +37,7 @@ import plugins.Library.util.exec.TaskCompleteException;
 import plugins.Library.util.concurrent.Scheduler;
 
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.IdentityHashMap;
 import plugins.Library.util.event.TrackingSweeper;
 import plugins.Library.util.event.CountingSweeper;
@@ -555,8 +556,21 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 	}
 
+	/**
+	** Asynchronously updates a remote B-tree.
+	**
+	** Note: {@code remkey} is not implemented yet.
+	**
+	** @param putmap The entries to put into the map
+	** @param remkey The keys to remove from the map
+	** @throws UnsupportedOperationException if {@code remkey} is not {@code
+	**         null}
+	*/
+	public void update(SortedMap<K, V> putmap, SortedSet<K> remkey) throws TaskAbortException {
 
-	public void parallelInflateMergeDeflate(SortedMap<K, V> newmap) throws TaskAbortException {
+		if (remkey != null) {
+			throw new UnsupportedOperationException("SkeletonBTreeMap: update() currently only supports merge operations");
+		}
 
 		// input queue for pull-scheduler
 		final PriorityBlockingQueue<PullTask<Node>> pull_queue
@@ -712,10 +726,30 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				SplitNode nClo = new SplitNode(node, parent, vClo, parNClo, parVClo);
 
 				// mergesort map & node
-				// TODO
+				if (node.isLeaf()) {
+					// TODO
+					//node.entries.
+					// straightforward mergesort
+					for (Map.Entry<K, V> en: map.entrySet()) {
+						handleLocalPut(vClo, en.getKey(), en.getValue());
+					}
+
+				} else {
+					int ns = node.entries.size();
+					int ms = map.size();
+
+					for (K key: node.entries.keySet()) {
+					}
+				}
 
 				nClo.close();
 				if (nClo.isCleared()) { nClo.run(); }
+			}
+
+			public void handleLocalMerge(TrackingSweeper vClo, K key, V val) {
+				vClo.acquire(key);
+				deflate_closures.put(key, vClo);
+				initKVHandler(key, val);
 			}
 
 		}
