@@ -399,8 +399,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	// URGENT tidy this; this should proboably go in a serialiser
 	// and then we will access the Progress of a submap with a task whose
 	// metadata is (lkey, rkey), or something..(PROGRESS)
-	BaseCompositeProgress ppp = new BaseCompositeProgress();
-	public BaseCompositeProgress getPPP() { return ppp; } // REMOVE ME
+	BaseCompositeProgress pr_inf = new BaseCompositeProgress();
+	public BaseCompositeProgress getProgressInflate() { return pr_inf; } // REMOVE ME
 	/*@Override**/ public void inflate() throws TaskAbortException {
 
 		// TODO adapt the algorithm to track partial loads of submaps (SUBMAP)
@@ -432,9 +432,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		if (nsrl instanceof Serialiser.Trackable) {
 			ids = new LinkedHashMap<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ?>>();
 			ntracker = ((Serialiser.Trackable)nsrl).getTracker();
-			// PROGRESS make a ProgressTracker track this instead of "ppp".
-			ppp.setSubProgress(ProgressTracker.makePullProgressIterable(ids));
-			ppp.setSubject("Pulling all entries in B-tree");
+			// PROGRESS make a ProgressTracker track this instead of "pr_inf".
+			pr_inf.setSubProgress(ProgressTracker.makePullProgressIterable(ids));
+			pr_inf.setSubject("Pulling all entries in B-tree");
 		}
 
 		Scheduler pool = ((ScheduledSerialiser)nsrl).pullSchedule(tasks, inflated, error);
@@ -513,7 +513,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			// URGENT there maybe is a race condition here... see BIndexTest.fullInflate() for details
 			} while (pool.isActive() || !tasks.isEmpty() || !inflated.isEmpty() || !error.isEmpty());
 
-			ppp.setEstimate(ProgressParts.TOTAL_FINALIZED);
+			pr_inf.setEstimate(ProgressParts.TOTAL_FINALIZED);
 
 		} catch (DataFormatException e) {
 			throw new TaskAbortException("Bad data format", e);
@@ -545,6 +545,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				e.getParent().inflate(e.getKey());
 			}
 		}
+	}
+
+
+	public void parallelInflateMergeDeflate(SortedMap<K, V> newmap) throws TaskAbortException {
+
 	}
 
 

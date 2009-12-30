@@ -197,7 +197,7 @@ final public class ProtoIndex implements Index {
 					// PRIORITY better way to handle this
 					throw new TaskAbortException("Index does not contain term " + subject, null);
 				}
-				last = root.getPPP(); // REMOVE ME
+				last = root.getProgressInflate(); // REMOVE ME
 				root.inflate();
 				setResult(Collections.unmodifiableSet(root));
 
