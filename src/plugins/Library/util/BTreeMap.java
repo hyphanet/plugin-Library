@@ -164,6 +164,41 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		this(null, node_min);
 	}
 
+
+	public static class PairIterable<K> implements Iterable<$2<K, K>> {
+
+		final protected K lkey;
+		final protected K rkey;
+		final protected Iterable<K> ib;
+
+		public PairIterable(K l, Iterable<K> kk, K r) {
+			lkey = l;
+			ib = kk;
+			rkey = r;
+		}
+
+		public Iterator<$2<K, K>> iterator() {
+			return new Iterator<$2<K, K>>() {
+
+				final Iterator<K> it = ib.iterator();
+				K prevkey = lkey;
+
+				public boolean hasNext() {
+					return (it.hasNext() || prevkey != rkey);
+				}
+
+				public $2<K, K> next() {
+					K rk = (!it.hasNext() && prevkey != rkey)? rkey: it.next();
+					return new $2<K, K>(prevkey, prevkey = rk);
+				}
+
+				public void remove() {
+					throw new UnsupportedOperationException();
+				}
+			};
+		}
+	}
+
 	/**
 	** A B-tree node. It has the following structure:
 	**
@@ -241,13 +276,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** Greatest key smaller than all keys in this node and subnodes. This
 		** is {@code null} when the node is at the minimum-key end of the tree.
 		*/
-		protected K lkey = null;
+		/*final*/ protected K lkey;
 
 		/**
 		** Smallest key greater than all keys in this node and subnodes. This
 		** is {@code null} when the node is at the maximum-key end of the tree.
 		*/
-		protected K rkey = null;
+		/*final*/ protected K rkey;
 
 		/**
 		** Cache for the total number of entries in this node and all subnodes.
@@ -266,7 +301,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** @param leaf Whether to create a leaf node
 		** @param map A {@link SortedMap} to use to store the entries
 		*/
-		Node(boolean leaf, SortedMap<K, V> map) {
+		protected Node(boolean leaf, SortedMap<K, V> map) {
 			isLeaf = leaf;
 			entries = map;
 			if (leaf) {
@@ -285,15 +320,28 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		**
 		** @param leaf Whether to create a leaf node
 		*/
-		Node(boolean leaf) {
+		protected Node(boolean leaf) {
 			this(leaf, new TreeMap<K, V>(comparator));
 		}
 
 		/**
 		** Creates a new non-leaf node for the BTree.
 		*/
-		Node() {
+		protected Node() {
 			this(false);
+		}
+
+		// DOCUMENT
+		protected void populate(SortedMap<K, V> ent, Iterable<Node> childs) {
+			assert(ent.comparator() == comparator());
+			assert(compareL(lkey, ent.firstKey()) < 0);
+			assert(compareR(ent.lastKey(), rkey) < 0);
+			entries.putAll(ent);
+			if (!isLeaf) {
+				for (Node ch: childs) {
+					addChildNode(ch);
+				}
+			}
 		}
 
 		/**
@@ -423,51 +471,21 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			rnodes.put(child.lkey, child);
 		}
 
-
+		// DOCUMENT
 		protected void addChildNode(Node child) {
+			assert(rkey == child.rkey || entries.containsKey(child.rkey));
+			assert(lkey == child.lkey || entries.containsKey(child.lkey));
 			lnodes.put(child.rkey, child);
 			rnodes.put(child.lkey, child);
-		}
-
-		/**
-		** Merges the node with the given L-node.
-		*/
-		protected void mergeL(Node lnode) {
-			throw new UnsupportedOperationException("not implemented");
-		}
-
-		/**
-		** Merges the node with the given R-node.
-		*/
-		protected void mergeR(Node rnode) {
-			throw new UnsupportedOperationException("not implemented");
-		}
-
-		/**
-		** Splits the node L-wards at the given key.
-		*/
-		protected Node splitL(K key) {
-			throw new UnsupportedOperationException("not implemented");
-		}
-
-		/**
-		** Splits the node R-wards at the given key.
-		*/
-		protected Node splitR(K key) {
-			throw new UnsupportedOperationException("not implemented");
-		}
-
-		/**
-		** @throws UnsupportedOperationException
-		*/
-		public Iterable<$3<Map.Entry<K, V>, Node, Map.Entry<K, V>>> iterNodesE() {
-			throw new UnsupportedOperationException("not implemented");
 		}
 
 		private Iterable<$3<K, Node, K>> _iterNodesK;
 		/**
 		** A view of all subnodes with their lkey and rkey, as an {@link
 		** Iterable}. Iteration occurs in '''sorted''' order.
+		**
+		** TODO this method does not check that this node actually has subnodes
+		** (ie. non-leaf). This may or may not change in the future.
 		*/
 		public Iterable<$3<K, Node, K>> iterNodesK() {
 			if (_iterNodesK == null) {
@@ -484,6 +502,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		/**
 		** A view of all subnodes as an {@link Iterable}. Iteration occurs in
 		** '''no particular order'''.
+		**
+		** TODO this method does not check that this node actually has subnodes
+		** (ie. non-leaf). This may or may not change in the future.
 		*/
 		public Iterable<Node> iterNodes() {
 			if (_iterNodes == null) {
@@ -557,30 +578,103 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		*/
 		public Iterable<$2<K, K>> iterKeyPairs() {
 			if (_iterKeyPairs == null) {
-				_iterKeyPairs = new Iterable<$2<K, K>>() {
-					public Iterator<$2<K, K>> iterator() {
-						return new Iterator<$2<K, K>>() {
-
-							Iterator<K> it = entries.keySet().iterator();
-							K lastkey = lkey;
-
-							public boolean hasNext() {
-								return (it.hasNext() || lastkey != rkey);
-							}
-
-							public $2<K, K> next() {
-								K rk = (!it.hasNext() && lastkey != rkey)? rkey: it.next();
-								return new $2<K, K>(lastkey, lastkey = rk);
-							}
-
-							public void remove() {
-								throw new UnsupportedOperationException();
-							}
-						};
-					}
-				};
+				_iterKeyPairs = new PairIterable<K>(lkey, entries.keySet(), rkey);
 			}
 			return _iterKeyPairs;
+		}
+
+		/**
+		** A view of child nodes exclusively between {@code lk}, {@code rk}, as
+		** an {@link Iterable}. Iteration occurs in '''sorted''' order.
+		**
+		** It is '''assumed''' that the input keys are all local to the node,
+		** and in the correct order; it is up to the caller to ensure that this
+		** holds.
+		**
+		** Returns {@code null} if this is a leaf.
+		**
+		** @param lk The key on the L-side, exclusive
+		** @param rk The key on the R-side, exclusive
+		*/
+		protected Iterable<Node> iterNodes(K lk, K rk) {
+			assert(lk == null || rk == null || compare(lk, rk) < 0);
+			return (isLeaf)? null: new CompositeIterable<K, Node>(entries.subMap(lk, rk).keySet()) {
+				@Override public Node nextFor(K key) { return rnodes.get(key); }
+			};
+		}
+
+		/**
+		** A view of local entries exclusively between {@code lk}, {@code rk},
+		** as a {@link SortedMap}.
+		**
+		** It is '''assumed''' that the input keys are all local to the node,
+		** and in the correct order; it is up to the caller to ensure that this
+		** holds.
+		**
+		** @param lk The key on the L-side, exclusive
+		** @param rk The key on the R-side, exclusive
+		*/
+		protected SortedMap<K, V> subEntries(K lk, K rk) {
+			assert(lk == null || rk == null || compare(lk, rk) < 0);
+			SortedMap<K, V> tmap = entries.tailMap(lk);
+			K k2 = tmap.keySet().iterator().next();
+			return entries.subMap(k2, rk);
+		}
+
+		/**
+		** DOCUMENT
+		**
+		** It is '''assumed''' that the input keys are all local to the node,
+		** and in the correct order; it is up to the caller to ensure that this
+		** holds.
+		**
+		** @param lk The {@code lkey} of the new node
+		** @param keys The keys of this node at which to merge
+		** @param rk The {@code rkey} of the new node
+		*/
+		protected void merge(K lk, Iterable<K> keys, K rk) {
+			Iterator<Node> it = iterNodes(lk, rk).iterator();
+			Node child = it.next();
+			assert(child == rnodes.get(lk));
+
+			for (K k: keys) {
+				child.entries.put(k, entries.remove(k));
+			}
+
+			while (it.hasNext()) {
+				Node next = it.next();
+				child.populate(next.entries, (next.isLeaf)? null: next.iterNodes());
+			}
+
+			child.rkey = rk;
+		}
+
+		/**
+		** DOCUMENT
+		**
+		** It is '''assumed''' that the input keys are all local to the node,
+		** and in the correct order; it is up to the caller to ensure that this
+		** holds.
+		**
+		** @param lk The {@code lkey} of the child node
+		** @param keys The keys of the child node at which to split
+		** @param rk The {@code rkey} of the child node
+		*/
+		protected void split(K lk, Iterable<K> keys, K rk) {
+			Node child = rnodes.get(lk);
+			assert(child.rkey == rk);
+
+			for (K k: keys) {
+				entries.put(k, child.entries.get(k));
+			}
+
+			for ($2<K, K> kp: new PairIterable<K>(lk, keys, rk)) {
+				Node newnode = newNode(child.isLeaf);
+				newnode.lkey = kp._0;
+				newnode.rkey = kp._1;
+				newnode.populate(child.subEntries(kp._0, kp._1), child.iterNodes(kp._0, kp._1));
+				addChildNode(newnode);
+			}
 		}
 
 		/**

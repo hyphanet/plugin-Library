@@ -42,6 +42,10 @@ import plugins.Library.util.concurrent.Scheduler;
 /**
 ** {@link Skeleton} of a {@link BTreeMap}. DOCUMENT
 **
+** TODO get rid of uses of rnode.get(K). All other uses of rnode, as well as
+** lnode and entries, have already been removed. This will allow us to
+** re-implement the Node class.
+**
 ** @author infinity0
 */
 public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMap<K, V> {
