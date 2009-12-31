@@ -130,7 +130,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		public void setSerialiser() {
 			((SkeletonTreeMap<K, V>)entries).setSerialiser(vsrl);
 			if (!isLeaf()) {
-				for (Node n: rnodes.values()) {
+				for (Node n: iterNodes()) {
 					if (n.entries != null) {
 						((SkeletonNode)n).setSerialiser();
 					}
@@ -156,7 +156,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		/*@Override**/ public boolean isLive() {
 			if (ghosts > 0 || !((SkeletonTreeMap<K, V>)entries).isLive()) { return false; }
 			if (!isLeaf()) {
-				for (Node n: rnodes.values()) {
+				for (Node n: iterNodes()) {
 					SkeletonNode skel = (SkeletonNode)n;
 					if (!skel.isLive()) { return false; }
 				}
@@ -181,10 +181,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		** @param ghost The GhostNode to attach
 		*/
 		protected void attachGhost(GhostNode ghost) {
+			assert(lnodes.get(ghost.rkey).entries != null);
 			ghost.parent = this;
-
-			lnodes.put(ghost.rkey, ghost);
-			rnodes.put(ghost.lkey, ghost);
+			setChildNode(ghost);
 			++ghosts;
 		}
 
@@ -196,16 +195,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		** @param skel The SkeletonNode to attach
 		*/
 		protected void attachSkeleton(SkeletonNode skel) {
-			lnodes.put(skel.rkey, skel);
-			rnodes.put(skel.lkey, skel);
+			assert(lnodes.get(skel.rkey).entries == null);
+			setChildNode(skel);
 			--ghosts;
 		}
 
 		/*@Override**/ public void deflate() throws TaskAbortException {
 			if (!isLeaf()) {
 				List<PushTask<SkeletonNode>> tasks = new ArrayList<PushTask<SkeletonNode>>(rnodes.size() - ghosts);
-				for (Map.Entry<K, Node> en: rnodes.entrySet()) {
-					Node node = en.getValue();
+				for (Node node: iterNodes()) {
 					if (node.entries == null) { continue; } // ghost node
 					if (!((SkeletonNode)node).isBare()) {
 						((SkeletonNode)node).deflate();
@@ -230,8 +228,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		/*@Override**/ public void inflate() throws TaskAbortException {
 			((SkeletonTreeMap<K, V>)entries).inflate();
 			if (!isLeaf()) {
-				for (K k: rnodes.keySet()) {
-					inflate(k, true);
+				for (Node node: iterNodes()) {
+					inflate(node.lkey, true);
 				}
 			}
 			assert(isLive());
@@ -494,8 +492,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					if (node.isLeaf()) { continue; }
 					// add any ghost nodes to the task queue
-					for (Map.Entry<K, Node> en: node.rnodes.entrySet()) { // SUBMAP here
-						Node next = en.getValue();
+					for (Node next: node.iterNodes()) { // SUBMAP here
 						if (next.entries != null) {
 							SkeletonNode skel = (SkeletonNode)next;
 							if (!skel.isLive()) { nodequeue.add(skel); }
@@ -631,8 +628,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						K thiskey = keys.hasNext()? keys.next(): node.rkey;
 						GhostNode ghost = new GhostNode(node, lastkey, thiskey, en.getValue());
 						ghost.setMeta(en.getKey());
-						node.rnodes.put(lastkey, ghost);
-						node.lnodes.put(thiskey, ghost);
+						node.addChildNode(ghost);
 						lastkey = thiskey;
 						node._size += en.getValue();
 					}

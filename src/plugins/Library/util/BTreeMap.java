@@ -3,6 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
+import plugins.Library.util.func.Tuples.$3;
+import plugins.Library.util.CompositeIterable;
+
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Collection;
@@ -393,6 +396,103 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			}
 		}
 
+		// DOCUMENT
+		void setChildNode(Node child) {
+			assert(lnodes.containsKey(child.rkey));
+			assert(rnodes.containsKey(child.lkey));
+			assert(lnodes.get(child.rkey) == rnodes.get(child.lkey));
+			lnodes.put(child.rkey, child);
+			rnodes.put(child.lkey, child);
+		}
+
+		/*private URGENT*/ void addChildNode(Node child) {
+			lnodes.put(child.rkey, child);
+			rnodes.put(child.lkey, child);
+		}
+
+		void mergeL(Node lnode) {
+		}
+
+		void mergeR(Node rnode) {
+		}
+
+		Node splitL(K key) {
+			return null;
+		}
+
+		Node splitR(K key) {
+			return null;
+		}
+
+		public Iterable<$3<Map.Entry<K, V>, Node, Map.Entry<K, V>>> iterNodesE() {
+			return null;
+		}
+
+		public Iterable<$3<K, Node, K>> iterNodesK() {
+			return null;
+		}
+
+		private transient Iterable<Node> _iterNodes;
+		public Iterable<Node> iterNodes() {
+			if (_iterNodes == null) {
+				_iterNodes = new CompositeIterable<Node, Node>(rnodes.values(), true) {
+					@Override protected Node nextFor(Node n) { return n; }
+				};
+			}
+			return _iterNodes;
+		}
+
+		private transient Iterable<K> _iterKeys;
+		public Iterable<K> iterKeys() {
+			if (_iterKeys == null) {
+				_iterKeys = new CompositeIterable<K, K>(entries.keySet(), true) {
+					@Override protected K nextFor(K k) { return k; }
+				};
+			}
+			return _iterKeys;
+		}
+
+		private transient Iterable<K> _iterAllKeys;
+		/**
+		** A view of all keys (including lkey and rkey) as an {@link Iterable}.
+		*/
+		public Iterable<K> iterAllKeys() {
+			if (_iterAllKeys == null) {
+				_iterAllKeys = new Iterable<K>() {
+					public Iterator<K> iterator() {
+						return new Iterator<K>() {
+
+							Iterator<K> it = entries.keySet().iterator();
+							byte stage = 0;
+
+							public boolean hasNext() {
+								return (stage < 2);
+							}
+
+							public K next() {
+								switch (stage) {
+								case 0:
+									stage = 1;
+									return lkey;
+								case 1:
+									if (it.hasNext()) { return it.next(); }
+									else { stage = 2; return rkey; }
+								case 2:
+									return it.next(); // throws NoSuchElementException
+								}
+								throw new AssertionError();
+							}
+
+							public void remove() {
+								throw new UnsupportedOperationException();
+							}
+						};
+					}
+				};
+			}
+			return _iterAllKeys;
+		}
+
 		/**
 		** Defines a total ordering on the nodes. This is useful for eg. deciding
 		** which nodes to visit first in a breadth-first search algorithm that uses
@@ -666,10 +766,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		                     && parent.lnodes.get(child.rkey) == child));
 
 		if (parent == null) {
-			assert(child.lkey == null && child.rkey == null);
 			parent = root = newNode(false);
-			parent.lnodes.put(null, child);
-			parent.rnodes.put(null, child);
+			parent.addChildNode(child);
 		}
 		parent._size = child._size = -1;
 
