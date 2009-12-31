@@ -11,6 +11,7 @@ import plugins.Library.io.serial.Translator;
 import plugins.Library.io.DataFormatException;
 import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.exec.TaskCompleteException;
+import plugins.Library.util.func.Tuples.$3;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -600,12 +601,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			if (!node.isLeaf()) {
 				Map<Object, Integer> subnodes = new LinkedHashMap<Object, Integer>();
-				for (K k: node.entries.keySet()) {
-					GhostNode gh = (GhostNode)node.lnodes.get(k);
+				for ($3<K, Node, K> next: node.iterNodesK()) {
+					GhostNode gh = (GhostNode)(next._1);
 					subnodes.put(gh.getMeta(), gh.totalSize());
 				}
-				GhostNode gh = (GhostNode)node.lnodes.get(node.rkey);
-				subnodes.put(gh.getMeta(), gh.totalSize());
 				map.put("subnodes", subnodes);
 			}
 			return map;

@@ -411,28 +411,63 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		}
 
 		void mergeL(Node lnode) {
+			throw UnsupportedOperationException("not implemented");
 		}
 
 		void mergeR(Node rnode) {
+			throw UnsupportedOperationException("not implemented");
 		}
 
 		Node splitL(K key) {
-			return null;
+			throw UnsupportedOperationException("not implemented");
 		}
 
 		Node splitR(K key) {
-			return null;
+			throw UnsupportedOperationException("not implemented");
 		}
 
 		public Iterable<$3<Map.Entry<K, V>, Node, Map.Entry<K, V>>> iterNodesE() {
-			return null;
+			throw UnsupportedOperationException("not implemented");
 		}
 
+		private Iterable<$3<K, Node, K>> _iterNodesK;
+		/**
+		** A view of all subnodes with their lkey and rkey, as an {@link
+		** Iterable}. Iteration occurs in '''sorted''' order.
+		*/
 		public Iterable<$3<K, Node, K>> iterNodesK() {
-			return null;
+			if (_iterNodesK == null) {
+				_iterNodesK = new Iterable<$3<K, Node, K>>() {
+					public Iterator<$3<K, Node, K>> iterator() {
+						return new Iterator<$3<K, Node, K>>() {
+
+							Iterator<K> it = entries.keySet().iterator();
+							K lastkey = lkey;
+
+							public boolean hasNext() {
+								return (it.hasNext() || lastkey != rkey);
+							}
+
+							public $3<K, Node, K> next() {
+								K rk = (!it.hasNext() && lastkey != rkey)? rkey: it.next();
+								return new $3<K, Node, K>(lastkey, rnodes.get(lastkey), lastkey = rk);
+							}
+
+							public void remove() {
+								throw new UnsupportedOperationException();
+							}
+						};
+					}
+				};
+			}
+			return _iterNodesK;
 		}
 
 		private transient Iterable<Node> _iterNodes;
+		/**
+		** A view of all subnodes as an {@link Iterable}. Iteration occurs in
+		** '''no particular order'''.
+		*/
 		public Iterable<Node> iterNodes() {
 			if (_iterNodes == null) {
 				_iterNodes = new CompositeIterable<Node, Node>(rnodes.values(), true) {
@@ -443,6 +478,10 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		}
 
 		private transient Iterable<K> _iterKeys;
+		/**
+		** A view of all local keys as an {@link Iterable}. Iteration occurs
+		** in '''sorted''' order.
+		*/
 		public Iterable<K> iterKeys() {
 			if (_iterKeys == null) {
 				_iterKeys = new CompositeIterable<K, K>(entries.keySet(), true) {
@@ -455,6 +494,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		private transient Iterable<K> _iterAllKeys;
 		/**
 		** A view of all keys (including lkey and rkey) as an {@link Iterable}.
+		** Iteration occurs in '''sorted''' order.
 		*/
 		public Iterable<K> iterAllKeys() {
 			if (_iterAllKeys == null) {
