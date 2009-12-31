@@ -218,36 +218,36 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		/**
 		** Whether this node is a leaf.
 		*/
-		final boolean isLeaf;
+		final protected boolean isLeaf;
 
 		/**
 		** Map of entries in this node.
 		*/
-		final SortedMap<K, V> entries;
+		final /*private*/ protected SortedMap<K, V> entries;
 
 		/**
 		** Map of entries to their immediate smaller nodes. The greatest node
 		** is mapped to by {@link #rkey}.
 		*/
-		final Map<K, Node> lnodes;
+		final /*private*/ protected Map<K, Node> lnodes;
 
 		/**
 		** Map of entries to their immediate greater nodes. The smallest node
 		** is mapped to by {@link #lkey}.
 		*/
-		final Map<K, Node> rnodes;
+		final /*private*/ protected Map<K, Node> rnodes;
 
 		/**
 		** Greatest key smaller than all keys in this node and subnodes. This
 		** is {@code null} when the node is at the minimum-key end of the tree.
 		*/
-		K lkey = null;
+		protected K lkey = null;
 
 		/**
 		** Smallest key greater than all keys in this node and subnodes. This
 		** is {@code null} when the node is at the maximum-key end of the tree.
 		*/
-		K rkey = null;
+		protected K rkey = null;
 
 		/**
 		** Cache for the total number of entries in this node and all subnodes.
@@ -306,14 +306,14 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		**
 		** @return Number of local entries
 		*/
-		int nodeSize() {
+		public int nodeSize() {
 			return entries.size();
 		}
 
 		/**
 		** @return Number of subnodes
 		*/
-		int childCount() {
+		public int childCount() {
 			return rnodes.size();
 		}
 
@@ -325,7 +325,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		**
 		** DOCUMENT
 		*/
-		boolean isLeaf() {
+		public boolean isLeaf() {
 			return isLeaf;
 		}
 
@@ -333,14 +333,14 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** Whether the node is a ghost. This cannot be {@code true} for normal
 		** maps, but is used by {@link SkeletonBTreeMap}.
 		*/
-		boolean isGhost() {
+		public boolean isGhost() {
 			return entries == null;
 		}
 
 		/**
 		** Calculate the total number of entries in this node and all subnodes.
 		*/
-		int totalSize() {
+		protected int totalSize() {
 			if (_size < 0) {
 				int s = nodeSize(); // makes any future synchronization easier
 				if (!isLeaf()) {
@@ -363,7 +363,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** @return The neighbour node, or null if the input node is at the edge
 		** @throws NullPointerException if this is a leaf node
 		*/
-		Node nodeL(Node node) {
+		public Node nodeL(Node node) {
 			assert(lnodes.get(node.rkey) == node
 			    && rnodes.get(node.lkey) == node);
 
@@ -380,7 +380,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** @return The neighbour node, or null if the input node is at the edge
 		** @throws NullPointerException if this is a leaf node
 		*/
-		Node nodeR(Node node) {
+		public Node nodeR(Node node) {
 			assert(lnodes.get(node.rkey) == node
 			    && rnodes.get(node.lkey) == node);
 
@@ -402,7 +402,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		**         is {@code null} and the entries map uses natural order, or
 		**         its comparator does not tolerate {@code null} keys
 		*/
-		Node selectNode(K key) {
+		public Node selectNode(K key) {
 			assert(compareL(lkey, key) < 0 && compareR(key, rkey) < 0);
 
 			SortedMap<K, V> tailmap = entries.tailMap(key);
@@ -415,7 +415,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		}
 
 		// DOCUMENT
-		void setChildNode(Node child) {
+		protected void setChildNode(Node child) {
 			assert(lnodes.containsKey(child.rkey));
 			assert(rnodes.containsKey(child.lkey));
 			assert(lnodes.get(child.rkey) == rnodes.get(child.lkey));
@@ -423,27 +423,43 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			rnodes.put(child.lkey, child);
 		}
 
-		/*private URGENT*/ void addChildNode(Node child) {
+
+		protected void addChildNode(Node child) {
 			lnodes.put(child.rkey, child);
 			rnodes.put(child.lkey, child);
 		}
 
-		void mergeL(Node lnode) {
+		/**
+		** Merges the node with the given L-node.
+		*/
+		protected void mergeL(Node lnode) {
 			throw new UnsupportedOperationException("not implemented");
 		}
 
-		void mergeR(Node rnode) {
+		/**
+		** Merges the node with the given R-node.
+		*/
+		protected void mergeR(Node rnode) {
 			throw new UnsupportedOperationException("not implemented");
 		}
 
-		Node splitL(K key) {
+		/**
+		** Splits the node L-wards at the given key.
+		*/
+		protected Node splitL(K key) {
 			throw new UnsupportedOperationException("not implemented");
 		}
 
-		Node splitR(K key) {
+		/**
+		** Splits the node R-wards at the given key.
+		*/
+		protected Node splitR(K key) {
 			throw new UnsupportedOperationException("not implemented");
 		}
 
+		/**
+		** @throws UnsupportedOperationException
+		*/
 		public Iterable<$3<Map.Entry<K, V>, Node, Map.Entry<K, V>>> iterNodesE() {
 			throw new UnsupportedOperationException("not implemented");
 		}
