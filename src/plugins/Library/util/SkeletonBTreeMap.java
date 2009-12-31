@@ -41,7 +41,7 @@ import plugins.Library.util.concurrent.Scheduler;
 
 import java.util.SortedMap;
 import java.util.SortedSet;
-import java.util.IdentityHashMap;
+import java.util.HashMap;
 import plugins.Library.util.event.TrackingSweeper;
 import plugins.Library.util.event.CountingSweeper;
 import plugins.Library.util.func.Closure;
@@ -624,14 +624,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// FIXME correct type instead of <K>
 		// FIXME error maps
 
-		final IdentityHashMap<PullTask<Node>, SafeClosure<Node>> inflate_closures
-		= new IdentityHashMap<PullTask<Node>, SafeClosure<Node>>();
+		final Map<PullTask<Node>, SafeClosure<Node>>
+		inflate_closures = new HashMap<PullTask<Node>, SafeClosure<Node>>();
 
-		final IdentityHashMap<PushTask<Node>, CountingSweeper<Node>> split_closures
-		= new IdentityHashMap<PushTask<Node>, CountingSweeper<Node>>();
+		final Map<PushTask<Node>, CountingSweeper<Node>>
+		split_closures = new HashMap<PushTask<Node>, CountingSweeper<Node>>();
 
-		final IdentityHashMap<K, TrackingSweeper<Node>> deflate_closures
-		= new IdentityHashMap<K, TrackingSweeper<Node>>();
+		final Map<K, TrackingSweeper<Node>>
+		deflate_closures = new HashMap<K, TrackingSweeper<Node>>();
 
 		//final Callback<K, V> initKVHandler;
 
