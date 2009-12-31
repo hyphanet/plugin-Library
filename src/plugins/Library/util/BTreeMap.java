@@ -303,9 +303,18 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** operations upon it.
 		**
 		** DOCUMENT
+		**
+		** @return Number of local entries
 		*/
 		int nodeSize() {
 			return entries.size();
+		}
+
+		/**
+		** @return Number of subnodes
+		*/
+		int childCount() {
+			return rnodes.size();
 		}
 
 		/**
@@ -485,8 +494,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 		private transient Iterable<K> _iterAllKeys;
 		/**
-		** A view of all keys (including lkey and rkey) as an {@link Iterable}.
-		** Iteration occurs in '''sorted''' order.
+		** A view of all keys (including {@code lkey}, {@code rkey}) as an
+		** {@link Iterable}. Iteration occurs in '''sorted''' order.
 		*/
 		public Iterable<K> iterAllKeys() {
 			if (_iterAllKeys == null) {
@@ -527,8 +536,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 		private transient Iterable<$2<K, K>> _iterKeyPairs;
 		/**
-		** A view of all adjacent key pairs (including lkey and rkey) as an
-		** {@link Iterable}. Iteration occurs in '''sorted''' order.
+		** A view of adjacent key pairs (including {@code lkey}, {@code rkey})
+		** as an {@link Iterable}. Iteration occurs in '''sorted''' order.
 		*/
 		public Iterable<$2<K, K>> iterKeyPairs() {
 			if (_iterKeyPairs == null) {

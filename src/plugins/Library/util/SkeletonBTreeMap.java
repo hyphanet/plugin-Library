@@ -192,7 +192,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		/*@Override**/ public boolean isBare() {
 			if (!isLeaf()) {
-				if (ghosts < rnodes.size()) {
+				if (ghosts < childCount()) {
 					return false;
 				}
 			}
@@ -207,7 +207,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		** @param ghost The GhostNode to attach
 		*/
 		protected void attachGhost(GhostNode ghost) {
-			assert(!lnodes.get(ghost.rkey).isGhost());
+			assert(!rnodes.get(ghost.lkey).isGhost());
 			ghost.parent = this;
 			setChildNode(ghost);
 			++ghosts;
@@ -221,14 +221,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		** @param skel The SkeletonNode to attach
 		*/
 		protected void attachSkeleton(SkeletonNode skel) {
-			assert(lnodes.get(skel.rkey).isGhost());
+			assert(rnodes.get(skel.lkey).isGhost());
 			setChildNode(skel);
 			--ghosts;
 		}
 
 		/*@Override**/ public void deflate() throws TaskAbortException {
 			if (!isLeaf()) {
-				List<PushTask<SkeletonNode>> tasks = new ArrayList<PushTask<SkeletonNode>>(rnodes.size() - ghosts);
+				List<PushTask<SkeletonNode>> tasks = new ArrayList<PushTask<SkeletonNode>>(childCount() - ghosts);
 				for (Node node: iterNodes()) {
 					if (node.isGhost()) { continue; }
 					if (!((SkeletonNode)node).isBare()) {
@@ -323,7 +323,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				}
 
 			} catch (TaskCompleteException e) {
-				assert(!rnodes.get(key).isGhost());
+				assert(!node.isGhost());
 			} catch (DataFormatException e) {
 				throw new TaskAbortException("Could not inflate BTreeMap Node " + node.getRange(), e);
 			} catch (RuntimeException e) {
