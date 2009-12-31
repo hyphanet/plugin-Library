@@ -321,6 +321,14 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		}
 
 		/**
+		** Whether the node is a ghost. This cannot be {@code true} for normal
+		** maps, but is used by {@link SkeletonBTreeMap}.
+		*/
+		boolean isGhost() {
+			return entries == null;
+		}
+
+		/**
 		** Calculate the total number of entries in this node and all subnodes.
 		*/
 		int totalSize() {

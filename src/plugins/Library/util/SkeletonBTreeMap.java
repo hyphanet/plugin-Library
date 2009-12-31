@@ -157,7 +157,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			((SkeletonTreeMap<K, V>)entries).setSerialiser(vsrl);
 			if (!isLeaf()) {
 				for (Node n: iterNodes()) {
-					if (n.entries != null) {
+					if (!n.isGhost()) {
 						((SkeletonNode)n).setSerialiser();
 					}
 				}
@@ -207,7 +207,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		** @param ghost The GhostNode to attach
 		*/
 		protected void attachGhost(GhostNode ghost) {
-			assert(lnodes.get(ghost.rkey).entries != null);
+			assert(!lnodes.get(ghost.rkey).isGhost());
 			ghost.parent = this;
 			setChildNode(ghost);
 			++ghosts;
@@ -221,7 +221,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		** @param skel The SkeletonNode to attach
 		*/
 		protected void attachSkeleton(SkeletonNode skel) {
-			assert(lnodes.get(skel.rkey).entries == null);
+			assert(lnodes.get(skel.rkey).isGhost());
 			setChildNode(skel);
 			--ghosts;
 		}
@@ -230,7 +230,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			if (!isLeaf()) {
 				List<PushTask<SkeletonNode>> tasks = new ArrayList<PushTask<SkeletonNode>>(rnodes.size() - ghosts);
 				for (Node node: iterNodes()) {
-					if (node.entries == null) { continue; } // ghost node
+					if (node.isGhost()) { continue; }
 					if (!((SkeletonNode)node).isBare()) {
 						((SkeletonNode)node).deflate();
 					}
@@ -275,7 +275,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		/*@Override**/ public void deflate(K key) throws TaskAbortException {
 			if (isLeaf()) { return; }
 			Node node = rnodes.get(key);
-			if (node.entries == null) { return; } // ghost node
+			if (node.isGhost()) { return; }
 
 			if (!((SkeletonNode)node).isBare()) {
 				throw new IllegalStateException("Cannot deflate non-bare BTreeMap node");
@@ -288,7 +288,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			// TODO maybe just ignore all non-error abortions
 			} catch (TaskCompleteException e) {
-				assert(node.entries == null);
+				assert(node.isGhost());
 			} catch (RuntimeException e) {
 				throw new TaskAbortException("Could not deflate BTreeMap Node " + node.getRange(), e);
 			}
@@ -306,7 +306,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		public void inflate(K key, boolean auto) throws TaskAbortException {
 			if (isLeaf()) { return; }
 			Node node = rnodes.get(key);
-			if (node.entries != null) { return; } // skeleton node
+			if (!node.isGhost()) { return; }
 
 			PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(node);
 			try {
@@ -323,7 +323,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				}
 
 			} catch (TaskCompleteException e) {
-				assert(rnodes.get(key).entries != null);
+				assert(!rnodes.get(key).isGhost());
 			} catch (DataFormatException e) {
 				throw new TaskAbortException("Could not inflate BTreeMap Node " + node.getRange(), e);
 			} catch (RuntimeException e) {
@@ -483,7 +483,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						// but not yet attached the inflated node to the tree, the assertion fails.
 						// could check to see if the Progress for the Task still exists, but the
 						// performance of this depends on the GC freeing weak referents quickly...
-						assert(parent.rnodes.get(ghost.lkey).entries != null);
+						assert(!parent.rnodes.get(ghost.lkey).isGhost());
 						nodequeue.add((SkeletonNode)parent.rnodes.get(ghost.lkey));
 						//++DEBUG_popped; // not actually popped off the map, but we've "taken care" of it
 					}
@@ -519,7 +519,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					if (node.isLeaf()) { continue; }
 					// add any ghost nodes to the task queue
 					for (Node next: node.iterNodes()) { // SUBMAP here
-						if (next.entries != null) {
+						if (!next.isGhost()) {
 							SkeletonNode skel = (SkeletonNode)next;
 							if (!skel.isLive()) { nodequeue.add(skel); }
 							continue;
