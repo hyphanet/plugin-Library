@@ -3,8 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.util.func.Tuples.$3;
 import plugins.Library.util.CompositeIterable;
+import plugins.Library.util.func.Tuples.$2;
+import plugins.Library.util.func.Tuples.$3;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -411,23 +412,23 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		}
 
 		void mergeL(Node lnode) {
-			throw UnsupportedOperationException("not implemented");
+			throw new UnsupportedOperationException("not implemented");
 		}
 
 		void mergeR(Node rnode) {
-			throw UnsupportedOperationException("not implemented");
+			throw new UnsupportedOperationException("not implemented");
 		}
 
 		Node splitL(K key) {
-			throw UnsupportedOperationException("not implemented");
+			throw new UnsupportedOperationException("not implemented");
 		}
 
 		Node splitR(K key) {
-			throw UnsupportedOperationException("not implemented");
+			throw new UnsupportedOperationException("not implemented");
 		}
 
 		public Iterable<$3<Map.Entry<K, V>, Node, Map.Entry<K, V>>> iterNodesE() {
-			throw UnsupportedOperationException("not implemented");
+			throw new UnsupportedOperationException("not implemented");
 		}
 
 		private Iterable<$3<K, Node, K>> _iterNodesK;
@@ -437,26 +438,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		*/
 		public Iterable<$3<K, Node, K>> iterNodesK() {
 			if (_iterNodesK == null) {
-				_iterNodesK = new Iterable<$3<K, Node, K>>() {
-					public Iterator<$3<K, Node, K>> iterator() {
-						return new Iterator<$3<K, Node, K>>() {
-
-							Iterator<K> it = entries.keySet().iterator();
-							K lastkey = lkey;
-
-							public boolean hasNext() {
-								return (it.hasNext() || lastkey != rkey);
-							}
-
-							public $3<K, Node, K> next() {
-								K rk = (!it.hasNext() && lastkey != rkey)? rkey: it.next();
-								return new $3<K, Node, K>(lastkey, rnodes.get(lastkey), lastkey = rk);
-							}
-
-							public void remove() {
-								throw new UnsupportedOperationException();
-							}
-						};
+				_iterNodesK = new CompositeIterable<$2<K, K>, $3<K, Node, K>>(iterKeyPairs(), true) {
+					@Override protected $3<K, Node, K> nextFor($2<K, K> kp) {
+						return new $3<K, Node, K>(kp._0, rnodes.get(kp._0), kp._1);
 					}
 				};
 			}
@@ -531,6 +515,39 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				};
 			}
 			return _iterAllKeys;
+		}
+
+		private transient Iterable<$2<K, K>> _iterKeyPairs;
+		/**
+		** A view of all adjacent key pairs (including lkey and rkey) as an
+		** {@link Iterable}. Iteration occurs in '''sorted''' order.
+		*/
+		public Iterable<$2<K, K>> iterKeyPairs() {
+			if (_iterKeyPairs == null) {
+				_iterKeyPairs = new Iterable<$2<K, K>>() {
+					public Iterator<$2<K, K>> iterator() {
+						return new Iterator<$2<K, K>>() {
+
+							Iterator<K> it = entries.keySet().iterator();
+							K lastkey = lkey;
+
+							public boolean hasNext() {
+								return (it.hasNext() || lastkey != rkey);
+							}
+
+							public $2<K, K> next() {
+								K rk = (!it.hasNext() && lastkey != rkey)? rkey: it.next();
+								return new $2<K, K>(lastkey, lastkey = rk);
+							}
+
+							public void remove() {
+								throw new UnsupportedOperationException();
+							}
+						};
+					}
+				};
+			}
+			return _iterKeyPairs;
 		}
 
 		/**

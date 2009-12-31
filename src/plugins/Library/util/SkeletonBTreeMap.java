@@ -11,10 +11,12 @@ import plugins.Library.io.serial.Translator;
 import plugins.Library.io.DataFormatException;
 import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.exec.TaskCompleteException;
+import plugins.Library.util.func.Tuples.$2;
 import plugins.Library.util.func.Tuples.$3;
 
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.Collection;
 import java.util.Map;
 import java.util.List;
 import java.util.LinkedHashMap;
@@ -122,6 +124,29 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		SkeletonNode(boolean leaf) {
 			this(leaf, new SkeletonTreeMap<K, V>(comparator));
+		}
+
+		SkeletonNode(boolean leaf, K lk, K rk, SkeletonTreeMap<K, V> map, Collection<GhostNode> gh) {
+			super(leaf, map);
+			setSerialiser();
+			lkey = lk;
+			rkey = rk;
+			_size = map.size();
+			if (!leaf) {
+				if (map.size()+1 != gh.size()) {
+					throw new IllegalArgumentException("SkeletonNode: map/gh size mismatch");
+				}
+				Iterator<GhostNode> it = gh.iterator();
+				for ($2<K, K> kp: iterKeyPairs()) {
+					GhostNode ghost = it.next();
+					ghost.lkey = kp._0;
+					ghost.rkey = kp._1;
+					ghost.parent = this;
+					_size += ghost._size;
+					addChildNode(ghost);
+				}
+				ghosts = gh.size();
+			}
 		}
 
 		/**
@@ -612,26 +637,25 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		/*@Override**/ public SkeletonNode rev(Map<String, Object> map) throws DataFormatException {
 			try {
-				SkeletonNode node = new SkeletonNode(!map.containsKey("subnodes"),
-				                                     (mtr == null)? (SkeletonTreeMap<K, V>)map.get("entries")
-				                                                  : mtr.rev((R)map.get("entries")));
-				node.lkey = (ktr == null)? (K)map.get("lkey"): ktr.rev((Q)map.get("lkey"));
-				node.rkey = (ktr == null)? (K)map.get("rkey"): ktr.rev((Q)map.get("rkey"));
-				node._size = node.entries.size();
-				if (!node.isLeaf()) {
+				boolean notleaf = map.containsKey("subnodes");
+				List<GhostNode> gh = null;
+				if (notleaf) {
 					Map<Object, Integer> subnodes = (Map<Object, Integer>)map.get("subnodes");
-					K lastkey = node.lkey;
-					Iterator<K> keys = node.entries.keySet().iterator();
-					node.ghosts = subnodes.size();
+					gh = new ArrayList<GhostNode>(subnodes.size());
 					for (Map.Entry<Object, Integer> en: subnodes.entrySet()) {
-						K thiskey = keys.hasNext()? keys.next(): node.rkey;
-						GhostNode ghost = new GhostNode(node, lastkey, thiskey, en.getValue());
+						GhostNode ghost = new GhostNode(null, null, null, en.getValue());
 						ghost.setMeta(en.getKey());
-						node.addChildNode(ghost);
-						lastkey = thiskey;
-						node._size += en.getValue();
+						gh.add(ghost);
 					}
 				}
+				SkeletonNode node = new
+				SkeletonNode(!notleaf,
+				             (ktr == null)? (K)map.get("lkey"): ktr.rev((Q)map.get("lkey")),
+				             (ktr == null)? (K)map.get("rkey"): ktr.rev((Q)map.get("rkey")),
+				             (mtr == null)? (SkeletonTreeMap<K, V>)map.get("entries")
+				                          : mtr.rev((R)map.get("entries")),
+				             gh);
+
 				verifyNodeIntegrity(node);
 				return node;
 			} catch (ClassCastException e) {
