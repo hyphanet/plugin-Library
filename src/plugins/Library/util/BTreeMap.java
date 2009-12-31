@@ -127,7 +127,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** Root node of the tree. The only node that can have less than ENT_MIN
 	** entries.
 	*/
-	protected Node root = newNode(true);
+	protected Node root = newNode(null, null, true);
 
 	/**
 	** Number of entries currently in the map.
@@ -165,31 +165,31 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 
-	public static class PairIterable<K> implements Iterable<$2<K, K>> {
+	public static class PairIterable<T> implements Iterable<$2<T, T>> {
 
-		final protected K lkey;
-		final protected K rkey;
-		final protected Iterable<K> ib;
+		final protected T lobj;
+		final protected T robj;
+		final protected Iterable<T> ib;
 
-		public PairIterable(K l, Iterable<K> kk, K r) {
-			lkey = l;
-			ib = kk;
-			rkey = r;
+		public PairIterable(T lo, Iterable<T> objs, T ro) {
+			lobj = lo;
+			ib = objs;
+			robj = ro;
 		}
 
-		public Iterator<$2<K, K>> iterator() {
-			return new Iterator<$2<K, K>>() {
+		public Iterator<$2<T, T>> iterator() {
+			return new Iterator<$2<T, T>>() {
 
-				final Iterator<K> it = ib.iterator();
-				K prevkey = lkey;
+				final Iterator<T> it = ib.iterator();
+				T prev = lobj;
 
 				public boolean hasNext() {
-					return (it.hasNext() || prevkey != rkey);
+					return (it.hasNext() || prev != robj);
 				}
 
-				public $2<K, K> next() {
-					K rk = (!it.hasNext() && prevkey != rkey)? rkey: it.next();
-					return new $2<K, K>(prevkey, prevkey = rk);
+				public $2<T, T> next() {
+					T rk = (!it.hasNext() && prev != robj)? robj: it.next();
+					return new $2<T, T>(prev, prev = robj);
 				}
 
 				public void remove() {
@@ -301,18 +301,15 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** @param leaf Whether to create a leaf node
 		** @param map A {@link SortedMap} to use to store the entries
 		*/
-		protected Node(boolean leaf, SortedMap<K, V> map) {
-			isLeaf = leaf;
+		protected Node(K lk, K rk, boolean lf, SortedMap<K, V> map) {
+			lkey = lk;
+			rkey = rk;
+			isLeaf = lf;
 			entries = map;
-			if (leaf) {
-				// we don't use sentinel Nil elements because that wastes memory due to
-				// having to maintain dummy rnodes and lnodes maps.
-				lnodes = null;
-				rnodes = null;
-			} else {
-				lnodes = new HashMap<K, Node>(NODE_MAX);
-				rnodes = new HashMap<K, Node>(NODE_MAX);
-			}
+			// we don't use sentinel Nil elements because that wastes memory due to
+			// having to maintain dummy rnodes and lnodes maps.
+			lnodes = (lf)? null: new HashMap<K, Node>(NODE_MAX);
+			rnodes = (lf)? null: new HashMap<K, Node>(NODE_MAX);
 		}
 
 		/**
@@ -320,15 +317,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		**
 		** @param leaf Whether to create a leaf node
 		*/
-		protected Node(boolean leaf) {
-			this(leaf, new TreeMap<K, V>(comparator));
-		}
-
-		/**
-		** Creates a new non-leaf node for the BTree.
-		*/
-		protected Node() {
-			this(false);
+		protected Node(K lk, K rk, boolean lf) {
+			this(lk, rk, lf, new TreeMap<K, V>(comparator));
 		}
 
 		// DOCUMENT
@@ -669,9 +659,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			}
 
 			for ($2<K, K> kp: new PairIterable<K>(lk, keys, rk)) {
-				Node newnode = newNode(child.isLeaf);
-				newnode.lkey = kp._0;
-				newnode.rkey = kp._1;
+				Node newnode = newNode(kp._0, kp._1, child.isLeaf);
 				newnode.populate(child.subEntries(kp._0, kp._1), child.iterNodes(kp._0, kp._1));
 				addChildNode(newnode);
 			}
@@ -920,8 +908,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** @param l Whether the node is a leaf.
 	*/
-	protected Node newNode(boolean l) {
-		return new Node(l);
+	protected Node newNode(K lk, K rk, boolean lf) {
+		return new Node(lk, rk, lf);
 	}
 
 	/**
@@ -950,12 +938,12 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		                     && parent.lnodes.get(child.rkey) == child));
 
 		if (parent == null) {
-			parent = root = newNode(false);
+			parent = root = newNode(null, null, false);
 			parent.addChildNode(child);
 		}
 		parent._size = child._size = -1;
 
-		Node lnode = newNode(child.isLeaf());
+		Node lnode = newNode(null, null, child.isLeaf());
 		K mkey;
 
 		if (child.isLeaf()) {
@@ -1272,7 +1260,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	@Override public void clear() {
-		root = newNode(true);
+		root = newNode(null, null, true);
 		size = 0;
 	}
 
@@ -1589,8 +1577,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	private Map.Entry<K, V> makeNode(Iterator<Map.Entry<K, V>> it, int n, K prevkey, Map<K, Node> lnodes, Map<K, Node> nextlnodes) {
 		Node node;
 		if (lnodes == null) { // create leaf nodes
-			node = newNode(true);
-			node.lkey = prevkey;
+			node = newNode(prevkey, null, true);
 			for (int i=0; i<n; ++i) {
 				Map.Entry<K, V> en = it.next();
 				K key = en.getKey();
@@ -1598,8 +1585,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				prevkey = key;
 			}
 		} else {
-			node = newNode(false);
-			node.lkey = prevkey;
+			node = newNode(prevkey, null, false);
 			for (int i=0; i<n; ++i) {
 				Map.Entry<K, V> en = it.next();
 				K key = en.getKey();

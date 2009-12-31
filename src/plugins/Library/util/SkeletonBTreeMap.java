@@ -121,22 +121,20 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		int ghosts = 0;
 
-		SkeletonNode(boolean leaf, SkeletonTreeMap<K, V> map) {
-			super(leaf, map);
+		SkeletonNode(K lk, K rk, boolean lf, SkeletonTreeMap<K, V> map) {
+			super(lk, rk, lf, map);
 			setSerialiser();
 		}
 
-		SkeletonNode(boolean leaf) {
-			this(leaf, new SkeletonTreeMap<K, V>(comparator));
+		SkeletonNode(K lk, K rk, boolean lf) {
+			this(lk, rk, lf, new SkeletonTreeMap<K, V>(comparator));
 		}
 
-		SkeletonNode(boolean leaf, K lk, K rk, SkeletonTreeMap<K, V> map, Collection<GhostNode> gh) {
-			super(leaf, map);
+		SkeletonNode(K lk, K rk, boolean lf, SkeletonTreeMap<K, V> map, Collection<GhostNode> gh) {
+			super(lk, rk, lf, map);
 			setSerialiser();
-			lkey = lk;
-			rkey = rk;
 			_size = map.size();
-			if (!leaf) {
+			if (!lf) {
 				if (map.size()+1 != gh.size()) {
 					throw new IllegalArgumentException("SkeletonNode: map/gh size mismatch");
 				}
@@ -342,11 +340,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		SkeletonNode parent;
 		Object meta;
 
-		GhostNode(SkeletonNode p, K l, K r, int s) {
-			super(false, null);
+		GhostNode(SkeletonNode p, K lk, K rk, int s) {
+			super(lk, rk, false, null);
 			parent = p;
-			lkey = l;
-			rkey = r;
 			_size = s;
 		}
 
@@ -402,8 +398,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		super(node_min);
 	}
 
-	@Override protected Node newNode(boolean leaf) {
-		return new SkeletonNode(leaf);
+	@Override protected Node newNode(K lk, K rk, boolean lf) {
+		return new SkeletonNode(lk, rk, lf);
 	}
 
 	/*========================================================================
@@ -656,13 +652,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						gh.add(ghost);
 					}
 				}
-				SkeletonNode node = new
-				SkeletonNode(!notleaf,
-				             (ktr == null)? (K)map.get("lkey"): ktr.rev((Q)map.get("lkey")),
-				             (ktr == null)? (K)map.get("rkey"): ktr.rev((Q)map.get("rkey")),
-				             (mtr == null)? (SkeletonTreeMap<K, V>)map.get("entries")
-				                          : mtr.rev((R)map.get("entries")),
-				             gh);
+				SkeletonNode node = new SkeletonNode(
+					(ktr == null)? (K)map.get("lkey"): ktr.rev((Q)map.get("lkey")),
+					(ktr == null)? (K)map.get("rkey"): ktr.rev((Q)map.get("rkey")),
+					!notleaf,
+					(mtr == null)? (SkeletonTreeMap<K, V>)map.get("entries")
+							  : mtr.rev((R)map.get("entries")),
+					gh
+				);
 
 				verifyNodeIntegrity(node);
 				return node;
