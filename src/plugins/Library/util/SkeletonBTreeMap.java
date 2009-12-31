@@ -119,20 +119,19 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	public class SkeletonNode extends Node implements Skeleton<K, IterableSerialiser<SkeletonNode>> {
 
-		int ghosts = 0;
+		protected int ghosts = 0;
 
-		SkeletonNode(K lk, K rk, boolean lf, SkeletonTreeMap<K, V> map) {
+		protected SkeletonNode(K lk, K rk, boolean lf, SkeletonTreeMap<K, V> map) {
 			super(lk, rk, lf, map);
 			setSerialiser();
 		}
 
-		SkeletonNode(K lk, K rk, boolean lf) {
+		protected SkeletonNode(K lk, K rk, boolean lf) {
 			this(lk, rk, lf, new SkeletonTreeMap<K, V>(comparator));
 		}
 
-		SkeletonNode(K lk, K rk, boolean lf, SkeletonTreeMap<K, V> map, Collection<GhostNode> gh) {
-			super(lk, rk, lf, map);
-			setSerialiser();
+		protected SkeletonNode(K lk, K rk, boolean lf, SkeletonTreeMap<K, V> map, Collection<GhostNode> gh) {
+			this(lk, rk, lf, map);
 			_size = map.size();
 			if (!lf) {
 				if (map.size()+1 != gh.size()) {
@@ -337,17 +336,17 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	public class GhostNode extends Node {
 
-		SkeletonNode parent;
-		Object meta;
+		protected SkeletonNode parent;
+		protected Object meta;
 
-		GhostNode(SkeletonNode p, K lk, K rk, int s) {
+		protected GhostNode(K lk, K rk, SkeletonNode p, int s) {
 			super(lk, rk, false, null);
 			parent = p;
 			_size = s;
 		}
 
-		GhostNode(K l, K r, int s) {
-			this(null, l, r, s);
+		protected GhostNode(K lk, K rk, int s) {
+			this(lk, rk, null, s);
 		}
 
 		public Object getMeta() {
