@@ -189,7 +189,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 				public $2<T, T> next() {
 					T rk = (!it.hasNext() && prev != robj)? robj: it.next();
-					return new $2<T, T>(prev, prev = robj);
+					return new $2<T, T>(prev, prev = rk);
 				}
 
 				public void remove() {
@@ -568,7 +568,29 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		*/
 		public Iterable<$2<K, K>> iterKeyPairs() {
 			if (_iterKeyPairs == null) {
-				_iterKeyPairs = new PairIterable<K>(lkey, entries.keySet(), rkey);
+				// TODO replace this with PairIterable when we make lkey/rkey final
+				_iterKeyPairs = new Iterable<$2<K, K>>() {
+					public Iterator<$2<K, K>> iterator() {
+						return new Iterator<$2<K, K>>() {
+
+							Iterator<K> it = entries.keySet().iterator();
+							K lastkey = lkey;
+
+							public boolean hasNext() {
+								return (it.hasNext() || lastkey != rkey);
+							}
+
+							public $2<K, K> next() {
+								K rk = (!it.hasNext() && lastkey != rkey)? rkey: it.next();
+								return new $2<K, K>(lastkey, lastkey = rk);
+							}
+
+							public void remove() {
+								throw new UnsupportedOperationException();
+							}
+						};
+					}
+				};
 			}
 			return _iterKeyPairs;
 		}

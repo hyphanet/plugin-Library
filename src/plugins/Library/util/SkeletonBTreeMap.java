@@ -136,7 +136,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			_size = map.size();
 			if (!lf) {
 				if (map.size()+1 != gh.size()) {
-					throw new IllegalArgumentException("SkeletonNode: map/gh size mismatch");
+					throw new IllegalArgumentException("SkeletonNode: in constructing " + getName() + ", got size mismatch: map:" + map.size() + "; gh:" + gh.size());
 				}
 				Iterator<GhostNode> it = gh.iterator();
 				for ($2<K, K> kp: iterKeyPairs()) {
@@ -372,20 +372,17 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		@Override public Node nodeL(Node n) {
 			// this method-call should never be reached in the B-tree algorithm
-			assert(false);
-			throw new IllegalStateException("This method call should never be reached");
+			throw new AssertionError("GhostNode: called nodeL()");
 		}
 
 		@Override public Node nodeR(Node n) {
 			// this method-call should never be reached in the B-tree algorithm
-			assert(false);
-			throw new IllegalStateException("This method call should never be reached");
+			throw new AssertionError("GhostNode: called nodeR()");
 		}
 
 		@Override public Node selectNode(K key) {
 			// this method-call should never be reached in the B-tree algorithm
-			assert(false);
-			throw new IllegalStateException("This method call should never be reached");
+			throw new AssertionError("GhostNode: called selectNode()");
 		}
 
 	}
@@ -657,13 +654,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					(ktr == null)? (K)map.get("rkey"): ktr.rev((Q)map.get("rkey")),
 					!notleaf,
 					(mtr == null)? (SkeletonTreeMap<K, V>)map.get("entries")
-							  : mtr.rev((R)map.get("entries")),
+					             : mtr.rev((R)map.get("entries")),
 					gh
 				);
 
 				verifyNodeIntegrity(node);
 				return node;
 			} catch (ClassCastException e) {
+				throw new DataFormatException("Could not build SkeletonNode from data", e, map, null, null);
+			} catch (IllegalArgumentException e) {
 				throw new DataFormatException("Could not build SkeletonNode from data", e, map, null, null);
 			} catch (IllegalStateException e) {
 				throw new DataFormatException("Could not build SkeletonNode from data", e, map, null, null);
