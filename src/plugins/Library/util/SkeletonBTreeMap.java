@@ -11,9 +11,12 @@ import plugins.Library.io.serial.Translator;
 import plugins.Library.io.DataFormatException;
 import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.exec.TaskCompleteException;
+import plugins.Library.util.func.Tuples.$2;
+import plugins.Library.util.func.Tuples.$3;
 
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.Collection;
 import java.util.Map;
 import java.util.List;
 import java.util.LinkedHashMap;
@@ -47,6 +50,10 @@ import plugins.Library.util.func.SafeClosure;
 
 /**
 ** {@link Skeleton} of a {@link BTreeMap}. DOCUMENT
+**
+** TODO get rid of uses of rnode.get(K). All other uses of rnode, as well as
+** lnode and entries, have already been removed. This will allow us to
+** re-implement the Node class.
 **
 ** @author infinity0
 */
@@ -121,15 +128,35 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	public class SkeletonNode extends Node implements Skeleton<K, IterableSerialiser<SkeletonNode>> {
 
-		int ghosts = 0;
+		protected int ghosts = 0;
 
-		SkeletonNode(boolean leaf, SkeletonTreeMap<K, V> map) {
-			super(leaf, map);
+		protected SkeletonNode(K lk, K rk, boolean lf, SkeletonTreeMap<K, V> map) {
+			super(lk, rk, lf, map);
 			setSerialiser();
 		}
 
-		SkeletonNode(boolean leaf) {
-			this(leaf, new SkeletonTreeMap<K, V>(comparator));
+		protected SkeletonNode(K lk, K rk, boolean lf) {
+			this(lk, rk, lf, new SkeletonTreeMap<K, V>(comparator));
+		}
+
+		protected SkeletonNode(K lk, K rk, boolean lf, SkeletonTreeMap<K, V> map, Collection<GhostNode> gh) {
+			this(lk, rk, lf, map);
+			_size = map.size();
+			if (!lf) {
+				if (map.size()+1 != gh.size()) {
+					throw new IllegalArgumentException("SkeletonNode: in constructing " + getName() + ", got size mismatch: map:" + map.size() + "; gh:" + gh.size());
+				}
+				Iterator<GhostNode> it = gh.iterator();
+				for ($2<K, K> kp: iterKeyPairs()) {
+					GhostNode ghost = it.next();
+					ghost.lkey = kp._0;
+					ghost.rkey = kp._1;
+					ghost.parent = this;
+					_size += ghost._size;
+					addChildNode(ghost);
+				}
+				ghosts = gh.size();
+			}
 		}
 
 		/**
@@ -139,8 +166,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		public void setSerialiser() {
 			((SkeletonTreeMap<K, V>)entries).setSerialiser(vsrl);
 			if (!isLeaf()) {
-				for (Node n: rnodes.values()) {
-					if (n.entries != null) {
+				for (Node n: iterNodes()) {
+					if (!n.isGhost()) {
 						((SkeletonNode)n).setSerialiser();
 					}
 				}
@@ -165,7 +192,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		/*@Override**/ public boolean isLive() {
 			if (ghosts > 0 || !((SkeletonTreeMap<K, V>)entries).isLive()) { return false; }
 			if (!isLeaf()) {
-				for (Node n: rnodes.values()) {
+				for (Node n: iterNodes()) {
 					SkeletonNode skel = (SkeletonNode)n;
 					if (!skel.isLive()) { return false; }
 				}
@@ -175,7 +202,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		/*@Override**/ public boolean isBare() {
 			if (!isLeaf()) {
-				if (ghosts < rnodes.size()) {
+				if (ghosts < childCount()) {
 					return false;
 				}
 			}
@@ -183,39 +210,41 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		/**
-		** Attaches a child GhostNode. It is assumed that there is already a
-		** SkeletonNode in its place; the ghost will replace it. It is up to the
-		** caller to ensure that this holds.
+		** Attaches a child {@link GhostNode}.
+		**
+		** It is '''assumed''' that there is already a {@link SkeletonNode} in
+		** its place; the ghost will replace it. It is up to the caller to
+		** ensure that this holds.
 		**
 		** @param ghost The GhostNode to attach
 		*/
 		protected void attachGhost(GhostNode ghost) {
+			assert(!rnodes.get(ghost.lkey).isGhost());
 			ghost.parent = this;
-
-			lnodes.put(ghost.rkey, ghost);
-			rnodes.put(ghost.lkey, ghost);
+			setChildNode(ghost);
 			++ghosts;
 		}
 
 		/**
-		** Attaches a child SkeletonNode. It is assumed that there is already a
-		** GhostNode in its place; the skeleton will replace it. It is up to the
-		** caller to ensure that this holds.
+		** Attaches a child {@link SkeletonNode}.
+		**
+		** It is '''assumed''' that there is already a {@link GhostNode} in its
+		** place; the skeleton will replace it. It is up to the caller to
+		** ensure that this holds.
 		**
 		** @param skel The SkeletonNode to attach
 		*/
 		protected void attachSkeleton(SkeletonNode skel) {
-			lnodes.put(skel.rkey, skel);
-			rnodes.put(skel.lkey, skel);
+			assert(rnodes.get(skel.lkey).isGhost());
+			setChildNode(skel);
 			--ghosts;
 		}
 
 		/*@Override**/ public void deflate() throws TaskAbortException {
 			if (!isLeaf()) {
-				List<PushTask<SkeletonNode>> tasks = new ArrayList<PushTask<SkeletonNode>>(rnodes.size() - ghosts);
-				for (Map.Entry<K, Node> en: rnodes.entrySet()) {
-					Node node = en.getValue();
-					if (node.entries == null) { continue; } // ghost node
+				List<PushTask<SkeletonNode>> tasks = new ArrayList<PushTask<SkeletonNode>>(childCount() - ghosts);
+				for (Node node: iterNodes()) {
+					if (node.isGhost()) { continue; }
 					if (!((SkeletonNode)node).isBare()) {
 						((SkeletonNode)node).deflate();
 					}
@@ -239,8 +268,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		/*@Override**/ public void inflate() throws TaskAbortException {
 			((SkeletonTreeMap<K, V>)entries).inflate();
 			if (!isLeaf()) {
-				for (K k: rnodes.keySet()) {
-					inflate(k, true);
+				for (Node node: iterNodes()) {
+					inflate(node.lkey, true);
 				}
 			}
 			assert(isLive());
@@ -260,7 +289,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		/*@Override**/ public void deflate(K key) throws TaskAbortException {
 			if (isLeaf()) { return; }
 			Node node = rnodes.get(key);
-			if (node.entries == null) { return; } // ghost node
+			if (node.isGhost()) { return; }
 
 			if (!((SkeletonNode)node).isBare()) {
 				throw new IllegalStateException("Cannot deflate non-bare BTreeMap node");
@@ -273,7 +302,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			// TODO maybe just ignore all non-error abortions
 			} catch (TaskCompleteException e) {
-				assert(node.entries == null);
+				assert(node.isGhost());
 			} catch (RuntimeException e) {
 				throw new TaskAbortException("Could not deflate BTreeMap Node " + node.getRange(), e);
 			}
@@ -291,7 +320,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		public void inflate(K key, boolean auto) throws TaskAbortException {
 			if (isLeaf()) { return; }
 			Node node = rnodes.get(key);
-			if (node.entries != null) { return; } // skeleton node
+			if (!node.isGhost()) { return; }
 
 			PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(node);
 			try {
@@ -308,7 +337,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				}
 
 			} catch (TaskCompleteException e) {
-				assert(rnodes.get(key).entries != null);
+				assert(!node.isGhost());
 			} catch (DataFormatException e) {
 				throw new TaskAbortException("Could not inflate BTreeMap Node " + node.getRange(), e);
 			} catch (RuntimeException e) {
@@ -320,19 +349,17 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	public class GhostNode extends Node {
 
-		SkeletonNode parent;
-		Object meta;
+		protected SkeletonNode parent;
+		protected Object meta;
 
-		GhostNode(SkeletonNode p, K l, K r, int s) {
-			super(false, null);
+		protected GhostNode(K lk, K rk, SkeletonNode p, int s) {
+			super(lk, rk, false, null);
 			parent = p;
-			lkey = l;
-			rkey = r;
 			_size = s;
 		}
 
-		GhostNode(K l, K r, int s) {
-			this(null, l, r, s);
+		protected GhostNode(K lk, K rk, int s) {
+			this(lk, rk, null, s);
 		}
 
 		public Object getMeta() {
@@ -343,30 +370,31 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			meta = m;
 		}
 
-		@Override int nodeSize() {
+		@Override public int nodeSize() {
 			throw new DataNotLoadedException("BTreeMap Node not loaded: " + getRange(), parent, lkey, this);
 		}
 
-		@Override boolean isLeaf() {
+		@Override public int childCount() {
 			throw new DataNotLoadedException("BTreeMap Node not loaded: " + getRange(), parent, lkey, this);
 		}
 
-		@Override Node nodeL(Node n) {
-			// this method-call should never be reached in the B-tree algorithm
-			assert(false);
-			throw new IllegalStateException("This method call should never be reached");
+		@Override public boolean isLeaf() {
+			throw new DataNotLoadedException("BTreeMap Node not loaded: " + getRange(), parent, lkey, this);
 		}
 
-		@Override Node nodeR(Node n) {
+		@Override public Node nodeL(Node n) {
 			// this method-call should never be reached in the B-tree algorithm
-			assert(false);
-			throw new IllegalStateException("This method call should never be reached");
+			throw new AssertionError("GhostNode: called nodeL()");
 		}
 
-		@Override Node selectNode(K key) {
+		@Override public Node nodeR(Node n) {
 			// this method-call should never be reached in the B-tree algorithm
-			assert(false);
-			throw new IllegalStateException("This method call should never be reached");
+			throw new AssertionError("GhostNode: called nodeR()");
+		}
+
+		@Override public Node selectNode(K key) {
+			// this method-call should never be reached in the B-tree algorithm
+			throw new AssertionError("GhostNode: called selectNode()");
 		}
 
 	}
@@ -379,8 +407,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		super(node_min);
 	}
 
-	@Override protected Node newNode(boolean leaf) {
-		return new SkeletonNode(leaf);
+	@Override protected Node newNode(K lk, K rk, boolean lf) {
+		return new SkeletonNode(lk, rk, lf);
 	}
 
 	/*========================================================================
@@ -468,7 +496,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						// but not yet attached the inflated node to the tree, the assertion fails.
 						// could check to see if the Progress for the Task still exists, but the
 						// performance of this depends on the GC freeing weak referents quickly...
-						assert(parent.rnodes.get(ghost.lkey).entries != null);
+						assert(!parent.rnodes.get(ghost.lkey).isGhost());
 						nodequeue.add((SkeletonNode)parent.rnodes.get(ghost.lkey));
 						//++DEBUG_popped; // not actually popped off the map, but we've "taken care" of it
 					}
@@ -503,9 +531,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					if (node.isLeaf()) { continue; }
 					// add any ghost nodes to the task queue
-					for (Map.Entry<K, Node> en: node.rnodes.entrySet()) { // SUBMAP here
-						Node next = en.getValue();
-						if (next.entries != null) {
+					for (Node next: node.iterNodes()) { // SUBMAP here
+						if (!next.isGhost()) {
 							SkeletonNode skel = (SkeletonNode)next;
 							if (!skel.isLive()) { nodequeue.add(skel); }
 							continue;
@@ -812,12 +839,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			if (!node.isLeaf()) {
 				Map<Object, Integer> subnodes = new LinkedHashMap<Object, Integer>();
-				for (K k: node.entries.keySet()) {
-					GhostNode gh = (GhostNode)node.lnodes.get(k);
+				for ($3<K, Node, K> next: node.iterNodesK()) {
+					GhostNode gh = (GhostNode)(next._1);
 					subnodes.put(gh.getMeta(), gh.totalSize());
 				}
-				GhostNode gh = (GhostNode)node.lnodes.get(node.rkey);
-				subnodes.put(gh.getMeta(), gh.totalSize());
 				map.put("subnodes", subnodes);
 			}
 			return map;
@@ -825,30 +850,31 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		/*@Override**/ public SkeletonNode rev(Map<String, Object> map) throws DataFormatException {
 			try {
-				SkeletonNode node = new SkeletonNode(!map.containsKey("subnodes"),
-				                                     (mtr == null)? (SkeletonTreeMap<K, V>)map.get("entries")
-				                                                  : mtr.rev((R)map.get("entries")));
-				node.lkey = (ktr == null)? (K)map.get("lkey"): ktr.rev((Q)map.get("lkey"));
-				node.rkey = (ktr == null)? (K)map.get("rkey"): ktr.rev((Q)map.get("rkey"));
-				node._size = node.entries.size();
-				if (!node.isLeaf()) {
+				boolean notleaf = map.containsKey("subnodes");
+				List<GhostNode> gh = null;
+				if (notleaf) {
 					Map<Object, Integer> subnodes = (Map<Object, Integer>)map.get("subnodes");
-					K lastkey = node.lkey;
-					Iterator<K> keys = node.entries.keySet().iterator();
-					node.ghosts = subnodes.size();
+					gh = new ArrayList<GhostNode>(subnodes.size());
 					for (Map.Entry<Object, Integer> en: subnodes.entrySet()) {
-						K thiskey = keys.hasNext()? keys.next(): node.rkey;
-						GhostNode ghost = new GhostNode(node, lastkey, thiskey, en.getValue());
+						GhostNode ghost = new GhostNode(null, null, null, en.getValue());
 						ghost.setMeta(en.getKey());
-						node.rnodes.put(lastkey, ghost);
-						node.lnodes.put(thiskey, ghost);
-						lastkey = thiskey;
-						node._size += en.getValue();
+						gh.add(ghost);
 					}
 				}
+				SkeletonNode node = new SkeletonNode(
+					(ktr == null)? (K)map.get("lkey"): ktr.rev((Q)map.get("lkey")),
+					(ktr == null)? (K)map.get("rkey"): ktr.rev((Q)map.get("rkey")),
+					!notleaf,
+					(mtr == null)? (SkeletonTreeMap<K, V>)map.get("entries")
+					             : mtr.rev((R)map.get("entries")),
+					gh
+				);
+
 				verifyNodeIntegrity(node);
 				return node;
 			} catch (ClassCastException e) {
+				throw new DataFormatException("Could not build SkeletonNode from data", e, map, null, null);
+			} catch (IllegalArgumentException e) {
 				throw new DataFormatException("Could not build SkeletonNode from data", e, map, null, null);
 			} catch (IllegalStateException e) {
 				throw new DataFormatException("Could not build SkeletonNode from data", e, map, null, null);
