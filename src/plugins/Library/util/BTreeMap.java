@@ -233,8 +233,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**      Node  Node  Node  Node  Node  Node  Node  Node  Node
 	**
 	**    | - {@link #entries} mappings
-	**    \ - {@link #rnodes} mappings (and the subnode's {@link #lkey})
-	**    / - {@link #lnodes} mappings (and the subnode's {@link #rkey})
+	**    \ - {@link #rnodes} mappings
+	**    / - {@link #lnodes} mappings
 	**
 	** Note: before anyone gets any ideas about making this class static
 	** (believe me, I tried), note that {@link TreeMap} '''requires''' the

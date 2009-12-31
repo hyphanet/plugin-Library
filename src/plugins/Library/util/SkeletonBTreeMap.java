@@ -685,23 +685,24 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				// for each separator key that was moved to the parent node, deassign it
 				// from the current sweeper and reassign it to the parent sweeper.
-				K k = null; // TODO for (something) {
+				for (K k = null;;/* TODO*/) {
 					floatToSweeper(parVClo, k);
-				// }
+				}
 
 				// for each split node, create a sweeper that will run when all its (k, v)
 				// pairs have been popped from value_complete
-				Node n = null; // TODO for (something) {
-					DeflateSplitNode vClo = new DeflateSplitNode(new PushTask<Node>(n));
-					K k2 = null; // TODO for (something) {
+				for (Node n = null;;/*TODO*/) {
+					PushTask<Node> task = new PushTask<Node>(n);
+					DeflateSplitNode vClo = new DeflateSplitNode(task);
+
+					for (K k2 = null;;/*TODO*/) {
 						floatToSweeper(vClo, k2);
-					// }
+					}
 					vClo.close();
 
-					parNClo.acquire(parent);
-					PushTask<Node> task = new PushTask<Node>(node);
+					parNClo.acquire(n);
 					split_closures.put(task, parNClo);
-				// }
+				}
 
 				nodeVClo.close();
 				assert(nodeVClo.size() == 0);
@@ -752,31 +753,43 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// closure to be called when all subnodes have been handled
 				SplitNode nClo = new SplitNode(node, parent, vClo, parNClo, parVClo);
 
+				// invalidate every totalSize cache directly after we inflate it
+				node._size = -1;
+
 				// mergesort map & node
 				if (node.isLeaf()) {
-					// TODO
-					//node.entries.
-					// straightforward mergesort
+					// SortedMap.putAll(SortedMap) should be efficient
+					node.entries.putAll(map);
+
+					// handle puts to the local node
 					for (Map.Entry<K, V> en: map.entrySet()) {
 						handleLocalPut(vClo, en.getKey(), en.getValue());
 					}
 
 				} else {
-					int ns = node.entries.size();
-					int ms = map.size();
 
-					for (K key: node.entries.keySet()) {
+					SortedMap<K, V> submap = null;
+					for (Node n = null;;/*TODO*/) {
+						PullTask<Node> task = new PullTask<Node>(n);
+						node_clo.acquire(n);
+						inflate_closures.put(task, new InflateSubnodes(node, submap, node_clo, value_clo);
+						pull_queue.push(task);
 					}
+
 				}
 
 				nClo.close();
 				if (nClo.isCleared()) { nClo.run(); }
 			}
 
-			public void handleLocalMerge(TrackingSweeper vClo, K key, V val) {
+			public void handleLocalPut(TrackingSweeper vClo, K key, V val) {
 				vClo.acquire(key);
 				deflate_closures.put(key, vClo);
-				initKVHandler(key, val);
+				// TODO initKVHandler(key, val);
+			}
+
+			public void handleLocalRemove(TrackingSweeper vClo, K key) {
+				throw new UnsupportedOperation("not implemented");
 			}
 
 		}
