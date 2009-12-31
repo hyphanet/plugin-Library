@@ -80,16 +80,6 @@ import java.util.ConcurrentModificationException;
 **
 ** Note: this implementation, like {@link TreeMap}, is not thread-safe.
 **
-** * '''TODO {@link ConcurrentModificationException} for the entrySet
-**   iterator''' (can do this when we do the commit algorithm for indexes)
-** * '''TODO better distribution algorithm for putAll'''
-**
-** PRIORITY DOCUMENT SkeletonBTreeMap dependency on use of nodeSize() & isLeaf()...
-**
-** * essentially, programmers who wish to maintain this class MUST read the
-**   behavioural contract for nodeSize() and isLeaf(); otherwise you risk
-**   breaking {@link SkeletonBTreeMap}.
-**
 ** @author infinity0
 ** @see TreeMap
 ** @see Comparator
@@ -97,6 +87,31 @@ import java.util.ConcurrentModificationException;
 */
 public class BTreeMap<K, V> extends AbstractMap<K, V>
 implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializable*/ {
+
+	/*
+	** TODO list (most urgent first):
+	**
+	** # clean up the use of Node._size
+	** # use Node.{merge|split} instead of the long code in BTreeMap.{merge|split}
+	** # make Node's fields private/immutable
+	** # {@link ConcurrentModificationException} for the entrySet iterator
+	** # better distribution algorithm for {@link #putAll(Map)}
+	**
+	***************************************************************************
+	** IMPORTANT NOTE FOR MAINTAINERS:
+	***************************************************************************
+	**
+	** When navigating the tree, either Node.isLeaf() or Node.nodeSize() MUST
+	** be called at least once **for each node visited**, before accessing or
+	** modifying its contents. This is to give SkeletonBTreeMap the chance to
+	** throw a DataNotLoadedException in case the node has not been loaded.
+	**
+	** Additionally, each node has a Node._size field which is a cache for
+	** Node.totalSize(), which calculates the number of entries in it and all
+	** its children. To invalidate the cache, set Node._size to -1. This must
+	** be done whenever an operation has >0 chance of changing the total size.
+	**
+	*/
 
 	/**
 	** Minimum number of children of each node.
@@ -294,11 +309,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** Creates a new node for the BTree, with a custom map to store the
 		** entries.
 		**
-		** Note: it is assumed that the input map is empty; it is up to the
-		** calling code to ensure that this holds, or if not, then at least put
-		** the node into a consistent state before releasing it for use.
+		** It is '''assumed''' that the input map is empty; it is up to the
+		** caller to ensure that this holds, or if not, then at least put the
+		** node into a consistent state before releasing it for use.
 		**
-		** @param leaf Whether to create a leaf node
+		** @param lk The {@code Node#lkey} for the node.
+		** @param rk The {@code Node#rkey} for the node.
+		** @param lf Whether to create a leaf node
 		** @param map A {@link SortedMap} to use to store the entries
 		*/
 		protected Node(K lk, K rk, boolean lf, SortedMap<K, V> map) {
@@ -315,37 +332,33 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		/**
 		** Creates a new node for the BTree
 		**
-		** @param leaf Whether to create a leaf node
+		** @param lk The {@code Node#lkey} for the node.
+		** @param rk The {@code Node#rkey} for the node.
+		** @param lf Whether to create a leaf node
 		*/
 		protected Node(K lk, K rk, boolean lf) {
 			this(lk, rk, lf, new TreeMap<K, V>(comparator));
 		}
 
-		// DOCUMENT
-		protected void populate(SortedMap<K, V> ent, Iterable<Node> childs) {
+		/**
+		** Add the given entries and subnodes to this node. The subnodes are
+		** added with {@link #addChildNode(BTreeMap.Node)}.
+		**
+		** It is up to the caller to leave the node in a consistent state.
+		**
+		** @param ent The entries to add
+		** @param nodes The subnodes to add
+		*/
+		protected void addAll(SortedMap<K, V> ent, Iterable<Node> nodes) {
 			assert(ent.comparator() == comparator());
 			assert(compareL(lkey, ent.firstKey()) < 0);
 			assert(compareR(ent.lastKey(), rkey) < 0);
 			entries.putAll(ent);
 			if (!isLeaf) {
-				for (Node ch: childs) {
+				for (Node ch: nodes) {
 					addChildNode(ch);
 				}
 			}
-		}
-
-		/**
-		** Number of entries the node contains. When descending through the
-		** tree, either this method or {@link #isLeaf()} will be called at
-		** least once for each node visited, before any merge / split / rotate
-		** operations upon it.
-		**
-		** DOCUMENT
-		**
-		** @return Number of local entries
-		*/
-		public int nodeSize() {
-			return entries.size();
 		}
 
 		/**
@@ -356,27 +369,29 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		}
 
 		/**
-		** Whether the node is a leaf.  When descending through the B-tree,
-		** either this method or {@link #size()} will be called at least once
-		** for each node visited, before any merge / split / rotate operations
-		** upon it.
-		**
-		** DOCUMENT
+		** @return Number of local entries
+		*/
+		public int nodeSize() {
+			return entries.size();
+		}
+
+		/**
+		** @return Whether this is a leaf node
 		*/
 		public boolean isLeaf() {
 			return isLeaf;
 		}
 
 		/**
-		** Whether the node is a ghost. This cannot be {@code true} for normal
-		** maps, but is used by {@link SkeletonBTreeMap}.
+		** @return Whether the node is a ghost. This cannot be {@code true} for
+		**         normal maps, but is used by {@link SkeletonBTreeMap}.
 		*/
 		public boolean isGhost() {
 			return entries == null;
 		}
 
 		/**
-		** Calculate the total number of entries in this node and all subnodes.
+		** @return Total number of entries in this node and all subnodes
 		*/
 		protected int totalSize() {
 			if (_size < 0) {
@@ -394,8 +409,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		/**
 		** Returns the greatest subnode smaller than the given node.
 		**
-		** Note: This method assumes that the input is an actual subnode of
-		** this node; it is up to the calling code to ensure that this holds.
+		** It is '''assumed''' that the input is an actual subnode of this
+		** node; it is up to the caller to ensure that this holds.
 		**
 		** @param node The node to lookup its neighbour for
 		** @return The neighbour node, or null if the input node is at the edge
@@ -411,8 +426,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		/**
 		** Returns the smallest subnode greater than the given node.
 		**
-		** Note: This method assumes that the input is an actual subnode of
-		** this node; it is up to the calling code to ensure that this holds.
+		** It is '''assumed''' that the input is an actual subnode of this
+		** node; it is up to the caller to ensure that this holds.
 		**
 		** @param node The node to lookup its neighbour for
 		** @return The neighbour node, or null if the input node is at the edge
@@ -429,9 +444,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** Returns the subnode a that given key belongs in. The key must not be
 		** local to the node.
 		**
-		** Note: This method assumes that the input key is strictly between
-		** {@link #lkey} and {@link #rkey}; it is up to the calling code to
-		** ensure that this holds.
+		** It is '''assumed''' that the input key is in the correct range; it
+		** is up to the caller to ensure that this holds.
 		**
 		** @param key The key to select the node for
 		** @return The subnode for the key, or null if the key is local to the
@@ -452,7 +466,15 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			}
 		}
 
-		// DOCUMENT
+		/**
+		** Attaches a child via its {@code lkey}, {@code rkey} fields.
+		**
+		** This is the same as {@link addChildNode}, except that it has {@code
+		** assert}s to check that a child with the same range is already
+		** present in the node.
+		**
+		** @param child The child to attach
+		*/
 		protected void setChildNode(Node child) {
 			assert(lnodes.containsKey(child.rkey));
 			assert(rnodes.containsKey(child.lkey));
@@ -461,7 +483,11 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			rnodes.put(child.lkey, child);
 		}
 
-		// DOCUMENT
+		/**
+		** Attaches a child via its {@code lkey}, {@code rkey} fields.
+		**
+		** @param child The child to attach
+		*/
 		protected void addChildNode(Node child) {
 			assert(rkey == child.rkey || entries.containsKey(child.rkey));
 			assert(lkey == child.lkey || entries.containsKey(child.lkey));
@@ -655,7 +681,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 			while (it.hasNext()) {
 				Node next = it.next();
-				child.populate(next.entries, (next.isLeaf)? null: next.iterNodes());
+				child.addAll(next.entries, (next.isLeaf)? null: next.iterNodes());
 			}
 
 			child.rkey = rk;
@@ -682,7 +708,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 			for ($2<K, K> kp: new PairIterable<K>(lk, keys, rk)) {
 				Node newnode = newNode(kp._0, kp._1, child.isLeaf);
-				newnode.populate(child.subEntries(kp._0, kp._1), child.iterNodes(kp._0, kp._1));
+				newnode.addAll(child.subEntries(kp._0, kp._1), child.iterNodes(kp._0, kp._1));
 				addChildNode(newnode);
 			}
 		}
@@ -928,7 +954,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	/**
 	** Creates a new node.
 	**
-	** @param l Whether the node is a leaf.
+	** @param lk The {@code Node#lkey} for the node.
+	** @param rk The {@code Node#rkey} for the node.
+	** @param lf Whether the node is a leaf.
 	*/
 	protected Node newNode(K lk, K rk, boolean lf) {
 		return new Node(lk, rk, lf);
@@ -939,9 +967,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** as the separator between these new nodes in the parent. If the parent is
 	** {@code null}, creates a new {@link Node} and points {@link #root} to it.
 	**
-	** Note: This method assumes that the child is an actual subnode of the
-	** parent, and that it is actually full. It is up to the calling code to
-	** ensure that this holds.
+	** It is '''assumed''' that the child is an actual subnode of the parent,
+	** and that it is full. It is up to the caller to ensure that this holds.
 	**
 	** The exact implementation of this may change from time to time, so the
 	** calling code should regard the input subnode as effectively destroyed,
@@ -1026,9 +1053,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** merged node. If the parent is the {@link #root} and the merge makes it
 	** empty, point {@code root} to the new merged node.
 	**
-	** Note: This method assumes that both childs are actual subnodes of the
-	** parent, that they are adjacent in the parent, and that they are actually
-	** minimally full. It is up to the calling code to ensure that this holds.
+	** It is '''assumed''' that both childs are actual subnodes of the parent,
+	** that they are adjacent in the parent, and that they are minimally full.
+	** It is up to the caller to ensure that this holds.
 	**
 	** The exact implementation of this may change from time to time, so the
 	** calling code should regard both input subnodes as effectively destroyed,
@@ -1104,10 +1131,10 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** Here, M is the key that separates {@code lnode} and {@code rnode}, S is
 	** the smallest key of {@code rnode}, and N its smallest subnode.
 	**
-	** Note: This method assumes that both childs are actual subnodes of the
-	** parent, that they are adjacent in the parent, and that the child losing
-	** an entry has more than {@link #ENT_MIN} entries. It is up to the calling
-	** code to ensure that this holds.
+	** It is '''assumed''' that both childs are actual subnodes of the parent,
+	** that they are adjacent in the parent, and that the child losing an entry
+	** has more than {@link #ENT_MIN} entries. It is up to the caller to ensure
+	** that this holds.
 	**
 	** @param parent The parent node of the children.
 	** @param lnode The smaller subnode, which accepts an entry from the parent
@@ -1155,10 +1182,10 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** Here, M is the key that separates {@code lnode} and {@code rnode}, S is
 	** the greatest key of {@code rnode}, and N its greatest subnode.
 	**
-	** Note: This method assumes that both childs are actual subnodes of the
-	** parent, that they are adjacent in the parent, and that the child losing
-	** an entry has more than {@link #ENT_MIN} entries. It is up to the calling
-	** code to ensure that this holds.
+	** It is '''assumed''' that both childs are actual subnodes of the parent,
+	** that they are adjacent in the parent, and that the child losing an entry
+	** has more than {@link #ENT_MIN} entries. It is up to the caller to ensure
+	** that this holds.
 	**
 	** @param parent The parent node of the children.
 	** @param lnode The smaller subnode, which loses an entry to the parent

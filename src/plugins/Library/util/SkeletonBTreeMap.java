@@ -201,9 +201,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		/**
-		** Attaches a child GhostNode. It is assumed that there is already a
-		** SkeletonNode in its place; the ghost will replace it. It is up to the
-		** caller to ensure that this holds.
+		** Attaches a child {@link GhostNode}.
+		**
+		** It is '''assumed''' that there is already a {@link SkeletonNode} in
+		** its place; the ghost will replace it. It is up to the caller to
+		** ensure that this holds.
 		**
 		** @param ghost The GhostNode to attach
 		*/
@@ -215,9 +217,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		/**
-		** Attaches a child SkeletonNode. It is assumed that there is already a
-		** GhostNode in its place; the skeleton will replace it. It is up to the
-		** caller to ensure that this holds.
+		** Attaches a child {@link SkeletonNode}.
+		**
+		** It is '''assumed''' that there is already a {@link GhostNode} in its
+		** place; the skeleton will replace it. It is up to the caller to
+		** ensure that this holds.
 		**
 		** @param skel The SkeletonNode to attach
 		*/
