@@ -42,6 +42,7 @@ import plugins.Library.util.concurrent.Scheduler;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.HashMap;
+import plugins.Library.util.Maps;
 import plugins.Library.util.event.TrackingSweeper;
 import plugins.Library.util.event.CountingSweeper;
 import plugins.Library.util.func.Closure;
@@ -616,12 +617,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// FIXME error maps
 
 		// input queue for value-handler
-		final PriorityBlockingQueue<K> value_pending
-		= new PriorityBlockingQueue<K>();
+		final PriorityBlockingQueue<Map.Entry<K, V>> value_pending
+		= new PriorityBlockingQueue<Map.Entry<K, V>>();
 		// output queue for value-handler
-		final PriorityBlockingQueue<K> value_complete
-		= new PriorityBlockingQueue<K>();
-		// FIXME correct type instead of <K>
+		final PriorityBlockingQueue<Map.Entry<K, V>> value_complete
+		= new PriorityBlockingQueue<Map.Entry<K, V>>();
 		// FIXME error maps
 
 		final Map<PullTask<Node>, SafeClosure<Node>>
@@ -630,10 +630,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final Map<PushTask<Node>, CountingSweeper<Node>>
 		split_closures = new HashMap<PushTask<Node>, CountingSweeper<Node>>();
 
-		final Map<K, TrackingSweeper<Node>>
-		deflate_closures = new HashMap<K, TrackingSweeper<Node>>();
+		final Map<K, TrackingSweeper<K>>
+		deflate_closures = new HashMap<K, TrackingSweeper<K>>();
 
-		//final Callback<K, V> initKVHandler;
+		final Map<K, SafeClosure<Map.Entry<K, V>>>
+		value_closures = new HashMap<K, SafeClosure<Map.Entry<K, V>>>();
+
+		//something to handle value_pending / value_complete
 
 		/**
 		** Deflates a node that has been split.
@@ -651,6 +654,26 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			public void run() {
 				push_queue.put(task);
+			}
+
+		}
+
+		/**
+		** Updates a value that has been handled.
+		**
+		** To be called after the value is popped from
+		*/
+		class UpdateValue implements SafeClosure<Map.Entry<K, V>> {
+
+			final Node node;
+
+			public UpdateValue(Node n) {
+				node = n;
+			}
+
+			public void invoke(Map.Entry<K, V> en) {
+				assert(node.entries.containsKey(en.getKey()));
+				node.entries.put(en.getKey(), en.getValue());
 			}
 
 		}
@@ -685,18 +708,20 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				// for each separator key that was moved to the parent node, deassign it
 				// from the current sweeper and reassign it to the parent sweeper.
-				for (K k = null;;/* TODO*/) {
-					floatToSweeper(parVClo, k);
+				SafeClosure<Map.Entry<K, V>> kvClo = new UpdateValue(parent);
+				for (K k = null;k != null;/* TODO*/) {
+					floatToSweeper(parVClo, kvClo, k);
 				}
 
 				// for each split node, create a sweeper that will run when all its (k, v)
 				// pairs have been popped from value_complete
-				for (Node n = null;;/*TODO*/) {
+				for (Node n = null;n != null;/*TODO*/) {
 					PushTask<Node> task = new PushTask<Node>(n);
 					DeflateSplitNode vClo = new DeflateSplitNode(task);
+					kvClo = new UpdateValue(n);
 
-					for (K k2 = null;;/*TODO*/) {
-						floatToSweeper(vClo, k2);
+					for (K k2 = null;k2 != null;/*TODO*/) {
+						floatToSweeper(vClo, kvClo, k2);
 					}
 					vClo.close();
 
@@ -714,11 +739,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			// NOTE: if the overall co-ordinator algorithm is ever made concurrent,
 			// this section MUST be made atomic
-			private void floatToSweeper(TrackingSweeper clo, K key) {
+			private void floatToSweeper(TrackingSweeper<K> clo, SafeClosure<Map.Entry<K, V>> kvClo, K key) {
 				clo.acquire(key);
 				nodeVClo.release(key);
-				TrackingSweeper old = deflate_closures.put(key, clo);
-				assert(old == nodeVClo);
+
+				assert(deflate_closures.get(key) == nodeVClo);
+				assert(((UpdateValue)value_closures.get(key)).node == node);
+
+				value_closures.put(key, kvClo);
+				deflate_closures.put(key, clo);
 			}
 
 		}
@@ -727,7 +756,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		** Merge the relevant parts of the map into the node, and then inflate
 		** its children.
 		**
-		** To be called after a node is inflated.
+		** To be called after a node is itself inflated.
 		*/
 		class InflateChildNodes implements SafeClosure<Node> {
 
@@ -748,10 +777,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				assert(compareR(map.lastKey(), node.rkey) < 0);
 
 				// a jobless sweeper whose only purpose is to track unhandled (k,v) callbacks
-				TrackingSweeper vClo = new TrackingSweeper<Node>(true);
+				TrackingSweeper<K> vClo = new TrackingSweeper<K>(true);
 
 				// closure to be called when all subnodes have been handled
 				SplitNode nClo = new SplitNode(node, parent, vClo, parNClo, parVClo);
+
+				SafeClosure kvClo = new UpdateValue(node);
 
 				// invalidate every totalSize cache directly after we inflate it
 				node._size = -1;
@@ -763,7 +794,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					// handle puts to the local node
 					for (Map.Entry<K, V> en: map.entrySet()) {
-						handleLocalPut(vClo, en.getKey(), en.getValue());
+						handleLocalPut(vClo, kvClo, en.getKey(), en.getValue());
 					}
 
 				} else {
@@ -771,9 +802,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					SortedMap<K, V> submap = null;
 					for (Node n = null;;/*TODO*/) {
 						PullTask<Node> task = new PullTask<Node>(n);
-						node_clo.acquire(n);
-						inflate_closures.put(task, new InflateSubnodes(node, submap, node_clo, value_clo);
-						pull_queue.push(task);
+						nClo.acquire(n);
+						inflate_closures.put(task, new InflateChildNodes(node, submap, nClo, vClo));
+						pull_queue.put(task);
 					}
 
 				}
@@ -782,16 +813,68 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				if (nClo.isCleared()) { nClo.run(); }
 			}
 
-			public void handleLocalPut(TrackingSweeper vClo, K key, V val) {
+			public void handleLocalPut(TrackingSweeper<K> vClo, SafeClosure<Map.Entry<K, V>> kvClo, K key, V val) {
 				vClo.acquire(key);
 				deflate_closures.put(key, vClo);
-				// TODO initKVHandler(key, val);
+				value_closures.put(key, kvClo);
+				value_pending.put(Maps.$(key, val));
 			}
 
-			public void handleLocalRemove(TrackingSweeper vClo, K key) {
-				throw new UnsupportedOperation("not implemented");
+			public void handleLocalRemove(TrackingSweeper vClo, Node n, K key) {
+				throw new UnsupportedOperationException("not implemented");
 			}
 
+		}
+
+		try {
+
+			do {
+
+				while (!inflated.isEmpty()) {
+					PullTask<Node> task = inflated.take();
+
+					inflate_closures.remove(task).invoke(task.data);
+				}
+
+				while (!deflated.isEmpty()) {
+					PushTask<Node> task = deflated.take();
+
+					CountingSweeper<Node> sw = split_closures.remove(task);
+					assert(sw instanceof Runnable);
+					sw.release(task.data);
+					if (sw.isCleared()) {
+						((Runnable)sw).run();
+					}
+				}
+
+				while (!value_complete.isEmpty()) {
+					Map.Entry<K, V> en = value_complete.take();
+					K k = en.getKey();
+					SafeClosure<Map.Entry<K, V>> updv = value_closures.remove(k);
+					updv.invoke(en);
+
+					TrackingSweeper<K> sw = deflate_closures.remove(k);
+					assert(sw instanceof Runnable);
+					sw.release(k);
+					if (sw.isCleared()) {
+						((Runnable)sw).run();
+					}
+				}
+
+				Thread.sleep(1000);
+
+			} while(
+				!inflated.isEmpty() ||
+				!deflated.isEmpty() ||
+				!value_complete.isEmpty() ||
+				!inflate_closures.isEmpty() ||
+				!deflate_closures.isEmpty() ||
+				!split_closures.isEmpty() ||
+				!value_closures.isEmpty()
+			);
+
+		} catch (InterruptedException e) {
+			// TODO throw TAbEx
 		}
 
 	}
