@@ -599,12 +599,44 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			throw new UnsupportedOperationException("SkeletonBTreeMap: update() currently only supports merge operations");
 		}
 
-		// TODO these need comparators
+		/*
+		** The code below might seem confusing at first, because the action of
+		** the algorithm on a single node is split up into several asynchronous
+		** parts, which are not visually adjacent. Here is a more contiguous
+		** description of what happens to a single node between being inflated
+		** and then eventually deflated.
+		**
+		** Life cycle of a node:
+		**
+		** - node gets popped from inflated
+		** - enter InflateChildNodes
+		**   - subnodes get pushed into pull_queue
+		**   - (recurse for each subnode)
+		**     - subnode gets popped from inflated
+		**     - etc
+		**     - split-subnodes get pushed into push_queue
+		** - wait for all:
+		**   - split-subnodes get popped from deflated
+		** - enter SplitNode
+		**   - for each item in the original node's value_clo
+		**     - release the item and acquire it on
+		**       - the parent's value_clo if the item is a separator
+		**       - a new value_clo if the item is now in a split-node
+		** - for each split-node:
+		**   - wait for all:
+		**     - values get popped from values_complete
+		**   - enter DeflateNode
+		**     - split-node gets pushed into push_queue (except for root)
+		**
+		*/
+
+		// TODO these queues need proper comparators. lowest key first.
 
 		// TODO add a value-getter parameter
 
-		// TODO need a way of bypassing the value-getter so that we can update
-		// the values synchronously (ie. no need to retrieve network data)
+		// TODO URGENT OPTIMISE need a way of bypassing the value-getter so that we
+		// can update the values synchronously (ie. when we don't need to retrieve
+		// network data).
 
 		// input queue for pull-scheduler
 		final PriorityBlockingQueue<PullTask<Node>> pull_queue
@@ -643,15 +675,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		value_closures = new HashMap<K, SafeClosure<Map.Entry<K, V>>>();
 
 		/**
-		** Deflates a node that has been split.
+		** Deflates a node whose values have all been obtained.
 		**
 		** To be called after everything else on it has been taken care of.
 		*/
-		class DeflateSplitNode extends TrackingSweeper implements Runnable {
+		class DeflateNode extends TrackingSweeper implements Runnable {
 
 			final PushTask<Node> task;
 
-			protected DeflateSplitNode(PushTask<Node> t) {
+			protected DeflateNode(PushTask<Node> t) {
 				super(true);
 				task = t;
 			}
@@ -665,7 +697,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		/**
 		** Updates a value that has been obtained.
 		**
-		** To be called after the value is popped from
+		** To be called after the value is popped from value_complete.
 		*/
 		class UpdateValue implements SafeClosure<Map.Entry<K, V>> {
 
@@ -706,9 +738,28 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			public void run() {
 
-				// TODO consider case where parent == null, node == root
+				// All subnodes have been deflated, so nothing else can possibly add keys
+				// to this node.
+				nodeVClo.close();
 
-				// TODO splicing crap, etc
+				// TODO splitting crap, etc
+				// use Integers.distributeEvenly() then Node.split()
+
+				// OPTIMISE if we don't need to split, then it would be better for nodeVClo
+				// to be a DeflateNode rather than a dummy sweeper, so we don't have to
+				// switch stuff for no reason.
+				//
+				// If we need to split at all, then we might as well not bother releasing
+				// any keys from nodeVClo, and just let it get garbage collected. Currently
+				// we release all the keys, but nodeVClo is a dummy with no use after this
+				// method returns, so this is only useful to check that we got the code
+				// right.
+
+				if (parent == null /* and there was actually a split */) {
+					assert(parNClo == null && parVClo == null);
+					// TODO create parent, parNClo, parVClo, etc
+					// similar stuff as for InflateChildNodes but without the merging
+				}
 
 				// reassign appropriate keys to parent sweeper
 				SafeClosure<Map.Entry<K, V>> kvClo = new UpdateValue(parent);
@@ -720,7 +771,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// pairs have been popped from value_complete
 				for (Node n = null;n != null;/*TODO*/) {
 					PushTask<Node> task = new PushTask<Node>(n);
-					DeflateSplitNode vClo = new DeflateSplitNode(task);
+					DeflateNode vClo = new DeflateNode(task);
 					kvClo = new UpdateValue(n);
 
 					// reassign appropriate keys to the split-node's sweeper
@@ -733,8 +784,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					split_closures.put(task, parNClo);
 				}
 
-				nodeVClo.close();
-				assert(nodeVClo.size() == 0 && !(nodeVClo instanceof Runnable));
+				assert(nodeVClo.isCleared() && !(nodeVClo instanceof Runnable));
 
 				// original (unsplit) node had a ticket on the parNClo sweeper, release it
 				parNClo.release(node);
@@ -791,7 +841,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				assert(compareR(putkey.last(), node.rkey) < 0);
 
 				// a jobless sweeper whose only purpose is to track get-value operations
-				// that have still not completed by the time we get to SplitNodes
+				// that have still not completed by the time we get to SplitNode
 				TrackingSweeper<K> vClo = new TrackingSweeper<K>(true);
 
 				// closure to be called when all subnodes have been handled
@@ -804,7 +854,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				// each key in putkey is either added to the local entries, or delegated to
 				// the the relevant child node.
-				//
 				if (node.isLeaf()) {
 					// add all keys into the node, since there are no children.
 					//
