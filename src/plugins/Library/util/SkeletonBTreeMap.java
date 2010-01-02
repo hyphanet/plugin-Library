@@ -591,12 +591,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	**
 	** @param putkey The keys to insert into the map
 	** @param remkey The keys to remove from the map
-	** @throws UnsupportedOperationException if {@code remkey} is not {@code
-	**         null}
+	** @throws UnsupportedOperationException if {@code remkey} is not empty
 	*/
 	public void update(SortedSet<K> putkey, SortedSet<K> remkey) throws TaskAbortException {
 
-		if (remkey != null) {
+		if (!remkey.isEmpty()) {
 			throw new UnsupportedOperationException("SkeletonBTreeMap: update() currently only supports merge operations");
 		}
 
@@ -811,7 +810,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					//
 					// OPTIMISE: could use a splice-merge here. for TreeMap, there is not an
 					// easy way of doing this, nor will it likely make a lot of a difference.
-					// however, f Node were to be re-implemented, this might become relevant.
+					// however, if we re-implement Node, this might become relevant.
 					//
 					for (K key: putkey) {
 						handleLocalPut(node, key, vClo, kvClo);
