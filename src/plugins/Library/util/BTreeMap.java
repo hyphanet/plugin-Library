@@ -180,31 +180,31 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 
-	public static class PairIterable<T> implements Iterable<$2<T, T>> {
+	public static class PairIterable<E> implements Iterable<$2<E, E>> {
 
-		final protected T lobj;
-		final protected T robj;
-		final protected Iterable<T> ib;
+		final protected E lobj;
+		final protected E robj;
+		final protected Iterable<E> ib;
 
-		public PairIterable(T lo, Iterable<T> objs, T ro) {
+		public PairIterable(E lo, Iterable<E> objs, E ro) {
 			lobj = lo;
 			ib = objs;
 			robj = ro;
 		}
 
-		public Iterator<$2<T, T>> iterator() {
-			return new Iterator<$2<T, T>>() {
+		public Iterator<$2<E, E>> iterator() {
+			return new Iterator<$2<E, E>>() {
 
-				final Iterator<T> it = ib.iterator();
-				T prev = lobj;
+				final Iterator<E> it = ib.iterator();
+				E prev = lobj;
 
 				public boolean hasNext() {
 					return (it.hasNext() || prev != robj);
 				}
 
-				public $2<T, T> next() {
-					T rk = (!it.hasNext() && prev != robj)? robj: it.next();
-					return new $2<T, T>(prev, prev = rk);
+				public $2<E, E> next() {
+					E rk = (!it.hasNext() && prev != robj)? robj: it.next();
+					return new $2<E, E>(prev, prev = rk);
 				}
 
 				public void remove() {

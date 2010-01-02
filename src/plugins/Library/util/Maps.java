@@ -3,10 +3,13 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import java.util.Map;
 import static plugins.Library.util.Maps.$;
 
+import java.util.Map;
+
 /**
+** Methods for maps.
+**
 ** @author infinity0
 */
 final public class Maps {

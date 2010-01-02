@@ -888,7 +888,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			**
 			** Keys added locally have their values set to null. These will be updated
 			** with the correct values via UpdateValue, when the value-getter completes
-			** its operation on the key. We must add the keys now, before the value is
+			** its operation on the key. We add the keys now, **before** the value is
 			** obtained, so that SplitNode can work out how to split the node as early
 			** as possible.
 			**

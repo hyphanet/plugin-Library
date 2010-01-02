@@ -88,29 +88,29 @@ final public class Tuples {
 	/**
 	** Creates a new {@link $1 1-tuple} from the given parameters.
 	*/
-	public static <T0> $1 $1(T0 v0) {
-		return new $1(v0);
+	public static <T0> $1<T0> $1(T0 v0) {
+		return new $1<T0>(v0);
 	}
 
 	/**
 	** Creates a new {@link $2 2-tuple} from the given parameters.
 	*/
-	public static <T0, T1> $2 $2(T0 v0, T1 v1) {
-		return new $2(v0, v1);
+	public static <T0, T1> $2<T0, T1> $2(T0 v0, T1 v1) {
+		return new $2<T0, T1>(v0, v1);
 	}
 
 	/**
 	** Creates a new {@link $3 3-tuple} from the given parameters.
 	*/
-	public static <T0, T1, T2> $3 $3(T0 v0, T1 v1, T2 v2) {
-		return new $3(v0, v1, v2);
+	public static <T0, T1, T2> $3<T0, T1, T2> $3(T0 v0, T1 v1, T2 v2) {
+		return new $3<T0, T1, T2>(v0, v1, v2);
 	}
 
 	/**
 	** Creates a new {@link $4 4-tuple} from the given parameters.
 	*/
-	public static <T0, T1, T2, T3> $4 $4(T0 v0, T1 v1, T2 v2, T3 v3) {
-		return new $4(v0, v1, v2, v3);
+	public static <T0, T1, T2, T3> $4<T0, T1, T2, T3> $4(T0 v0, T1 v1, T2 v2, T3 v3) {
+		return new $4<T0, T1, T2, T3>(v0, v1, v2, v3);
 	}
 
 }
