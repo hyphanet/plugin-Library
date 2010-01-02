@@ -556,7 +556,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 					public Iterator<K> iterator() {
 						return new Iterator<K>() {
 
-							Iterator<K> it = entries.keySet().iterator();
+							final Iterator<K> it = entries.keySet().iterator();
 							byte stage = 0;
 
 							public boolean hasNext() {
@@ -599,7 +599,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 					public Iterator<$2<K, K>> iterator() {
 						return new Iterator<$2<K, K>>() {
 
-							Iterator<K> it = entries.keySet().iterator();
+							final Iterator<K> it = entries.keySet().iterator();
 							K lastkey = lkey;
 
 							public boolean hasNext() {

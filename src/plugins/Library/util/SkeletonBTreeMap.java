@@ -589,16 +589,23 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	**
 	** Note: {@code remkey} is not implemented yet.
 	**
-	** @param putmap The entries to put into the map
+	** @param putkey The keys to insert into the map
 	** @param remkey The keys to remove from the map
 	** @throws UnsupportedOperationException if {@code remkey} is not {@code
 	**         null}
 	*/
-	public void update(SortedMap<K, V> putmap, SortedSet<K> remkey) throws TaskAbortException {
+	public void update(SortedSet<K> putkey, SortedSet<K> remkey) throws TaskAbortException {
 
 		if (remkey != null) {
 			throw new UnsupportedOperationException("SkeletonBTreeMap: update() currently only supports merge operations");
 		}
+
+		// TODO these need comparators
+
+		// TODO add a value-getter parameter
+
+		// TODO need a way of bypassing the value-getter so that we can update
+		// the values synchronously (ie. no need to retrieve network data)
 
 		// input queue for pull-scheduler
 		final PriorityBlockingQueue<PullTask<Node>> pull_queue
@@ -616,10 +623,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		= new PriorityBlockingQueue<PushTask<Node>>();
 		// FIXME error maps
 
-		// input queue for value-handler
+		// input queue for value-getter
 		final PriorityBlockingQueue<Map.Entry<K, V>> value_pending
 		= new PriorityBlockingQueue<Map.Entry<K, V>>();
-		// output queue for value-handler
+		// output queue for value-getter
 		final PriorityBlockingQueue<Map.Entry<K, V>> value_complete
 		= new PriorityBlockingQueue<Map.Entry<K, V>>();
 		// FIXME error maps
@@ -635,8 +642,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		final Map<K, SafeClosure<Map.Entry<K, V>>>
 		value_closures = new HashMap<K, SafeClosure<Map.Entry<K, V>>>();
-
-		//something to handle value_pending / value_complete
 
 		/**
 		** Deflates a node that has been split.
@@ -659,7 +664,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		/**
-		** Updates a value that has been handled.
+		** Updates a value that has been obtained.
 		**
 		** To be called after the value is popped from
 		*/
@@ -683,7 +688,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		** To be called after all its children have been taken care of.
 		*/
-		class SplitNode extends CountingSweeper implements Runnable {
+		class SplitNode extends CountingSweeper<Node> implements Runnable {
 
 			final Node node;
 			final Node parent;
@@ -706,22 +711,22 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				// TODO splicing crap, etc
 
-				// for each separator key that was moved to the parent node, deassign it
-				// from the current sweeper and reassign it to the parent sweeper.
+				// reassign appropriate keys to parent sweeper
 				SafeClosure<Map.Entry<K, V>> kvClo = new UpdateValue(parent);
 				for (K k = null;k != null;/* TODO*/) {
-					floatToSweeper(parVClo, kvClo, k);
+					reassignKeyToSweeper(k, parVClo, kvClo);
 				}
 
-				// for each split node, create a sweeper that will run when all its (k, v)
+				// for each split-node, create a sweeper that will run when all its (k, v)
 				// pairs have been popped from value_complete
 				for (Node n = null;n != null;/*TODO*/) {
 					PushTask<Node> task = new PushTask<Node>(n);
 					DeflateSplitNode vClo = new DeflateSplitNode(task);
 					kvClo = new UpdateValue(n);
 
+					// reassign appropriate keys to the split-node's sweeper
 					for (K k2 = null;k2 != null;/*TODO*/) {
-						floatToSweeper(vClo, kvClo, k2);
+						reassignKeyToSweeper(k2, vClo, kvClo);
 					}
 					vClo.close();
 
@@ -730,16 +735,26 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				}
 
 				nodeVClo.close();
-				assert(nodeVClo.size() == 0);
+				assert(nodeVClo.size() == 0 && !(nodeVClo instanceof Runnable));
 
 				// original (unsplit) node had a ticket on the parNClo sweeper, release it
 				parNClo.release(node);
 
 			}
 
-			// NOTE: if the overall co-ordinator algorithm is ever made concurrent,
-			// this section MUST be made atomic
-			private void floatToSweeper(TrackingSweeper<K> clo, SafeClosure<Map.Entry<K, V>> kvClo, K key) {
+			/**
+			** When we move a key to another node (eg. to the parent, or to a new node
+			** resulting from the split), we must deassign it from the original node's
+			** sweeper and reassign it to the sweeper for the new node.
+			**
+			** NOTE: if the overall co-ordinator algorithm is ever made concurrent,
+			** this section MUST be made atomic
+			**
+			** @param key The key
+			** @param clo The sweeper to reassign the key to
+			** @param kvClo The (new) closure to run when the value is obtained
+			*/
+			private void reassignKeyToSweeper(K key, TrackingSweeper<K> clo, SafeClosure<Map.Entry<K, V>> kvClo) {
 				clo.acquire(key);
 				nodeVClo.release(key);
 
@@ -761,22 +776,23 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		class InflateChildNodes implements SafeClosure<Node> {
 
 			final Node parent;
-			final SortedMap<K, V> map;
+			final SortedSet<K> putkey;
 			final CountingSweeper<Node> parNClo;
 			final TrackingSweeper<K> parVClo;
 
-			protected InflateChildNodes(Node p, SortedMap<K, V> m, CountingSweeper<Node> pnc, TrackingSweeper<K> pvc) {
+			protected InflateChildNodes(Node p, SortedSet<K> ki, CountingSweeper<Node> pnc, TrackingSweeper<K> pvc) {
 				parent = p;
-				map = m;
+				putkey = ki;
 				parNClo = pnc;
 				parVClo = pvc;
 			}
 
 			public void invoke(Node node) {
-				assert(compareL(node.lkey, map.firstKey()) < 0);
-				assert(compareR(map.lastKey(), node.rkey) < 0);
+				assert(compareL(node.lkey, putkey.first()) < 0);
+				assert(compareR(putkey.last(), node.rkey) < 0);
 
-				// a jobless sweeper whose only purpose is to track unhandled (k,v) callbacks
+				// a jobless sweeper whose only purpose is to track get-value operations
+				// that have still not completed by the time we get to SplitNodes
 				TrackingSweeper<K> vClo = new TrackingSweeper<K>(true);
 
 				// closure to be called when all subnodes have been handled
@@ -787,23 +803,29 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// invalidate every totalSize cache directly after we inflate it
 				node._size = -1;
 
-				// mergesort map & node
+				// each key in putkey is either added to the local entries, or delegated to
+				// the the relevant child node.
+				//
 				if (node.isLeaf()) {
-					// SortedMap.putAll(SortedMap) should be efficient
-					node.entries.putAll(map);
-
-					// handle puts to the local node
-					for (Map.Entry<K, V> en: map.entrySet()) {
-						handleLocalPut(vClo, kvClo, en.getKey(), en.getValue());
+					// add all keys into the node, since there are no children.
+					//
+					// OPTIMISE: could use a splice-merge here. for TreeMap, there is not an
+					// easy way of doing this, nor will it likely make a lot of a difference.
+					// however, f Node were to be re-implemented, this might become relevant.
+					//
+					for (K key: putkey) {
+						handleLocalPut(node, key, vClo, kvClo);
 					}
 
 				} else {
+					// only add keys that already exist locally in the node. other keys
+					// are delegated to the relevant child node.
 
-					SortedMap<K, V> submap = null;
+					SortedSet<K> subkey = null;
 					for (Node n = null;;/*TODO*/) {
 						PullTask<Node> task = new PullTask<Node>(n);
 						nClo.acquire(n);
-						inflate_closures.put(task, new InflateChildNodes(node, submap, nClo, vClo));
+						inflate_closures.put(task, new InflateChildNodes(node, subkey, nClo, vClo));
 						pull_queue.put(task);
 					}
 
@@ -813,20 +835,40 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				if (nClo.isCleared()) { nClo.run(); }
 			}
 
-			public void handleLocalPut(TrackingSweeper<K> vClo, SafeClosure<Map.Entry<K, V>> kvClo, K key, V val) {
+			/**
+			** Handle a planned local put to the node.
+			**
+			** Keys added locally have their values set to null. These will be updated
+			** with the correct values via UpdateValue, when the value-getter completes
+			** its operation on the key. We must add the keys now, before the value is
+			** obtained, so that SplitNode can work out how to split the node as early
+			** as possible.
+			**
+			** @param n The node to put the key into
+			** @param key The key
+			** @param vClo The sweeper that tracks if the key's value has been obtained
+			** @param kvClo The closure to run when the key's value has been obtained
+			*/
+			public void handleLocalPut(Node n, K key, TrackingSweeper<K> vClo, SafeClosure<Map.Entry<K, V>> kvClo) {
+				V oldval = n.entries.put(key, null);
 				vClo.acquire(key);
 				deflate_closures.put(key, vClo);
 				value_closures.put(key, kvClo);
-				value_pending.put(Maps.$(key, val));
+				value_pending.put(Maps.$(key, oldval));
 			}
 
-			public void handleLocalRemove(TrackingSweeper vClo, Node n, K key) {
+			public void handleLocalRemove(Node n, K key, TrackingSweeper vClo) {
 				throw new UnsupportedOperationException("not implemented");
 			}
 
 		}
 
 		try {
+
+			PullTask<Node> rtask = new PullTask<Node>(null);
+			rtask.data = root;
+			inflate_closures.put(rtask, new InflateChildNodes(null, putkey, null, null));
+			inflated.put(rtask);
 
 			do {
 
