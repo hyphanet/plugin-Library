@@ -479,6 +479,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	private Set<K> keys;
 	@Override public Set<K> keySet() {
 		if (keys == null) {
+			// URGENT make this implement a SortedSet.
+			// SkelBTreeMap.update() depends on this.
 			keys = new AbstractSet<K>() {
 
 				@Override public int size() { return skmap.size(); }

@@ -1249,6 +1249,25 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/**
+	** Returns the minimum number of nodes (at a single level) needed for the
+	** given number of entries.
+	*/
+	public int minNodesFor(int entries) {
+		// find the smallest k such that k * ENT_MAX + (k-1) >= n
+		// ie. k * NODE_MAX > n :: k = floor( n / NODE_MAX ) + 1
+		return entries / NODE_MAX + 1;
+	}
+
+	/**
+	** Returns the minimum number of separator keys (at a single level) needed
+	** for the given number of entries.
+	*/
+	public int minKeysFor(int entries) {
+		// 1 less than minNodesFor()
+		return entries / NODE_MAX;
+	}
+
+	/**
 	** Returns the entry at a particular (zero-based) index.
 	*/
 	public Map.Entry<K, V> getEntry(int index) {
@@ -1583,10 +1602,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			}
 
 			while (map.size() > 0) {
-				// find the smallest k: k * ENT_MAX + (k-1) >= map.size()
-				// ie. k * NODE_MAX >= map.size() + 1
-				// this is the number of nodes at this level
-				int k = (map.size() + NODE_MAX) / NODE_MAX;
+				int k = minNodesFor(map.size());
 
 				nextlnodes = new HashMap<K, Node>(k<<1);
 				nextmap = new TreeMap<K, V>();

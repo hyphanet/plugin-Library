@@ -747,14 +747,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				// TODO splitting crap, etc
 
-				// find the smallest k: k * ENT_MAX + (k-1) >= map.size()
-				// ie. k * NODE_MAX >= map.size() + 1
-				int sn = (node.nodeSize() + NODE_MAX) / NODE_MAX;
-				// allocate all entries into these k nodes, except for k-1 parents
-				//for (Integer n: Integers.allocateEvenly(map.size()-k+1, k)) {
-					// TODO
-				//}
-
+				int sk = minKeysFor(node.nodeSize());
 				// OPTIMISE if we don't need to split, then it would be better for nodeVClo
 				// to be a DeflateNode rather than a dummy sweeper, so we don't have to
 				// switch stuff for no reason.
@@ -764,8 +757,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// we release all the keys, but nodeVClo is a dummy with no use after this
 				// method returns, so this is only useful to check that we got the code
 				// right.
+				Collection<K> keys = Sorted.select((SortedSet<K>)node.entries.keySet(), sk);
+				assert(parent.lnodes.get(node.rkey) == node);
+				assert(parent.rnodes.get(node.lkey) == node);
+				parent.split(node.lkey, keys, node.rkey);
+				Iterable<Node> nodes = parent.iterNodes(node.lkey, node.rkey);
+				assert(parent.lnodes.get(node.rkey) != node);
+				assert(parent.rnodes.get(node.lkey) != node);
 
-				if (parent == null && sn > 1) {
+				if (parent == null && sk > 0) {
 					assert(parNClo == null && parVClo == null);
 					// TODO create parent, parNClo, parVClo, etc
 					// similar stuff as for InflateChildNodes but without the merging
@@ -773,13 +773,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				// reassign appropriate keys to parent sweeper
 				SafeClosure<Map.Entry<K, V>> kvClo = new UpdateValue(parent);
-				for (K k = null;k != null;/* TODO*/) {
-					reassignKeyToSweeper(k, parVClo, kvClo);
+				for (K key: keys) {
+					reassignKeyToSweeper(key, parVClo, kvClo);
 				}
 
 				// for each split-node, create a sweeper that will run when all its (k, v)
 				// pairs have been popped from value_complete
-				for (Node n = null;n != null;/*TODO*/) {
+				for (Node n: nodes) {
 					PushTask<Node> task = new PushTask<Node>(n);
 					DeflateNode vClo = new DeflateNode(task);
 					kvClo = new UpdateValue(n);
@@ -798,7 +798,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				// original (unsplit) node had a ticket on the parNClo sweeper, release it
 				parNClo.release(node);
-
 			}
 
 			/**
@@ -879,8 +878,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					// are delegated to the relevant child node.
 
 					SortedSet<K> fkey = new TreeSet<K>();
-					// SortedMap.keySet() is defined as a Set in the interface, but the JDK
-					// TreeMap implementation (since at least 1.4) does return a SortedSet.
 					Iterable<$2<K, K>> pairs = Sorted.split(putkey, (SortedSet<K>)node.entries.keySet(), fkey);
 
 					for (K key: fkey) {

@@ -212,7 +212,7 @@ final public class Sorted {
 		case LEFT: sel.add(it.next()); break;
 		}
 
-		for (Integer s : Integers.allocateEvenly(subj.size() - num, n)) {
+		for (Integer s: Integers.allocateEvenly(subj.size() - num, n)) {
 			for (int i=0; i<s; ++i) { it.next(); }
 			if (it.hasNext()) { sel.add(it.next()); }
 			else { assert(sel.size() == num && (inc == Inclusivity.NONE || inc == Inclusivity.LEFT)); }
