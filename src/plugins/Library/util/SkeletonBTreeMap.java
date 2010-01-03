@@ -757,7 +757,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// we release all the keys, but nodeVClo is a dummy with no use after this
 				// method returns, so this is only useful to check that we got the code
 				// right.
-				Collection<K> keys = Sorted.select((SortedSet<K>)node.entries.keySet(), sk);
+				Collection<K> keys = Sorted.select(Sorted.keySet(node.entries), sk);
 				assert(parent.lnodes.get(node.rkey) == node);
 				assert(parent.rnodes.get(node.lkey) == node);
 				parent.split(node.lkey, keys, node.rkey);
@@ -878,7 +878,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					// are delegated to the relevant child node.
 
 					SortedSet<K> fkey = new TreeSet<K>();
-					Iterable<$2<K, K>> pairs = Sorted.split(putkey, (SortedSet<K>)node.entries.keySet(), fkey);
+					Iterable<$2<K, K>> pairs = Sorted.split(putkey, Sorted.keySet(node.entries), fkey);
 
 					for (K key: fkey) {
 						handleLocalPut(node, key, vClo, kvClo);

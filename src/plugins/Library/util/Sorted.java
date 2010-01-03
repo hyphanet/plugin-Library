@@ -8,13 +8,20 @@ import static plugins.Library.util.func.Tuples.*;
 
 import java.util.Collections;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.AbstractSet;
 import java.util.ArrayList;
 
 /**
 ** Methods on sorted collections
+**
+** Most of the stuff here is completely fucking pointless and only because we
+** need to support Java 5. Otherwise, we can just use standard Navigable*
+** methods. :|
 **
 ** @author infinity0
 */
@@ -23,6 +30,41 @@ final public class Sorted {
 	public enum Inclusivity { NONE, LEFT, RIGHT, BOTH }
 
 	private Sorted() { }
+
+	public static class SortedKeySet<K> extends AbstractSet<K> implements SortedSet<K> {
+
+		final SortedMap<K, ?> map;
+
+		public SortedKeySet(SortedMap<K, ?> m) {
+			map = m;
+		}
+
+		@Override public int size() { return map.size(); }
+
+		@Override public Iterator<K> iterator() {
+			return map.keySet().iterator();
+		}
+
+		@Override public void clear() { map.clear(); }
+
+		@Override public boolean contains(Object o) {
+			return map.containsKey(o);
+		}
+
+		@Override public boolean remove(Object o) {
+			boolean c = contains(o);
+			map.remove(o);
+			return c;
+		}
+
+		/*@Override**/ public Comparator<? super K> comparator() { return map.comparator(); }
+		/*@Override**/ public K first() { return map.firstKey(); }
+		/*@Override**/ public K last() { return map.lastKey(); }
+		/*@Override**/ public SortedSet<K> headSet(K r) { return new SortedKeySet<K>(map.headMap(r)); }
+		/*@Override**/ public SortedSet<K> tailSet(K l) { return new SortedKeySet<K>(map.tailMap(l)); }
+		/*@Override**/ public SortedSet<K> subSet(K l, K r) { return new SortedKeySet<K>(map.subMap(l, r)); }
+
+	}
 
 	/**
 	** Returns the second element in an iterable, or {@code null} if there is
@@ -80,6 +122,18 @@ final public class Sorted {
 	public static <E> E lower(SortedSet<E> set, E el) {
 		SortedSet<E> head = set.headSet(el);
 		return (head.isEmpty())? null: head.last();
+	}
+
+	/**
+	** Returns a {@link SortedSet} view of the given {@link SortedMap}'s keys.
+	** You would think that the designers of the latter would have overridden
+	** the {@link SortedMap#keySet()} method to do this, but noooo...
+	**
+	** JDK6 remove this pointless piece of shit.
+	*/
+	public static <K> SortedSet<K> keySet(SortedMap<K, ?> map) {
+		Set<K> ks = map.keySet();
+		return (ks instanceof SortedMap)? (SortedSet<K>)ks: new SortedKeySet(map);
 	}
 
 	/**
