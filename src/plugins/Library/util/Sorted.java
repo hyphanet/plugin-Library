@@ -102,7 +102,7 @@ final public class Sorted {
 	*/
 	public static <E> Collection<$2<E, E>> split(SortedSet<E> subj, SortedSet<E> sep, SortedSet<E> foundsep, Inclusivity inc) {
 		if (!foundsep.isEmpty()) {
-			throw new IllegalArgumentException("split: Must provide an empty set to add found separators to");
+			throw new IllegalArgumentException("split(): Must provide an empty set to add found separators to");
 		}
 
 		if (subj.isEmpty()) {
@@ -177,9 +177,26 @@ final public class Sorted {
 	** @return The selected elements
 	*/
 	public static <E> Collection<E> select(SortedSet<E> subj, int num, Inclusivity inc) {
-		if (num < 0) {
+		if (num >= 2) {
+			// test most common first
+		} else if (num == 1) {
+			switch (inc) {
+			case LEFT: return Collections.singleton(subj.first());
+			case RIGHT: return Collections.singleton(subj.last());
+			case BOTH: throw new IllegalArgumentException("select(): can't have num=1 and inc=BOTH");
+			// case NONE falls through to main section
+			}
+		} else if (num == 0) {
+			if (inc == Inclusivity.NONE) {
+				return Collections.emptySet();
+			} else {
+				throw new IllegalArgumentException("select(): can't have num=0 and inc!=NONE");
+			}
+		} else { // num < 0
 			throw new IllegalArgumentException("select(): cannot select a negative number of items");
-		} else if (subj.size() < num) {
+		}
+
+		if (subj.size() < num) {
 			throw new IllegalArgumentException("select(): cannot select " + num + " elements from a set of size " + subj.size());
 		} else if (subj.size() == num) {
 			return new ArrayList<E>(subj);
