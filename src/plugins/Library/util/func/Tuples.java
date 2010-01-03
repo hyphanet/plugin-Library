@@ -42,7 +42,9 @@ final public class Tuples {
 	/**
 	** An immutable 0-tuple.
 	*/
-	public static class $0 { }
+	public static class $0 {
+		@Override public String toString() { return "()"; }
+	}
 
 	/**
 	** An immutable 1-tuple.
@@ -50,6 +52,7 @@ final public class Tuples {
 	public static class $1<T0> extends $0 {
 		final public T0 _0;
 		public $1(T0 v0) { super(); _0 = v0; }
+		@Override public String toString() { return "(" + _0 + ")"; }
 	}
 
 	/**
@@ -58,6 +61,7 @@ final public class Tuples {
 	public static class $2<T0, T1> extends $1<T0> {
 		final public T1 _1;
 		public $2(T0 v0, T1 v1) { super(v0); _1 = v1; }
+		@Override public String toString() { return "(" + _0 + ", " + _1 + ")"; }
 	}
 
 	/**
@@ -66,6 +70,7 @@ final public class Tuples {
 	public static class $3<T0, T1, T2> extends $2<T0, T1> {
 		final public T2 _2;
 		public $3(T0 v0, T1 v1, T2 v2) { super(v0, v1); _2 = v2; }
+		@Override public String toString() { return "(" + _0 + ", " + _1 + ", " + _2 + ")"; }
 	}
 
 	/**
@@ -74,6 +79,7 @@ final public class Tuples {
 	public static class $4<T0, T1, T2, T3> extends $3<T0, T1, T2> {
 		final public T3 _3;
 		public $4(T0 v0, T1 v1, T2 v2, T3 v3) { super(v0, v1, v2); _3 = v3; }
+		@Override public String toString() { return "(" + _0 + ", " + _1 + ", " + _2 + ", " + _3 + ")"; }
 	}
 
 	final public static $0 $0 = new $0();

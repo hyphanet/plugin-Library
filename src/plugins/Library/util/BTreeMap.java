@@ -469,9 +469,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		/**
 		** Attaches a child via its {@code lkey}, {@code rkey} fields.
 		**
-		** This is the same as {@link addChildNode}, except that it has {@code
-		** assert}s to check that a child with the same range is already
-		** present in the node.
+		** This is the same as {@link #addChildNode(BTreeMap.Node)}, except
+		** this has {@code assert}s to check that a child with the same range
+		** is already present in the node.
 		**
 		** @param child The child to attach
 		*/

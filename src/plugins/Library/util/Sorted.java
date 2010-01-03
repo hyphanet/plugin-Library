@@ -42,7 +42,8 @@ final public class Sorted {
 	** for {@link SortedSet}.
 	*/
 	public static <E> E ceiling(SortedSet<E> set, E el) {
-		return set.tailSet(el).first();
+		SortedSet<E> tail = set.tailSet(el);
+		return (tail.isEmpty())? null: tail.first();
 	}
 
 	/**
@@ -53,7 +54,8 @@ final public class Sorted {
 	** for {@link SortedSet}.
 	*/
 	public static <E> E floor(SortedSet<E> set, E el) {
-		return (set.contains(el))? el: set.headSet(el).last();
+		SortedSet<E> head;
+		return (set.contains(el))? el: ((head = set.headSet(el)).isEmpty())? null: head.last();
 	}
 
 	/**
@@ -65,7 +67,7 @@ final public class Sorted {
 	*/
 	public static <E> E higher(SortedSet<E> set, E el) {
 		SortedSet<E> tail = set.tailSet(el);
-		return (set.contains(el))? second(tail): tail.first();
+		return (set.contains(el))? second(tail): (tail.isEmpty())? null: tail.first();
 	}
 
 	/**
@@ -76,7 +78,8 @@ final public class Sorted {
 	** for {@link SortedSet}.
 	*/
 	public static <E> E lower(SortedSet<E> set, E el) {
-		return set.headSet(el).last();
+		SortedSet<E> head = set.headSet(el);
+		return (head.isEmpty())? null: head.last();
 	}
 
 	/**
@@ -114,6 +117,7 @@ final public class Sorted {
 			csep = floor(sep, csub); // JDK6 sep.floor(csub);
 			assert(csub != null);
 			if (csub.equals(csep)) {
+				assert(subj.contains(csep));
 				foundsep.add(csep);
 				csub = second(subj.tailSet(csep)); // JDK6 subj.higher(csep);
 			}
@@ -127,16 +131,19 @@ final public class Sorted {
 				nsub = lower(subj, nsep); // JDK6 subj.lower(nsep);
 			}
 
-			switch (inc) {
-			case NONE: res.add($2(csub, nsub)); break;
-			case LEFT: res.add($2(csep, nsub)); break;
-			case RIGHT: res.add($2(csub, nsep)); break;
-			case BOTH: res.add($2(csep, nsep)); break;
+			if (csub != null && (nsep == null || !nsep.equals(csub))) {
+			//if (csub != null && ((Comparable<E>)csub).compareTo(nsub) <= 0) {
+				assert(csub != null && ((Comparable<E>)csub).compareTo(nsub) <= 0);
+				switch (inc) {
+				case NONE: res.add($2(csub, nsub)); break;
+				case LEFT: res.add($2(csep, nsub)); break;
+				case RIGHT: res.add($2(csub, nsep)); break;
+				case BOTH: res.add($2(csep, nsep)); break;
+				}
 			}
-
 			if (nsep == null) { break; }
 
-			csub = second(sep.tailSet(nsub)); // JDK6 sep.higher(nsub);
+			csub = second(subj.tailSet(nsub)); // JDK6 subj.higher(nsub);
 		} while (csub != null);
 
 		return res;
@@ -144,7 +151,7 @@ final public class Sorted {
 
 	/**
 	** Splits the given sorted set at the given separators. The inclusivity is
-	** given as {@code RIGHT}. This means when {@link SortedSet.subSet(Object,
+	** given as {@code RIGHT}. This means when {@link SortedSet#subSet(Object,
 	** Object)} is called on each range returned, it will give the subset with
 	** the separators excluded.
 	**
