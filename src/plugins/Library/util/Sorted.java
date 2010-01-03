@@ -136,10 +136,14 @@ final public class Sorted {
 			//if (csub != null && ((Comparable<E>)csub).compareTo(nsub) <= 0) {
 				assert(csub != null && ((Comparable<E>)csub).compareTo(nsub) <= 0);
 				switch (inc) {
-				case NONE: res.add($2(csub, nsub)); break;
-				case LEFT: res.add($2(csep, nsub)); break;
-				case RIGHT: res.add($2(csub, nsep)); break;
-				case BOTH: res.add($2(csep, nsep)); break;
+				case NONE:
+					res.add($2(csub, nsub)); break;
+				case LEFT:
+					res.add($2(csep, nsub)); break;
+				case RIGHT:
+					res.add($2(csub, nsep)); break;
+				case BOTH:
+					res.add($2(csep, nsep)); break;
 				}
 			}
 			if (nsep == null) { break; }
@@ -160,6 +164,53 @@ final public class Sorted {
 	*/
 	public static <E> Collection<$2<E, E>> split(SortedSet<E> subj, SortedSet<E> sep, SortedSet<E> foundsep) {
 		return split(subj, sep, foundsep, Inclusivity.RIGHT);
+	}
+
+	/**
+	** Select {@code n} separator elements from the subject sorted set. The
+	** elements are distributed evenly amongst the set.
+	**
+	** @param subj The set to select elements from
+	** @param num Number of elements to select
+	** @param inc Which sides of the set to select. For example, if this is
+	**        {@code BOTH}, then the first and last elements will be selected.
+	** @return The selected elements
+	*/
+	public static <E> Collection<E> select(SortedSet<E> subj, int num, Inclusivity inc) {
+		if (num < 0) {
+			throw new IllegalArgumentException("select(): cannot select a negative number of items");
+		} else if (subj.size() < num) {
+			throw new IllegalArgumentException("select(): cannot select " + num + " elements from a set of size " + subj.size());
+		} else if (subj.size() == num) {
+			return new ArrayList<E>(subj);
+		}
+
+		Collection<E> sel = new ArrayList<E>(num);
+		int n = num;
+		Iterator<E> it = subj.iterator();
+
+		switch (inc) {
+		case NONE: ++n; break;
+		case BOTH: --n;
+		case LEFT: sel.add(it.next()); break;
+		}
+
+		for (Integer s : Integers.allocateEvenly(subj.size() - num, n)) {
+			for (int i=0; i<s; ++i) { it.next(); }
+			if (it.hasNext()) { sel.add(it.next()); }
+			else { assert(sel.size() == num && (inc == Inclusivity.NONE || inc == Inclusivity.LEFT)); }
+		}
+		return sel;
+	}
+
+	/**
+	** Select {@code n} separator elements from the subject sorted set. The
+	** inclusivity is given as {@code NONE}.
+	**
+	** @see #select(SortedSet, int, Inclusivity)
+	*/
+	public static <E> Collection<E> select(SortedSet<E> subj, int n) {
+		return select(subj, n, Inclusivity.NONE);
 	}
 
 }

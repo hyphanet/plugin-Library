@@ -495,7 +495,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			rnodes.put(child.lkey, child);
 		}
 
-		private Iterable<$3<K, Node, K>> _iterNodesK;
+		private transient Iterable<$3<K, Node, K>> _iterNodesK;
 		/**
 		** A view of all subnodes with their lkey and rkey, as an {@link
 		** Iterable}. Iteration occurs in '''sorted''' order.

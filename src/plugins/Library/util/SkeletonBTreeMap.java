@@ -746,7 +746,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				nodeVClo.close();
 
 				// TODO splitting crap, etc
-				// use Integers.distributeEvenly() then Node.split()
+
+				// find the smallest k: k * ENT_MAX + (k-1) >= map.size()
+				// ie. k * NODE_MAX >= map.size() + 1
+				int sn = (node.nodeSize() + NODE_MAX) / NODE_MAX;
+				// allocate all entries into these k nodes, except for k-1 parents
+				//for (Integer n: Integers.allocateEvenly(map.size()-k+1, k)) {
+					// TODO
+				//}
 
 				// OPTIMISE if we don't need to split, then it would be better for nodeVClo
 				// to be a DeflateNode rather than a dummy sweeper, so we don't have to
@@ -758,7 +765,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// method returns, so this is only useful to check that we got the code
 				// right.
 
-				if (parent == null /* and there was actually a split */) {
+				if (parent == null && sn > 1) {
 					assert(parNClo == null && parVClo == null);
 					// TODO create parent, parNClo, parVClo, etc
 					// similar stuff as for InflateChildNodes but without the merging
@@ -812,7 +819,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				assert(deflate_closures.get(key) == nodeVClo);
 				assert(((UpdateValue)value_closures.get(key)).node == node);
-
 				value_closures.put(key, kvClo);
 				deflate_closures.put(key, clo);
 			}
