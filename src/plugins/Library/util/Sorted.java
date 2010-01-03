@@ -86,7 +86,8 @@ final public class Sorted {
 	** Splits the given sorted set at the given separators.
 	**
 	** TODO currently this method assumes that the comparator of the set is
-	** consistent with equals().
+	** consistent with equals(). Use the SortedSet's comparator() instead (or
+	** "natural" ordering.
 	**
 	** JDK6 use a NavigableSet instead of a SortedSet.
 	**

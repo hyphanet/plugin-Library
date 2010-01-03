@@ -50,7 +50,7 @@ public class SortedTest extends TestCase {
 		{8,16,24,32}
 	};
 
-	public void testSplitEmpty()  {
+	public void testSplitPredefined()  {
 		SortedSet<Integer> sep = new TreeSet<Integer>(Arrays.asList(sepT));
 
 		for (int i=0; i<subjT.length; ++i) {
@@ -73,7 +73,12 @@ public class SortedTest extends TestCase {
 		}
 	}
 
-	public void testSplitPredefined() {
+	public void testSplitEmpty() {
+		//TODO
+	}
+
+	public void testSplitRandom() {
+		//TODO
 	}
 
 }

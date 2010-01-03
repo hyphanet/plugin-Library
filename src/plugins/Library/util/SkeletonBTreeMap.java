@@ -39,14 +39,17 @@ import plugins.Library.io.serial.ProgressTracker;
 import plugins.Library.util.exec.TaskCompleteException;
 import plugins.Library.util.concurrent.Scheduler;
 
-import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.SortedMap;
+import java.util.TreeSet;
 import java.util.HashMap;
 import plugins.Library.util.Maps;
+import plugins.Library.util.Sorted;
 import plugins.Library.util.event.TrackingSweeper;
 import plugins.Library.util.event.CountingSweeper;
 import plugins.Library.util.func.Closure;
 import plugins.Library.util.func.SafeClosure;
+import plugins.Library.util.func.Tuples.$2;
 
 
 /**
@@ -869,14 +872,24 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					// only add keys that already exist locally in the node. other keys
 					// are delegated to the relevant child node.
 
-					SortedSet<K> subkey = null;
-					for (Node n = null;;/*TODO*/) {
-						PullTask<Node> task = new PullTask<Node>(n);
-						nClo.acquire(n);
-						inflate_closures.put(task, new InflateChildNodes(node, subkey, nClo, vClo));
-						pull_queue.put(task);
+					SortedSet<K> fkey = new TreeSet<K>();
+					// SortedMap.keySet() is defined as a Set in the interface, but the JDK
+					// TreeMap implementation (since at least 1.4) does return a SortedSet.
+					Iterable<$2<K, K>> pairs = Sorted.split(putkey, (SortedSet<K>)node.entries.keySet(), fkey);
+
+					for (K key: fkey) {
+						handleLocalPut(node, key, vClo, kvClo);
 					}
 
+					for ($2<K, K> kp: pairs) {
+						Node n = node.lnodes.get(kp._1);
+						assert(n.isGhost());
+						PullTask<Node> task = new PullTask<Node>(n);
+
+						nClo.acquire(n);
+						inflate_closures.put(task, new InflateChildNodes(node, putkey.subSet(kp._0, kp._1), nClo, vClo));
+						pull_queue.put(task);
+					}
 				}
 
 				nClo.close();
