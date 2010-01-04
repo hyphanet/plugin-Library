@@ -6,6 +6,7 @@ package plugins.Library.util.event;
 import junit.framework.TestCase;
 
 import java.util.Iterator;
+import java.util.HashSet;
 
 /**
 ** @author infinity0
@@ -15,12 +16,13 @@ public class SweepersTest extends TestCase {
 	public static Object[] testobj = new Object[]{ new Integer(0), new Integer(1), new Integer(2) };
 
 	public void testCountingSweeper() {
-		testGenericSweeper(new CountingSweeper(false), new CountingSweeper(false));
+		testGenericSweeper(new CountingSweeper(false, true), new CountingSweeper(false, true));
 	}
 
+	@SuppressWarnings("unchecked")
 	public void testTrackingSweeper() {
-		testGenericSweeper(new TrackingSweeper(false), new TrackingSweeper(false));
-		testIterableSweeper(new TrackingSweeper(false), new TrackingSweeper(false));
+		testGenericSweeper(new TrackingSweeper(false, true, new HashSet()), new TrackingSweeper(false, true, new HashSet()));
+		testIterableSweeper(new TrackingSweeper(false, true, new HashSet()), new TrackingSweeper(false, true, new HashSet()));
 	}
 
 	public <S extends Sweeper> void testGenericSweeper(S sw1, S sw2) {
