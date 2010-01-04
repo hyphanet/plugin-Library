@@ -315,7 +315,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			} catch (RuntimeException e) {
 				throw new TaskAbortException("Could not deflate BTreeMap Node " + node.getRange(), e);
 			}
-
 		}
 
 		/**
@@ -350,7 +349,17 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	public class GhostNode extends Node {
 
+		/**
+		** Points to the parent {@link SkeletonNode}.
+		**
+		** Maintaining this field's value is a bitch, so I've tried to remove uses
+		** of this from the code. Currently, it is only used for the parent field
+		** a {@link DataFormatException}, which lets us retrieve the serialiser,
+		** progress, etc etc etc. TODO somehow find another way of doing that so
+		** we can get rid of it completely.
+		*/
 		protected SkeletonNode parent;
+
 		protected Object meta;
 
 		protected GhostNode(K lk, K rk, SkeletonNode p, int s) {
@@ -500,7 +509,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final ConcurrentMap<PullTask<SkeletonNode>, TaskAbortException> error
 		= new ConcurrentHashMap<PullTask<SkeletonNode>, TaskAbortException>();
 
-		Map<PullTask<SkeletonNode>, SkeletonNode> parents
+		final Map<PullTask<SkeletonNode>, SkeletonNode> parents
 		= new HashMap<PullTask<SkeletonNode>, SkeletonNode>();
 
 		Map<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ?>> ids = null;
@@ -547,7 +556,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// THREAD progress tracker should prevent this from being run twice for the
 				// same node, but what if we didn't use a progress tracker? hmm...
 				while (!inflated.isEmpty()) {
-					final PullTask<SkeletonNode> task = inflated.take();
+					PullTask<SkeletonNode> task = inflated.take();
 					//++DEBUG_popped;
 					SkeletonNode parent = parents.remove(task);
 					SkeletonNode node = postPullTask(task, parent);
@@ -678,41 +687,41 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// can update the values synchronously (ie. when we don't need to retrieve
 		// network data).
 
-		// input queue for pull-scheduler
 		final PriorityBlockingQueue<PullTask<SkeletonNode>> pull_queue
 		= new PriorityBlockingQueue<PullTask<SkeletonNode>>();
-		// output queue for pull-scheduler
 		final PriorityBlockingQueue<PullTask<SkeletonNode>> inflated
 		= new PriorityBlockingQueue<PullTask<SkeletonNode>>();
 		// FIXME error maps
 
-		// input queue for push-scheduler
 		final PriorityBlockingQueue<PushTask<SkeletonNode>> push_queue
 		= new PriorityBlockingQueue<PushTask<SkeletonNode>>();
-		// output queue for push-scheduler
 		final PriorityBlockingQueue<PushTask<SkeletonNode>> deflated
 		= new PriorityBlockingQueue<PushTask<SkeletonNode>>();
 		// FIXME error maps
 
-		// input queue for value-getter
 		final PriorityBlockingQueue<Map.Entry<K, V>> value_pending
 		= new PriorityBlockingQueue<Map.Entry<K, V>>();
-		// output queue for value-getter
 		final PriorityBlockingQueue<Map.Entry<K, V>> value_complete
 		= new PriorityBlockingQueue<Map.Entry<K, V>>();
 		// FIXME error maps
 
-		final Map<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>
-		inflate_closures = new HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>();
+		// These closure maps must be declared final and located before the
+		// following local class definitions, which reference them.
 
-		final Map<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>>
-		split_closures = new HashMap<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>>();
+		final Map<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>> inflate_closures
+		= new HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>();
 
-		final Map<K, TrackingSweeper<K, SortedSet<K>>>
-		deflate_closures = new HashMap<K, TrackingSweeper<K, SortedSet<K>>>();
+		final Map<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>> split_closures
+		= new HashMap<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>>();
 
-		final Map<K, SafeClosure<Map.Entry<K, V>>>
-		value_closures = new HashMap<K, SafeClosure<Map.Entry<K, V>>>();
+		final Map<K, TrackingSweeper<K, SortedSet<K>>> deflate_closures
+		= new HashMap<K, TrackingSweeper<K, SortedSet<K>>>();
+
+		final Map<K, SafeClosure<Map.Entry<K, V>>> value_closures
+		= new HashMap<K, SafeClosure<Map.Entry<K, V>>>();
+
+		// Dummy constant for SplitNode
+		final SortedMap<K, V> EMPTY_SORTEDMAP = new TreeMap<K, V>();
 
 		/**
 		** Deflates a node whose values have all been obtained.
@@ -754,8 +763,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 
 		}
-
-		final SortedMap<K, V> EMPTY_SORTEDMAP = new TreeMap<K, V>();
 
 		/**
 		** Splits a node.
