@@ -133,7 +133,7 @@ final public class Sorted {
 	*/
 	public static <K> SortedSet<K> keySet(SortedMap<K, ?> map) {
 		Set<K> ks = map.keySet();
-		return (ks instanceof SortedMap)? (SortedSet<K>)ks: new SortedKeySet(map);
+		return (ks instanceof SortedMap)? (SortedSet<K>)ks: new SortedKeySet<K>(map);
 	}
 
 	/**

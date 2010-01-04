@@ -472,13 +472,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		if (nsrl instanceof Serialiser.Trackable) {
 			ids = new LinkedHashMap<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ?>>();
-			ntracker = ((Serialiser.Trackable)nsrl).getTracker();
+			ntracker = ((Serialiser.Trackable<SkeletonNode>)nsrl).getTracker();
 			// PROGRESS make a ProgressTracker track this instead of "pr_inf".
 			pr_inf.setSubProgress(ProgressTracker.makePullProgressIterable(ids));
 			pr_inf.setSubject("Pulling all entries in B-tree");
 		}
 
-		Scheduler pool = ((ScheduledSerialiser)nsrl).pullSchedule(tasks, inflated, error);
+		Scheduler pool = ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(tasks, inflated, error);
 		//System.out.println("Using scheduler");
 		//int DEBUG_pushed = 0, DEBUG_popped = 0;
 
@@ -682,7 +682,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		** To be called after everything else on it has been taken care of.
 		*/
-		class DeflateNode extends TrackingSweeper implements Runnable {
+		class DeflateNode extends TrackingSweeper<K> implements Runnable {
 
 			final PushTask<Node> task;
 
@@ -852,7 +852,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// closure to be called when all subnodes have been handled
 				SplitNode nClo = new SplitNode(node, parent, vClo, parNClo, parVClo);
 
-				SafeClosure kvClo = new UpdateValue(node);
+				SafeClosure<Map.Entry<K, V>> kvClo = new UpdateValue(node);
 
 				// invalidate every totalSize cache directly after we inflate it
 				node._size = -1;
@@ -1105,7 +1105,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("node_min", tree.NODE_MIN);
 			map.put("size", tree.size);
-			Map<String, Object> rmap = tree.makeNodeTranslator(ktr, mtr).app((SkeletonBTreeMap.SkeletonNode)(SkeletonBTreeMap.Node)tree.root);
+			Map<String, Object> rmap = tree.makeNodeTranslator(ktr, mtr).app((SkeletonBTreeMap.SkeletonNode)tree.root);
 			map.put("entries", rmap.get("entries"));
 			if (!tree.root.isLeaf()) {
 				map.put("subnodes", rmap.get("subnodes"));
