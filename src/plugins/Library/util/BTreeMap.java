@@ -349,7 +349,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** @param ent The entries to add
 		** @param nodes The subnodes to add
 		*/
-		protected void addAll(SortedMap<K, V> ent, Iterable<Node> nodes) {
+		protected void addAll(SortedMap<K, V> ent, Iterable<? extends Node> nodes) {
 			assert(ent.comparator() == comparator());
 			assert(compareL(lkey, ent.firstKey()) < 0);
 			assert(compareR(ent.lastKey(), rkey) < 0);

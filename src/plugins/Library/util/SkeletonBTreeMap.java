@@ -334,16 +334,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(node);
 			try {
 				nsrl.pull(task);
-
-				if (!compare0(node.lkey, task.data.lkey) || !compare0(node.rkey, task.data.rkey)) {
-					throw new DataFormatException("BTreeMap Node lkey/rkey does not match", null, task.data);
-				}
-
-				attachSkeleton(task.data);
-
-				if (auto) {
-					task.data.inflate();
-				}
+				postPullTask(task);
+				if (auto) { task.data.inflate(); }
 
 			} catch (TaskCompleteException e) {
 				assert(!node.isGhost());
@@ -416,6 +408,38 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		super(node_min);
 	}
 
+	/**
+	** Post-processes a {@link PullTask} and returns the {@link SkeletonNode}
+	** pulled.
+	**
+	** The tree will be in a consistent state after the operation, if it was
+	** in a consistent state before it.
+	*/
+	protected SkeletonNode postPullTask(PullTask<SkeletonNode> task) throws DataFormatException {
+		SkeletonNode node = task.data;
+		GhostNode ghost = (GhostNode)task.meta;
+		if (!compare0(ghost.lkey, node.lkey) || !compare0(ghost.rkey, node.rkey)) {
+			throw new DataFormatException("BTreeMap Node lkey/rkey does not match", null, node);
+		}
+
+		ghost.parent.attachSkeleton(node);
+		return node;
+	}
+
+	/**
+	** Post-processes a {@link PushTask} and returns the {@link GhostNode}
+	** pushed.
+	**
+	** The tree will be in a consistent state after the operation, if it was
+	** in a consistent state before it.
+	*/
+	protected GhostNode postPushTask(PushTask<SkeletonNode> task, SkeletonNode parent) {
+		// TODO getting rid of the "parent" parameter would be so much cleaner...
+		GhostNode ghost = (GhostNode)task.meta;
+		parent.attachGhost(ghost);
+		return ghost;
+	}
+
 	@Override protected Node newNode(K lk, K rk, boolean lf) {
 		return new SkeletonNode(lk, rk, lf);
 	}
@@ -461,16 +485,20 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return;
 		}
 
-		Queue<SkeletonNode> nodequeue = new PriorityQueue<SkeletonNode>();
-		BlockingQueue<PullTask<SkeletonNode>> tasks = new LinkedBlockingQueue<PullTask<SkeletonNode>>(0x10);
-		BlockingQueue<PullTask<SkeletonNode>> inflated = new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10,
+		final Queue<SkeletonNode> nodequeue = new PriorityQueue<SkeletonNode>();
+
+		final BlockingQueue<PullTask<SkeletonNode>> tasks
+		= new LinkedBlockingQueue<PullTask<SkeletonNode>>(0x10);
+		final BlockingQueue<PullTask<SkeletonNode>> inflated
+		= new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10,
 			new Comparator<PullTask<SkeletonNode>>() {
 				/*@Override**/ public int compare(PullTask<SkeletonNode> t1, PullTask<SkeletonNode> t2) {
 					return t1.data.compareTo(t2.data);
 				}
 			}
 		);
-		ConcurrentMap<PullTask<SkeletonNode>, TaskAbortException> error = new ConcurrentHashMap<PullTask<SkeletonNode>, TaskAbortException>();
+		final ConcurrentMap<PullTask<SkeletonNode>, TaskAbortException> error
+		= new ConcurrentHashMap<PullTask<SkeletonNode>, TaskAbortException>();
 
 		Map<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ?>> ids = null;
 		ProgressTracker<SkeletonNode, ?> ntracker = null;;
@@ -512,24 +540,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				}
 
 				// handle the inflated tasks and attach them to the tree.
+				// THREAD progress tracker should prevent this from being run twice for the
+				// same node, but what if we didn't use a progress tracker? hmm...
 				while (!inflated.isEmpty()) {
-					// THREAD progress tracker should prevent this from being run twice for the
-					// same node, but what if we didn't use a progress tracker? hmm...
-
-					// try until one pops, or we are done
-					final PullTask<SkeletonNode> task = inflated.poll(1, TimeUnit.SECONDS);
-					if (task == null) { continue; }
+					final PullTask<SkeletonNode> task = inflated.take();
 					//++DEBUG_popped;
-
-					SkeletonNode node = task.data;
-					GhostNode ghost = (GhostNode)task.meta;
-					SkeletonNode parent = ghost.parent;
-
-					// attach task data into the parent
-					if (!compare0(ghost.lkey, node.lkey) || !compare0(ghost.rkey, node.rkey)) {
-						throw new DataFormatException("BTreeMap Node lkey/rkey does not match", null, task.data);
-					}
-					parent.attachSkeleton(node);
+					SkeletonNode node = postPullTask(task);
 					nodequeue.add(node);
 				}
 
@@ -599,6 +615,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** the advantages (concurrency, etc) of one-pass algorithms disappear, and
 	** the disadvantages (unneeded merges/splits) remain.
 	**
+	** Unlike the (ideal design goal of the) inflate/deflate methods, this is
+	** designed to support accept only one concurrent update. It is up to the
+	** caller to ensure that this holds. TODO maybe make this synchronized?
+	**
+	** TODO currently, this method assumes that the root.isBare().
+	**
 	** Note: {@code remkey} is not implemented yet.
 	**
 	** @param putkey The keys to insert into the map
@@ -651,19 +673,19 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// network data).
 
 		// input queue for pull-scheduler
-		final PriorityBlockingQueue<PullTask<Node>> pull_queue
-		= new PriorityBlockingQueue<PullTask<Node>>();
+		final PriorityBlockingQueue<PullTask<SkeletonNode>> pull_queue
+		= new PriorityBlockingQueue<PullTask<SkeletonNode>>();
 		// output queue for pull-scheduler
-		final PriorityBlockingQueue<PullTask<Node>> inflated
-		= new PriorityBlockingQueue<PullTask<Node>>();
+		final PriorityBlockingQueue<PullTask<SkeletonNode>> inflated
+		= new PriorityBlockingQueue<PullTask<SkeletonNode>>();
 		// FIXME error maps
 
 		// input queue for push-scheduler
-		final PriorityBlockingQueue<PushTask<Node>> push_queue
-		= new PriorityBlockingQueue<PushTask<Node>>();
+		final PriorityBlockingQueue<PushTask<SkeletonNode>> push_queue
+		= new PriorityBlockingQueue<PushTask<SkeletonNode>>();
 		// output queue for push-scheduler
-		final PriorityBlockingQueue<PushTask<Node>> deflated
-		= new PriorityBlockingQueue<PushTask<Node>>();
+		final PriorityBlockingQueue<PushTask<SkeletonNode>> deflated
+		= new PriorityBlockingQueue<PushTask<SkeletonNode>>();
 		// FIXME error maps
 
 		// input queue for value-getter
@@ -674,11 +696,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		= new PriorityBlockingQueue<Map.Entry<K, V>>();
 		// FIXME error maps
 
-		final Map<PullTask<Node>, SafeClosure<Node>>
-		inflate_closures = new HashMap<PullTask<Node>, SafeClosure<Node>>();
+		final Map<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>
+		inflate_closures = new HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>();
 
-		final Map<PushTask<Node>, CountingSweeper<Node>>
-		split_closures = new HashMap<PushTask<Node>, CountingSweeper<Node>>();
+		final Map<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>>
+		split_closures = new HashMap<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>>();
 
 		final Map<K, TrackingSweeper<K, SortedSet<K>>>
 		deflate_closures = new HashMap<K, TrackingSweeper<K, SortedSet<K>>>();
@@ -693,14 +715,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		*/
 		class DeflateNode extends TrackingSweeper<K, SortedSet<K>> implements Runnable {
 
-			final PushTask<Node> task;
+			final PushTask<SkeletonNode> task;
 
-			protected DeflateNode(PushTask<Node> t) {
+			protected DeflateNode(PushTask<SkeletonNode> t) {
 				super(true, true, new TreeSet<K>(), null);
 				task = t;
 			}
 
 			public void run() {
+				// URGENT FIXME do not deflate the root!
 				push_queue.put(task);
 			}
 
@@ -713,9 +736,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		*/
 		class UpdateValue implements SafeClosure<Map.Entry<K, V>> {
 
-			final Node node;
+			final SkeletonNode node;
 
-			public UpdateValue(Node n) {
+			public UpdateValue(SkeletonNode n) {
 				node = n;
 			}
 
@@ -733,15 +756,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		** To be called after all its children have been taken care of.
 		*/
-		class SplitNode extends CountingSweeper<Node> implements Runnable {
+		class SplitNode extends CountingSweeper<SkeletonNode> implements Runnable {
 
-			final Node node;
-			/*final*/ Node parent;
+			final SkeletonNode node;
+			/*final*/ SkeletonNode parent;
 			final DeflateNode nodeVClo;
 			/*final*/ SplitNode parNClo;
 			/*final*/ DeflateNode parVClo;
 
-			protected SplitNode(Node n, Node p, DeflateNode vc, SplitNode pnc, DeflateNode pvc) {
+			protected SplitNode(SkeletonNode n, SkeletonNode p, DeflateNode vc, SplitNode pnc, DeflateNode pvc) {
 				super(true, false);
 				node = n;
 				parent = p;
@@ -768,9 +791,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					assert(parNClo == null && parVClo == null);
 					// create a new parent, parNClo, parVClo
 					// similar stuff as for InflateChildNodes but no merging
-					parent = newNode(null, null, false);
+					parent = new SkeletonNode(null, null, false);
 					parent.addAll(EMPTY_SORTEDMAP, Collections.singleton(node));
-					parVClo = new DeflateNode(new PushTask<Node>(parent));
+					parVClo = new DeflateNode(new PushTask<SkeletonNode>(parent));
 					parNClo = new SplitNode(parent, null, parVClo, null, null);
 					parNClo.acquire(node);
 					parNClo.close();
@@ -794,8 +817,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				// for each split-node, create a sweeper that will run when all its (k,v)
 				// pairs have been popped from value_complete
-				for (Node n: nodes) {
-					PushTask<Node> task = new PushTask<Node>(n);
+				for (Node nn: nodes) {
+					SkeletonNode n = (SkeletonNode)nn;
+					PushTask<SkeletonNode> task = new PushTask<SkeletonNode>(n);
 					DeflateNode vClo = new DeflateNode(task);
 
 					// reassign appropriate keys to the split-node's sweeper
@@ -848,14 +872,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		** To be called after a node is itself inflated.
 		*/
-		class InflateChildNodes implements SafeClosure<Node> {
+		class InflateChildNodes implements SafeClosure<SkeletonNode> {
 
-			final Node parent;
+			final SkeletonNode parent;
 			final SortedSet<K> putkey;
 			final SplitNode parNClo;
 			final DeflateNode parVClo;
 
-			protected InflateChildNodes(Node p, SortedSet<K> ki, SplitNode pnc, DeflateNode pvc) {
+			protected InflateChildNodes(SkeletonNode p, SortedSet<K> ki, SplitNode pnc, DeflateNode pvc) {
 				parent = p;
 				putkey = ki;
 				parNClo = pnc;
@@ -866,12 +890,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				this(null, ki, null, null);
 			}
 
-			public void invoke(Node node) {
+			public void invoke(SkeletonNode node) {
 				assert(compareL(node.lkey, putkey.first()) < 0);
 				assert(compareR(putkey.last(), node.rkey) < 0);
 
 				// closure to be called when all local values have been obtained
-				DeflateNode vClo = new DeflateNode(new PushTask<Node>(node));
+				DeflateNode vClo = new DeflateNode(new PushTask<SkeletonNode>(node));
 
 				// closure to be called when all subnodes have been handled
 				SplitNode nClo = new SplitNode(node, parent, vClo, parNClo, parVClo);
@@ -888,7 +912,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					//
 					// OPTIMISE: could use a splice-merge here. for TreeMap, there is not an
 					// easy way of doing this, nor will it likely make a lot of a difference.
-					// however, if we re-implement Node, this might become relevant.
+					// however, if we re-implement SkeletonNode, this might become relevant.
 					//
 					for (K key: putkey) {
 						handleLocalPut(node, key, vClo, kvClo);
@@ -906,9 +930,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					}
 
 					for ($2<K, K> kp: pairs) {
-						Node n = node.lnodes.get(kp._1);
+						SkeletonNode n = (SkeletonNode)node.lnodes.get(kp._1);
 						assert(n.isGhost());
-						PullTask<Node> task = new PullTask<Node>(n);
+						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(n);
 
 						nClo.acquire(n);
 						inflate_closures.put(task, new InflateChildNodes(node, putkey.subSet(kp._0, kp._1), nClo, vClo));
@@ -934,7 +958,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			** @param vClo The sweeper that tracks if the key's value has been obtained
 			** @param kvClo The closure to run when the key's value has been obtained
 			*/
-			private void handleLocalPut(Node n, K key, TrackingSweeper<K, SortedSet<K>> vClo, SafeClosure<Map.Entry<K, V>> kvClo) {
+			private void handleLocalPut(SkeletonNode n, K key, TrackingSweeper<K, SortedSet<K>> vClo, SafeClosure<Map.Entry<K, V>> kvClo) {
 				V oldval = n.entries.put(key, null);
 				vClo.acquire(key);
 				deflate_closures.put(key, vClo);
@@ -942,7 +966,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				value_pending.put(Maps.$(key, oldval));
 			}
 
-			private void handleLocalRemove(Node n, K key, TrackingSweeper<K, SortedSet<K>> vClo) {
+			private void handleLocalRemove(SkeletonNode n, K key, TrackingSweeper<K, SortedSet<K>> vClo) {
 				throw new UnsupportedOperationException("not implemented");
 			}
 
@@ -950,8 +974,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		try {
 
-			PullTask<Node> rtask = new PullTask<Node>(null);
-			rtask.data = root;
+			PullTask<SkeletonNode> rtask = new PullTask<SkeletonNode>(null);
+			rtask.data = (SkeletonNode)root;
 			inflate_closures.put(rtask, new InflateChildNodes(putkey));
 			inflated.put(rtask);
 
@@ -961,16 +985,17 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			do {
 
 				while (!inflated.isEmpty()) {
-					PullTask<Node> task = inflated.take();
+					PullTask<SkeletonNode> task = inflated.take();
+					SkeletonNode node = postPullTask(task);
 
-					inflate_closures.remove(task).invoke(task.data);
+					inflate_closures.remove(task).invoke(node);
 				}
 
 				while (!deflated.isEmpty()) {
-					PushTask<Node> task = deflated.take();
+					PushTask<SkeletonNode> task = deflated.take();
+					CountingSweeper<SkeletonNode> sw = split_closures.remove(task);
+					postPushTask(task, ((SplitNode)sw).parent);
 
-					CountingSweeper<Node> sw = split_closures.remove(task);
-					assert(sw instanceof Runnable);
 					sw.release(task.data);
 					if (sw.isCleared()) {
 						((Runnable)sw).run();
@@ -980,12 +1005,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				while (!value_complete.isEmpty()) {
 					Map.Entry<K, V> en = value_complete.take();
 					K k = en.getKey();
-
-					SafeClosure<Map.Entry<K, V>> updv = value_closures.remove(k);
-					updv.invoke(en);
-
+					value_closures.remove(k).invoke(en);
 					TrackingSweeper<K, SortedSet<K>> sw = deflate_closures.remove(k);
-					assert(sw instanceof Runnable);
+
 					sw.release(k);
 					if (sw.isCleared()) {
 						((Runnable)sw).run();
@@ -1004,6 +1026,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				!value_closures.isEmpty()
 			);
 
+		} catch (DataFormatException e) {
+			throw new TaskAbortException("Bad data format", e);
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("interrupted", e);
 		}
