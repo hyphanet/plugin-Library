@@ -3,8 +3,12 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util.event;
 
-import java.util.IdentityHashMap;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.SortedSet;
 
 /**
 ** A {@link Sweeper} which uses {@link IdentityHashMap} to keep track of the
@@ -13,56 +17,88 @@ import java.util.Iterator;
 **
 ** @author infinity0
 */
-public class TrackingSweeper<T> extends AbstractSweeper<T> implements Iterable<T> {
+public class TrackingSweeper<T, C extends Collection<T>> extends AbstractSweeper<T> implements Iterable<T> {
 
-	protected IdentityHashMap<T, Boolean> objmap;
+	final protected C objs;
+	final protected C objs_i;
 
 	/**
 	** Construct a new sweeper.
 	**
-	** @param autostart Whether to construct the sweeper already open.
-	** @param expectedMaxSize The expected maximum number of objmap held at
-	**        any one time.
+	** @param autostart Whether to construct the sweeper already open
+	** @param coll A {@link Collection} to hold the items in
+	** @param coll_immute An immutable view of the same collection. If only
+	**        trusted code is going to access the sweeper, then using {@code
+	**        coll} would be beneficial performance-wise.
 	*/
-	public TrackingSweeper(boolean autostart, int expectedMaxSize) {
+	public TrackingSweeper(boolean autostart, C coll, C coll_immute) {
 		super(autostart);
-		objmap = new IdentityHashMap<T, Boolean>(expectedMaxSize);
+		if (!coll.isEmpty()) {
+			throw new IllegalArgumentException("TrackingSweeper: cannot use a non-empty collection");
+		}
+		objs = coll;
+		objs_i = coll_immute;
 	}
 
 	/**
-	** Construct a new sweeper.
+	** Construct a new sweeper, automatically inferring an immutable view using
+	** {@link #inferImmutable(Object)}
 	**
-	** @param autostart Whether to construct the sweeper already open.
+	** @param autostart Whether to construct the sweeper already open
+	** @param coll A {@link Collection} to hold the items in
 	*/
-	public TrackingSweeper(boolean autostart) {
-		super(autostart);
-		objmap = new IdentityHashMap<T, Boolean>();
+	public TrackingSweeper(boolean autostart, C coll) {
+		this(autostart, coll, inferImmutable(coll));
+	}
+
+	/**
+	** Attempts to infer an immutable view of the given collection, using the
+	** available static creators given in {@link Collections}.
+	**
+	** Note that this method will always return an immutable {@link Collection}
+	** if the input is not a {@link SortedSet}, {@link Set}, or {@link List};
+	** this may or may not be what you want.
+	*/
+	public static <T, C extends Collection<T>> C inferImmutable(C coll) {
+		if (coll instanceof SortedSet) {
+			return (C)Collections.unmodifiableSortedSet((SortedSet<T>)coll);
+		} else if (coll instanceof Set) {
+			return (C)Collections.unmodifiableSet((Set<T>)coll);
+		} else if (coll instanceof List) {
+			return (C)Collections.unmodifiableList((List<T>)coll);
+		} else {
+			return (C)Collections.unmodifiableCollection(coll);
+		}
+	}
+
+	public C current() {
+		return objs_i;
 	}
 
 	/**
 	** {@inheritDoc}
 	*/
 	@Override protected boolean add(T object) {
-		return objmap.put(object, Boolean.TRUE) == null;
+		return objs.add(object);
 	}
 
 	/**
 	** {@inheritDoc}
 	*/
 	@Override protected boolean remove(T object) {
-		return objmap.remove(object) == null;
+		return objs.remove(object);
 	}
 
 	/**
 	** {@inheritDoc}
 	*/
 	/*@Override**/ public int size() {
-		return objmap.size();
+		return objs.size();
 	}
 
 	/*@Override**/ public Iterator<T> iterator() {
 		return new Iterator<T>() {
-			final Iterator<T> it = objmap.keySet().iterator();
+			final Iterator<T> it = objs.iterator();
 			/*@Override**/ public boolean hasNext() { return it.hasNext(); }
 			/*@Override**/ public T next() { return it.next(); }
 			/*@Override**/ public void remove() { releaseFrom(it); }
