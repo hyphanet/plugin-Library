@@ -301,8 +301,11 @@ implements IterableSerialiser<T>,
 		}
 
 		/*@Override**/ public boolean isActive() {
-			// NOTE: this method is pointless when in serial mode
-			// URGENT verify this
+			// NOTE: this method is pointless when in serial mode FIXME verify this
+			//
+			// FIXME this will return false for 0/0, ie. after activation but before
+			// receiving any tasks. In other words, DO NOT USE YET, or you may get
+			// nasty race conditions.
 			return exec.getTaskCount() > exec.getCompletedTaskCount();
 		}
 

@@ -480,6 +480,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	// metadata is (lkey, rkey), or something..(PROGRESS)
 	BaseCompositeProgress pr_inf = new BaseCompositeProgress();
 	public BaseCompositeProgress getProgressInflate() { return pr_inf; } // REMOVE ME
+	/**
+	** Parallel bulk-inflate. FIXME not yet thread safe, but ideally it should
+	** be. See source for details.
+	*/
 	/*@Override**/ public void inflate() throws TaskAbortException {
 
 		// TODO adapt the algorithm to track partial loads of submaps (SUBMAP)
@@ -585,9 +589,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				Thread.sleep(1000);
 
-			// nodequeue is empty, but tasks may have inflated in the meantime
-			// URGENT there is almost definitely a race condition here... see BIndexTest.fullInflate() for details
-			} while (pool.isActive() || !tasks.isEmpty() || !inflated.isEmpty() || !error.isEmpty());
+			} while (
+				!inflated.isEmpty() ||
+				!error.isEmpty() ||
+				!parents.isEmpty()
+			);
 
 			pr_inf.setEstimate(ProgressParts.TOTAL_FINALIZED);
 
@@ -1032,8 +1038,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				!value_complete.isEmpty() ||
 				!inflate_closures.isEmpty() ||
 				!deflate_closures.isEmpty() ||
-				!split_closures.isEmpty() ||
-				!value_closures.isEmpty()
+				!value_closures.isEmpty() ||
+				!split_closures.isEmpty()
 			);
 
 		} catch (DataFormatException e) {
