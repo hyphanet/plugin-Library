@@ -221,6 +221,7 @@ implements IterableSerialiser<T>,
 			in = i;
 			out = o;
 			err = e;
+			// OPT HIGH make this re-use an existing executor. no point creating a new one for each :/
 			// this is the same as Executors.newFixedThreadPool(m), except that that has 0 timeout
 			exec = new ThreadPoolExecutor(
 				m, m, 1, TimeUnit.SECONDS,

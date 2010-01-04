@@ -135,6 +135,24 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		((SkeletonNode)root).setSerialiser();
 	}
 
+	final public Comparator<PullTask<SkeletonNode>> CMP_PULL = new Comparator<PullTask<SkeletonNode>>() {
+		/*@Override**/ public int compare(PullTask<SkeletonNode> t1, PullTask<SkeletonNode> t2) {
+			return ((GhostNode)t1.meta).compareTo((GhostNode)t2.meta);
+		}
+	};
+
+	final public Comparator<PushTask<SkeletonNode>> CMP_PUSH = new Comparator<PushTask<SkeletonNode>>() {
+		/*@Override**/ public int compare(PushTask<SkeletonNode> t1, PushTask<SkeletonNode> t2) {
+			return t1.data.compareTo(t2.data);
+		}
+	};
+
+	final public Comparator<Map.Entry<K, V>> CMP_ENTRY = new Comparator<Map.Entry<K, V>>() {
+		/*@Override**/ public int compare(Map.Entry<K, V> t1, Map.Entry<K, V> t2) {
+			return SkeletonBTreeMap.this.compare(t1.getKey(), t2.getKey());
+		}
+	};
+
 	public class SkeletonNode extends Node implements Skeleton<K, IterableSerialiser<SkeletonNode>> {
 
 		protected int ghosts = 0;
@@ -500,17 +518,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		final Queue<SkeletonNode> nodequeue = new PriorityQueue<SkeletonNode>();
 
-		final BlockingQueue<PullTask<SkeletonNode>> tasks
+		final PriorityBlockingQueue<PullTask<SkeletonNode>> pull_queue
+		= new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL);
+		final LinkedBlockingQueue<PullTask<SkeletonNode>> inflated
 		= new LinkedBlockingQueue<PullTask<SkeletonNode>>(0x10);
-		final BlockingQueue<PullTask<SkeletonNode>> inflated
-		= new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10,
-			new Comparator<PullTask<SkeletonNode>>() {
-				/*@Override**/ public int compare(PullTask<SkeletonNode> t1, PullTask<SkeletonNode> t2) {
-					return t1.data.compareTo(t2.data);
-				}
-			}
-		);
-		final ConcurrentMap<PullTask<SkeletonNode>, TaskAbortException> error
+		final ConcurrentHashMap<PullTask<SkeletonNode>, TaskAbortException> error
 		= new ConcurrentHashMap<PullTask<SkeletonNode>, TaskAbortException>();
 
 		final Map<PullTask<SkeletonNode>, SkeletonNode> parents
@@ -527,7 +539,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			pr_inf.setSubject("Pulling all entries in B-tree");
 		}
 
-		Scheduler pool = ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(tasks, inflated, error);
+		Scheduler pool = ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(pull_queue, inflated, error);
 		//System.out.println("Using scheduler");
 		//int DEBUG_pushed = 0, DEBUG_popped = 0;
 
@@ -582,7 +594,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>((GhostNode)next);
 						parents.put(task, node);
 						if (ids != null) { ids.put(task, ntracker); }
-						tasks.put(task);
+						pull_queue.put(task);
 						//++DEBUG_pushed;
 					}
 				}
@@ -685,45 +697,50 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		*/
 
-		// TODO these queues need proper comparators. lowest key first.
-
 		// TODO add a value-getter parameter
-
-		// TODO URGENT OPTIMISE need a way of bypassing the value-getter so that we
+		// URGENT OPTIMISE need a way of bypassing the value-getter so that we
 		// can update the values synchronously (ie. when we don't need to retrieve
 		// network data).
 
+		// OPT LOW it is more important for the input queues to be priority-based,
+		// since they will be drained much more slowly (network) than the output
+		// queues. so there might be a slight performance gain in having *flated
+		// and value_complete as LinkedBlockingQueues instead.
+
 		final PriorityBlockingQueue<PullTask<SkeletonNode>> pull_queue
-		= new PriorityBlockingQueue<PullTask<SkeletonNode>>();
+		= new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL);
 		final PriorityBlockingQueue<PullTask<SkeletonNode>> inflated
-		= new PriorityBlockingQueue<PullTask<SkeletonNode>>();
-		// FIXME error maps
+		= new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL);
+		// FIX NOW error maps
+		Scheduler exec_pull = ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(pull_queue, inflated, null);
 
 		final PriorityBlockingQueue<PushTask<SkeletonNode>> push_queue
-		= new PriorityBlockingQueue<PushTask<SkeletonNode>>();
+		= new PriorityBlockingQueue<PushTask<SkeletonNode>>(0x10, CMP_PUSH);
 		final PriorityBlockingQueue<PushTask<SkeletonNode>> deflated
-		= new PriorityBlockingQueue<PushTask<SkeletonNode>>();
-		// FIXME error maps
+		= new PriorityBlockingQueue<PushTask<SkeletonNode>>(0x10, CMP_PUSH);
+		// FIX NOW error maps
+		Scheduler exec_push = ((ScheduledSerialiser<SkeletonNode>)nsrl).pushSchedule(push_queue, deflated, null);
 
 		final PriorityBlockingQueue<Map.Entry<K, V>> value_pending
-		= new PriorityBlockingQueue<Map.Entry<K, V>>();
+		= new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY);
 		final PriorityBlockingQueue<Map.Entry<K, V>> value_complete
-		= new PriorityBlockingQueue<Map.Entry<K, V>>();
-		// FIXME error maps
+		= new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY);
+		// FIX NOW error maps
+		// TODO NOW Scheduler for this
 
-		// These closure maps must be declared final and located before the
-		// following local class definitions, which reference them.
+		// The following closure maps are referenced by the proceeding local
+		// classes, and so must be declared final and located before them.
 
-		final Map<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>> inflate_closures
+		final HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>> inflate_closures
 		= new HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>();
 
-		final Map<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>> split_closures
+		final HashMap<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>> split_closures
 		= new HashMap<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>>();
 
-		final Map<K, TrackingSweeper<K, SortedSet<K>>> deflate_closures
+		final HashMap<K, TrackingSweeper<K, SortedSet<K>>> deflate_closures
 		= new HashMap<K, TrackingSweeper<K, SortedSet<K>>>();
 
-		final Map<K, SafeClosure<Map.Entry<K, V>>> value_closures
+		final HashMap<K, SafeClosure<Map.Entry<K, V>>> value_closures
 		= new HashMap<K, SafeClosure<Map.Entry<K, V>>>();
 
 		// Dummy constant for SplitNode

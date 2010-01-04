@@ -1287,7 +1287,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				throw new IllegalStateException("BTreeMap getKey method is buggy, please report.");
 			}
 
-			// PRIORITY OPTIMISE better way to do this than linear iteration through the entries.
+			// OPT LOW better way to do this than linear iteration through the entries.
 			// this performs badly when large nodes are accessed repeatedly.
 			//
 			// one way would be to insert the last sum-key pair we calculate at each node, into
