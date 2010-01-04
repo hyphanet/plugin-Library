@@ -19,7 +19,7 @@ public interface Sweeper<T> extends java.io.Closeable {
 	** #close()} is called.
 	**
 	** @throws IllegalStateException if the current state is not {@link
-	**         State#NEW NEW}
+	**         State#NEW NEW} or {@link State#CLOSED CLOSED}
 	*/
 	public void open();
 

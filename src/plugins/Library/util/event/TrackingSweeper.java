@@ -31,11 +31,12 @@ public class TrackingSweeper<T, C extends Collection<T>> extends AbstractSweeper
 	** the sweeper.
 	**
 	** @param autostart Whether to construct the sweeper already open
+	** @param onceonly Whether the sweeper can only be opened once
 	** @param coll A {@link Collection} to hold the items in
 	** @param coll_immute An immutable view of the same collection
 	*/
-	public TrackingSweeper(boolean autostart, C coll, C coll_immute) {
-		super(autostart);
+	public TrackingSweeper(boolean autostart, boolean onceonly, C coll, C coll_immute) {
+		super(autostart, onceonly);
 		if (!coll.isEmpty()) {
 			throw new IllegalArgumentException("TrackingSweeper: cannot use a non-empty collection");
 		}
@@ -50,8 +51,8 @@ public class TrackingSweeper<T, C extends Collection<T>> extends AbstractSweeper
 	** @param autostart Whether to construct the sweeper already open
 	** @param coll A {@link Collection} to hold the items in
 	*/
-	public TrackingSweeper(boolean autostart, C coll) {
-		this(autostart, coll, inferImmutable(coll));
+	public TrackingSweeper(boolean autostart, boolean onceonly, C coll) {
+		this(autostart, onceonly, coll, inferImmutable(coll));
 	}
 
 	/**

@@ -16,10 +16,11 @@ public class CountingSweeper<T> extends AbstractSweeper<T> {
 	/**
 	** Construct a new sweeper.
 	**
-	** @param autostart Whether to construct the sweeper already open.
+	** @param autostart Whether to construct the sweeper already open
+	** @param onceonly Whether the sweeper can only be opened once
 	*/
-	public CountingSweeper(boolean autostart) {
-		super(autostart);
+	public CountingSweeper(boolean autostart, boolean onceonly) {
+		super(autostart, onceonly);
 	}
 
 	/**

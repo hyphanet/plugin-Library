@@ -689,7 +689,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			final PushTask<Node> task;
 
 			protected DeflateNode(PushTask<Node> t) {
-				super(true, new TreeSet<K>(), null);
+				super(true, true, new TreeSet<K>(), null);
 				task = t;
 			}
 
@@ -735,7 +735,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			/*final*/ DeflateNode parVClo;
 
 			protected SplitNode(Node n, Node p, DeflateNode vc, SplitNode pnc, DeflateNode pvc) {
-				super(true);
+				super(true, false);
 				node = n;
 				parent = p;
 				nodeVClo = vc;
@@ -768,6 +768,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					parNClo.acquire(node);
 					parNClo.close();
 					root = parent;
+					size = root.totalSize();
 				}
 
 				Collection<K> keys = Sorted.select(Sorted.keySet(node.entries), sk);
@@ -781,6 +782,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				for (K key: keys) {
 					reassignKeyToSweeper(key, parVClo, kvClo);
 				}
+
+				parNClo.open();
 
 				// for each split-node, create a sweeper that will run when all its (k,v)
 				// pairs have been popped from value_complete
@@ -802,11 +805,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				// original (unsplit) node had a ticket on the parNClo sweeper, release it
 				parNClo.release(node);
-				if (parNClo.isCleared()) {
-					assert(parNClo.parent == null);
-					parNClo.run();
-				}
 
+				parNClo.close();
+				assert(!parNClo.isCleared()); // we always have at least one node to deflate
 			}
 
 			/**
@@ -908,9 +909,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					}
 				}
 
-				// URGENT FIXME cannot close here because need to acquire spilt children!!!
 				nClo.close();
-				if (nClo.isCleared()) { nClo.run(); }
+				if (nClo.isCleared()) { nClo.run(); } // eg. if no child nodes need to be modified
 			}
 
 			/**
@@ -993,8 +993,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				!split_closures.isEmpty() ||
 				!value_closures.isEmpty()
 			);
-
-			size = root.totalSize();
 
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("interrupted", e);
