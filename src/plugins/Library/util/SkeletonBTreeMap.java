@@ -334,7 +334,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(node);
 			try {
 				nsrl.pull(task);
-				postPullTask(task);
+				postPullTask(task, this);
 				if (auto) { task.data.inflate(); }
 
 			} catch (TaskCompleteException e) {
@@ -415,14 +415,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** The tree will be in a consistent state after the operation, if it was
 	** in a consistent state before it.
 	*/
-	protected SkeletonNode postPullTask(PullTask<SkeletonNode> task) throws DataFormatException {
+	protected SkeletonNode postPullTask(PullTask<SkeletonNode> task, SkeletonNode parent) throws DataFormatException {
 		SkeletonNode node = task.data;
 		GhostNode ghost = (GhostNode)task.meta;
 		if (!compare0(ghost.lkey, node.lkey) || !compare0(ghost.rkey, node.rkey)) {
 			throw new DataFormatException("BTreeMap Node lkey/rkey does not match", null, node);
 		}
 
-		ghost.parent.attachSkeleton(node);
+		parent.attachSkeleton(node);
 		return node;
 	}
 
@@ -500,6 +500,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final ConcurrentMap<PullTask<SkeletonNode>, TaskAbortException> error
 		= new ConcurrentHashMap<PullTask<SkeletonNode>, TaskAbortException>();
 
+		Map<PullTask<SkeletonNode>, SkeletonNode> parents
+		= new HashMap<PullTask<SkeletonNode>, SkeletonNode>();
+
 		Map<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ?>> ids = null;
 		ProgressTracker<SkeletonNode, ?> ntracker = null;;
 
@@ -527,8 +530,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						throw en.getValue();
 					} else {
 						// retrieve the inflated SkeletonNode and add it to the queue...
-						GhostNode ghost = (GhostNode)en.getKey().meta;
-						SkeletonNode parent = ghost.parent;
+						PullTask<SkeletonNode> task = en.getKey();
+						GhostNode ghost = (GhostNode)task.meta;
+						SkeletonNode parent = parents.remove(task);
 						// THREAD race condition here... if another thread has inflated the task
 						// but not yet attached the inflated node to the tree, the assertion fails.
 						// could check to see if the Progress for the Task still exists, but the
@@ -545,7 +549,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				while (!inflated.isEmpty()) {
 					final PullTask<SkeletonNode> task = inflated.take();
 					//++DEBUG_popped;
-					SkeletonNode node = postPullTask(task);
+					SkeletonNode parent = parents.remove(task);
+					SkeletonNode node = postPullTask(task, parent);
 					nodequeue.add(node);
 				}
 
@@ -555,7 +560,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					((SkeletonTreeMap<K, V>)node.entries).inflate(); // SUBMAP here
 
 					if (node.isLeaf()) { continue; }
-					// add any ghost nodes to the task queue
 					for (Node next: node.iterNodes()) { // SUBMAP here
 						if (!next.isGhost()) {
 							SkeletonNode skel = (SkeletonNode)next;
@@ -563,14 +567,16 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 							continue;
 						}
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>((GhostNode)next);
+						parents.put(task, node);
 						if (ids != null) { ids.put(task, ntracker); }
 						tasks.put(task);
 						//++DEBUG_pushed;
 					}
 				}
 
-				// nodequeue is empty, but tasks may have inflated in the meantime
+				Thread.sleep(1000);
 
+			// nodequeue is empty, but tasks may have inflated in the meantime
 			// URGENT there is almost definitely a race condition here... see BIndexTest.fullInflate() for details
 			} while (pool.isActive() || !tasks.isEmpty() || !inflated.isEmpty() || !error.isEmpty());
 
@@ -805,7 +811,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				parent.split(node.lkey, keys, node.rkey);
 				Iterable<Node> nodes = parent.iterNodes(node.lkey, node.rkey);
 
-				SafeClosure<Map.Entry<K, V>> kvClo;
+				UpdateValue kvClo;
 
 				// reassign appropriate keys to parent sweeper
 				kvClo = new UpdateValue(parent);
@@ -900,7 +906,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// closure to be called when all subnodes have been handled
 				SplitNode nClo = new SplitNode(node, parent, vClo, parNClo, parVClo);
 
-				SafeClosure<Map.Entry<K, V>> kvClo = new UpdateValue(node);
+				UpdateValue kvClo = new UpdateValue(node);
 
 				// invalidate every totalSize cache directly after we inflate it
 				node._size = -1;
@@ -986,9 +992,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				while (!inflated.isEmpty()) {
 					PullTask<SkeletonNode> task = inflated.take();
-					SkeletonNode node = postPullTask(task);
+					SafeClosure<SkeletonNode> clo = inflate_closures.remove(task);
+					SkeletonNode node = postPullTask(task, ((InflateChildNodes)clo).parent);
 
-					inflate_closures.remove(task).invoke(node);
+					clo.invoke(node);
 				}
 
 				while (!deflated.isEmpty()) {
@@ -997,9 +1004,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					postPushTask(task, ((SplitNode)sw).parent);
 
 					sw.release(task.data);
-					if (sw.isCleared()) {
-						((Runnable)sw).run();
-					}
+					if (sw.isCleared()) { ((Runnable)sw).run(); }
 				}
 
 				while (!value_complete.isEmpty()) {
@@ -1009,9 +1014,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					TrackingSweeper<K, SortedSet<K>> sw = deflate_closures.remove(k);
 
 					sw.release(k);
-					if (sw.isCleared()) {
-						((Runnable)sw).run();
-					}
+					if (sw.isCleared()) { ((Runnable)sw).run(); }
 				}
 
 				Thread.sleep(1000);
