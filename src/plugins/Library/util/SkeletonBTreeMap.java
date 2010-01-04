@@ -726,11 +726,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			final Node node;
 			final Node parent;
-			final TrackingSweeper<K> nodeVClo;
-			final CountingSweeper<Node> parNClo;
-			final TrackingSweeper<K> parVClo;
+			final DeflateNode nodeVClo;
+			final SplitNode parNClo;
+			final DeflateNode parVClo;
 
-			protected SplitNode(Node n, Node p, TrackingSweeper<K> vc, CountingSweeper<Node> pnc, TrackingSweeper<K> pvc) {
+			protected SplitNode(Node n, Node p, DeflateNode vc, SplitNode pnc, DeflateNode pvc) {
 				super(true);
 				node = n;
 				parent = p;
@@ -745,59 +745,56 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// to this node.
 				nodeVClo.close();
 
-				// TODO splitting crap, etc
-
 				int sk = minKeysFor(node.nodeSize());
-				// OPTIMISE if we don't need to split, then it would be better for nodeVClo
-				// to be a DeflateNode rather than a dummy sweeper, so we don't have to
-				// switch stuff for no reason.
-				//
-				// If we need to split at all, then we might as well not bother releasing
-				// any keys from nodeVClo, and just let it get garbage collected. Currently
-				// we release all the keys, but nodeVClo is a dummy with no use after this
-				// method returns, so this is only useful to check that we got the code
-				// right.
-				Collection<K> keys = Sorted.select(Sorted.keySet(node.entries), sk);
-				assert(parent.lnodes.get(node.rkey) == node);
-				assert(parent.rnodes.get(node.lkey) == node);
-				parent.split(node.lkey, keys, node.rkey);
-				Iterable<Node> nodes = parent.iterNodes(node.lkey, node.rkey);
-				assert(parent.lnodes.get(node.rkey) != node);
-				assert(parent.rnodes.get(node.lkey) != node);
 
-				if (parent == null && sk > 0) {
+				// No need to split
+				if (sk == 0) {
+					if (nodeVClo.isCleared()) { nodeVClo.run(); }
+					return;
+				}
+
+				if (parent == null) {
 					assert(parNClo == null && parVClo == null);
 					// TODO create parent, parNClo, parVClo, etc
 					// similar stuff as for InflateChildNodes but without the merging
-				}
 
-				// reassign appropriate keys to parent sweeper
-				SafeClosure<Map.Entry<K, V>> kvClo = new UpdateValue(parent);
-				for (K key: keys) {
-					reassignKeyToSweeper(key, parVClo, kvClo);
-				}
+				} else {
 
-				// for each split-node, create a sweeper that will run when all its (k, v)
-				// pairs have been popped from value_complete
-				for (Node n: nodes) {
-					PushTask<Node> task = new PushTask<Node>(n);
-					DeflateNode vClo = new DeflateNode(task);
-					kvClo = new UpdateValue(n);
+					Collection<K> keys = Sorted.select(Sorted.keySet(node.entries), sk);
+					parent.split(node.lkey, keys, node.rkey);
+					Iterable<Node> nodes = parent.iterNodes(node.lkey, node.rkey);
 
-					// reassign appropriate keys to the split-node's sweeper
-					for (K k2 = null;k2 != null;/*TODO*/) {
-						reassignKeyToSweeper(k2, vClo, kvClo);
+					SafeClosure<Map.Entry<K, V>> kvClo;
+
+					// reassign appropriate keys to parent sweeper
+					kvClo = new UpdateValue(parent);
+					for (K key: keys) {
+						reassignKeyToSweeper(key, parVClo, kvClo);
 					}
-					vClo.close();
 
-					parNClo.acquire(n);
-					split_closures.put(task, parNClo);
+					// for each split-node, create a sweeper that will run when all its (k,v)
+					// pairs have been popped from value_complete
+					for (Node n: nodes) {
+						PushTask<Node> task = new PushTask<Node>(n);
+						DeflateNode vClo = new DeflateNode(task);
+						kvClo = new UpdateValue(n);
+
+						// reassign appropriate keys to the split-node's sweeper
+						for (K k2 = null;k2 != null;/*TODO*/) {
+							reassignKeyToSweeper(k2, vClo, kvClo);
+						}
+						vClo.close();
+
+						parNClo.acquire(n);
+						split_closures.put(task, parNClo);
+					}
+
+					// original (unsplit) node had a ticket on the parNClo sweeper, release it
+					parNClo.release(node);
+					if (parNClo.isCleared()) {
+						parNClo.run();
+					}
 				}
-
-				assert(nodeVClo.isCleared() && !(nodeVClo instanceof Runnable));
-
-				// original (unsplit) node had a ticket on the parNClo sweeper, release it
-				parNClo.release(node);
 			}
 
 			/**
@@ -814,12 +811,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			*/
 			private void reassignKeyToSweeper(K key, TrackingSweeper<K> clo, SafeClosure<Map.Entry<K, V>> kvClo) {
 				clo.acquire(key);
-				nodeVClo.release(key);
-
 				assert(deflate_closures.get(key) == nodeVClo);
 				assert(((UpdateValue)value_closures.get(key)).node == node);
 				value_closures.put(key, kvClo);
 				deflate_closures.put(key, clo);
+				// nodeVClo.release(key);
+				// this is unnecessary since nodeVClo() will only be used if we did not
+				// split its node (and never called this method)
 			}
 
 		}
@@ -834,10 +832,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			final Node parent;
 			final SortedSet<K> putkey;
-			final CountingSweeper<Node> parNClo;
-			final TrackingSweeper<K> parVClo;
+			final SplitNode parNClo;
+			final DeflateNode parVClo;
 
-			protected InflateChildNodes(Node p, SortedSet<K> ki, CountingSweeper<Node> pnc, TrackingSweeper<K> pvc) {
+			protected InflateChildNodes(Node p, SortedSet<K> ki, SplitNode pnc, DeflateNode pvc) {
 				parent = p;
 				putkey = ki;
 				parNClo = pnc;
@@ -848,9 +846,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				assert(compareL(node.lkey, putkey.first()) < 0);
 				assert(compareR(putkey.last(), node.rkey) < 0);
 
-				// a jobless sweeper whose only purpose is to track get-value operations
-				// that have still not completed by the time we get to SplitNode
-				TrackingSweeper<K> vClo = new TrackingSweeper<K>(true);
+				// closure to be called when all local values have been obtained
+				DeflateNode vClo = new DeflateNode(new PushTask<Node>(node));
 
 				// closure to be called when all subnodes have been handled
 				SplitNode nClo = new SplitNode(node, parent, vClo, parNClo, parVClo);
@@ -980,9 +977,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			);
 
 		} catch (InterruptedException e) {
-			// TODO throw TAbEx
+			throw new TaskAbortException("interrupted", e);
 		}
-
 	}
 
 

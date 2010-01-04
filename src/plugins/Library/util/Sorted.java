@@ -31,7 +31,7 @@ final public class Sorted {
 
 	private Sorted() { }
 
-	public static class SortedKeySet<K> extends AbstractSet<K> implements SortedSet<K> {
+	private static class SortedKeySet<K> extends AbstractSet<K> implements SortedSet<K> {
 
 		final SortedMap<K, ?> map;
 
