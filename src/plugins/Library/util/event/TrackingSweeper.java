@@ -25,11 +25,14 @@ public class TrackingSweeper<T, C extends Collection<T>> extends AbstractSweeper
 	/**
 	** Construct a new sweeper.
 	**
+	** If {@code coll_immute} is {@code null}, then {@code coll} will be used
+	** in its place. This has a slight performance advantage over a wrapping
+	** "immutable" view; but only use it when trusted code is going to access
+	** the sweeper.
+	**
 	** @param autostart Whether to construct the sweeper already open
 	** @param coll A {@link Collection} to hold the items in
-	** @param coll_immute An immutable view of the same collection. If only
-	**        trusted code is going to access the sweeper, then using {@code
-	**        coll} would be beneficial performance-wise.
+	** @param coll_immute An immutable view of the same collection
 	*/
 	public TrackingSweeper(boolean autostart, C coll, C coll_immute) {
 		super(autostart);
@@ -37,7 +40,7 @@ public class TrackingSweeper<T, C extends Collection<T>> extends AbstractSweeper
 			throw new IllegalArgumentException("TrackingSweeper: cannot use a non-empty collection");
 		}
 		objs = coll;
-		objs_i = coll_immute;
+		objs_i = (coll_immute == null)? coll: coll_immute;
 	}
 
 	/**
@@ -71,7 +74,7 @@ public class TrackingSweeper<T, C extends Collection<T>> extends AbstractSweeper
 		}
 	}
 
-	public C current() {
+	public C view() {
 		return objs_i;
 	}
 

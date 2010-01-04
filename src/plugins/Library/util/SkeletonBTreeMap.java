@@ -687,7 +687,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			final PushTask<Node> task;
 
 			protected DeflateNode(PushTask<Node> t) {
-				super(true, new TreeSet<K>());
+				super(true, new TreeSet<K>(), null);
 				task = t;
 			}
 
@@ -776,11 +776,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					for (Node n: nodes) {
 						PushTask<Node> task = new PushTask<Node>(n);
 						DeflateNode vClo = new DeflateNode(task);
-						kvClo = new UpdateValue(n);
 
 						// reassign appropriate keys to the split-node's sweeper
-						for (K k2 = null;k2 != null;/*TODO*/) {
-							reassignKeyToSweeper(k2, vClo, kvClo);
+						kvClo = new UpdateValue(n);
+						assert(compareL(n.lkey, nodeVClo.view().subSet(n.lkey, n.rkey).first()) < 0);
+						for (K key: nodeVClo.view().subSet(n.lkey, n.rkey)) {
+							reassignKeyToSweeper(key, vClo, kvClo);
 						}
 						vClo.close();
 
@@ -790,9 +791,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					// original (unsplit) node had a ticket on the parNClo sweeper, release it
 					parNClo.release(node);
-					if (parNClo.isCleared()) {
-						parNClo.run();
-					}
+					assert(!parNClo.isCleared());
 				}
 			}
 
