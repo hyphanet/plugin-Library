@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 
-// URGENT tidy this
+// FIXME tidy this
 import java.util.Queue;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -60,6 +60,9 @@ import plugins.Library.util.func.Tuples.$2;
 ** TODO get rid of uses of rnode.get(K). All other uses of rnode, as well as
 ** lnode and entries, have already been removed. This will allow us to
 ** re-implement the Node class.
+**
+** To the maintainer: this class is very very unstructured and a lot of the
+** functionality should be split off elsewhere. Feel free to move stuff around.
 **
 ** @author infinity0
 */
@@ -439,7 +442,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		((SkeletonNode)root).deflate();
 	}
 
-	// URGENT tidy this; this should proboably go in a serialiser
+	// FIXME tidy this; this should proboably go in a serialiser
 	// and then we will access the Progress of a submap with a task whose
 	// metadata is (lkey, rkey), or something..(PROGRESS)
 	BaseCompositeProgress pr_inf = new BaseCompositeProgress();
@@ -552,7 +555,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				// nodequeue is empty, but tasks may have inflated in the meantime
 
-			// URGENT there maybe is a race condition here... see BIndexTest.fullInflate() for details
+			// URGENT there is almost definitely a race condition here... see BIndexTest.fullInflate() for details
 			} while (pool.isActive() || !tasks.isEmpty() || !inflated.isEmpty() || !error.isEmpty());
 
 			pr_inf.setEstimate(ProgressParts.TOTAL_FINALIZED);
@@ -590,7 +593,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	}
 
 	/**
-	** Asynchronously updates a remote B-tree.
+	** Asynchronously updates a remote B-tree. This uses two-pass merge/split
+	** algorithms (as opposed to the one-pass algorithms of the standard {@link
+	** BTreeMap}) since it assumes a copy-on-write backing data store, where
+	** the advantages (concurrency, etc) of one-pass algorithms disappear, and
+	** the disadvantages (unneeded merges/splits) remain.
 	**
 	** Note: {@code remkey} is not implemented yet.
 	**
@@ -947,6 +954,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			rtask.data = root;
 			inflate_closures.put(rtask, new InflateChildNodes(putkey));
 			inflated.put(rtask);
+
+			// FIXME make a copy of the deflated root so that we can restore it if the
+			// operation fails
 
 			do {
 
