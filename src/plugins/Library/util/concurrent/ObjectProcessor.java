@@ -43,7 +43,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	**
 	** @param i Queue for input items
 	** @param o Queue for output/error items
-	** @param d Queue for item deposits
+	** @param d Map for item deposits
 	** @param c Closure to call on each item
 	** @param x Executor to run each closure call
 	*/
@@ -157,6 +157,13 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 			};
 		}
 		auto.start();
+	}
+
+	/**
+	** @see #auto(SafeClosure)
+	*/
+	public void auto() {
+		auto(null);
 	}
 
 	/**

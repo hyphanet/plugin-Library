@@ -45,14 +45,15 @@ import java.util.SortedMap;
 import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.HashMap;
-import plugins.Library.util.Maps;
 import plugins.Library.util.Sorted;
+import plugins.Library.util.concurrent.ObjectProcessor;
+import plugins.Library.util.concurrent.Executors;
 import plugins.Library.util.event.TrackingSweeper;
 import plugins.Library.util.event.CountingSweeper;
 import plugins.Library.util.func.Closure;
 import plugins.Library.util.func.SafeClosure;
 import plugins.Library.util.func.Tuples.$2;
-
+import static plugins.Library.util.Maps.$K;
 
 /**
 ** {@link Skeleton} of a {@link BTreeMap}. DOCUMENT
@@ -658,9 +659,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	**
 	** @param putkey The keys to insert into the map
 	** @param remkey The keys to remove from the map
+	** @param value_handler DOCUMENT
 	** @throws UnsupportedOperationException if {@code remkey} is not empty
 	*/
-	public void update(SortedSet<K> putkey, SortedSet<K> remkey) throws TaskAbortException {
+	public void update(SortedSet<K> putkey, SortedSet<K> remkey, Closure<Map.Entry<K, V>, Exception> value_handler) throws TaskAbortException {
 
 		if (!remkey.isEmpty()) {
 			throw new UnsupportedOperationException("SkeletonBTreeMap: update() currently only supports merge operations");
@@ -702,11 +704,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// can update the values synchronously (ie. when we don't need to retrieve
 		// network data).
 
-		// OPT LOW it is more important for the input queues to be priority-based,
-		// since they will be drained much more slowly (network) than the output
-		// queues. so there might be a slight performance gain in having *flated
-		// and value_complete as LinkedBlockingQueues instead.
-
 		final PriorityBlockingQueue<PullTask<SkeletonNode>> pull_queue
 		= new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL);
 		final PriorityBlockingQueue<PullTask<SkeletonNode>> inflated
@@ -721,12 +718,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// FIX NOW error maps
 		Scheduler exec_push = ((ScheduledSerialiser<SkeletonNode>)nsrl).pushSchedule(push_queue, deflated, null);
 
-		final PriorityBlockingQueue<Map.Entry<K, V>> value_queue
-		= new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY);
-		final PriorityBlockingQueue<Map.Entry<K, V>> value_complete
-		= new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY);
-		// FIX NOW error maps
-		Scheduler exec_val = null; // TODO NOW real Scheduler for this
+		final ObjectProcessor proc_val = new ObjectProcessor<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>, Exception>(
+			new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
+			new LinkedBlockingQueue<$2<Map.Entry<K, V>, Exception>>(),
+			new HashMap<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>>(),
+			value_handler,
+			Executors.DEFAULT_EXECUTOR
+		);
+		proc_val.auto();
 
 		// The following closure maps are referenced by the proceeding local
 		// classes, and so must be declared final and located before them.
@@ -739,9 +738,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		final HashMap<K, TrackingSweeper<K, SortedSet<K>>> deflate_closures
 		= new HashMap<K, TrackingSweeper<K, SortedSet<K>>>();
-
-		final HashMap<K, SafeClosure<Map.Entry<K, V>>> value_closures
-		= new HashMap<K, SafeClosure<Map.Entry<K, V>>>();
 
 		// Dummy constant for SplitNode
 		final SortedMap<K, V> EMPTY_SORTEDMAP = new TreeMap<K, V>();
@@ -892,8 +888,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			private void reassignKeyToSweeper(K key, TrackingSweeper<K, SortedSet<K>> clo, SafeClosure<Map.Entry<K, V>> kvClo) {
 				clo.acquire(key);
 				assert(deflate_closures.get(key) == nodeVClo);
-				assert(((UpdateValue)value_closures.get(key)).node == node);
-				value_closures.put(key, kvClo);
+				//assert(((UpdateValue)value_closures.get(key)).node == node);
+				proc_val.update($K(key), kvClo);
 				deflate_closures.put(key, clo);
 				// nodeVClo.release(key);
 				// this is unnecessary since nodeVClo() will only be used if we did not
@@ -996,8 +992,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				V oldval = n.entries.put(key, null);
 				vClo.acquire(key);
 				deflate_closures.put(key, vClo);
-				value_closures.put(key, kvClo);
-				value_queue.put(Maps.$(key, oldval));
+				try {
+					proc_val.submit($K(key, oldval), kvClo);
+				} catch (InterruptedException e) {
+					// PriorityBlockingQueue does not throw this
+					assert(false);
+				}
 			}
 
 			private void handleLocalRemove(SkeletonNode n, K key, TrackingSweeper<K, SortedSet<K>> vClo) {
@@ -1032,12 +1032,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					if (sw.isCleared()) { ((Runnable)sw).run(); }
 				}
 
-				while (!value_complete.isEmpty()) {
-					Map.Entry<K, V> en = value_complete.take();
-					K k = en.getKey();
-					value_closures.remove(k).invoke(en);
-					TrackingSweeper<K, SortedSet<K>> sw = deflate_closures.remove(k);
+				while (proc_val.hasCompleted()) {
+					$3<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>, Exception> res = proc_val.accept();
+					Map.Entry<K, V> en = res._0;
+					// FIXME check _2, the exception
+					res._1.invoke(en);
 
+					K k = en.getKey();
+					TrackingSweeper<K, SortedSet<K>> sw = deflate_closures.remove(k);
 					sw.release(k);
 					if (sw.isCleared()) { ((Runnable)sw).run(); }
 				}
@@ -1047,10 +1049,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			} while(
 				!inflated.isEmpty() ||
 				!deflated.isEmpty() ||
-				!value_complete.isEmpty() ||
 				!inflate_closures.isEmpty() ||
 				!deflate_closures.isEmpty() ||
-				!value_closures.isEmpty() ||
+				!proc_val.hasPending() ||
 				!split_closures.isEmpty()
 			);
 
@@ -1061,7 +1062,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		} finally {
 			exec_pull.close();
 			exec_push.close();
-			exec_val.close();
+			proc_val.close();
 		}
 	}
 
