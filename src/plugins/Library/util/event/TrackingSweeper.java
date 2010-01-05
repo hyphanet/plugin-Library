@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.SortedSet;
 
 /**
-** A {@link Sweeper} which uses {@link IdentityHashMap} to keep track of the
+** A {@link Sweeper} which uses a given {@link Collection} to keep track of the
 ** objects added. It also allows iteration through these objects, and supports
 ** calls to {@link Iterator#remove()}.
 **
@@ -46,7 +46,7 @@ public class TrackingSweeper<T, C extends Collection<T>> extends AbstractSweeper
 
 	/**
 	** Construct a new sweeper, automatically inferring an immutable view using
-	** {@link #inferImmutable(Object)}
+	** {@link #inferImmutable(Collection)}
 	**
 	** @param autostart Whether to construct the sweeper already open
 	** @param coll A {@link Collection} to hold the items in

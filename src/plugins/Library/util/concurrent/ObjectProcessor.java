@@ -15,10 +15,14 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 
 /**
-** DOCUMENT.
+** A class that wraps around an {@link Executor}, for processing any given type
+** of object, not just {@link Runnable}. Each object must be accompanied by a
+** secondary "deposit" object, which is returned with the object when it has
+** been processed. Any exceptions thrown are also returned.
 **
-** TODO NORM maybe just get rid of Scheduler
-**
+** @param <T> Type of object to be processed
+** @param <E> Type of object to be used as a deposit
+** @param <X> Type of exception thrown by {@link #clo}
 ** @author infinity0
 */
 public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
@@ -33,6 +37,10 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	protected boolean open = true;
 
 	/**
+	** Constructs a new processor. The processor itself will be thread-safe
+	** as long as the queues and deposit map are not exposed to other threads,
+	** and the closure's invoke method is also thread-safe.
+	**
 	** @param i Queue for input items
 	** @param o Queue for output/error items
 	** @param d Queue for item deposits
@@ -47,6 +55,13 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		exec = x;
 	}
 
+	/**
+	** Submits an item for processing, with the given deposit.
+	**
+	** @throws IllegalStateException if the processor has already been {@link
+	**         #close() closed}
+	** @throws IllegalArgumentException if the item is already being held
+	*/
 	public synchronized void submit(T item, E deposit) throws InterruptedException {
 		if (!open) { throw new IllegalStateException("ObjectProcessor: not open"); }
 		if (dep.containsKey(item)) {
@@ -57,6 +72,13 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		in.put(item);
 	}
 
+	/**
+	** Updates the deposit for a given item.
+	**
+	** @throws IllegalStateException if the processor has already been {@link
+	**         #close() closed}
+	** @throws IllegalArgumentException if the item is not currently being held
+	*/
 	public synchronized void update(T item, E deposit) {
 		if (!open) { throw new IllegalStateException("ObjectProcessor: not open"); }
 		if (!dep.containsKey(item)) {
@@ -66,19 +88,35 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		dep.put(item, deposit);
 	}
 
+	/**
+	** Retrieved a processed item, along with its deposit and any exception
+	** that caused processing to abort.
+	*/
 	public synchronized $3<T, E, X> accept() throws InterruptedException {
 		$2<T, X> item = out.take();
 		return $3(item._0, dep.remove(item._0), item._1);
 	}
 
+	/**
+	** Whether there are any unprocessed items.
+	*/
 	public synchronized boolean hasPending() {
 		return !dep.isEmpty();
 	}
 
+	/**
+	** Whether there are any completed items that have not yet been retrieved.
+	*/
 	public synchronized boolean hasCompleted() {
 		return !out.isEmpty();
 	}
 
+	/**
+	** Creates a {@link Runnable} for processing a submitted item and sends it
+	** to {@link #exec} for execution. This method is provided for completeness
+	** in case anyone needs it; {@link #auto(SafeClosure)} should be adequate
+	** for most purposes.
+	*/
 	public void handle() throws InterruptedException {
 		final T item = in.take();
 		exec.execute(new Runnable() {
@@ -92,16 +130,11 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		});
 	}
 
-	/*@Override**/ public synchronized void close() {
-		open = false;
-		if (auto != null) { auto.interrupt(); }
-	}
-
 	/**
-	** Starts a new thread to automatically handle objects submitted to this
-	** processor.
+	** Starts a new {@link Thread} which waits on the input queue and calls
+	** {@link #handle()} for each incoming item.
 	**
-	** @param shutdown If not {@code null}, this is called on the executor
+	** @param shutdown If not {@code null}, this is called on {@link #exec}
 	**        when the thread completes.
 	** @throws IllegalThreadStateException if a thread was already started
 	*/
@@ -110,7 +143,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 			auto = new Thread() {
 				@Override public void run() {
 					try {
-						while (!in.isEmpty() || open) {
+						while (open || !in.isEmpty()) {
 							try {
 								handle();
 							} catch (InterruptedException e) {
@@ -126,8 +159,23 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		auto.start();
 	}
 
+	/**
+	** Stop accepting {@linkplain #submit(Object, Object) new submissions} or
+	** {@linkplain #update(Object, Object) updates}. Held items can still be
+	** {@linkplain #handle() handled} and {@linkplain #accept() retrieved}, and
+	** if an {@linkplain #auto(SafeClosure) auto-handler} is running, it will
+	** run until all items have been processed.
+	*/
+	/*@Override**/ public synchronized void close() {
+		open = false;
+		if (auto != null) { auto.interrupt(); }
+	}
+
 	// public class Object
 
+	/**
+	** This implementation just calls {@link #close()}.
+	*/
 	@Override public void finalize() {
 		close();
 	}
