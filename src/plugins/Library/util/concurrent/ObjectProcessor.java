@@ -41,18 +41,24 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** as long as the queues and deposit map are not exposed to other threads,
 	** and the closure's invoke method is also thread-safe.
 	**
-	** @param i Queue for input items
-	** @param o Queue for output/error items
-	** @param d Map for item deposits
-	** @param c Closure to call on each item
-	** @param x Executor to run each closure call
+	** If the {@code closure} parameter is {@code null}, it is expected that
+	** {@link createJobFor} will overridden appropriately.
+	**
+	** @param input Queue for input items
+	** @param output Queue for output/error items
+	** @param deposit Map for item deposits
+	** @param closure Closure to call on each item
+	** @param executor Executor to run each closure call
 	*/
-	public ObjectProcessor(BlockingQueue<T> i, BlockingQueue<$2<T, X>> o, Map<T, E> d, Closure<T, X> c, Executor x) {
-		in = i;
-		out = o;
-		dep = d;
-		clo = c;
-		exec = x;
+	public ObjectProcessor(
+		BlockingQueue<T> input, BlockingQueue<$2<T, X>> output, Map<T, E> deposit,
+		Closure<T, X> closure, Executor executor
+	) {
+		in = input;
+		out = output;
+		dep = deposit;
+		clo = closure;
+		exec = executor;
 	}
 
 	/**
@@ -118,8 +124,18 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** for most purposes.
 	*/
 	public void handle() throws InterruptedException {
-		final T item = in.take();
-		exec.execute(new Runnable() {
+		T item = in.take();
+		exec.execute(createJobFor(item));
+	}
+
+	/**
+	** DOCUMENT.
+	*/
+	protected Runnable createJobFor(final T item) {
+		if (clo == null) {
+			throw new IllegalStateException("ObjectProcessor: no closure given, but createJobFor() was not overidden");
+		}
+		return new Runnable() {
 			/*@Override**/ public void run() {
 				X ex = null;
 				try { clo.invoke(item); }
@@ -127,7 +143,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 				try { out.put($2(item, ex)); }
 				catch (InterruptedException e) { throw new UnsupportedOperationException(); }
 			}
-		});
+		};
 	}
 
 	/**

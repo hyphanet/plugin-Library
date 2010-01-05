@@ -4,11 +4,12 @@
 package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.concurrent.Scheduler;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.func.Tuples.$2;
 
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentMap;
 
 /**
 ** An interface that passes tasks to a {@link Scheduler} and retrieves them
@@ -32,11 +33,13 @@ public interface ScheduledSerialiser<T> extends IterableSerialiser<T> {
 	**
 	** @param input Queue to add task requests to
 	** @param output Queue to pop completed tasks from
-	** @param error Map of tasks to the errors that aborted them
+	** @param depositTODO Map of tasks to deposits
 	*/
-	public Scheduler pullSchedule(BlockingQueue<PullTask<T>> input,
-	                              BlockingQueue<PullTask<T>> output,
-	                              ConcurrentMap<PullTask<T>, TaskAbortException> error);
+	public <E> Scheduler pullSchedule(
+		BlockingQueue<PullTask<T>> input,
+		BlockingQueue<$2<PullTask<T>, TaskAbortException>> output,
+		Map<PullTask<T>, E> deposit
+	);
 
 	/**
 	** Creates a {@link Scheduler} that executes {@link PushTask}s, using the
@@ -52,10 +55,12 @@ public interface ScheduledSerialiser<T> extends IterableSerialiser<T> {
 	**
 	** @param input Queue to add task requests to
 	** @param output Queue to pop completed tasks from
-	** @param error Map of tasks to the errors that aborted them
+	** @param depositTODO Map of tasks to deposits
 	*/
-	public Scheduler pushSchedule(BlockingQueue<PushTask<T>> input,
-	                              BlockingQueue<PushTask<T>> output,
-	                              ConcurrentMap<PushTask<T>, TaskAbortException> error);
+	public <E> Scheduler pushSchedule(
+		BlockingQueue<PushTask<T>> input,
+		BlockingQueue<$2<PushTask<T>, TaskAbortException>> output,
+		Map<PushTask<T>, E> deposit
+	);
 
 }
