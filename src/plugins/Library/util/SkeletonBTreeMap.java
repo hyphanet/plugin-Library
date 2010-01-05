@@ -697,7 +697,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		*/
 
-		// TODO add a value-getter parameter
+		// TODO NOW add a value-getter parameter
 		// URGENT OPTIMISE need a way of bypassing the value-getter so that we
 		// can update the values synchronously (ie. when we don't need to retrieve
 		// network data).
@@ -726,7 +726,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final PriorityBlockingQueue<Map.Entry<K, V>> value_complete
 		= new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY);
 		// FIX NOW error maps
-		// TODO NOW Scheduler for this
+		Scheduler exec_val = null; // TODO NOW real Scheduler for this
 
 		// The following closure maps are referenced by the proceeding local
 		// classes, and so must be declared final and located before them.
@@ -761,7 +761,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 
 			public void run() {
-				// URGENT FIXME do not deflate the root!
+				// do not deflate the root
+				if (task.data == root) { return; }
 				push_queue.put(task);
 			}
 
@@ -1063,6 +1064,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			throw new TaskAbortException("Bad data format", e);
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("interrupted", e);
+		} finally {
+			exec_pull.close();
+			exec_push.close();
+			exec_val.close();
 		}
 	}
 
