@@ -11,11 +11,6 @@ package plugins.Library.util.concurrent;
 public interface Scheduler extends java.io.Closeable {
 
 	/**
-	** Whether objects are currently being acted on.
-	*/
-	public boolean isActive();
-
-	/**
 	** Stop accepting objects (but continue any started actions).
 	*/
 	public void close();

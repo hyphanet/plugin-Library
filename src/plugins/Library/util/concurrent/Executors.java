@@ -3,7 +3,10 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util.concurrent;
 
+import plugins.Library.util.func.SafeClosure;
+
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -14,6 +17,21 @@ import java.util.concurrent.TimeUnit;
 ** @author infinity0
 */
 public class Executors {
+
+	/**
+	** A {@link SafeClosure} for shutting down an {@link ExecutorService}. (If
+	** the input is not an {@link ExecutorService}, does nothing.)
+	*/
+	final public static SafeClosure<Executor> CLEANUP_EXECSERV = new SafeClosure<Executor>() {
+		/*@Override**/ public void invoke(Executor exec) {
+			if (!(exec instanceof ExecutorService)) { return; }
+			ExecutorService x = (ExecutorService)exec;
+			x.shutdown();
+			try {
+				while (!x.awaitTermination(1, TimeUnit.SECONDS));
+			} catch (InterruptedException e) { }
+		}
+	};
 
 	/**
 	** A JVM-wide executor that objects/classes can reference when they don't
