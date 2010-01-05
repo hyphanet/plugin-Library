@@ -93,14 +93,6 @@ final public class Maps {
 		return new KeyEntry<K, V>(k, v);
 	}
 
-	/**
-	** Returns a new {@link KeyEntry} with the given key and a {@code null}
-	** value.
-	*/
-	public static <K, V> Map.Entry<K, V> $K(K k) {
-		return new KeyEntry<K, V>(k, null);
-	}
-
 	public static <K, V> Map<K, V> of(Class<? extends Map> mapcl, Map.Entry<K, V>... items) {
 		try {
 			Map<K, V> map = mapcl.newInstance();

@@ -718,7 +718,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// FIX NOW error maps
 		Scheduler exec_push = ((ScheduledSerialiser<SkeletonNode>)nsrl).pushSchedule(push_queue, deflated, null);
 
-		final ObjectProcessor proc_val = new ObjectProcessor<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>, Exception>(
+		final ObjectProcessor<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>, Exception> proc_val
+		= new ObjectProcessor<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>, Exception>(
 			new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
 			new LinkedBlockingQueue<$2<Map.Entry<K, V>, Exception>>(),
 			new HashMap<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>>(),
@@ -889,7 +890,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				clo.acquire(key);
 				assert(deflate_closures.get(key) == nodeVClo);
 				//assert(((UpdateValue)value_closures.get(key)).node == node);
-				proc_val.update($K(key), kvClo);
+				proc_val.update($K(key, (V)null), kvClo);
 				deflate_closures.put(key, clo);
 				// nodeVClo.release(key);
 				// this is unnecessary since nodeVClo() will only be used if we did not
@@ -995,7 +996,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				try {
 					proc_val.submit($K(key, oldval), kvClo);
 				} catch (InterruptedException e) {
-					// PriorityBlockingQueue does not throw this
+					// PriorityBlockingQueue does not block
 					assert(false);
 				}
 			}
