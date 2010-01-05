@@ -519,16 +519,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		final Queue<SkeletonNode> nodequeue = new PriorityQueue<SkeletonNode>();
 
-		final PriorityBlockingQueue<PullTask<SkeletonNode>> pull_queue
-		= new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL);
-		final LinkedBlockingQueue<PullTask<SkeletonNode>> inflated
-		= new LinkedBlockingQueue<PullTask<SkeletonNode>>(0x10);
-		final ConcurrentHashMap<PullTask<SkeletonNode>, TaskAbortException> error
-		= new ConcurrentHashMap<PullTask<SkeletonNode>, TaskAbortException>();
-
-		final Map<PullTask<SkeletonNode>, SkeletonNode> parents
-		= new HashMap<PullTask<SkeletonNode>, SkeletonNode>();
-
 		Map<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ?>> ids = null;
 		ProgressTracker<SkeletonNode, ?> ntracker = null;;
 
@@ -540,7 +530,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			pr_inf.setSubject("Pulling all entries in B-tree");
 		}
 
-		Scheduler pool = ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(pull_queue, inflated, error);
+		final ObjectProcessor<PullTask<SkeletonNode>, SkeletonNode, TaskAbortException> proc_pull
+		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
+			new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL),
+			new LinkedBlockingQueue<$2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
+			new HashMap<PullTask<SkeletonNode>, SkeletonNode>()
+		);
 		//System.out.println("Using scheduler");
 		//int DEBUG_pushed = 0, DEBUG_popped = 0;
 
@@ -548,39 +543,39 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			nodequeue.add((SkeletonNode)root);
 
 			do {
+				//System.out.println("pushed: " + DEBUG_pushed + "; popped: " + DEBUG_popped);
 
-				for (Map.Entry<PullTask<SkeletonNode>, TaskAbortException> en: error.entrySet()) {
-					assert(!(en.getValue() instanceof plugins.Library.util.exec.TaskInProgressException)); // by contract of ScheduledSerialiser
-					if (!(en.getValue() instanceof TaskCompleteException)) {
-						// TODO maybe dump it somewhere else and throw it at the end...
-						throw en.getValue();
-					} else {
+				// handle the inflated tasks and attach them to the tree.
+				// THREAD progress tracker should prevent this from being run twice for the
+				// same node, but what if we didn't use a progress tracker? hmm...
+				while (proc_pull.hasCompleted()) {
+					$3<PullTask<SkeletonNode>, SkeletonNode, TaskAbortException> res = proc_pull.accept();
+					PullTask<SkeletonNode> task = res._0;
+					SkeletonNode parent = res._1;
+					TaskAbortException ex = res._2;
+					if (ex != null) {
+						assert(!(ex instanceof plugins.Library.util.exec.TaskInProgressException)); // by contract of ScheduledSerialiser
+						if (!(ex instanceof TaskCompleteException)) {
+							// TODO maybe dump it somewhere else and throw it at the end...
+							throw ex;
+						}
 						// retrieve the inflated SkeletonNode and add it to the queue...
-						PullTask<SkeletonNode> task = en.getKey();
 						GhostNode ghost = (GhostNode)task.meta;
-						SkeletonNode parent = parents.remove(task);
 						// THREAD race condition here... if another thread has inflated the task
 						// but not yet attached the inflated node to the tree, the assertion fails.
 						// could check to see if the Progress for the Task still exists, but the
 						// performance of this depends on the GC freeing weak referents quickly...
 						assert(!parent.rnodes.get(ghost.lkey).isGhost());
 						nodequeue.add((SkeletonNode)parent.rnodes.get(ghost.lkey));
-						//++DEBUG_popped; // not actually popped off the map, but we've "taken care" of it
+					} else {
+						SkeletonNode node = postPullTask(task, parent);
+						nodequeue.add(node);
 					}
-				}
-
-				// handle the inflated tasks and attach them to the tree.
-				// THREAD progress tracker should prevent this from being run twice for the
-				// same node, but what if we didn't use a progress tracker? hmm...
-				while (!inflated.isEmpty()) {
-					PullTask<SkeletonNode> task = inflated.take();
 					//++DEBUG_popped;
-					SkeletonNode parent = parents.remove(task);
-					SkeletonNode node = postPullTask(task, parent);
-					nodequeue.add(node);
 				}
 
 				// go through the nodequeue and add any child ghost nodes to the tasks queue
+				// TODO NOW nodequeue is probably pointless
 				while (!nodequeue.isEmpty()) {
 					SkeletonNode node = nodequeue.remove();
 					((SkeletonTreeMap<K, V>)node.entries).inflate(); // SUBMAP here
@@ -593,20 +588,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 							continue;
 						}
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>((GhostNode)next);
-						parents.put(task, node);
 						if (ids != null) { ids.put(task, ntracker); }
-						pull_queue.put(task);
+						ObjectProcessor.submitSafe(proc_pull, task, node);
 						//++DEBUG_pushed;
 					}
 				}
 
 				Thread.sleep(1000);
 
-			} while (
-				!inflated.isEmpty() ||
-				!error.isEmpty() ||
-				!parents.isEmpty()
-			);
+			} while (proc_pull.hasPending());
 
 			pr_inf.setEstimate(ProgressParts.TOTAL_FINALIZED);
 
@@ -615,7 +605,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("interrupted", e);
 		} finally {
-			pool.close();
+			proc_pull.close();
 			//System.out.println("pushed: " + DEBUG_pushed + "; popped: " + DEBUG_popped);
 			//assert(DEBUG_pushed == DEBUG_popped);
 		}
@@ -662,7 +652,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** @param value_handler DOCUMENT
 	** @throws UnsupportedOperationException if {@code remkey} is not empty
 	*/
-	public void update(SortedSet<K> putkey, SortedSet<K> remkey, Closure<Map.Entry<K, V>, Exception> value_handler) throws TaskAbortException {
+	public <X extends Exception> void update(
+		SortedSet<K> putkey,
+		SortedSet<K> remkey,
+		Closure<Map.Entry<K, V>, X> value_handler
+	) throws TaskAbortException {
 
 		if (!remkey.isEmpty()) {
 			throw new UnsupportedOperationException("SkeletonBTreeMap: update() currently only supports merge operations");
@@ -704,39 +698,29 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// can update the values synchronously (ie. when we don't need to retrieve
 		// network data).
 
-		final PriorityBlockingQueue<PullTask<SkeletonNode>> pull_queue
-		= new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL);
-		final PriorityBlockingQueue<PullTask<SkeletonNode>> inflated
-		= new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL);
-		// FIX NOW error maps
-		Scheduler exec_pull = ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(pull_queue, inflated, null);
-
-		final PriorityBlockingQueue<PushTask<SkeletonNode>> push_queue
-		= new PriorityBlockingQueue<PushTask<SkeletonNode>>(0x10, CMP_PUSH);
-		final PriorityBlockingQueue<PushTask<SkeletonNode>> deflated
-		= new PriorityBlockingQueue<PushTask<SkeletonNode>>(0x10, CMP_PUSH);
-		// FIX NOW error maps
-		Scheduler exec_push = ((ScheduledSerialiser<SkeletonNode>)nsrl).pushSchedule(push_queue, deflated, null);
-
-		final ObjectProcessor<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>, Exception> proc_val
-		= new ObjectProcessor<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>, Exception>(
-			new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
-			new LinkedBlockingQueue<$2<Map.Entry<K, V>, Exception>>(),
-			new HashMap<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>>(),
-			value_handler,
-			Executors.DEFAULT_EXECUTOR
+		final ObjectProcessor<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> proc_pull
+		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
+			new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL),
+			new LinkedBlockingQueue<$2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
+			new HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>()
 		);
-		proc_val.auto();
 
-		// The following closure maps are referenced by the proceeding local
-		// classes, and so must be declared final and located before them.
+		final ObjectProcessor<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> proc_push
+		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pushSchedule(
+			new PriorityBlockingQueue<PushTask<SkeletonNode>>(0x10, CMP_PUSH),
+			new LinkedBlockingQueue<$2<PushTask<SkeletonNode>, TaskAbortException>>(0x10),
+			new HashMap<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>>()
+		);
 
-		final HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>> inflate_closures
-		= new HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>();
+		final ObjectProcessor<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>, X> proc_val
+		= new ObjectProcessor<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>, X>(
+			new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
+			new LinkedBlockingQueue<$2<Map.Entry<K, V>, X>>(),
+			new HashMap<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>>(),
+			value_handler, Executors.DEFAULT_EXECUTOR, true
+		);
 
-		final HashMap<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>> split_closures
-		= new HashMap<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>>();
-
+		// TODO NOW merge DeflateNode and UpdateValue
 		final HashMap<K, TrackingSweeper<K, SortedSet<K>>> deflate_closures
 		= new HashMap<K, TrackingSweeper<K, SortedSet<K>>>();
 
@@ -763,8 +747,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					assert(task.data == root);
 					return;
 				}
-				split_closures.put(task, parNClo);
-				push_queue.put(task);
+				ObjectProcessor.submitSafe(proc_push, task, parNClo);
 			}
 
 		}
@@ -966,8 +949,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(n);
 
 						nClo.acquire(n);
-						inflate_closures.put(task, new InflateChildNodes(node, putkey.subSet(kp._0, kp._1), nClo, vClo));
-						pull_queue.put(task);
+						ObjectProcessor.submitSafe(proc_pull, task, new InflateChildNodes(node, putkey.subSet(kp._0, kp._1), nClo, vClo));
 					}
 				}
 
@@ -993,12 +975,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				V oldval = n.entries.put(key, null);
 				vClo.acquire(key);
 				deflate_closures.put(key, vClo);
-				try {
-					proc_val.submit($K(key, oldval), kvClo);
-				} catch (InterruptedException e) {
-					// PriorityBlockingQueue does not block
-					assert(false);
-				}
+				ObjectProcessor.submitSafe(proc_val, $K(key, oldval), kvClo);
 			}
 
 			private void handleLocalRemove(SkeletonNode n, K key, TrackingSweeper<K, SortedSet<K>> vClo) {
@@ -1016,29 +993,45 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			do {
 
-				while (!inflated.isEmpty()) {
-					PullTask<SkeletonNode> task = inflated.take();
-					SafeClosure<SkeletonNode> clo = inflate_closures.remove(task);
-					SkeletonNode node = postPullTask(task, ((InflateChildNodes)clo).parent);
+				while (proc_pull.hasCompleted()) {
+					$3<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> res = proc_pull.accept();
+					PullTask<SkeletonNode> task = res._0;
+					SafeClosure<SkeletonNode> clo = res._1;
+					TaskAbortException ex = res._2;
+					if (ex != null) {
+						// FIXME HIGH
+						throw new UnsupportedOperationException("SkeletonBTreeMap.update(): PullTask aborted; handler not implemented yet", ex);
+					}
 
+					SkeletonNode node = postPullTask(task, ((InflateChildNodes)clo).parent);
 					clo.invoke(node);
 				}
 
-				while (!deflated.isEmpty()) {
-					PushTask<SkeletonNode> task = deflated.take();
-					CountingSweeper<SkeletonNode> sw = split_closures.remove(task);
-					postPushTask(task, ((SplitNode)sw).parent);
+				while (proc_push.hasCompleted()) {
+					$3<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> res = proc_push.accept();
+					PushTask<SkeletonNode> task = res._0;
+					CountingSweeper<SkeletonNode> sw = res._1;
+					TaskAbortException ex = res._2;
+					if (ex != null) {
+						// FIXME HIGH
+						throw new UnsupportedOperationException("SkeletonBTreeMap.update(): PushTask aborted; handler not implemented yet", ex);
+					}
 
+					postPushTask(task, ((SplitNode)sw).parent);
 					sw.release(task.data);
 					if (sw.isCleared()) { ((Runnable)sw).run(); }
 				}
 
 				while (proc_val.hasCompleted()) {
-					$3<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>, Exception> res = proc_val.accept();
+					$3<Map.Entry<K, V>, SafeClosure<Map.Entry<K, V>>, X> res = proc_val.accept();
 					Map.Entry<K, V> en = res._0;
-					// FIXME check _2, the exception
-					res._1.invoke(en);
+					X ex = res._2;
+					if (ex != null) {
+						// FIXME HIGH
+						throw new UnsupportedOperationException("SkeletonBTreeMap.update(): value-retrieval aborted; handler not implemented yet", ex);
+					}
 
+					res._1.invoke(en);
 					K k = en.getKey();
 					TrackingSweeper<K, SortedSet<K>> sw = deflate_closures.remove(k);
 					sw.release(k);
@@ -1047,22 +1040,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				Thread.sleep(1000);
 
-			} while(
-				!inflated.isEmpty() ||
-				!deflated.isEmpty() ||
-				!inflate_closures.isEmpty() ||
-				!deflate_closures.isEmpty() ||
-				!proc_val.hasPending() ||
-				!split_closures.isEmpty()
-			);
+			} while (proc_pull.hasPending() || proc_push.hasPending() || proc_val.hasPending() || !deflate_closures.isEmpty());
 
 		} catch (DataFormatException e) {
 			throw new TaskAbortException("Bad data format", e);
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("interrupted", e);
 		} finally {
-			exec_pull.close();
-			exec_push.close();
+			proc_pull.close();
+			proc_push.close();
 			proc_val.close();
 		}
 	}

@@ -52,13 +52,28 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	*/
 	public ObjectProcessor(
 		BlockingQueue<T> input, BlockingQueue<$2<T, X>> output, Map<T, E> deposit,
-		Closure<T, X> closure, Executor executor
+		Closure<T, X> closure, Executor executor, boolean autostart
 	) {
 		in = input;
 		out = output;
 		dep = deposit;
 		clo = closure;
 		exec = executor;
+		if (autostart) { auto(); }
+	}
+
+	/**
+	** Safely submits the given item and deposit to the given processer. Only
+	** use this when the input queue's {@link BlockingQueue#put(Object)} method
+	** does not throw {@link InterruptedException}, such as that of {@link
+	** java.util.concurrent.PriorityBlockingQueue}.
+	*/
+	public static <T, E, X extends Exception> void submitSafe(ObjectProcessor<T, E, X> proc, T item, E deposit) {
+		try {
+			proc.submit(item, deposit);
+		} catch (InterruptedException e) {
+			throw new IllegalArgumentException("ObjectProcessor: abuse of submitSafe. Blame the programmer, who did not know what they were doing", e);
+		}
 	}
 
 	/**
