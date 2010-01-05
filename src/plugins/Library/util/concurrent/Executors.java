@@ -45,18 +45,20 @@ public class Executors {
 	*/
 	final public static Executor DEFAULT_EXECUTOR = new Executor() {
 		/*@Override**/ public void execute(Runnable r) {
-			if (default_exec == null) {
-				default_exec = new ThreadPoolExecutor(
-					0x40, 0x40, 1, TimeUnit.SECONDS,
-					new LinkedBlockingQueue<Runnable>(),
-					new ThreadPoolExecutor.CallerRunsPolicy()
-				);
+			synchronized (Executors.class) {
+				if (default_exec == null) {
+					default_exec = new ThreadPoolExecutor(
+						0x40, 0x40, 1, TimeUnit.SECONDS,
+						new LinkedBlockingQueue<Runnable>(),
+						new ThreadPoolExecutor.CallerRunsPolicy()
+					);
+				}
 			}
 			default_exec.execute(r);
 		}
 	};
 
-	public static void setDefaultExecutor(Executor e) {
+	public static synchronized void setDefaultExecutor(Executor e) {
 		default_exec = e;
 	}
 
