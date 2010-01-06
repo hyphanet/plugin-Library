@@ -143,6 +143,11 @@ final public class Sorted {
 	** consistent with equals(). Use the SortedSet's comparator() instead (or
 	** "natural" ordering.
 	**
+	** If {@code inc} is given as {@code LEFT}, and the leftmost range is left
+	** of the leftmost separator, the left key of the pair representing the
+	** range will be given as {@code null}; and similarly when {@code inc} is
+	** {@code RIGHT} or {@code BOTH}.
+	**
 	** JDK6 use a NavigableSet instead of a SortedSet.
 	**
 	** @param subj The {@link SortedSet} to split
@@ -158,6 +163,8 @@ final public class Sorted {
 		if (!foundsep.isEmpty()) {
 			throw new IllegalArgumentException("split(): Must provide an empty set to add found separators to");
 		}
+
+		// TODO NOW make this return List<SortedSet<E>> instead.
 
 		if (subj.isEmpty()) {
 			return Collections.emptySet();

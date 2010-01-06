@@ -634,6 +634,25 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	}
 
 	/**
+	** @param putmap Entries to insert into this map
+	** @param remkey Keys to remove from this map
+	** @see #update(SortedSet, SortedSet, SortedMap, SafeClosure)
+	*/
+	public void update(SortedMap<K, V> putmap, SortedSet<K> remkey) throws TaskAbortException {
+		update(null, remkey, putmap, null);
+	}
+
+	/**
+	** @param putkey Keys to insert into this map
+	** @param remkey Keys to remove from this map
+	** @param value_handler Closure to retrieve the value for each putkey
+	** @see #update(SortedSet, SortedSet, SortedMap, SafeClosure)
+	*/
+	public <X extends Exception> void update(SortedSet<K> putkey, SortedSet<K> remkey, Closure<Map.Entry<K, V>, X> value_handler) throws TaskAbortException {
+		update(putkey, remkey, value_handler);
+	}
+
+	/**
 	** Asynchronously updates a remote B-tree. This uses two-pass merge/split
 	** algorithms (as opposed to the one-pass algorithms of the standard {@link
 	** BTreeMap}) since it assumes a copy-on-write backing data store, where
@@ -648,16 +667,23 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	**
 	** Note: {@code remkey} is not implemented yet.
 	**
-	** @param putkey The keys to insert into the map
-	** @param remkey The keys to remove from the map
-	** @param value_handler DOCUMENT
 	** @throws UnsupportedOperationException if {@code remkey} is not empty
 	*/
-	public <X extends Exception> void update(
-		SortedSet<K> putkey, SortedSet<K> remkey, Closure<Map.Entry<K, V>, X> value_handler
+	protected <X extends Exception> void update(
+		SortedSet<K> putkey, SortedSet<K> remkey,
+		final SortedMap<K, V> putmap, Closure<Map.Entry<K, V>, X> value_handler
 	) throws TaskAbortException {
 
-		if (!remkey.isEmpty()) {
+		if (value_handler == null) {
+			// synchronous value callback - null, remkey, putmap, null
+			assert(putkey == null);
+			putkey = Sorted.keySet(putmap);
+		} else {
+			// asynchronous value callback - putkey, remkey, null, closure
+			assert(putmap == null);
+		}
+
+		if (remkey != null && !remkey.isEmpty()) {
 			throw new UnsupportedOperationException("SkeletonBTreeMap: update() currently only supports merge operations");
 		}
 
@@ -689,10 +715,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**     - split-node gets pushed into push_queue (except for root)
 		**
 		*/
-
-		// TODO HIGH need a way of bypassing value_handler so that we
-		// can update the values synchronously (ie. when we don't need to retrieve
-		// network data).
 
 		final ObjectProcessor<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> proc_pull
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
@@ -749,8 +771,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		// must be located after DeflateNode's class definition
-		final ObjectProcessor<Map.Entry<K, V>, DeflateNode, X> proc_val
-		= new ObjectProcessor<Map.Entry<K, V>, DeflateNode, X>(
+		final ObjectProcessor<Map.Entry<K, V>, DeflateNode, X> proc_val = (value_handler == null)? null
+		: new ObjectProcessor<Map.Entry<K, V>, DeflateNode, X>(
 			new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
 			new LinkedBlockingQueue<$2<Map.Entry<K, V>, X>>(),
 			new HashMap<Map.Entry<K, V>, DeflateNode>(),
@@ -816,8 +838,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				parent.split(node.lkey, keys, node.rkey);
 				Iterable<Node> nodes = parent.iterNodes(node.lkey, node.rkey);
 
+				SortedSet<K> held = nodeVClo.view();
+				// if synchronous, all values should have already been handled
+				assert(proc_val != null || held.size() == 0);
+
 				// reassign appropriate keys to parent sweeper
 				for (K key: keys) {
+					if (!held.contains(key)) { continue; }
 					reassignKeyToSweeper(key, parVClo);
 				}
 
@@ -830,8 +857,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					DeflateNode vClo = new DeflateNode(n, parNClo);
 
 					// reassign appropriate keys to the split-node's sweeper
-					assert(compareL(n.lkey, nodeVClo.view().subSet(n.lkey, n.rkey).first()) < 0);
-					for (K key: nodeVClo.view().subSet(n.lkey, n.rkey)) {
+					assert(compareL(n.lkey, held.subSet(n.lkey, n.rkey).first()) < 0);
+					for (K key: BTreeMap.subSet(held, n.lkey, n.rkey)) {
 						reassignKeyToSweeper(key, vClo);
 					}
 					vClo.close();
@@ -907,17 +934,20 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// invalidate every totalSize cache directly after we inflate it
 				node._size = -1;
 
+				// OPTIMISE LOW if putkey is empty then skip
+
 				// each key in putkey is either added to the local entries, or delegated to
 				// the the relevant child node.
 				if (node.isLeaf()) {
 					// add all keys into the node, since there are no children.
-					//
-					// OPTIMISE: could use a splice-merge here. for TreeMap, there is not an
-					// easy way of doing this, nor will it likely make a lot of a difference.
-					// however, if we re-implement SkeletonNode, this might become relevant.
-					//
-					for (K key: putkey) {
-						handleLocalPut(node, key, vClo);
+
+					if (proc_val == null) {
+						// OPTIMISE: could use a splice-merge here. for TreeMap, there is not an
+						// easy way of doing this, nor will it likely make a lot of a difference.
+						// however, if we re-implement SkeletonNode, this might become relevant.
+						for (K key: putkey) { node.entries.put(key, putmap.get(key)); }
+					} else {
+						for (K key: putkey) { handleLocalPut(node, key, vClo); }
 					}
 
 				} else {
@@ -927,8 +957,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					SortedSet<K> fkey = new TreeSet<K>();
 					Iterable<$2<K, K>> pairs = Sorted.split(putkey, Sorted.keySet(node.entries), fkey);
 
-					for (K key: fkey) {
-						handleLocalPut(node, key, vClo);
+					if (proc_val == null) {
+						for (K key: fkey) { node.entries.put(key, putmap.get(key)); }
+					} else {
+						for (K key: fkey) { handleLocalPut(node, key, vClo); }
 					}
 
 					for ($2<K, K> kp: pairs) {
@@ -937,7 +969,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(n);
 
 						nClo.acquire(n);
-						ObjectProcessor.submitSafe(proc_pull, task, new InflateChildNodes(node, putkey.subSet(kp._0, kp._1), nClo, vClo));
+						ObjectProcessor.submitSafe(proc_pull, task,
+							new InflateChildNodes(node, (kp._1 == null)? putkey.tailSet(kp._0): putkey.subSet(kp._0, kp._1), nClo, vClo)
+						);
 					}
 				}
 
@@ -1008,6 +1042,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					if (sw.isCleared()) { ((Runnable)sw).run(); }
 				}
 
+				Thread.sleep(1000);
+				if (proc_val == null) { continue; }
+
 				while (proc_val.hasCompleted()) {
 					$3<Map.Entry<K, V>, DeflateNode, X> res = proc_val.accept();
 					Map.Entry<K, V> en = res._0;
@@ -1023,8 +1060,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					if (sw.isCleared()) { ((Runnable)sw).run(); }
 				}
 
-				Thread.sleep(1000);
-			} while (proc_pull.hasPending() || proc_push.hasPending() || proc_val.hasPending());
+			} while (proc_pull.hasPending() || proc_push.hasPending() || (proc_val != null && proc_val.hasPending()));
 
 		} catch (DataFormatException e) {
 			throw new TaskAbortException("Bad data format", e);
@@ -1033,7 +1069,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		} finally {
 			proc_pull.close();
 			proc_push.close();
-			proc_val.close();
+			if (proc_val != null) { proc_val.close(); }
 		}
 	}
 

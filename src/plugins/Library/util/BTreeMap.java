@@ -179,7 +179,21 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		this(null, node_min);
 	}
 
+	/**
+	** DOCUMENT.
+	**
+	** It is '''assumed''' that neither keys belong to the set; it is up to the
+	** caller to ensure that this holds.
+	*/
+	protected static <K, V> SortedSet<K, V> subSet(SortedSet<K, V> set, K lkey, K rkey) {
+		return (lkey == null)?
+			((rkey == null)? set: set.headSet(rkey)):
+			((rkey == null)? set.tailSet(lkey): set.subSet(lkey, rkey));
+	}
 
+	/**
+	** DOCUMENT.
+	*/
 	public static class PairIterable<E> implements Iterable<$2<E, E>> {
 
 		final protected E lobj;
