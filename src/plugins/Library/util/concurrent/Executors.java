@@ -8,6 +8,7 @@ import plugins.Library.util.func.SafeClosure;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy; // WORKAROUND javadoc bug #4464323
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -41,7 +42,7 @@ public class Executors {
 	** If no backing executor has been set by the time the first call to {@link
 	** Executor#execute(Runnable)} is made, a {@link ThreadPoolExecutor} is
 	** created, with a thread-cache size of 64, timeout of 1s, and rejection
-	** policy of "{@link ThreadPoolExecutor.CallerRunsPolicy caller runs}".
+	** policy of "{@link CallerRunsPolicy caller runs}".
 	*/
 	final public static Executor DEFAULT_EXECUTOR = new Executor() {
 		/*@Override**/ public void execute(Runnable r) {

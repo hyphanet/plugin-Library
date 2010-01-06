@@ -24,6 +24,7 @@ import plugins.Library.io.serial.MapSerialiser;
 import plugins.Library.io.serial.LiveArchiver;
 import plugins.Library.io.serial.ParallelSerialiser;
 import plugins.Library.io.serial.Packer;
+import plugins.Library.io.serial.Packer.Scale; // WORKAROUND javadoc bug #4464323
 import plugins.Library.io.serial.FileArchiver;
 import plugins.Library.io.DataFormatException;
 import plugins.Library.io.YamlReaderWriter;
@@ -106,7 +107,7 @@ public class ProtoIndexComponentSerialiser {
 	final protected static MapSerialiser<FreenetURI, URIEntry> uri_dummy = new DummySerialiser<FreenetURI, URIEntry>();
 
 	/**
-	** {@link Packer.Scale} for the root node of the ''B-tree'' that holds
+	** {@link Scale} for the root node of the ''B-tree'' that holds
 	** ''term entries'' for a ''term''.
 	*/
 	final protected static Packer.Scale<SkeletonBTreeSet<TermEntry>>
@@ -117,7 +118,7 @@ public class ProtoIndexComponentSerialiser {
 	};
 
 	/**
-	** {@link Packer.Scale} for the root node of the ''B-tree'' that holds
+	** {@link Scale} for the root node of the ''B-tree'' that holds
 	** ''uri-entry mappings'' for a ''urikey''.
 	*/
 	final protected static Packer.Scale<SkeletonBTreeMap<FreenetURI, URIEntry>>

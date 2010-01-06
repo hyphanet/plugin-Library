@@ -5,7 +5,7 @@ package plugins.Library.util;
 
 import static plugins.Library.util.Maps.$;
 
-import java.util.Map.Entry; // workaround javadoc bug #4464323
+import java.util.Map.Entry; // WORKAROUND javadoc bug #4464323
 import java.util.Map;
 
 /**

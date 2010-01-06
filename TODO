@@ -4,14 +4,15 @@ for general items, see doc/todo.txt
 
 apart from that, dotted throughout the source code are the following:
 
-- DOCUMENT
 - URGENT bugs will likely crop up until this issue is fixed
 - FIXME
 - PRIORITY major things, that other things depend on
 - TODO
 - OPTIMISE
 
+- DOCUMENT
 - DEBUG - was added for debug, should be removed
+- WORKAROUND - workaround an external bug (eg. freenet, java itself, etc.)
 
 there are also methods or code blocks containing:
 
