@@ -9,7 +9,7 @@
 
 1. get merging working
   - "FreenetArchiver" extension (see below)
-  - get a basic interface set up
+  - get a basic Index interface set up, that is *clean* (ie. nothing fancy for now)
 
 2. Re-design progress system
   - Remove "Task" class and make PushTask.data, PullTask.meta fields *final*.

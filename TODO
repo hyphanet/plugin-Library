@@ -14,7 +14,7 @@ tag : X Y, where
 
 X is the type, currently out of
 	- FIXME: known error, or lack of error handling
-	- TODO: additional feature
+	- TODO: refactoring, or additional feature
 	- OPT: optimisation
 Y is the priority, currently out of
 	- NOW: current work
