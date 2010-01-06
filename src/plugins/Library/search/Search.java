@@ -7,7 +7,6 @@ import plugins.Library.Library;
 import plugins.Library.index.TermEntry;
 import plugins.Library.util.exec.Execution;
 import plugins.Library.util.exec.AbstractExecution;
-import plugins.Library.util.exec.CompositeExecution;
 import plugins.Library.util.exec.ProgressParts;
 import plugins.Library.util.exec.CompositeProgress;
 import plugins.Library.util.exec.Progress;
@@ -35,7 +34,7 @@ import java.util.HashMap;
  * @author MikeB
  */
 public class Search extends AbstractExecution<Set<TermEntry>>
-				implements CompositeExecution<Set<TermEntry>> {
+				implements CompositeProgress, Execution<Set<TermEntry>> {
 
 	private static Library library;
 	private static Executor executor;
@@ -428,8 +427,8 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		for (Execution<Set<TermEntry>> request : subsearches) {
 			if(request == null)
 				continue;
-			if( request instanceof CompositeProgress && ((CompositeProgress) request).getSubProgress()!=null && ((CompositeProgress) request).getSubProgress().iterator().hasNext()){
-				for (Iterator<? extends Progress> it = ((CompositeExecution)request).getSubProgress().iterator(); it.hasNext();) {
+			if( request instanceof CompositeProgress && ((CompositeProgress)request).getSubProgress()!=null && ((CompositeProgress) request).getSubProgress().iterator().hasNext()){
+				for (Iterator<? extends Progress> it = ((CompositeProgress)request).getSubProgress().iterator(); it.hasNext();) {
 					Progress progress1 = it.next();
 					subprogresses.add(progress1);
 				}

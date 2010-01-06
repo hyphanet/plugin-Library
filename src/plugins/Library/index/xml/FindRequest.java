@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.Set;
 
 import plugins.Library.util.exec.AbstractExecution;
-import plugins.Library.util.exec.ChainedExecution;
+import plugins.Library.util.exec.ChainedProgress;
 import plugins.Library.util.exec.Execution;
 import plugins.Library.util.exec.Progress;
 import plugins.Library.util.exec.ProgressParts;
@@ -29,7 +29,7 @@ import plugins.Library.index.TermEntry;
  * eg a search for 1 term on 1 index. Only used for XMLIndex
  * @author MikeB
  */
-public class FindRequest extends AbstractExecution<Set<TermEntry>> implements Comparable<Execution>, ChainedExecution<Set<TermEntry>> {
+public class FindRequest extends AbstractExecution<Set<TermEntry>> implements Comparable<Execution>, ChainedProgress, Execution<Set<TermEntry>> {
 	private Set<TermPageEntry> resultnotfinished;
 	private SubProgress currentProgress;
 
