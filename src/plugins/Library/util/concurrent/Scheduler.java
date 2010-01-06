@@ -6,14 +6,12 @@ package plugins.Library.util.concurrent;
 /**
 ** An interface for a general class that accepts objects to be acted on.
 **
+** TODO NORM maybe just get rid of this since we now have ObjectProcessor, or
+** import its methods here?
+**
 ** @author infinity0
 */
 public interface Scheduler extends java.io.Closeable {
-
-	/**
-	** Whether objects are currently being acted on.
-	*/
-	public boolean isActive();
 
 	/**
 	** Stop accepting objects (but continue any started actions).

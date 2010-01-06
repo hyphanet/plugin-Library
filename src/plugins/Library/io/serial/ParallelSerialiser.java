@@ -4,11 +4,15 @@
 package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.concurrent.Scheduler;
+import plugins.Library.util.concurrent.ObjectProcessor;
+import plugins.Library.util.concurrent.Executors;
 import plugins.Library.util.exec.Progress;
 import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.exec.TaskInProgressException;
 import plugins.Library.util.exec.TaskCompleteException;
-import plugins.Library.util.concurrent.Scheduler;
+import plugins.Library.util.func.Tuples.$2;
+import static plugins.Library.util.func.Tuples.$2;
 
 import java.util.Iterator;
 import java.util.List;
@@ -48,9 +52,6 @@ implements IterableSerialiser<T>,
 
 	final protected ProgressTracker<T, P> tracker;
 
-	final protected PullTaskHandler pullHandler = new PullTaskHandler(exec);
-	final protected PushTaskHandler pushHandler = new PushTaskHandler(exec);
-
 	public ParallelSerialiser(ProgressTracker<T, P> k) {
 		if (k == null) {
 			throw new IllegalArgumentException("ParallelSerialiser must have a progress tracker.");
@@ -63,6 +64,81 @@ implements IterableSerialiser<T>,
 		return tracker;
 	}
 
+	protected <K extends Task> Runnable createJoinRunnable(final K task, final TaskInProgressException e, final BlockingQueue<$2<K, TaskAbortException>> out) {
+		return new Runnable() {
+			public void run() {
+				TaskAbortException ex;
+				try {
+					Progress p = e.getProgress();
+					p.join();
+					ex = new TaskCompleteException("Task complete: " + p.getSubject());
+				} catch (InterruptedException e) {
+					ex = new TaskAbortException("Progress join was interrupted", e, true);
+				} catch (TaskAbortException a) {
+					ex = a;
+				}
+				try { if (out != null) { out.put($2(task, ex)); } }
+				catch (InterruptedException e) { throw new UnsupportedOperationException(); }
+			}
+		};
+	}
+
+	/**
+	** DOCUMENT.
+	**
+	** If {@code out} is {@code null}, it is assumed that {@link Progress}
+	** objects are created by the thread that calls this method. Failure to do
+	** this '''will result in deadlock'''.
+	**
+	** Otherwise, this method will create {@link Progress} objects for each
+	** task. If they are created before this, '''deadlock will result''' as the
+	** handler waits for that progress to complete.
+	*/
+	protected Runnable createPullJob(final PullTask<T> task, final BlockingQueue<$2<PullTask<T>, TaskAbortException>> out) {
+		try {
+			final P prog = (out != null)? tracker.addPullProgress(task): tracker.getPullProgress(task);
+			return new Runnable() {
+				public void run() {
+					TaskAbortException ex = null;
+					try { pullLive(task, prog); }
+					catch (TaskAbortException e) { ex = e; }
+					try { if (out != null) { out.put($2(task, ex)); } }
+					catch (InterruptedException e) { throw new UnsupportedOperationException(); }
+				}
+			};
+		} catch (final TaskInProgressException e) {
+			return createJoinRunnable(task, e, out);
+		}
+	}
+
+	/**
+	** DOCUMENT.
+	**
+	** If {@code out} is {@code null}, it is assumed that {@link Progress}
+	** objects are created by the thread that calls this method. Failure to do
+	** this '''will result in deadlock'''.
+	**
+	** Otherwise, this method will create {@link Progress} objects for each
+	** task. If they are created before this, '''deadlock will result''' as the
+	** handler waits for that progress to complete.
+	*/
+	protected Runnable createPushJob(final PushTask<T> task, final BlockingQueue<$2<PushTask<T>, TaskAbortException>> out) {
+		try {
+			final P prog = (out != null)? tracker.addPushProgress(task): tracker.getPushProgress(task);
+			return new Runnable() {
+				public void run() {
+					TaskAbortException ex = null;
+					try { pushLive(task, prog); }
+					catch (TaskAbortException e) { ex = e; }
+					try { if (out != null) { out.put($2(task, ex)); } }
+					catch (InterruptedException e) { throw new UnsupportedOperationException(); }
+				}
+			};
+		} catch (final TaskInProgressException e) {
+			return createJoinRunnable(task, e, out);
+		}
+	}
+
 	/*========================================================================
 	  public interface IterableSerialiser
 	 ========================================================================*/
@@ -71,7 +147,7 @@ implements IterableSerialiser<T>,
 		try {
 			try {
 				P p = tracker.addPullProgress(task);
-				pullHandler.schedule(task);
+				exec.execute(createPullJob(task, null));
 				p.join();
 			} catch (TaskInProgressException e) {
 				throw e.join();
@@ -85,7 +161,7 @@ implements IterableSerialiser<T>,
 		try {
 			try {
 				P p = tracker.addPushProgress(task);
-				pushHandler.schedule(task);
+				exec.execute(createPushJob(task, null));
 				p.join();
 			} catch (TaskInProgressException e) {
 				throw e.join();
@@ -107,7 +183,7 @@ implements IterableSerialiser<T>,
 				PullTask<T> task = it.next();
 				try {
 					progs.add(tracker.addPullProgress(task));
-					pullHandler.schedule(task);
+					exec.execute(createPullJob(task, null));
 				} catch (TaskInProgressException e) {
 					it.remove();
 					progs.add(e.getProgress());
@@ -134,7 +210,7 @@ implements IterableSerialiser<T>,
 				PushTask<T> task = it.next();
 				try {
 					progs.add(tracker.addPushProgress(task));
-					pushHandler.schedule(task);
+					exec.execute(createPushJob(task, null));
 				} catch (TaskInProgressException e) {
 					it.remove();
 					progs.add(e.getProgress());
@@ -154,10 +230,16 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	/*@Override**/ public Scheduler pullSchedule(BlockingQueue<PullTask<T>> input,
-	                                        BlockingQueue<PullTask<T>> output,
-	                                        ConcurrentMap<PullTask<T>, TaskAbortException> error) {
-		return new PullTaskHandler(input, output, error);
+	/*@Override**/ public <E> ObjectProcessor<PullTask<T>, E, TaskAbortException> pullSchedule(
+		BlockingQueue<PullTask<T>> input,
+		BlockingQueue<$2<PullTask<T>, TaskAbortException>> output,
+		Map<PullTask<T>, E> deposit
+	) {
+		return new ObjectProcessor<PullTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR, true) {
+			@Override protected Runnable createJobFor(PullTask<T> task) {
+				return createPullJob(task, out);
+			}
+		};
 	}
 
 	/**
@@ -165,213 +247,16 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	/*@Override**/ public Scheduler pushSchedule(BlockingQueue<PushTask<T>> input,
-	                                        BlockingQueue<PushTask<T>> output,
-	                                        ConcurrentMap<PushTask<T>, TaskAbortException> error) {
-		return new PushTaskHandler(input, output, error);
-	}
-
-
-	/************************************************************************
-	** {@link Scheduler} that handles the tasks given to it. This is basically
-	** just a glorified wrapper around {@link ThreadPoolExecutor}.
-	**
-	** Instances of this class can use one of two modes of operation -
-	** {@linkplain #ParallelSerialiser.TaskHandler(ThreadPoolExecutor) serial}
-	** or {@linkplain #ParallelSerialiser.TaskHandler(BlockingQueue,
-	** BlockingQueue, ConcurrentMap, int) parallel}.
-	**
-	** TODO maybe code a serial mode that can support out and error queues.
-	**
-	** @author infinity0
-	*/
-	abstract public class TaskHandler<K extends Task> extends Thread implements Scheduler {
-
-		final protected BlockingQueue<K> in;
-		final protected BlockingQueue<K> out;
-		final protected ConcurrentMap<K, TaskAbortException> err;
-
-		final protected static int defaultMaxThreads = 0x10;
-		final protected ThreadPoolExecutor exec;
-
-		final protected boolean parallel;
-		volatile protected boolean running = true;
-
-		/**
-		** Creates a new handler using the given queues, with a newly-constructed
-		** {@link ThreadPoolExecutor} to execute them. A new thread will be started
-		** that listens on the input queue and calls {@link #schedule(Object)} on
-		** each task received. When no more items are to be added to the queue, this
-		** thread can be stopped with {@link #close()}.
-		**
-		** In this mode, the {@link Scheduler} will create {@link Progress} objects
-		** for each task as it is run. If they are created before this, deadlock
-		** will result as the handler tries to wait for that progress to complete.
-		**
-		** @param i The input queue
-		** @param o The output queue
-		** @param e The error map
-		** @param m Most threads the {@link ThreadPoolExecutor} will start
-		*/
-		public TaskHandler(BlockingQueue<K> i, BlockingQueue<K> o, ConcurrentMap<K, TaskAbortException> e, int m) {
-			if (i == null || o == null || e == null) {
-				throw new IllegalArgumentException("When running as a parallel service, all three queues must be non-null");
+	/*@Override**/ public <E> ObjectProcessor<PushTask<T>, E, TaskAbortException> pushSchedule(
+		BlockingQueue<PushTask<T>> input,
+		BlockingQueue<$2<PushTask<T>, TaskAbortException>> output,
+		Map<PushTask<T>, E> deposit
+	) {
+		return new ObjectProcessor<PushTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR, true) {
+			@Override protected Runnable createJobFor(PushTask<T> task) {
+				return createPushJob(task, out);
 			}
-			parallel = true;
-			in = i;
-			out = o;
-			err = e;
-			// this is the same as Executors.newFixedThreadPool(m), except that that has 0 timeout
-			exec = new ThreadPoolExecutor(
-				m, m, 1, TimeUnit.SECONDS,
-				new LinkedBlockingQueue<Runnable>(),
-				new ThreadPoolExecutor.CallerRunsPolicy()
-			);
-			start();
-		}
-
-		/**
-		** Creates a new handler which uses the given {@link ThreadPoolExecutor} to
-		** execute the tasks passed to it.
-		**
-		** In this mode, it is assumed that {@link Progress} objects are created by
-		** the thread that calls {@link #schedule(Object)}. '''Failure to do this
-		** will result in deadlock.'''
-		**
-		** @param e The {@link ThreadPoolExecutor} to handle task execution.
-		*/
-		public TaskHandler(ThreadPoolExecutor e) {
-			parallel = false;
-			in = out = null; err = null;
-			exec = e;
-		}
-
-		abstract public void handleTask(K task) throws TaskInProgressException;
-
-		// TODO could make this part of the Scheduler interface
-
-		public void schedule(final K task) {
-			try {
-				handleTask(task);
-			} catch (final TaskInProgressException e) {
-				exec.execute(new Runnable() {
-					public void run() {
-						try {
-							Progress p = e.getProgress();
-							p.join();
-							if (err != null) { err.put(task, new TaskCompleteException("Task complete: " + p.getSubject())); }
-						} catch (InterruptedException e) {
-							if (err != null) { err.put(task, new TaskAbortException("Progress join was interrupted", e, true)); }
-						} catch (TaskAbortException a) {
-							if (err != null) { err.put(task, a); }
-						}
-					}
-				});
-			}
-		}
-
-		// public class Thread
-
-		@Override public void run() {
-			if (!parallel) {
-				throw new IllegalStateException("This scheduler was not created as a parallel service. Use schedule() instead.");
-			}
-			try {
-				while (running) {
-					try {
-						final K task = in.take();
-						schedule(task);
-					} catch (InterruptedException e) {
-						continue;
-					}
-				}
-			} finally {
-				exec.shutdown();
-				try {
-					while (!exec.awaitTermination(1, TimeUnit.SECONDS));
-				} catch (InterruptedException e) { }
-			}
-		}
-
-		// public interface Scheduler
-
-		/*@Override**/ public void close() {
-			running = false;
-			interrupt();
-		}
-
-		/*@Override**/ public boolean isActive() {
-			// NOTE: this method is pointless when in serial mode
-			// URGENT verify this
-			return exec.getTaskCount() > exec.getCompletedTaskCount();
-		}
-
-		// public class Object
-
-		@Override public void finalize() {
-			close();
-		}
-
-	}
-
-	protected class PullTaskHandler extends TaskHandler<PullTask<T>> {
-
-		public PullTaskHandler(BlockingQueue<PullTask<T>> i, BlockingQueue<PullTask<T>> o, ConcurrentMap<PullTask<T>, TaskAbortException> e) {
-			super(i, o, e, defaultMaxThreads);
-		}
-
-		public PullTaskHandler(ThreadPoolExecutor e) {
-			super(e);
-		}
-
-		@Override public void handleTask(final PullTask<T> task) throws TaskInProgressException {
-			// if not parallel then we assume the caller has made the progress object
-			// DOCUMENT THIS MORE THOROUGHLY
-			final P prog = (parallel)? tracker.addPullProgress(task):
-			                           tracker.getPullProgress(task);
-			exec.execute(new Runnable() {
-				public void run() {
-					try {
-						pullLive(task, prog);
-						if (parallel) { out.put(task); }
-					} catch (InterruptedException e) {
-						if (parallel) { err.put(task, new TaskAbortException("Task pull was interrupted", e, true)); }
-					} catch (TaskAbortException e) {
-						if (parallel) { err.put(task, e); }
-					}
-				}
-			});
-		}
-	}
-
-	protected class PushTaskHandler extends TaskHandler<PushTask<T>> {
-
-		public PushTaskHandler(BlockingQueue<PushTask<T>> i, BlockingQueue<PushTask<T>> o, ConcurrentMap<PushTask<T>, TaskAbortException> e) {
-			super(i, o, e, defaultMaxThreads);
-		}
-
-		public PushTaskHandler(ThreadPoolExecutor e) {
-			super(e);
-		}
-
-		@Override public void handleTask(final PushTask<T> task) throws TaskInProgressException {
-			// if not parallel then we assume the caller has made the progress object
-			// DOCUMENT THIS MORE THOROUGHLY
-			final P prog = (parallel)? tracker.addPushProgress(task):
-			                           tracker.getPushProgress(task);
-			exec.execute(new Runnable() {
-				public void run() {
-					try {
-						pushLive(task, prog);
-						if (parallel) { out.put(task); }
-					} catch (InterruptedException e) {
-						if (parallel) { err.put(task, new TaskAbortException("Task push was interrupted", e, true)); }
-					} catch (TaskAbortException e) {
-						if (parallel) { err.put(task, e); }
-					}
-				}
-			});
-		}
+		};
 	}
 
 }

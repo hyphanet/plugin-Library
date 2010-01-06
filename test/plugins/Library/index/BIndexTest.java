@@ -23,8 +23,8 @@ import java.io.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 0;
-	final public static int it_partial = 0;
+	final public static int it_basic = 2;
+	final public static int it_partial = 2;
 	final public static boolean disabled_progress = true;
 
 	static {
@@ -105,10 +105,7 @@ public class BIndexTest extends TestCase {
 		idx = task2.data;
 
 		idx.ttab.inflate();
-		assertTrue(idx.ttab.isLive()); // PRIORITY This has been observed to fail; fix it
-		// hard to reproduce; in the few times this has occurred, debugging code revealed
-		// that the root SkeletonNode was bare (all ghost subnodes) even after inflate()
-		// was just called on it...
+		assertTrue(idx.ttab.isLive());
 		assertFalse(idx.ttab.isBare());
 		System.out.print("inflated in " + timeDiff() + " ms, ");
 

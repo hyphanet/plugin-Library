@@ -2,31 +2,28 @@
 
 == Schedule ==
 
-- implement interdex algorithm
-- implement filters 2 days
-- implement WriteableIndex and commit algorithms 4-6 days
-- implement crawler...
-
+- implement filters
+- design WriteableIndex
 
 == Documentation of Quirks and Stuff That Future Programmers Must Know ==
 
 - PRIORITY document TaskComplete handling...
-- PRIORITY document SkeletonBTreeMap reliance on isLeaf() and nodeSize() being
-  called in the correct places.
 
 == Serialisation ==
+
+- OPTIMISE HIGH have the MapCollectionTranslators generate map VIEWS of data
 
 - PRIORITY make getIndex() unblocking
   - use LiveArchiver for index root serialiser
   - use SnoopMetadata
-- FIXME fix the race condition in SkeletonBTreeMap.inflate()
-  - essentially, ParallelSerialiser.TaskHandler.isActive() will return false if
-    nothing has started yet.
-- PRIORITY better USK support for the FreenetArchiver, both insert and request
+
+- better USK support for the FreenetArchiver, both insert and request
+- make an extension of FreenetArchiver that saves a local copy of a CHK,
+  and tries to load from it next time
 
 - OPTIMISE should have a better format than having BinInfo point to a top-level CHK
   - use MHK or have metadata directly in the parent node (latter reduces node fan-out to 400-500 max)
-- OPTIMISE use B+-trees instead of B-trees
+- OPTIMISE LOW use B+-trees instead of B-trees
 
 == Resource usage ==
 
@@ -38,46 +35,46 @@
   ConcurrentModificationException, deal with this!
 - FIXME wrap saved TaskAbortExceptions when we throw them again, so we get the right stack traces
   - maybe new class "TaskAbortedException"? too confusing?
+  - to find these, search for "throw e", "throw p" or something that's not "throw new"
 - TODO verify the synchronization of SimpleProgress, and BaseCompositeProgress...
   - although maybe unnecessary since these should all be single-writer multi-reader
     (and the reads are not critical)?
 
 == Index ==
 
-- URGENT start doing a WriteableIndex and make the ttab protected again.
+- PRIORITY start doing a WriteableIndex and make the ttab protected again.
 - PRIORITY adapt SkeletonBTreeMap.inflate() to work for a submap range too. see
   that class for more details.
-- TODO index: "suggested tokens" - suggest what other people should tag this
-  index as; they are free to ignore this suggestion (very low priority for now)
 
+- LOW index: "suggested tokens" - suggest what other people should tag this
+  index as; they are free to ignore this suggestion
 - OPTIMISE make SortedArraySet mutable and into a map, so we can use it instead of TreeMap in BTreeMap.Node
 
 == TermEntry / URIEntry ==
 
-- PRIORITY (fred-staging) make FreenetURI Comparable so we can use that instead of
+- (fred-staging) make FreenetURI Comparable so we can use that instead of
   toString().compareTo() in the TermEntry comparisons
-- PRIORITY decide whether URIKeys are really necessary...
-- TODO there should be only one entry per URI per Token (enforce this in the code at some point)
+- decide whether URIKeys are really necessary...
+- LOW there should be only one entry per URI per Token (enforce this in the code at some point)
 
 == Serialisation ==
 
-- OPTIMISE have the MapCollectionTranslators generate map VIEWS of data
-- TODO maybe have deflate/inflate throw a different checked exception from
+- LOW maybe have deflate/inflate throw a different checked exception from
   TaskAbortException, forcing them to handle the TaskAbortException thrown by
   pull/push?
 
 == Packaging structure ==
 
-- TODO get rid of unnecessary Prefix* files
-- TODO restructure the Serialiser.* stuff
-- TODO Skeleton/SkeletonMap is does what we need for now, but might able to be generalised a bit
+- get rid of unnecessary Prefix* files
+- restructure the Serialiser.* stuff
+- LOW Skeleton/SkeletonMap does what we need for now, but might able to be generalised a bit
 
 == Misc ==
 
-- TODO use markdown-doclet instead of bliki-doclet
+- LOW use markdown-doclet instead of bliki-doclet
   - not yet - MarkdownJ has bugs relating to parsing of uppercase HTML tags,
     which Std Java Doclet generates, unfortunately :/
-- TODO make build.xml output test results better... atm either it has two modes:
+- LOW make build.xml output test results better... atm either it has two modes:
   - print test stdout output out in real time, but not stderr
   - print stdout and stderr in a single go after the test is over :/
 

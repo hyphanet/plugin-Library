@@ -7,7 +7,7 @@ import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 /**
-** Various integer methods
+** Various integer methods.
 **
 ** @author infinity0
 */

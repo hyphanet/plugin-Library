@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 
-// URGENT tidy this
+// FIXME tidy this
 import java.util.Queue;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -39,12 +39,30 @@ import plugins.Library.io.serial.ProgressTracker;
 import plugins.Library.util.exec.TaskCompleteException;
 import plugins.Library.util.concurrent.Scheduler;
 
+import java.util.Collections;
+import java.util.SortedSet;
+import java.util.SortedMap;
+import java.util.TreeSet;
+import java.util.TreeMap;
+import java.util.HashMap;
+import plugins.Library.util.Sorted;
+import plugins.Library.util.concurrent.ObjectProcessor;
+import plugins.Library.util.concurrent.Executors;
+import plugins.Library.util.event.TrackingSweeper;
+import plugins.Library.util.event.CountingSweeper;
+import plugins.Library.util.func.Closure;
+import plugins.Library.util.func.SafeClosure;
+import static plugins.Library.util.Maps.$K;
+
 /**
 ** {@link Skeleton} of a {@link BTreeMap}. DOCUMENT
 **
 ** TODO get rid of uses of rnode.get(K). All other uses of rnode, as well as
 ** lnode and entries, have already been removed. This will allow us to
 ** re-implement the Node class.
+**
+** To the maintainer: this class is very very unstructured and a lot of the
+** functionality should be split off elsewhere. Feel free to move stuff around.
 **
 ** @author infinity0
 */
@@ -116,6 +134,24 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		vsrl = v;
 		((SkeletonNode)root).setSerialiser();
 	}
+
+	final public Comparator<PullTask<SkeletonNode>> CMP_PULL = new Comparator<PullTask<SkeletonNode>>() {
+		/*@Override**/ public int compare(PullTask<SkeletonNode> t1, PullTask<SkeletonNode> t2) {
+			return ((GhostNode)t1.meta).compareTo((GhostNode)t2.meta);
+		}
+	};
+
+	final public Comparator<PushTask<SkeletonNode>> CMP_PUSH = new Comparator<PushTask<SkeletonNode>>() {
+		/*@Override**/ public int compare(PushTask<SkeletonNode> t1, PushTask<SkeletonNode> t2) {
+			return t1.data.compareTo(t2.data);
+		}
+	};
+
+	final public Comparator<Map.Entry<K, V>> CMP_ENTRY = new Comparator<Map.Entry<K, V>>() {
+		/*@Override**/ public int compare(Map.Entry<K, V> t1, Map.Entry<K, V> t2) {
+			return SkeletonBTreeMap.this.compare(t1.getKey(), t2.getKey());
+		}
+	};
 
 	public class SkeletonNode extends Node implements Skeleton<K, IterableSerialiser<SkeletonNode>> {
 
@@ -297,7 +333,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			} catch (RuntimeException e) {
 				throw new TaskAbortException("Could not deflate BTreeMap Node " + node.getRange(), e);
 			}
-
 		}
 
 		/**
@@ -316,16 +351,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(node);
 			try {
 				nsrl.pull(task);
-
-				if (!compare0(node.lkey, task.data.lkey) || !compare0(node.rkey, task.data.rkey)) {
-					throw new DataFormatException("BTreeMap Node lkey/rkey does not match", null, task.data);
-				}
-
-				attachSkeleton(task.data);
-
-				if (auto) {
-					task.data.inflate();
-				}
+				postPullTask(task, this);
+				if (auto) { task.data.inflate(); }
 
 			} catch (TaskCompleteException e) {
 				assert(!node.isGhost());
@@ -340,7 +367,17 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	public class GhostNode extends Node {
 
+		/**
+		** Points to the parent {@link SkeletonNode}.
+		**
+		** Maintaining this field's value is a bitch, so I've tried to remove uses
+		** of this from the code. Currently, it is only used for the parent field
+		** a {@link DataFormatException}, which lets us retrieve the serialiser,
+		** progress, etc etc etc. TODO somehow find another way of doing that so
+		** we can get rid of it completely.
+		*/
 		protected SkeletonNode parent;
+
 		protected Object meta;
 
 		protected GhostNode(K lk, K rk, SkeletonNode p, int s) {
@@ -398,6 +435,38 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		super(node_min);
 	}
 
+	/**
+	** Post-processes a {@link PullTask} and returns the {@link SkeletonNode}
+	** pulled.
+	**
+	** The tree will be in a consistent state after the operation, if it was
+	** in a consistent state before it.
+	*/
+	protected SkeletonNode postPullTask(PullTask<SkeletonNode> task, SkeletonNode parent) throws DataFormatException {
+		SkeletonNode node = task.data;
+		GhostNode ghost = (GhostNode)task.meta;
+		if (!compare0(ghost.lkey, node.lkey) || !compare0(ghost.rkey, node.rkey)) {
+			throw new DataFormatException("BTreeMap Node lkey/rkey does not match", null, node);
+		}
+
+		parent.attachSkeleton(node);
+		return node;
+	}
+
+	/**
+	** Post-processes a {@link PushTask} and returns the {@link GhostNode}
+	** pushed.
+	**
+	** The tree will be in a consistent state after the operation, if it was
+	** in a consistent state before it.
+	*/
+	protected GhostNode postPushTask(PushTask<SkeletonNode> task, SkeletonNode parent) {
+		// TODO getting rid of the "parent" parameter would be so much cleaner...
+		GhostNode ghost = (GhostNode)task.meta;
+		parent.attachGhost(ghost);
+		return ghost;
+	}
+
 	@Override protected Node newNode(K lk, K rk, boolean lf) {
 		return new SkeletonNode(lk, rk, lf);
 	}
@@ -424,11 +493,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		((SkeletonNode)root).deflate();
 	}
 
-	// URGENT tidy this; this should proboably go in a serialiser
+	// FIXME tidy this; this should proboably go in a serialiser
 	// and then we will access the Progress of a submap with a task whose
 	// metadata is (lkey, rkey), or something..(PROGRESS)
-	BaseCompositeProgress ppp = new BaseCompositeProgress();
-	public BaseCompositeProgress getPPP() { return ppp; } // REMOVE ME
+	BaseCompositeProgress pr_inf = new BaseCompositeProgress();
+	public BaseCompositeProgress getProgressInflate() { return pr_inf; } // REMOVE ME
+	/**
+	** Parallel bulk-inflate. FIXME not yet thread safe, but ideally it should
+	** be. See source for details.
+	*/
 	/*@Override**/ public void inflate() throws TaskAbortException {
 
 		// TODO adapt the algorithm to track partial loads of submaps (SUBMAP)
@@ -443,76 +516,64 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return;
 		}
 
-		Queue<SkeletonNode> nodequeue = new PriorityQueue<SkeletonNode>();
-		BlockingQueue<PullTask<SkeletonNode>> tasks = new LinkedBlockingQueue<PullTask<SkeletonNode>>(0x10);
-		BlockingQueue<PullTask<SkeletonNode>> inflated = new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10,
-			new Comparator<PullTask<SkeletonNode>>() {
-				/*@Override**/ public int compare(PullTask<SkeletonNode> t1, PullTask<SkeletonNode> t2) {
-					return t1.data.compareTo(t2.data);
-				}
-			}
-		);
-		ConcurrentMap<PullTask<SkeletonNode>, TaskAbortException> error = new ConcurrentHashMap<PullTask<SkeletonNode>, TaskAbortException>();
+		final Queue<SkeletonNode> nodequeue = new PriorityQueue<SkeletonNode>();
 
 		Map<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ?>> ids = null;
 		ProgressTracker<SkeletonNode, ?> ntracker = null;;
 
 		if (nsrl instanceof Serialiser.Trackable) {
 			ids = new LinkedHashMap<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ?>>();
-			ntracker = ((Serialiser.Trackable)nsrl).getTracker();
-			// PROGRESS make a ProgressTracker track this instead of "ppp".
-			ppp.setSubProgress(ProgressTracker.makePullProgressIterable(ids));
-			ppp.setSubject("Pulling all entries in B-tree");
+			ntracker = ((Serialiser.Trackable<SkeletonNode>)nsrl).getTracker();
+			// PROGRESS make a ProgressTracker track this instead of "pr_inf".
+			pr_inf.setSubProgress(ProgressTracker.makePullProgressIterable(ids));
+			pr_inf.setSubject("Pulling all entries in B-tree");
 		}
 
-		Scheduler pool = ((ScheduledSerialiser)nsrl).pullSchedule(tasks, inflated, error);
+		final ObjectProcessor<PullTask<SkeletonNode>, SkeletonNode, TaskAbortException> proc_pull
+		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
+			new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL),
+			new LinkedBlockingQueue<$2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
+			new HashMap<PullTask<SkeletonNode>, SkeletonNode>()
+		);
 		//System.out.println("Using scheduler");
 		//int DEBUG_pushed = 0, DEBUG_popped = 0;
 
 		try {
 			nodequeue.add((SkeletonNode)root);
 
-			do {
+			// FIXME make a copy of the deflated root so that we can restore it if the
+			// operation fails
 
-				for (Map.Entry<PullTask<SkeletonNode>, TaskAbortException> en: error.entrySet()) {
-					assert(!(en.getValue() instanceof plugins.Library.util.exec.TaskInProgressException)); // by contract of ScheduledSerialiser
-					if (!(en.getValue() instanceof TaskCompleteException)) {
-						// TODO maybe dump it somewhere else and throw it at the end...
-						throw en.getValue();
-					} else {
+			do {
+				//System.out.println("pushed: " + DEBUG_pushed + "; popped: " + DEBUG_popped);
+
+				// handle the inflated tasks and attach them to the tree.
+				// THREAD progress tracker should prevent this from being run twice for the
+				// same node, but what if we didn't use a progress tracker? hmm...
+				while (proc_pull.hasCompleted()) {
+					$3<PullTask<SkeletonNode>, SkeletonNode, TaskAbortException> res = proc_pull.accept();
+					PullTask<SkeletonNode> task = res._0;
+					SkeletonNode parent = res._1;
+					TaskAbortException ex = res._2;
+					if (ex != null) {
+						assert(!(ex instanceof plugins.Library.util.exec.TaskInProgressException)); // by contract of ScheduledSerialiser
+						if (!(ex instanceof TaskCompleteException)) {
+							// TODO maybe dump it somewhere else and throw it at the end...
+							throw ex;
+						}
 						// retrieve the inflated SkeletonNode and add it to the queue...
-						GhostNode ghost = (GhostNode)en.getKey().meta;
-						SkeletonNode parent = ghost.parent;
+						GhostNode ghost = (GhostNode)task.meta;
 						// THREAD race condition here... if another thread has inflated the task
 						// but not yet attached the inflated node to the tree, the assertion fails.
 						// could check to see if the Progress for the Task still exists, but the
 						// performance of this depends on the GC freeing weak referents quickly...
 						assert(!parent.rnodes.get(ghost.lkey).isGhost());
 						nodequeue.add((SkeletonNode)parent.rnodes.get(ghost.lkey));
-						//++DEBUG_popped; // not actually popped off the map, but we've "taken care" of it
+					} else {
+						SkeletonNode node = postPullTask(task, parent);
+						nodequeue.add(node);
 					}
-				}
-
-				// handle the inflated tasks and attach them to the tree.
-				while (!inflated.isEmpty()) {
-					// THREAD progress tracker should prevent this from being run twice for the
-					// same node, but what if we didn't use a progress tracker? hmm...
-
-					// try until one pops, or we are done
-					final PullTask<SkeletonNode> task = inflated.poll(1, TimeUnit.SECONDS);
-					if (task == null) { continue; }
 					//++DEBUG_popped;
-
-					SkeletonNode node = task.data;
-					GhostNode ghost = (GhostNode)task.meta;
-					SkeletonNode parent = ghost.parent;
-
-					// attach task data into the parent
-					if (!compare0(ghost.lkey, node.lkey) || !compare0(ghost.rkey, node.rkey)) {
-						throw new DataFormatException("BTreeMap Node lkey/rkey does not match", null, task.data);
-					}
-					parent.attachSkeleton(node);
-					nodequeue.add(node);
 				}
 
 				// go through the nodequeue and add any child ghost nodes to the tasks queue
@@ -521,7 +582,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					((SkeletonTreeMap<K, V>)node.entries).inflate(); // SUBMAP here
 
 					if (node.isLeaf()) { continue; }
-					// add any ghost nodes to the task queue
 					for (Node next: node.iterNodes()) { // SUBMAP here
 						if (!next.isGhost()) {
 							SkeletonNode skel = (SkeletonNode)next;
@@ -530,24 +590,22 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						}
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>((GhostNode)next);
 						if (ids != null) { ids.put(task, ntracker); }
-						tasks.put(task);
+						ObjectProcessor.submitSafe(proc_pull, task, node);
 						//++DEBUG_pushed;
 					}
 				}
 
-				// nodequeue is empty, but tasks may have inflated in the meantime
+				Thread.sleep(1000);
+			} while (proc_pull.hasPending());
 
-			// URGENT there maybe is a race condition here... see BIndexTest.fullInflate() for details
-			} while (pool.isActive() || !tasks.isEmpty() || !inflated.isEmpty() || !error.isEmpty());
-
-			ppp.setEstimate(ProgressParts.TOTAL_FINALIZED);
+			pr_inf.setEstimate(ProgressParts.TOTAL_FINALIZED);
 
 		} catch (DataFormatException e) {
 			throw new TaskAbortException("Bad data format", e);
 		} catch (InterruptedException e) {
 			throw new TaskAbortException("interrupted", e);
 		} finally {
-			pool.close();
+			proc_pull.close();
 			//System.out.println("pushed: " + DEBUG_pushed + "; popped: " + DEBUG_popped);
 			//assert(DEBUG_pushed == DEBUG_popped);
 		}
@@ -571,6 +629,444 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			} catch (DataNotLoadedException e) {
 				e.getParent().inflate(e.getKey());
 			}
+		}
+	}
+
+	/**
+	** @param putmap Entries to insert into this map
+	** @param remkey Keys to remove from this map
+	** @see #update(SortedSet, SortedSet, SortedMap, SafeClosure)
+	*/
+	public void update(SortedMap<K, V> putmap, SortedSet<K> remkey) throws TaskAbortException {
+		update(null, remkey, putmap, null);
+	}
+
+	/**
+	** @param putkey Keys to insert into this map
+	** @param remkey Keys to remove from this map
+	** @param value_handler Closure to retrieve the value for each putkey
+	** @see #update(SortedSet, SortedSet, SortedMap, SafeClosure)
+	*/
+	public <X extends Exception> void update(SortedSet<K> putkey, SortedSet<K> remkey, Closure<Map.Entry<K, V>, X> value_handler) throws TaskAbortException {
+		update(putkey, remkey, value_handler);
+	}
+
+	/**
+	** Asynchronously updates a remote B-tree. This uses two-pass merge/split
+	** algorithms (as opposed to the one-pass algorithms of the standard {@link
+	** BTreeMap}) since it assumes a copy-on-write backing data store, where
+	** the advantages (concurrency, etc) of one-pass algorithms disappear, and
+	** the disadvantages (unneeded merges/splits) remain.
+	**
+	** Unlike the (ideal design goal of the) inflate/deflate methods, this is
+	** designed to support accept only one concurrent update. It is up to the
+	** caller to ensure that this holds. TODO maybe make this synchronized?
+	**
+	** TODO currently, this method assumes that the root.isBare().
+	**
+	** Note: {@code remkey} is not implemented yet.
+	**
+	** @throws UnsupportedOperationException if {@code remkey} is not empty
+	*/
+	protected <X extends Exception> void update(
+		SortedSet<K> putkey, SortedSet<K> remkey,
+		final SortedMap<K, V> putmap, Closure<Map.Entry<K, V>, X> value_handler
+	) throws TaskAbortException {
+
+		if (value_handler == null) {
+			// synchronous value callback - null, remkey, putmap, null
+			assert(putkey == null);
+			putkey = Sorted.keySet(putmap);
+		} else {
+			// asynchronous value callback - putkey, remkey, null, closure
+			assert(putmap == null);
+		}
+
+		if (remkey != null && !remkey.isEmpty()) {
+			throw new UnsupportedOperationException("SkeletonBTreeMap: update() currently only supports merge operations");
+		}
+
+		/*
+		** The code below might seem confusing at first, because the action of
+		** the algorithm on a single node is split up into several asynchronous
+		** parts, which are not visually adjacent. Here is a more contiguous
+		** description of what happens to a single node between being inflated
+		** and then eventually deflated.
+		**
+		** Life cycle of a node:
+		**
+		** - node gets popped from inflated
+		** - enter InflateChildNodes
+		**   - subnodes get pushed into proc_pull
+		**   - (recurse for each subnode)
+		**     - subnode gets popped from proc_pull
+		**     - etc
+		**     - split-subnodes get pushed into proc_push
+		** - wait for all: split-subnodes get popped from proc_push
+		** - enter SplitNode
+		**   - for each item in the original node's DeflateNode
+		**     - release the item and acquire it on
+		**       - the parent's DeflateNode if the item is a separator
+		**       - a new DeflateNode if the item is now in a split-node
+		** - for each split-node:
+		**   - wait for all: values get popped from proc_val; SplitNode to close()
+		**   - enter DeflateNode
+		**     - split-node gets pushed into push_queue (except for root)
+		**
+		*/
+
+		final ObjectProcessor<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> proc_pull
+		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
+			new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL),
+			new LinkedBlockingQueue<$2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
+			new HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>()
+		);
+
+		final ObjectProcessor<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> proc_push
+		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pushSchedule(
+			new PriorityBlockingQueue<PushTask<SkeletonNode>>(0x10, CMP_PUSH),
+			new LinkedBlockingQueue<$2<PushTask<SkeletonNode>, TaskAbortException>>(0x10),
+			new HashMap<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>>()
+		);
+
+		/**
+		** Deposit for a value-retrieval operation
+		*/
+		class DeflateNode extends TrackingSweeper<K, SortedSet<K>> implements Runnable, SafeClosure<Map.Entry<K, V>> {
+
+			final SkeletonNode node;
+			final CountingSweeper<SkeletonNode> parNClo;
+
+			protected DeflateNode(SkeletonNode n, CountingSweeper<SkeletonNode> pnc) {
+				super(true, true, new TreeSet<K>(), null);
+				parNClo = pnc;
+				node = n;
+			}
+
+			/**
+			** Push this node. This is run when this sweeper is cleared, which
+			** happens after all the node's local values have been obtained,
+			** '''and''' the node has passed through SplitNode (which closes
+			** this sweeper).
+			*/
+			public void run() {
+				if (parNClo == null) {
+					// do not deflate the root
+					assert(node == root);
+					return;
+				}
+				ObjectProcessor.submitSafe(proc_push, new PushTask<SkeletonNode>(node), parNClo);
+			}
+
+			/**
+			** Update the key's value in the node. Runs whenever an entry is
+			** popped from proc_val.
+			*/
+			public void invoke(Map.Entry<K, V> en) {
+				assert(node.entries.containsKey(en.getKey()));
+				node.entries.put(en.getKey(), en.getValue());
+			}
+
+		}
+
+		// must be located after DeflateNode's class definition
+		final ObjectProcessor<Map.Entry<K, V>, DeflateNode, X> proc_val = (value_handler == null)? null
+		: new ObjectProcessor<Map.Entry<K, V>, DeflateNode, X>(
+			new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
+			new LinkedBlockingQueue<$2<Map.Entry<K, V>, X>>(),
+			new HashMap<Map.Entry<K, V>, DeflateNode>(),
+			value_handler, Executors.DEFAULT_EXECUTOR, true
+		);
+
+		// Dummy constant for SplitNode
+		final SortedMap<K, V> EMPTY_SORTEDMAP = new TreeMap<K, V>();
+
+		/**
+		** Deposit for a PushTask
+		*/
+		class SplitNode extends CountingSweeper<SkeletonNode> implements Runnable {
+
+			final SkeletonNode node;
+			/*final*/ SkeletonNode parent;
+			final DeflateNode nodeVClo;
+			/*final*/ SplitNode parNClo;
+			/*final*/ DeflateNode parVClo;
+
+			protected SplitNode(SkeletonNode n, SkeletonNode p, DeflateNode vc, SplitNode pnc, DeflateNode pvc) {
+				super(true, false);
+				node = n;
+				parent = p;
+				nodeVClo = vc;
+				parNClo = pnc;
+				parVClo = pvc;
+			}
+
+			/**
+			** Closes the node's DeflateNode, and (if appropriate) splits the
+			** node and updates the deposits for each key moved. This is run
+			** after all its children have been deflated.
+			*/
+			public void run() {
+
+				// All subnodes have been deflated, so nothing else can possibly add keys
+				// to this node.
+				nodeVClo.close();
+
+				int sk = minKeysFor(node.nodeSize());
+				// No need to split
+				if (sk == 0) {
+					if (nodeVClo.isCleared()) { nodeVClo.run(); }
+					return;
+				}
+
+				if (parent == null) {
+					assert(parNClo == null && parVClo == null);
+					// create a new parent, parNClo, parVClo
+					// similar stuff as for InflateChildNodes but no merging
+					parent = new SkeletonNode(null, null, false);
+					parent.addAll(EMPTY_SORTEDMAP, Collections.singleton(node));
+					parVClo = new DeflateNode(parent, null);
+					parNClo = new SplitNode(parent, null, parVClo, null, null);
+					parNClo.acquire(node);
+					parNClo.close();
+					root = parent;
+					size = root.totalSize();
+				}
+
+				Collection<K> keys = Sorted.select(Sorted.keySet(node.entries), sk);
+				parent.split(node.lkey, keys, node.rkey);
+				Iterable<Node> nodes = parent.iterNodes(node.lkey, node.rkey);
+
+				SortedSet<K> held = nodeVClo.view();
+				// if synchronous, all values should have already been handled
+				assert(proc_val != null || held.size() == 0);
+
+				// reassign appropriate keys to parent sweeper
+				for (K key: keys) {
+					if (!held.contains(key)) { continue; }
+					reassignKeyToSweeper(key, parVClo);
+				}
+
+				parNClo.open();
+
+				// for each split-node, create a sweeper that will run when all its (k,v)
+				// pairs have been popped from value_complete
+				for (Node nn: nodes) {
+					SkeletonNode n = (SkeletonNode)nn;
+					DeflateNode vClo = new DeflateNode(n, parNClo);
+
+					// reassign appropriate keys to the split-node's sweeper
+					assert(compareL(n.lkey, held.subSet(n.lkey, n.rkey).first()) < 0);
+					for (K key: BTreeMap.subSet(held, n.lkey, n.rkey)) {
+						reassignKeyToSweeper(key, vClo);
+					}
+					vClo.close();
+					if (vClo.isCleared()) { vClo.run(); } // if no keys were added
+
+					parNClo.acquire(n);
+				}
+
+				// original (unsplit) node had a ticket on the parNClo sweeper, release it
+				parNClo.release(node);
+
+				parNClo.close();
+				assert(!parNClo.isCleared()); // we always have at least one node to deflate
+			}
+
+			/**
+			** When we move a key to another node (eg. to the parent, or to a new node
+			** resulting from the split), we must deassign it from the original node's
+			** sweeper and reassign it to the sweeper for the new node.
+			**
+			** NOTE: if the overall co-ordinator algorithm is ever made concurrent,
+			** this section MUST be made atomic
+			**
+			** @param key The key
+			** @param clo The sweeper to reassign the key to
+			*/
+			private void reassignKeyToSweeper(K key, DeflateNode clo) {
+				clo.acquire(key);
+				//assert(((UpdateValue)value_closures.get(key)).node == node);
+				proc_val.update($K(key, (V)null), clo);
+				// nodeVClo.release(key);
+				// this is unnecessary since nodeVClo() will only be used if we did not
+				// split its node (and never called this method)
+			}
+
+		}
+
+		/**
+		** Deposit for a PullTask
+		*/
+		class InflateChildNodes implements SafeClosure<SkeletonNode> {
+
+			final SkeletonNode parent;
+			final SortedSet<K> putkey;
+			final SplitNode parNClo;
+			final DeflateNode parVClo;
+
+			protected InflateChildNodes(SkeletonNode p, SortedSet<K> ki, SplitNode pnc, DeflateNode pvc) {
+				parent = p;
+				putkey = ki;
+				parNClo = pnc;
+				parVClo = pvc;
+			}
+
+			protected InflateChildNodes(SortedSet<K> ki) {
+				this(null, ki, null, null);
+			}
+
+			/**
+			** Merge the relevant parts of the map into the node, and inflate its
+			** children. Runs whenever a node is popped from proc_pull.
+			*/
+			public void invoke(SkeletonNode node) {
+				assert(compareL(node.lkey, putkey.first()) < 0);
+				assert(compareR(putkey.last(), node.rkey) < 0);
+
+				// closure to be called when all local values have been obtained
+				DeflateNode vClo = new DeflateNode(node, parNClo);
+
+				// closure to be called when all subnodes have been handled
+				SplitNode nClo = new SplitNode(node, parent, vClo, parNClo, parVClo);
+
+				// invalidate every totalSize cache directly after we inflate it
+				node._size = -1;
+
+				// OPTIMISE LOW if putkey is empty then skip
+
+				// each key in putkey is either added to the local entries, or delegated to
+				// the the relevant child node.
+				if (node.isLeaf()) {
+					// add all keys into the node, since there are no children.
+
+					if (proc_val == null) {
+						// OPTIMISE: could use a splice-merge here. for TreeMap, there is not an
+						// easy way of doing this, nor will it likely make a lot of a difference.
+						// however, if we re-implement SkeletonNode, this might become relevant.
+						for (K key: putkey) { node.entries.put(key, putmap.get(key)); }
+					} else {
+						for (K key: putkey) { handleLocalPut(node, key, vClo); }
+					}
+
+				} else {
+					// only add keys that already exist locally in the node. other keys
+					// are delegated to the relevant child node.
+
+					SortedSet<K> fkey = new TreeSet<K>();
+					Iterable<SortedSet<K>> range = Sorted.split(putkey, Sorted.keySet(node.entries), fkey);
+
+					if (proc_val == null) {
+						for (K key: fkey) { node.entries.put(key, putmap.get(key)); }
+					} else {
+						for (K key: fkey) { handleLocalPut(node, key, vClo); }
+					}
+
+					for (SortedSet<K> rng: range) {
+						SkeletonNode n = (SkeletonNode)node.selectNode(rng.first());
+						assert(n.isGhost());
+						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(n);
+
+						nClo.acquire(n);
+						ObjectProcessor.submitSafe(proc_pull, task, new InflateChildNodes(node, rng, nClo, vClo));
+					}
+				}
+
+				nClo.close();
+				if (nClo.isCleared()) { nClo.run(); } // eg. if no child nodes need to be modified
+			}
+
+			/**
+			** Handle a planned local put to the node.
+			**
+			** Keys added locally have their values set to null. These will be updated
+			** with the correct values via UpdateValue, when the value-getter completes
+			** its operation on the key. We add the keys now, **before** the value is
+			** obtained, so that SplitNode can work out how to split the node as early
+			** as possible.
+			**
+			** @param n The node to put the key into
+			** @param key The key
+			** @param vClo The sweeper that tracks if the key's value has been obtained
+			*/
+			private void handleLocalPut(SkeletonNode n, K key, DeflateNode vClo) {
+				V oldval = n.entries.put(key, null);
+				vClo.acquire(key);
+				ObjectProcessor.submitSafe(proc_val, $K(key, oldval), vClo);
+			}
+
+			private void handleLocalRemove(SkeletonNode n, K key, TrackingSweeper<K, SortedSet<K>> vClo) {
+				throw new UnsupportedOperationException("not implemented");
+			}
+
+		}
+
+		try {
+
+			(new InflateChildNodes(putkey)).invoke((SkeletonNode)root);
+
+			// FIXME make a copy of the deflated root so that we can restore it if the
+			// operation fails
+
+			do {
+
+				while (proc_pull.hasCompleted()) {
+					$3<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> res = proc_pull.accept();
+					PullTask<SkeletonNode> task = res._0;
+					SafeClosure<SkeletonNode> clo = res._1;
+					TaskAbortException ex = res._2;
+					if (ex != null) {
+						// FIXME HIGH
+						throw new UnsupportedOperationException("SkeletonBTreeMap.update(): PullTask aborted; handler not implemented yet", ex);
+					}
+
+					SkeletonNode node = postPullTask(task, ((InflateChildNodes)clo).parent);
+					clo.invoke(node);
+				}
+
+				while (proc_push.hasCompleted()) {
+					$3<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> res = proc_push.accept();
+					PushTask<SkeletonNode> task = res._0;
+					CountingSweeper<SkeletonNode> sw = res._1;
+					TaskAbortException ex = res._2;
+					if (ex != null) {
+						// FIXME HIGH
+						throw new UnsupportedOperationException("SkeletonBTreeMap.update(): PushTask aborted; handler not implemented yet", ex);
+					}
+
+					postPushTask(task, ((SplitNode)sw).parent);
+					sw.release(task.data);
+					if (sw.isCleared()) { ((Runnable)sw).run(); }
+				}
+
+				Thread.sleep(1000);
+				if (proc_val == null) { continue; }
+
+				while (proc_val.hasCompleted()) {
+					$3<Map.Entry<K, V>, DeflateNode, X> res = proc_val.accept();
+					Map.Entry<K, V> en = res._0;
+					DeflateNode sw = res._1;
+					X ex = res._2;
+					if (ex != null) {
+						// FIXME HIGH
+						throw new UnsupportedOperationException("SkeletonBTreeMap.update(): value-retrieval aborted; handler not implemented yet", ex);
+					}
+
+					sw.invoke(en);
+					sw.release(en.getKey());
+					if (sw.isCleared()) { ((Runnable)sw).run(); }
+				}
+
+			} while (proc_pull.hasPending() || proc_push.hasPending() || (proc_val != null && proc_val.hasPending()));
+
+		} catch (DataFormatException e) {
+			throw new TaskAbortException("Bad data format", e);
+		} catch (InterruptedException e) {
+			throw new TaskAbortException("interrupted", e);
+		} finally {
+			proc_pull.close();
+			proc_push.close();
+			if (proc_val != null) { proc_val.close(); }
 		}
 	}
 
@@ -698,7 +1194,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("node_min", tree.NODE_MIN);
 			map.put("size", tree.size);
-			Map<String, Object> rmap = tree.makeNodeTranslator(ktr, mtr).app((SkeletonBTreeMap.SkeletonNode)(SkeletonBTreeMap.Node)tree.root);
+			Map<String, Object> rmap = tree.makeNodeTranslator(ktr, mtr).app((SkeletonBTreeMap.SkeletonNode)tree.root);
 			map.put("entries", rmap.get("entries"));
 			if (!tree.root.isLeaf()) {
 				map.put("subnodes", rmap.get("subnodes"));

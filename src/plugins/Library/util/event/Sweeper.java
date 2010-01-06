@@ -19,7 +19,7 @@ public interface Sweeper<T> extends java.io.Closeable {
 	** #close()} is called.
 	**
 	** @throws IllegalStateException if the current state is not {@link
-	**         State#NEW NEW}
+	**         State#NEW NEW} or {@link State#CLOSED CLOSED}
 	*/
 	public void open();
 
@@ -56,6 +56,11 @@ public interface Sweeper<T> extends java.io.Closeable {
 	** Returns the current state.
 	*/
 	public State getState();
+
+	/**
+	** Returns whether the sweeper is {@link State#CLEARED CLEARED}.
+	*/
+	public boolean isCleared();
 
 	/**
 	** Returns the number of objects held by the sweeper.

@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.AbstractSet;
 import java.util.AbstractMap;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.HashMap;
 import java.util.Stack;
@@ -179,32 +180,47 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		this(null, node_min);
 	}
 
+	/**
+	** DOCUMENT.
+	**
+	** It is '''assumed''' that neither keys belong to the set; it is up to the
+	** caller to ensure that this holds.
+	*/
+	protected static <K> SortedSet<K> subSet(SortedSet<K> set, K lkey, K rkey) {
+		// NULLNOTICE
+		return (lkey == null)?
+			((rkey == null)? set: set.headSet(rkey)):
+			((rkey == null)? set.tailSet(lkey): set.subSet(lkey, rkey));
+	}
 
-	public static class PairIterable<T> implements Iterable<$2<T, T>> {
+	/**
+	** DOCUMENT.
+	*/
+	public static class PairIterable<E> implements Iterable<$2<E, E>> {
 
-		final protected T lobj;
-		final protected T robj;
-		final protected Iterable<T> ib;
+		final protected E lobj;
+		final protected E robj;
+		final protected Iterable<E> ib;
 
-		public PairIterable(T lo, Iterable<T> objs, T ro) {
+		public PairIterable(E lo, Iterable<E> objs, E ro) {
 			lobj = lo;
 			ib = objs;
 			robj = ro;
 		}
 
-		public Iterator<$2<T, T>> iterator() {
-			return new Iterator<$2<T, T>>() {
+		public Iterator<$2<E, E>> iterator() {
+			return new Iterator<$2<E, E>>() {
 
-				final Iterator<T> it = ib.iterator();
-				T prev = lobj;
+				final Iterator<E> it = ib.iterator();
+				E prev = lobj;
 
 				public boolean hasNext() {
 					return (it.hasNext() || prev != robj);
 				}
 
-				public $2<T, T> next() {
-					T rk = (!it.hasNext() && prev != robj)? robj: it.next();
-					return new $2<T, T>(prev, prev = rk);
+				public $2<E, E> next() {
+					E rk = (!it.hasNext() && prev != robj)? robj: it.next();
+					return new $2<E, E>(prev, prev = rk);
 				}
 
 				public void remove() {
@@ -233,8 +249,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**      Node  Node  Node  Node  Node  Node  Node  Node  Node
 	**
 	**    | - {@link #entries} mappings
-	**    \ - {@link #rnodes} mappings (and the subnode's {@link #lkey})
-	**    / - {@link #lnodes} mappings (and the subnode's {@link #rkey})
+	**    \ - {@link #rnodes} mappings
+	**    / - {@link #lnodes} mappings
 	**
 	** Note: before anyone gets any ideas about making this class static
 	** (believe me, I tried), note that {@link TreeMap} '''requires''' the
@@ -349,7 +365,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** @param ent The entries to add
 		** @param nodes The subnodes to add
 		*/
-		protected void addAll(SortedMap<K, V> ent, Iterable<Node> nodes) {
+		protected void addAll(SortedMap<K, V> ent, Iterable<? extends Node> nodes) {
 			assert(ent.comparator() == comparator());
 			assert(compareL(lkey, ent.firstKey()) < 0);
 			assert(compareR(ent.lastKey(), rkey) < 0);
@@ -469,9 +485,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		/**
 		** Attaches a child via its {@code lkey}, {@code rkey} fields.
 		**
-		** This is the same as {@link addChildNode}, except that it has {@code
-		** assert}s to check that a child with the same range is already
-		** present in the node.
+		** This is the same as {@link #addChildNode(BTreeMap.Node)}, except
+		** this has {@code assert}s to check that a child with the same range
+		** is already present in the node.
 		**
 		** @param child The child to attach
 		*/
@@ -495,7 +511,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			rnodes.put(child.lkey, child);
 		}
 
-		private Iterable<$3<K, Node, K>> _iterNodesK;
+		private transient Iterable<$3<K, Node, K>> _iterNodesK;
 		/**
 		** A view of all subnodes with their lkey and rkey, as an {@link
 		** Iterable}. Iteration occurs in '''sorted''' order.
@@ -556,7 +572,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 					public Iterator<K> iterator() {
 						return new Iterator<K>() {
 
-							Iterator<K> it = entries.keySet().iterator();
+							final Iterator<K> it = entries.keySet().iterator();
 							byte stage = 0;
 
 							public boolean hasNext() {
@@ -599,7 +615,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 					public Iterator<$2<K, K>> iterator() {
 						return new Iterator<$2<K, K>>() {
 
-							Iterator<K> it = entries.keySet().iterator();
+							final Iterator<K> it = entries.keySet().iterator();
 							K lastkey = lkey;
 
 							public boolean hasNext() {
@@ -1249,6 +1265,25 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/**
+	** Returns the minimum number of nodes (at a single level) needed for the
+	** given number of entries.
+	*/
+	public int minNodesFor(int entries) {
+		// find the smallest k such that k * ENT_MAX + (k-1) >= n
+		// ie. k * NODE_MAX > n :: k = floor( n / NODE_MAX ) + 1
+		return entries / NODE_MAX + 1;
+	}
+
+	/**
+	** Returns the minimum number of separator keys (at a single level) needed
+	** for the given number of entries.
+	*/
+	public int minKeysFor(int entries) {
+		// 1 less than minNodesFor()
+		return entries / NODE_MAX;
+	}
+
+	/**
 	** Returns the entry at a particular (zero-based) index.
 	*/
 	public Map.Entry<K, V> getEntry(int index) {
@@ -1268,7 +1303,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				throw new IllegalStateException("BTreeMap getKey method is buggy, please report.");
 			}
 
-			// PRIORITY OPTIMISE better way to do this than linear iteration through the entries.
+			// OPT LOW better way to do this than linear iteration through the entries.
 			// this performs badly when large nodes are accessed repeatedly.
 			//
 			// one way would be to insert the last sum-key pair we calculate at each node, into
@@ -1583,10 +1618,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			}
 
 			while (map.size() > 0) {
-				// find the smallest k: k * ENT_MAX + (k-1) >= map.size()
-				// ie. k * NODE_MAX >= map.size() + 1
-				// this is the number of nodes at this level
-				int k = (map.size() + NODE_MAX) / NODE_MAX;
+				int k = minNodesFor(map.size());
 
 				nextlnodes = new HashMap<K, Node>(k<<1);
 				nextmap = new TreeMap<K, V>();

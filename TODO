@@ -4,16 +4,29 @@ for general items, see doc/todo.txt
 
 apart from that, dotted throughout the source code are the following:
 
-- DOCUMENT
 - URGENT bugs will likely crop up until this issue is fixed
 - FIXME
 - PRIORITY major things, that other things depend on
 - TODO
 - OPTIMISE
 
+- DOCUMENT
 - DEBUG - was added for debug, should be removed
+- WORKAROUND - workaround an external bug (eg. freenet, java itself, etc.)
 
 there are also methods or code blocks containing:
 
 throw new UnsupportedOperationException("not implemented");
 
+== New tags ==
+
+I've started to use the following system. The old tags will eventually be
+changed to this format.
+
+tag : X Y, where
+
+X is the type, currently out of FIX TODO OPT
+Y is the priority, currently out of NOW HIGH NORM LOW
+
+This covers all cases from the old set and more, except for DOCUMENT and DEBUG
+which will still be used.

@@ -4,58 +4,50 @@
 package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.concurrent.Scheduler;
+import plugins.Library.util.concurrent.ObjectProcessor;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.func.Tuples.$2;
 
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentMap;
 
 /**
-** An interface that passes tasks to a {@link Scheduler} and retrieves them
-** when they are complete, through the use of {@link BlockingQueue}s.
+** An interface for asynchronous task execution. The methods return objects
+** for managing and scheduling tasks.
 **
 ** @author infinity0
 */
 public interface ScheduledSerialiser<T> extends IterableSerialiser<T> {
 
 	/**
-	** Creates a {@link Scheduler} that executes {@link PullTask}s, using the
-	** given {@link BlockingQueue}s to communicate the task information.
-	**
-	** The {@link Scheduler} should be {@link Scheduler#close()}d when no more
-	** tasks will be passed to it.
-	**
-	** Implementations should only add to the output and error queues when the
-	** action represented by the task has '''completed'''. For example, the
-	** error map should not contain any instances of {@link
-	** plugins.Library.util.exec.TaskInProgressException}.
+	** Creates a {@link ObjectProcessor} for executing {@link PullTask}s, which
+	** should be {@linkplain ObjectProcessor#auto()} automatically started.
 	**
 	** @param input Queue to add task requests to
 	** @param output Queue to pop completed tasks from
-	** @param error Map of tasks to the errors that aborted them
+	** @param deposit Map of tasks to deposits
 	*/
-	public Scheduler pullSchedule(BlockingQueue<PullTask<T>> input,
-	                              BlockingQueue<PullTask<T>> output,
-	                              ConcurrentMap<PullTask<T>, TaskAbortException> error);
+	// TODO LOW public <E> Scheduler pullSchedule(
+	public <E> ObjectProcessor<PullTask<T>, E, TaskAbortException> pullSchedule(
+		BlockingQueue<PullTask<T>> input,
+		BlockingQueue<$2<PullTask<T>, TaskAbortException>> output,
+		Map<PullTask<T>, E> deposit
+	);
 
 	/**
-	** Creates a {@link Scheduler} that executes {@link PushTask}s, using the
-	** given {@link BlockingQueue}s to communicate the task information.
-	**
-	** The {@link Scheduler} should be {@link Scheduler#close()}d when no more
-	** tasks will be passed to it.
-	**
-	** Implementations should only add to the output and error queues when the
-	** action represented by the task has '''completed'''. For example, the
-	** error map should not contain any instances of {@link
-	** plugins.Library.util.exec.TaskInProgressException}.
+	** Creates a {@link ObjectProcessor} for executing {@link PushTask}s, which
+	** should be {@linkplain ObjectProcessor#auto()} automatically started.
 	**
 	** @param input Queue to add task requests to
 	** @param output Queue to pop completed tasks from
-	** @param error Map of tasks to the errors that aborted them
+	** @param deposit Map of tasks to deposits
 	*/
-	public Scheduler pushSchedule(BlockingQueue<PushTask<T>> input,
-	                              BlockingQueue<PushTask<T>> output,
-	                              ConcurrentMap<PushTask<T>, TaskAbortException> error);
+	// TODO LOW public <E> Scheduler pushSchedule(
+	public <E> ObjectProcessor<PushTask<T>, E, TaskAbortException> pushSchedule(
+		BlockingQueue<PushTask<T>> input,
+		BlockingQueue<$2<PushTask<T>, TaskAbortException>> output,
+		Map<PushTask<T>, E> deposit
+	);
 
 }
