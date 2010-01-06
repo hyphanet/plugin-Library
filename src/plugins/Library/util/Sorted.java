@@ -3,13 +3,10 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.util.func.Tuples.*;
-import static plugins.Library.util.func.Tuples.*;
-
 import java.util.Collections;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -140,39 +137,32 @@ final public class Sorted {
 	** Splits the given sorted set at the given separators.
 	**
 	** TODO currently this method assumes that the comparator of the set is
-	** consistent with equals(). Use the SortedSet's comparator() instead (or
-	** "natural" ordering.
-	**
-	** If {@code inc} is given as {@code LEFT}, and the leftmost range is left
-	** of the leftmost separator, the left key of the pair representing the
-	** range will be given as {@code null}; and similarly when {@code inc} is
-	** {@code RIGHT} or {@code BOTH}.
+	** consistent with equals(). we should use the SortedSet's comparator()
+	** instead, or "natural" ordering.
 	**
 	** JDK6 use a NavigableSet instead of a SortedSet.
 	**
-	** @param subj The {@link SortedSet} to split
-	** @param sep The separators, arranged in a {@link SortedSet}
-	** @param inc Which sides of the returned ranges include the separators
-	** @param foundsep This will be filled with the separators that were also
-	**        contained in the subject set, and should be passed in empty
-	** @return An ordered collection of 2-tuples representing the ranges of the
-	**         resulting split sets.
+	** @param subj Subject of the split
+	** @param sep Separators to split at
+	** @param foundsep An empty set which will be filled with the separators
+	**        that were also contained in the subject set.
+	** @return An list of subsets; each subset contains all entries between two
+	**         adjacent separators, or an edge separator and the corresponding
+	**         edge of the set. The list is in sorted order.
 	** @throws NullPointerException if any of the inputs are {@code null}
 	*/
-	public static <E> Collection<$2<E, E>> split(SortedSet<E> subj, SortedSet<E> sep, SortedSet<E> foundsep, Inclusivity inc) {
+	public static <E> List<SortedSet<E>> split(SortedSet<E> subj, SortedSet<E> sep, SortedSet<E> foundsep) {
 		if (!foundsep.isEmpty()) {
 			throw new IllegalArgumentException("split(): Must provide an empty set to add found separators to");
 		}
 
-		// TODO NOW make this return List<SortedSet<E>> instead.
-
 		if (subj.isEmpty()) {
-			return Collections.emptySet();
+			return Collections.emptyList();
 		} else if (sep.isEmpty()) {
-			return Collections.singleton($2(subj.first(), subj.last()));
+			return Collections.singletonList(subj);
 		}
 
-		Collection<$2<E, E>> res = new ArrayList<$2<E, E>>(sep.size()+2);
+		List<SortedSet<E>> res = new ArrayList<SortedSet<E>>(sep.size()+2);
 		E csub = subj.first(), csep, nsub, nsep;
 
 		do {
@@ -196,16 +186,12 @@ final public class Sorted {
 			if (csub != null && (nsep == null || !nsep.equals(csub))) {
 			//if (csub != null && ((Comparable<E>)csub).compareTo(nsub) <= 0) {
 				assert(csub != null && ((Comparable<E>)csub).compareTo(nsub) <= 0);
-				switch (inc) {
-				case NONE:
-					res.add($2(csub, nsub)); break;
-				case LEFT:
-					res.add($2(csep, nsub)); break;
-				case RIGHT:
-					res.add($2(csub, nsep)); break;
-				case BOTH:
-					res.add($2(csep, nsep)); break;
-				}
+				assert(csep != null || nsep != null); // we already took care of sep.size() == 0
+				res.add(
+					(csep == null)? subj.headSet(nsep):
+					(nsep == null)? subj.tailSet(csub):
+					                subj.subSet(csub, nsep)
+				);
 			}
 			if (nsep == null) { break; }
 
@@ -213,18 +199,6 @@ final public class Sorted {
 		} while (csub != null);
 
 		return res;
-	}
-
-	/**
-	** Splits the given sorted set at the given separators. The inclusivity is
-	** given as {@code RIGHT}. This means when {@link SortedSet#subSet(Object,
-	** Object)} is called on each range returned, it will give the subset with
-	** the separators excluded.
-	**
-	** @see #split(SortedSet, SortedSet, SortedSet, Inclusivity)
-	*/
-	public static <E> Collection<$2<E, E>> split(SortedSet<E> subj, SortedSet<E> sep, SortedSet<E> foundsep) {
-		return split(subj, sep, foundsep, Inclusivity.RIGHT);
 	}
 
 	/**
@@ -237,19 +211,19 @@ final public class Sorted {
 	**        {@code BOTH}, then the first and last elements will be selected.
 	** @return The selected elements
 	*/
-	public static <E> Collection<E> select(SortedSet<E> subj, int num, Inclusivity inc) {
+	public static <E> List<E> select(SortedSet<E> subj, int num, Inclusivity inc) {
 		if (num >= 2) {
 			// test most common first
 		} else if (num == 1) {
 			switch (inc) {
-			case LEFT: return Collections.singleton(subj.first());
-			case RIGHT: return Collections.singleton(subj.last());
+			case LEFT: return Collections.singletonList(subj.first());
+			case RIGHT: return Collections.singletonList(subj.last());
 			case BOTH: throw new IllegalArgumentException("select(): can't have num=1 and inc=BOTH");
 			// case NONE falls through to main section
 			}
 		} else if (num == 0) {
 			if (inc == Inclusivity.NONE) {
-				return Collections.emptySet();
+				return Collections.emptyList();
 			} else {
 				throw new IllegalArgumentException("select(): can't have num=0 and inc!=NONE");
 			}
@@ -263,7 +237,7 @@ final public class Sorted {
 			return new ArrayList<E>(subj);
 		}
 
-		Collection<E> sel = new ArrayList<E>(num);
+		List<E> sel = new ArrayList<E>(num);
 		int n = num;
 		Iterator<E> it = subj.iterator();
 
@@ -287,7 +261,7 @@ final public class Sorted {
 	**
 	** @see #select(SortedSet, int, Inclusivity)
 	*/
-	public static <E> Collection<E> select(SortedSet<E> subj, int n) {
+	public static <E> List<E> select(SortedSet<E> subj, int n) {
 		return select(subj, n, Inclusivity.NONE);
 	}
 

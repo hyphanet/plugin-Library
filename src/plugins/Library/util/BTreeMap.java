@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.AbstractSet;
 import java.util.AbstractMap;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.HashMap;
 import java.util.Stack;
@@ -185,7 +186,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** It is '''assumed''' that neither keys belong to the set; it is up to the
 	** caller to ensure that this holds.
 	*/
-	protected static <K, V> SortedSet<K, V> subSet(SortedSet<K, V> set, K lkey, K rkey) {
+	protected static <K> SortedSet<K> subSet(SortedSet<K> set, K lkey, K rkey) {
+		// NULLNOTICE
 		return (lkey == null)?
 			((rkey == null)? set: set.headSet(rkey)):
 			((rkey == null)? set.tailSet(lkey): set.subSet(lkey, rkey));

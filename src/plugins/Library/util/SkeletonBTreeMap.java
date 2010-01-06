@@ -52,7 +52,6 @@ import plugins.Library.util.event.TrackingSweeper;
 import plugins.Library.util.event.CountingSweeper;
 import plugins.Library.util.func.Closure;
 import plugins.Library.util.func.SafeClosure;
-import plugins.Library.util.func.Tuples.$2;
 import static plugins.Library.util.Maps.$K;
 
 /**
@@ -955,7 +954,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					// are delegated to the relevant child node.
 
 					SortedSet<K> fkey = new TreeSet<K>();
-					Iterable<$2<K, K>> pairs = Sorted.split(putkey, Sorted.keySet(node.entries), fkey);
+					Iterable<SortedSet<K>> range = Sorted.split(putkey, Sorted.keySet(node.entries), fkey);
 
 					if (proc_val == null) {
 						for (K key: fkey) { node.entries.put(key, putmap.get(key)); }
@@ -963,15 +962,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						for (K key: fkey) { handleLocalPut(node, key, vClo); }
 					}
 
-					for ($2<K, K> kp: pairs) {
-						SkeletonNode n = (SkeletonNode)node.lnodes.get(kp._1);
+					for (SortedSet<K> rng: range) {
+						SkeletonNode n = (SkeletonNode)node.selectNode(rng.first());
 						assert(n.isGhost());
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(n);
 
 						nClo.acquire(n);
-						ObjectProcessor.submitSafe(proc_pull, task,
-							new InflateChildNodes(node, (kp._1 == null)? putkey.tailSet(kp._0): putkey.subSet(kp._0, kp._1), nClo, vClo)
-						);
+						ObjectProcessor.submitSafe(proc_pull, task, new InflateChildNodes(node, rng, nClo, vClo));
 					}
 				}
 
