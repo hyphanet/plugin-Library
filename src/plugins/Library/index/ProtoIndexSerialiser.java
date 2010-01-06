@@ -39,7 +39,7 @@ import java.io.File;
 */
 public class ProtoIndexSerialiser
 implements Archiver<ProtoIndex>,
-           Serialiser.Composite<Archiver<Map<String, Object>>>, // PRIORITY make this a LiveArchiver
+           Serialiser.Composite<Archiver<Map<String, Object>>>, // TODO NORM make this a LiveArchiver
            Serialiser.Translate<ProtoIndex, Map<String, Object>>/*,
            Serialiser.Trackable<Index>*/ {
 
@@ -138,10 +138,10 @@ implements Archiver<ProtoIndex>,
 		**
 		** Note: the resulting map will contain the insert SSK URI under the
 		** key {@code insID}. The intention is for push methods to remove this
-		** and add it to the task metadata. '''Failure to do this may result in
-		** the insert URI being published'''.
+		** and add it to the task metadata. '''Failure to do this could result
+		** in the insert URI being published'''.
 		**
-		** PRIORITY maybe make this more secure, eg. wrap it in a
+		** FIXME NORM maybe make this more secure, eg. wrap it in a
 		** UnserialisableWrapper or something that makes YAML throw an
 		** exception if it is accidentally passed to it.
 		*/
@@ -177,7 +177,7 @@ implements Archiver<ProtoIndex>,
 					return cmpsrl.setSerialiserFor(new ProtoIndex(reqID, name, modified, extra, utab, ttab));
 
 				} catch (ClassCastException e) {
-					// TODO maybe find a way to pass the actual bad data to the exception
+					// TODO LOW maybe find a way to pass the actual bad data to the exception
 					throw new DataFormatException("Badly formatted data", e, null);
 
 				} catch (UnsupportedOperationException e) {

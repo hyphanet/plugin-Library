@@ -20,7 +20,8 @@ import java.util.WeakHashMap;
 ** change to them would interfere with {@link WeakHashMap}'s ability to locate
 ** the tasks within the map.
 **
-** TODO make those fields final? hmm..
+** TODO HIGH make those fields (PullTask.meta / PushTask.data) final? would
+** involve removing Task class.
 **
 ** The progress objects are stored in a {@link WeakHashMap} and are freed
 ** automatically by the garbage collector if its corresponding task goes out of
@@ -78,7 +79,7 @@ public class ProgressTracker<T, P extends Progress> {
 		}
 	}
 
-	// TODO there is probably a better way of doing this...
+	// TODO NORM there is probably a better way of doing this...
 	//final protected HashSet<PullTask<T>> pullWaiters() = new HashSet<PullTask<T>> pullWaiters();
 	//final protected HashSet<PullTask<T>> pushWaiters() = new HashSet<PullTask<T>> pushWaiters();
 
@@ -86,7 +87,7 @@ public class ProgressTracker<T, P extends Progress> {
 	** Get the progress of a {@link PullTask} by its metadata.
 	**
 	** NOTE: since progress is stored in a {@link WeakHashMap} this means that
-	** if the task has finished, then this will return null. (PRIORITY?)
+	** if the task has finished, then this will return null. (FIXME NORM)
 	**
 	** This doesn't have to be a major problem - when a task completes, detect
 	** this, and deny further attempts to retrieve the progress.
@@ -99,7 +100,7 @@ public class ProgressTracker<T, P extends Progress> {
 	** Get the progress of a {@link PushTask} by its metadata.
 	**
 	** NOTE: since progress is stored in a {@link WeakHashMap} this means that
-	** if the task has finished, then this will return null. (PRIORITY?)
+	** if the task has finished, then this will return null. (FIXME NORM)
 	**
 	** This doesn't have to be a major problem - when a task completes, detect
 	** this, and deny further attempts to retrieve the progress.

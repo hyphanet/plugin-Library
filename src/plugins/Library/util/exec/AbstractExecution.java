@@ -75,7 +75,7 @@ public abstract class AbstractExecution<V> implements Execution<V> {
 		try {
 			acc.acceptStarted(this);
 		} catch (RuntimeException e) {
-			// TODO maybe log this somewhere
+			// FIXME NORM log this somewhere
 		}
 	}
 
@@ -91,7 +91,7 @@ public abstract class AbstractExecution<V> implements Execution<V> {
 		try {
 			acc.acceptDone(this, result);
 		} catch (RuntimeException e) {
-			// TODO maybe log this somewhere
+			// FIXME NORM log this somewhere
 		}
 	}
 
@@ -107,7 +107,7 @@ public abstract class AbstractExecution<V> implements Execution<V> {
 		try {
 			acc.acceptAborted(this, error);
 		} catch (RuntimeException e) {
-			// TODO maybe log this somewhere
+			// FIXME NORM log this somewhere
 		}
 	}
 

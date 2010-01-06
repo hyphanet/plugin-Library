@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 
-// FIXME tidy this
+// TODO NORM tidy this
 import java.util.Queue;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -57,8 +57,8 @@ import static plugins.Library.util.Maps.$K;
 /**
 ** {@link Skeleton} of a {@link BTreeMap}. DOCUMENT
 **
-** TODO get rid of uses of rnode.get(K). All other uses of rnode, as well as
-** lnode and entries, have already been removed. This will allow us to
+** TODO HIGH get rid of uses of rnode.get(K). All other uses of rnode, as well
+** as lnode and entries, have already been removed. This will allow us to
 ** re-implement the Node class.
 **
 ** To the maintainer: this class is very very unstructured and a lot of the
@@ -82,8 +82,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	*/
 	//final protected boolean internal_entries;
 	/*
-	** TODO disable for now, since I can't think of a good way to implement
-	** this tidily.
+	** OPT HIGH disable for now, since I can't think of a good way to
+	** implement this tidily.
 	**
 	** three options:
 	**
@@ -103,7 +103,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	**   DNLEx depending on the value of that boolean; and have SkeletonNode
 	**   use this class when int_ent is true.
 	**
-	**   - pros: simple, efficient OPTIMISE PRIORITY
+	**   - pros: simple, efficient OPT HIGH
 	**   - cons: requires YetAnotherClass
 	**
 	** 2 don't have the internal_entries, and just use a dummy serialiser that
@@ -291,7 +291,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			assert(isBare());
 		}
 
-		// OPTIMISE make this parallel
+		// OPT make this parallel
 		/*@Override**/ public void inflate() throws TaskAbortException {
 			((SkeletonTreeMap<K, V>)entries).inflate();
 			if (!isLeaf()) {
@@ -327,7 +327,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				nsrl.push(task);
 				attachGhost((GhostNode)task.meta);
 
-			// TODO maybe just ignore all non-error abortions
+			// TODO LOW maybe just ignore all non-error abortions
 			} catch (TaskCompleteException e) {
 				assert(node.isGhost());
 			} catch (RuntimeException e) {
@@ -373,8 +373,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		** Maintaining this field's value is a bitch, so I've tried to remove uses
 		** of this from the code. Currently, it is only used for the parent field
 		** a {@link DataFormatException}, which lets us retrieve the serialiser,
-		** progress, etc etc etc. TODO somehow find another way of doing that so
-		** we can get rid of it completely.
+		** progress, etc etc etc. TODO NORM somehow find another way of doing that
+		** so we can get rid of it completely.
 		*/
 		protected SkeletonNode parent;
 
@@ -461,7 +461,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** in a consistent state before it.
 	*/
 	protected GhostNode postPushTask(PushTask<SkeletonNode> task, SkeletonNode parent) {
-		// TODO getting rid of the "parent" parameter would be so much cleaner...
 		GhostNode ghost = (GhostNode)task.meta;
 		parent.attachGhost(ghost);
 		return ghost;
@@ -493,25 +492,26 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		((SkeletonNode)root).deflate();
 	}
 
-	// FIXME tidy this; this should proboably go in a serialiser
+	// TODO NORM tidy this; this should proboably go in a serialiser
 	// and then we will access the Progress of a submap with a task whose
 	// metadata is (lkey, rkey), or something..(PROGRESS)
 	BaseCompositeProgress pr_inf = new BaseCompositeProgress();
 	public BaseCompositeProgress getProgressInflate() { return pr_inf; } // REMOVE ME
 	/**
-	** Parallel bulk-inflate. FIXME not yet thread safe, but ideally it should
-	** be. See source for details.
+	** Parallel bulk-inflate. Not yet thread safe, but ideally it should be.
+	** See source code for details.
 	*/
 	/*@Override**/ public void inflate() throws TaskAbortException {
 
-		// TODO adapt the algorithm to track partial loads of submaps (SUBMAP)
-		// TODO if we do that, we'll also need to make it thread-safe. (THREAD)
-		// TODO and do the PROGRESS stuff whilst we're at it
+		// TODO NORM adapt the algorithm to track partial loads of submaps (SUBMAP)
+		// TODO NORM if we do that, we'll also need to make it thread-safe. (THREAD)
+		// TODO NORM and do the PROGRESS stuff whilst we're at it
 
 		if (!(nsrl instanceof ScheduledSerialiser)) {
-			// TODO could ideally use the below code, and since the Scheduler would be
-			// unavailable, just execute the tasks in the current thread. the priority
-			// queue's comparator would turn it into depth-first search automatically.
+			// TODO LOW could just use the code below - since the Scheduler would be
+			// unavailable, the tasks could be executed in the current thread, and the
+			// priority queue's comparator would turn it into depth-first search
+			// automatically.
 			((SkeletonNode)root).inflate();
 			return;
 		}
@@ -541,7 +541,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		try {
 			nodequeue.add((SkeletonNode)root);
 
-			// FIXME make a copy of the deflated root so that we can restore it if the
+			// FIXME HIGH make a copy of the deflated root so that we can restore it if the
 			// operation fails
 
 			do {
@@ -558,7 +558,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					if (ex != null) {
 						assert(!(ex instanceof plugins.Library.util.exec.TaskInProgressException)); // by contract of ScheduledSerialiser
 						if (!(ex instanceof TaskCompleteException)) {
-							// TODO maybe dump it somewhere else and throw it at the end...
+							// TODO LOW maybe dump it somewhere else and throw it at the end...
 							throw ex;
 						}
 						// retrieve the inflated SkeletonNode and add it to the queue...
@@ -612,16 +612,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	}
 
 	/*@Override**/ public void deflate(K key) throws TaskAbortException {
-		// TODO code this
 		throw new UnsupportedOperationException("not implemented");
 	}
 
 	/*@Override**/ public void inflate(K key) throws TaskAbortException {
-		// TODO tidy up
-		// OPTIMISE could write a more efficient version by keeping track of the
-		// already-inflated nodes so get() doesn't keep traversing down the tree
-		// - would only improve performance from O(log(n)^2) to O(log(n)) so not
-		// that big a priority
+		// TODO NORM tidy up
+		// OPT LOW could write a more efficient version by keeping track of
+		// the already-inflated nodes so get() doesn't keep traversing down the
+		// tree - would only improve performance from O(log(n)^2) to O(log(n)) so
+		// not that big a priority
 		for (;;) {
 			try {
 				get(key);
@@ -660,9 +659,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	**
 	** Unlike the (ideal design goal of the) inflate/deflate methods, this is
 	** designed to support accept only one concurrent update. It is up to the
-	** caller to ensure that this holds. TODO maybe make this synchronized?
+	** caller to ensure that this holds. TODO NORM enforce this somehow
 	**
-	** TODO currently, this method assumes that the root.isBare().
+	** Currently, this method assumes that the root.isBare(). TODO NORM enforce
+	** this..
 	**
 	** Note: {@code remkey} is not implemented yet.
 	**
@@ -933,7 +933,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// invalidate every totalSize cache directly after we inflate it
 				node._size = -1;
 
-				// OPTIMISE LOW if putkey is empty then skip
+				// OPT LOW if putkey is empty then skip
 
 				// each key in putkey is either added to the local entries, or delegated to
 				// the the relevant child node.
@@ -941,7 +941,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					// add all keys into the node, since there are no children.
 
 					if (proc_val == null) {
-						// OPTIMISE: could use a splice-merge here. for TreeMap, there is not an
+						// OPT: could use a splice-merge here. for TreeMap, there is not an
 						// easy way of doing this, nor will it likely make a lot of a difference.
 						// however, if we re-implement SkeletonNode, this might become relevant.
 						for (K key: putkey) { node.entries.put(key, putmap.get(key)); }
@@ -1005,7 +1005,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			(new InflateChildNodes(putkey)).invoke((SkeletonNode)root);
 
-			// FIXME make a copy of the deflated root so that we can restore it if the
+			// FIXME HIGH make a copy of the deflated root so that we can restore it if the
 			// operation fails
 
 			do {
@@ -1078,7 +1078,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** For an in-depth discussion on why that class is not static, see the
 	** class description for {@link BTreeMap.Node}.
 	**
-	** TODO maybe store these in a WeakHashSet or something... will need to
+	** TODO LOW maybe store these in a WeakHashSet or something... will need to
 	** code equals() and hashCode() for that
 	**
 	** @param ktr Translator for the keys

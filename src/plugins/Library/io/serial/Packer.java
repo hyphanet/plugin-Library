@@ -375,7 +375,7 @@ implements MapSerialiser<K, T>,
 				binsFinal.add(heaviest);
 			}
 
-			// TODO some tighter assertions than this
+			// TODO NORM some tighter assertions than this
 			assert(bins.isEmpty() || bins.first().filled() - bins.last().filled() <= weightdiff);
 		}
 
@@ -731,7 +731,7 @@ implements MapSerialiser<K, T>,
 		*/
 		protected K giant;
 
-		// TODO maybe ? extends T, or something
+		// TODO LOW maybe <K, ? extends T>, or something
 		protected Inventory(Packer<K, T> pk, Map<K, ? extends Task<T>> elem) {
 			packer = pk;
 			scale = pk.scale;

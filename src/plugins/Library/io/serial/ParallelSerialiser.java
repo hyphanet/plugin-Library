@@ -190,7 +190,7 @@ implements IterableSerialiser<T>,
 				}
 			}
 			for (Progress p: progs) { p.join(); }
-			// TODO: toad - if it fails, we won't necessarily know until all of the
+			// TODO NORM: toad - if it fails, we won't necessarily know until all of the
 			// other tasks have completed ... is this acceptable?
 
 		} catch (InterruptedException e) {
@@ -217,7 +217,7 @@ implements IterableSerialiser<T>,
 				}
 			}
 			for (Progress p: progs) { p.join(); }
-			// TODO: toad - if it fails, we won't necessarily know until all of the
+			// TODO NORM: toad - if it fails, we won't necessarily know until all of the
 			// other tasks have completed ... is this acceptable?
 
 		} catch (InterruptedException e) {

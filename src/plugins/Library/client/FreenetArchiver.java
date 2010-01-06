@@ -109,7 +109,7 @@ implements LiveArchiver<T, SimpleProgress> {
 					res = hlsc.fetch(furi);
 					ProgressParts prog_new = progress.getParts();
 					if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
-						// TODO if it turns out this happens a lot, maybe make it "continue anyway"
+						// TODO LOW if it turns out this happens a lot, maybe make it "continue anyway"
 						throw new TaskAbortException("Inconsistency when tracking split file progress", null, true);
 					}
 					progress.addPartKnown(0, true);
@@ -189,7 +189,7 @@ implements LiveArchiver<T, SimpleProgress> {
 					uri = hlsc.insert(ib, false, null);
 					ProgressParts prog_new = progress.getParts();
 					if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
-						// TODO if it turns out this happens a lot, maybe make it "continue anyway"
+						// TODO LOW if it turns out this happens a lot, maybe make it "continue anyway"
 						throw new TaskAbortException("Inconsistency when tracking split file progress", null, true);
 					}
 					progress.addPartKnown(0, true);

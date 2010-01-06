@@ -19,8 +19,8 @@ import java.util.AbstractSet;
 **
 ** DOCUMENT
 **
-** OPTIMISE make a SortedArrayMap out of this, and make the BTreeMap node use
-** that (or a SortedArrayTripleMap<K, V, L, R>) instead of TreeMap
+** OPT LOW make a SortedArrayMap out of this, and make the BTreeMap node
+** use that (or a SortedArrayTripleMap<K, V, L, R>) instead of TreeMap
 **
 ** @author infinity0
 */

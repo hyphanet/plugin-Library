@@ -108,7 +108,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		public V set(V v) {
 			V old = data;
 			data = v;
-			// meta = null; TODO decide what to do with this.
+			// meta = null; TODO LOW decide what to do with this.
 			isLoaded = true;
 			return old;
 		}
@@ -136,9 +136,6 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 
 	/**
 	** Set the metadata for the {@link SkeletonValue} for a given key.
-	**
-	** OPTIMISE code a version that throws {@link IllegalArgumentException} if
-	** the key is not already in the map. (Useful for the *flate methods.)
 	*/
 	public Object putGhost(K key, Object o) {
 		if (o == null) {
@@ -196,9 +193,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		serialiser.pull(tasks, mapmeta);
 
 		for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
-			// TODO make this an efficient test that throws an exception
 			assert(skmap.get(en.getKey()) != null);
-			// TODO atm old metadata is retained, could update?
+			// TODO NORM atm old metadata is retained, could update?
 			put(en.getKey(), en.getValue().data);
 		}
 	}
@@ -216,7 +212,6 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		serialiser.push(tasks, mapmeta);
 
 		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
-			// TODO make this an efficient test that throws an exception
 			assert(skmap.get(en.getKey()) != null);
 			putGhost(en.getKey(), en.getValue().meta);
 		}
@@ -239,7 +234,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			serialiser.pull(tasks, mapmeta);
 
 			put(key, tasks.remove(key).data);
-			// TODO atm old metadata is retained, could update?
+			// TODO NORM atm old metadata is retained, could update?
 			if (tasks.isEmpty()) { return; }
 
 			for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
@@ -285,7 +280,6 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		serialiser.push(tasks, mapmeta);
 
 		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
-			// TODO make this an efficient test that throws an exception
 			assert(skmap.get(en.getKey()) != null);
 			// serialiser may have pulled and re-pushed some of the
 			// eg. Packer does this. so set all the metadata for all the tasks
@@ -301,7 +295,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** class and a map from ({@link String} forms of the key) to ({@link
 	** Task#meta metadata} of the values).
 	**
-	** TODO atm this can't handle custom comparators
+	** TODO LOW atm this can't handle custom comparators
 	**
 	** @author infinity0
 	*/
@@ -323,7 +317,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			if (map.comparator() != null) {
 				throw new UnsupportedOperationException("Sorry, this translator does not (yet) support comparators");
 			}
-			// OPTIMISE maybe get rid of intm and just always use IdentityHashMap
+			// FIXME LOW maybe get rid of intm and just always use HashMap
 			if (ktr != null) {
 				for (Map.Entry<K, SkeletonValue<V>> en: map.skmap.entrySet()) {
 					intm.put(ktr.app(en.getKey()), en.getValue().meta);
@@ -382,7 +376,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 
 	@Override public boolean containsValue(Object value) {
 		if (!isLive()) {
-			// TODO maybe make this work even when map is partially loaded
+			// TODO LOW maybe make this work even when map is partially loaded
 			throw new DataNotLoadedException("TreeMap not fully loaded.", this);
 		} else {
 			for (SkeletonValue<V> v: skmap.values()) {
@@ -406,12 +400,9 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** will return **null** instead of returning the actual previous value
 	** (that hasn't been loaded yet).
 	**
-	** TODO: could code a setStrictChecksMode() or something to have this
+	** TODO LOW could code a setStrictChecksMode() or something to have this
 	** method throw {@link DataNotLoadedException} in such circumstances, at
 	** the user's discretion. This applies for CombinedEntry.setValue() too.
-	**
-	** OPTIMISE code a version that throws {@link IllegalArgumentException} if
-	** the key is not already in the map. (Useful for the *flate methods.)
 	*/
 	@Override public V put(K key, V value) {
 		SkeletonValue<V> sk = skmap.get(key);
@@ -429,7 +420,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** will return **null** instead of returning the actual previous value
 	** (that hasn't been loaded yet).
 	**
-	** TODO: could code a setStrictChecksMode() or something to have this
+	** TODO LOW could code a setStrictChecksMode() or something to have this
 	** method throw {@link DataNotLoadedException} in such circumstances, at
 	** the user's discretion.
 	*/
@@ -479,7 +470,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	private Set<K> keys;
 	@Override public Set<K> keySet() {
 		if (keys == null) {
-			// TODO make this implement a SortedSet
+			// OPT NORM make this implement a SortedSet
 			keys = new AbstractSet<K>() {
 
 				@Override public int size() { return skmap.size(); }
@@ -711,8 +702,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			}
 
 			/**
-			** See also TODO note for {@link SkeletonTreeMap#put(Object,
-			** Object)}.
+			** See also note for {@link SkeletonTreeMap#put(Object, Object)}.
 			*/
 			public V setValue(V value) {
 				if (!skel.isLoaded) { --ghosts; }

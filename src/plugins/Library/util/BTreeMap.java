@@ -90,13 +90,12 @@ public class BTreeMap<K, V> extends AbstractMap<K, V>
 implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializable*/ {
 
 	/*
-	** TODO list (most urgent first):
+	** list (most urgent first):
 	**
-	** # clean up the use of Node._size
-	** # use Node.{merge|split} instead of the long code in BTreeMap.{merge|split}
-	** # make Node's fields private/immutable
-	** # {@link ConcurrentModificationException} for the entrySet iterator
-	** # better distribution algorithm for {@link #putAll(Map)}
+	** TODO HIGH clean up the use of Node._size
+	** TODO HIGH make Node's fields private/immutable
+	** TODO LOW use Node.{merge|split} instead of the long code in BTreeMap.{merge|split}
+	** FIXME LOW {@link ConcurrentModificationException} for the entrySet iterator
 	**
 	***************************************************************************
 	** IMPORTANT NOTE FOR MAINTAINERS:
@@ -516,7 +515,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** A view of all subnodes with their lkey and rkey, as an {@link
 		** Iterable}. Iteration occurs in '''sorted''' order.
 		**
-		** TODO this method does not check that this node actually has subnodes
+		** TODO LOW this method does not check that this node actually has subnodes
 		** (ie. non-leaf). This may or may not change in the future.
 		*/
 		public Iterable<$3<K, Node, K>> iterNodesK() {
@@ -535,7 +534,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** A view of all subnodes as an {@link Iterable}. Iteration occurs in
 		** '''no particular order'''.
 		**
-		** TODO this method does not check that this node actually has subnodes
+		** TODO LOW this method does not check that this node actually has subnodes
 		** (ie. non-leaf). This may or may not change in the future.
 		*/
 		public Iterable<Node> iterNodes() {
@@ -610,7 +609,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		*/
 		public Iterable<$2<K, K>> iterKeyPairs() {
 			if (_iterKeyPairs == null) {
-				// TODO replace this with PairIterable when we make lkey/rkey final
+				// TODO NORM replace this with PairIterable when we make lkey/rkey final
 				_iterKeyPairs = new Iterable<$2<K, K>>() {
 					public Iterator<$2<K, K>> iterator() {
 						return new Iterator<$2<K, K>>() {
@@ -1707,7 +1706,6 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		putAll(this);
 	}
 
-	// TODO maybe make this a WeakReference?
 	private Set<Map.Entry<K, V>> entrySet = null;
 	@Override public Set<Map.Entry<K, V>> entrySet() {
 		if (entrySet == null) {
@@ -1716,7 +1714,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				@Override public int size() { return BTreeMap.this.size(); }
 
 				@Override public Iterator<Map.Entry<K, V>> iterator() {
-					// URGENT - this does NOT yet throw ConcurrentModificationException
+					// FIXME LOW - this does NOT yet throw ConcurrentModificationException
 					// use a modCount counter
 					return new Iterator<Map.Entry<K, V>>() {
 
@@ -1739,7 +1737,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 						}*/
 
 						/*@Override**/ public boolean hasNext() {
-							// TODO ideally iterate in the reverse order
+							// TODO LOW ideally iterate in the reverse order
 							for (Iterator<Map.Entry<K, V>> it: itstack) {
 								if (it.hasNext()) { return true; }
 							}
@@ -1780,12 +1778,12 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 							if (!removeok) {
 								throw new IllegalStateException("Iteration has not yet begun, or the element has already been removed.");
 							}
-							// OPTIMISE this could probably be a *lot* more efficient...
+							// OPT LOW this could probably be a *lot* more efficient...
 							BTreeMap.this.remove(lastkey);
 
 							// we need to find our position in the tree again, since there may have
 							// been structural modifications to it.
-							// OPTIMISE have a "structual modifications counter" that is incremented by
+							// OPT LOW have a "structual modifications counter" that is incremented by
 							// split, merge, rotateL, rotateR, and do the below only if it changes
 							nodestack.clear();
 							itstack.clear();
@@ -1845,13 +1843,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/* provided by AbstractMap
-	** OPTIMISE - the default clear() method is inefficient
+	** OPT LOW - the default clear() method is inefficient
 	@Override public Set<K> keySet() {
 		throw new UnsupportedOperationException("not implemented");
 	}*/
 
 	/* provided by AbstractMap
-	** OPTIMISE - the default clear() method is inefficient
+	** OPT LOW - the default clear() method is inefficient
 	@Override public Collection<V> values() {
 		throw new UnsupportedOperationException("not implemented");
 	}*/

@@ -23,8 +23,8 @@ import java.util.Map;
 ** Object form of a primitive; an Array, {@link Collection}, or {@link Map},
 ** where the elements are also serialisable as defined here; or a Java Bean.
 **
-** TODO restructure this class, maybe split off into a Serialisers class, or
-** a serial.serialiser package...
+** TODO NORM restructure this class, maybe split off into a Serialisers class,
+** or a serial.serialiser package...
 **
 ** @author infinity0
 */
@@ -61,9 +61,6 @@ public interface Serialiser<T> {
 	**
 	** Consequently, {@code Serialiser}s should be implemented so that its
 	** push operations generate metadata for which this property holds.
-	**
-	** PRIORITY decide whether we want to make the meta field final - this
-	** would assist use of ProgressTracker.
 	*/
 	final public static class PullTask<T> extends Task<T> {
 
@@ -95,9 +92,6 @@ public interface Serialiser<T> {
 	**
 	** Consequently, {@code Serialiser}s may require that extra data is passed
 	** to its push operations such that it can...
-	**
-	** PRIORITY decide whether we want to make the data field final - this
-	** would assist use of ProgressTracker.
 	*/
 	final public static class PushTask<T> extends Task<T> {
 
@@ -137,7 +131,7 @@ public interface Serialiser<T> {
 	** Represents a serialiser which uses a {@link Translator} to do much of
 	** its work. This can be used alongside a {@link Serialiser.Composite}.
 	**
-	** TODO rename this to something better...
+	** TODO LOW rename this to something better...
 	*/
 	public interface Translate<T, I> extends Serialiser<T> {
 
@@ -154,7 +148,8 @@ public interface Serialiser<T> {
 	** The conversion can be handled by a {@link Translator}, in which case the
 	** class might also implement {@link Serialiser.Translate}.
 	**
-	** TODO find a tidy way to make this extend Serialiser<T>...
+	** TODO HIGH find a tidy way to make this extend Serialiser<T>
+	** "Composite<T, S extends Serialiser<T>> extends Serialiser<T>" will work...
 	*/
 	public interface Composite<S extends Serialiser<?>> /*extends Serialiser<T>*/ {
 

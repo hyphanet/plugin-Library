@@ -20,8 +20,7 @@ import java.util.AbstractSet;
 ** key is more efficient than by value. It is up to the programmer to ensure
 ** that this holds; most maps are designed to have this property though.
 **
-** TODO this could be made to extend {@code MapSet} but I haven't yet bothered
-** since I haven't needed it as a separate class of its own. Feel free.
+** TODO LOW this could be made to extend a new {@code MapSet} class.
 **
 ** @author infinity0
 */

@@ -23,8 +23,8 @@ public interface Translator<T, I> {
 	** guidelines as in {@link Archiver#push(Serialiser.PushTask)},
 	** particularly with regards to throwing {@link IllegalArgumentException}.
 	**
-	** TODO should this have the option to throw {@link DataFormatException}
-	** like {@link #rev(Object)}?
+	** TODO LOW maybe this could throw {@link DataFormatException} like {@link
+	** #rev(Object)}? (probably no point...)
 	*/
 	I app(T translatee);// throws DataFormatException;
 

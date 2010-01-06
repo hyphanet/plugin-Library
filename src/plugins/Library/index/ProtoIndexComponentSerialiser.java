@@ -472,7 +472,7 @@ public class ProtoIndexComponentSerialiser {
 						map.put((ktr == null)? (K)en.getKey(): ktr.rev(en.getKey()), btr.rev((Map<String, Object>)en.getValue()));
 					}
 				} catch (ClassCastException e) {
-					// TODO more meaningful error message
+					// FIXME NORM more meaningful error message
 					throw new DataFormatException("Exception in converting data", e, t.data, null, null);
 				}
 

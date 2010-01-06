@@ -15,6 +15,9 @@ final public class Integers {
 
 	private Integers() { }
 
+	// TODO LOW "allocateEvenlyRandom" ie. distributely evenly but with ties
+	// being broken randomly, in the style of dithering
+
 	/**
 	** Allocate {@code total} resources evenly over {@code num} recipients.
 	**

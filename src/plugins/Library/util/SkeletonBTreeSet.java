@@ -18,14 +18,14 @@ import java.util.ArrayList;
 /**
 ** {@link Skeleton} of a {@link BTreeSet}. DOCUMENT
 **
-** TODO make this implement Skeleton<Pair<Integer, Integer>, ?> ? - ie.
+** TODO LOW make this implement Skeleton<Pair<Integer, Integer>, ?> ? - ie.
 ** deflate(int, int) to get the relevant subset?
 **
 ** @author infinity0
 */
 public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, MapSerialiser<E, E>>*/ {
 
-	// TODO when we implement internal_entries in SkeletonBTreeMap, then
+	// TODO NORM when we implement internal_entries in SkeletonBTreeMap, then
 	// we can have it automatically set to TRUE here.
 
 	public void setSerialiser(IterableSerialiser<SkeletonBTreeMap<E, E>.SkeletonNode> n, MapSerialiser<E, E> v) {
@@ -45,7 +45,7 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 	}
 
 	/*========================================================================
-	  public interface Skeleton TODO actually implement this...
+	  public interface Skeleton TODO NORM actually implement this...
 	 ========================================================================*/
 
 	public boolean isBare() {
@@ -64,7 +64,7 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 		((SkeletonBTreeMap<E, E>)bkmap).inflate();
 	}
 
-	// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
+	// TODO NORM tidy this - see SkeletonBTreeMap.inflate() for details
 	public plugins.Library.util.exec.BaseCompositeProgress getProgressInflate() {
 		return ((SkeletonBTreeMap<E, E>)bkmap).pr_inf;
 	}
@@ -123,8 +123,7 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 		}
 
 		public SkeletonTreeMap<E, E> rev(Collection<E> src) {
-			// TODO maybe make it use a comparator that can be passed into the
-			// constructor
+			// TODO LOW make it use a comparator that can be passed to the constructor
 			SkeletonTreeMap<E, E> dst = new SkeletonTreeMap<E, E>();
 			rev(src, dst);
 			return dst;

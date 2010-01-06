@@ -5,15 +5,27 @@
 - implement filters
 - design WriteableIndex
 
+== Main areas ==
+
+1. get merging working
+  - "FreenetArchiver" extension (see below)
+  - get a basic interface set up
+
+2. Re-design progress system
+  - Remove "Task" class and make PushTask.data, PullTask.meta fields *final*.
+  - re-structure "serialiser" classes
+
+3. Clean-up Skeleton*
+  - remove unnecessary methods, etc
+
 == Documentation of Quirks and Stuff That Future Programmers Must Know ==
 
 - PRIORITY document TaskComplete handling...
 
 == Serialisation ==
 
-- OPTIMISE HIGH have the MapCollectionTranslators generate map VIEWS of data
-
-- PRIORITY make getIndex() unblocking
+- OPT HIGH have the MapCollectionTranslators generate map VIEWS of data
+- OPT HIGH make getIndex() unblocking
   - use LiveArchiver for index root serialiser
   - use SnoopMetadata
 
@@ -21,9 +33,9 @@
 - make an extension of FreenetArchiver that saves a local copy of a CHK,
   and tries to load from it next time
 
-- OPTIMISE should have a better format than having BinInfo point to a top-level CHK
+- OPT LOW should have a better format than having BinInfo point to a top-level CHK
   - use MHK or have metadata directly in the parent node (latter reduces node fan-out to 400-500 max)
-- OPTIMISE LOW use B+-trees instead of B-trees
+- OPT LOW use B+-trees instead of B-trees
 
 == Resource usage ==
 
@@ -42,13 +54,15 @@
 
 == Index ==
 
-- PRIORITY start doing a WriteableIndex and make the ttab protected again.
-- PRIORITY adapt SkeletonBTreeMap.inflate() to work for a submap range too. see
+- HIGH start doing a WriteableIndex and make the ttab protected again.
+- Decide whether SkeletonNode really needs to implement SkeletonMap
+
+- LOW adapt SkeletonBTreeMap.inflate() to work for a submap range too. see
   that class for more details.
 
+- LOW make SortedArraySet mutable and into a map, so we can use it instead of TreeMap in BTreeMap.Node
 - LOW index: "suggested tokens" - suggest what other people should tag this
   index as; they are free to ignore this suggestion
-- OPTIMISE make SortedArraySet mutable and into a map, so we can use it instead of TreeMap in BTreeMap.Node
 
 == TermEntry / URIEntry ==
 
@@ -57,15 +71,8 @@
 - decide whether URIKeys are really necessary...
 - LOW there should be only one entry per URI per Token (enforce this in the code at some point)
 
-== Serialisation ==
-
-- LOW maybe have deflate/inflate throw a different checked exception from
-  TaskAbortException, forcing them to handle the TaskAbortException thrown by
-  pull/push?
-
 == Packaging structure ==
 
-- get rid of unnecessary Prefix* files
 - restructure the Serialiser.* stuff
 - LOW Skeleton/SkeletonMap does what we need for now, but might able to be generalised a bit
 

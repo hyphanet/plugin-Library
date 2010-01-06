@@ -112,15 +112,15 @@ final public class Library implements URLUpdateHook {
 
 	static volatile boolean logMINOR;
 	static volatile boolean logDEBUG;
-	
+
 	static {
 		Logger.registerClass(Library.class);
 	}
 
 	private final PluginStore store;
-	
+
 	static final String STOREKEY = "indexuris";
-	
+
 	/**
 	 * Method to setup Library class so it has access to PluginRespirator, and load bookmarks
 	 * TODO pull bookmarks from disk
@@ -146,7 +146,7 @@ final public class Library implements URLUpdateHook {
 				bookmarks.put(name, target);
 			}
 		}
-		
+
 		File persistentFile = new File("LibraryPersistent");
 		boolean migrated = false;
 		if(persistentFile.canRead()){
@@ -229,7 +229,7 @@ final public class Library implements URLUpdateHook {
 	** Holds all the bookmarks (aliases into the rtab).
 	*/
 	private Map<String, String> bookmarks = new HashMap<String, String>();
-	
+
 	private Map<String, BookmarkCallback> bookmarkCallbacks = new HashMap<String, BookmarkCallback>();
 
 	/**
@@ -403,7 +403,7 @@ final public class Library implements URLUpdateHook {
 	public Object getAddressTypeFromString(String indexuri) {
 		try {
 			// return KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri); KEYEXPLORER
-			// PRIORITY OPTIMISE if it already ends with eg. *Index.DEFAULT_FILE, don't strip
+			// OPT HIGH if it already ends with eg. *Index.DEFAULT_FILE, don't strip
 			// the MetaString, and have getIndexType behave accordingly
 			FreenetURI tempURI = new FreenetURI(indexuri);
 //			if (tempURI.hasMetaStrings()) { tempURI = tempURI.setMetaString(null); }
@@ -464,7 +464,7 @@ final public class Library implements URLUpdateHook {
 					} else
 						isSame = true;
 				}
-				
+
 			} catch (MalformedURLException e) {
 				// Ignore
 			}
@@ -475,7 +475,7 @@ final public class Library implements URLUpdateHook {
 		}
 		return name;
 	}
-	
+
 	final RequestClient rc = new RequestClient() {
 
 		public boolean persistent() {
@@ -485,16 +485,16 @@ final public class Library implements URLUpdateHook {
 		public void removeFrom(ObjectContainer container) {
 			// Ignore
 		}
-		
+
 	};
-	
+
 	private class BookmarkCallback implements USKRetrieverCallback, USKCallback {
 
 		private final String bookmarkName;
 		private String[] metaStrings;
 		USKRetriever ret;
 		private long origEdition;
-		
+
 		public BookmarkCallback(String name, String[] allMetaStrings, long origEdition) {
 			this.bookmarkName = name;
 			this.metaStrings = allMetaStrings;
@@ -524,7 +524,7 @@ final public class Library implements URLUpdateHook {
 				addBookmark(bookmarkName, uri);
 			}
 		}
-		
+
 	}
 
 	public synchronized void removeBookmark(String name) {
@@ -570,7 +570,7 @@ final public class Library implements URLUpdateHook {
 	public final Index getIndex(String indexuri) throws InvalidSearchException, TaskAbortException {
 		return getIndex(indexuri, null);
 	}
-	
+
 	/**
 	 * Gets an index using its id in the form {type}:{uri} <br />
 	 * known types are xml, bookmark
@@ -611,12 +611,12 @@ final public class Library implements URLUpdateHook {
 		}
 
 		long edition = -1;
-		
+
 		try {
 			if (indexkey instanceof File) {
 				indextype = getIndexType((File)indexkey);
 			} else if (indexkey instanceof FreenetURI) {
-				// PRIORITY maybe make this non-blocking. though getting the top block(s) shouldn't take long?
+				// TODO HIGH make this non-blocking
 				FreenetURI uri = (FreenetURI)indexkey;
 				if(uri.isUSK())
 					edition = uri.getEdition();
@@ -626,7 +626,7 @@ final public class Library implements URLUpdateHook {
 			}
 
 			if (indextype == ProtoIndex.class) {
-				// PRIORITY this *must* be non-blocking as it fetches the whole index root
+				// TODO HIGH this *must* be non-blocking as it fetches the whole index root
 				PullTask<ProtoIndex> task = new PullTask<ProtoIndex>(indexkey);
 				ProtoIndexSerialiser.forIndex(indexkey).pull(task);
 				index = task.data;

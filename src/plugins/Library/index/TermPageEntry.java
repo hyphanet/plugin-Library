@@ -64,9 +64,9 @@ public class TermPageEntry extends TermEntry {
 		if (u == null) {
 			throw new IllegalArgumentException("can't have a null page");
 		}
-		page = u; // OPTIMISE make the translator use the same URI object as from the URI table?
+		page = u; // OPT LOW make the translator use the same URI object as from the URI table?
 		title = t;
-		pos = (p == null)? Collections.<Integer, String>emptyMap(): Collections.unmodifiableMap(p); // TODO could be more efficient...
+		pos = (p == null)? Collections.<Integer, String>emptyMap(): Collections.unmodifiableMap(p); // OPT NORM could be more efficient...
 	}
 
 	/*========================================================================
@@ -83,7 +83,7 @@ public class TermPageEntry extends TermEntry {
 	@Override public int compareTo(TermEntry o) {
 		int a = super.compareTo(o);
 		if (a != 0) { return a; }
-		// OPTIMISE find a more efficient way than this
+		// OPT NORM make a more efficient way of comparing these
 		return page.toString().compareTo(((TermPageEntry)o).page.toString());
 	}
 

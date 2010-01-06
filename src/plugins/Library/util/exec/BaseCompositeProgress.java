@@ -6,7 +6,7 @@ package plugins.Library.util.exec;
 /**
 ** A progress that accumulates its data from the given group of progresses.
 **
-** TODO perhaps synchronize
+** TODO NORM perhaps synchronize
 **
 ** DOCUMENT
 **
@@ -45,7 +45,7 @@ public class BaseCompositeProgress implements CompositeProgress {
 	** @see ProgressParts#totalest
 	*/
 	public void setEstimate(int est) {
-		// TODO size check?
+		// TODO NORM size check?
 		esttype = est;
 	}
 
@@ -71,7 +71,7 @@ public class BaseCompositeProgress implements CompositeProgress {
 	}
 
 	/*@Override**/ public Iterable<? extends Progress> getSubProgress() {
-		// TODO make this check that subprogress is immutable, and if not return a wrapper
+		// TODO NORM make this check that subprogress is immutable, and if not return a wrapper
 		return subprogress;
 	}
 
@@ -139,7 +139,7 @@ public class BaseCompositeProgress implements CompositeProgress {
 				if (e.isError()) {
 					throw e;
 				} else {
-					// TODO perhaps have a handleNonErrorAbort() that can be overridden
+					// TODO LOW perhaps have a handleNonErrorAbort() that can be overridden
 					it.remove();
 				}
 			}

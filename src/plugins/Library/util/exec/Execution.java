@@ -10,7 +10,7 @@ import java.util.Date;
 ** Interface for an execution being handled concurrently to the threads which
 ** need to know its status and results.
 **
-** TODO maybe have {@code Execution<K, V>} and {@code K getSubject()}
+** TODO LOW maybe have {@code Execution<K, V>} and {@code K getSubject()}
 **
 ** @param <V> Type of result of the execution
 ** @author MikeB
@@ -61,7 +61,7 @@ public interface Execution<V> extends Progress/*, Future<V>*/ {
 	  public interface Future
 	 ========================================================================*/
 
-	// TODO could retrofit this if it's ever needed...
+	// TODO LOW could retrofit this if it's ever needed...
 
 	//*@Override**/ public boolean cancel(boolean mayInterruptIfRunning);
 

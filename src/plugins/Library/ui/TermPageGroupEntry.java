@@ -39,7 +39,7 @@ public class TermPageGroupEntry extends TermEntry {
 			editions.put(uskEdition, new TreeSet(RelevanceComparator.comparator));
 		editions.get(uskEdition).add(pageEntry);
 
-		// URGENT rework this... TermEntry is supposed to be immutable
+		// TODO HIGH rework this... TermEntry is supposed to be immutable
 		//if(rel < pageEntry.rel)	// TODO enter better algorithm for calculating relevance here
 		//	rel = pageEntry.rel;	// relevance should be on a per-edition basis, probably shouldnt use TermEntry at all
 	}

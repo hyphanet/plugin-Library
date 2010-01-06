@@ -12,7 +12,7 @@ import freenet.keys.FreenetURI;
 /**
 ** Data associated with a {@link FreenetURI}. DOCUMENT expand this...
 **
-** URGENT code equals()
+** FIXME NORM code equals()
 **
 ** @author infinity0
 */
@@ -28,7 +28,7 @@ public class URIEntry {
 	*/
 	protected float qual;
 
-	// TODO make bean getter/setters for these
+	// TODO NORM make bean getter/setters for these
 	Date date_checked;
 	String title;
 	int size;

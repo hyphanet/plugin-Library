@@ -25,13 +25,12 @@ import java.lang.reflect.InvocationTargetException;
 ** construct new objects from a list or map of property parameters, and to
 ** present (currently immutable) map-views of existing objects.
 **
-** TODO maybe make the map-view mutable
-**
-** TODO probably move this to another package, maybe util.reflect
-**
 ** @author infinity0
 */
 public class ObjectBlueprint<T> {
+
+	// TODO LOW maybe make the map-view mutable
+	// TODO LOW move this to another package, maybe util.reflect
 
 	/**
 	** The class that this blueprint represents.
@@ -256,9 +255,6 @@ public class ObjectBlueprint<T> {
 
 	/**
 	** Map of primitive classes to their object classes.
-	**
-	** TODO would be better to use google-collections' ImmutableMap but this
-	** will add 500KB as a dependency..
 	*/
 	final private static Map<Class<?>, Class<?>> boxes = new IdentityHashMap<Class<?>, Class<?>>();
 	static {

@@ -60,7 +60,7 @@ final public class ProtoIndex implements Index {
 	/**
 	** Insert ID for this index
 	*/
-	protected FreenetURI insID; // TODO maybe move this to WriteableProtoIndex?
+	protected FreenetURI insID; // TODO HIGH maybe move this to WriteableProtoIndex?
 
 	/**
 	** Name for this index.
@@ -79,7 +79,7 @@ final public class ProtoIndex implements Index {
 
 
 
-	final public /* DEBUG URGENT protected*/ SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab;
+	final public /* DEBUG protected*/ SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab;
 	final protected SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab;
 
 
@@ -106,7 +106,7 @@ final public class ProtoIndex implements Index {
 		utab = u;
 	}
 
-	// TODO maybe have more general classs than ProtoIndexSerialiser
+	// TODO NORM maybe have more general class than ProtoIndexSerialiser
 
 	protected int serialFormatUID;
 	protected ProtoIndexComponentSerialiser serialiser;
@@ -115,7 +115,7 @@ final public class ProtoIndex implements Index {
 	}
 
 	public void setSerialiser(ProtoIndexComponentSerialiser srl) {
-		// TODO test for isLive() here... or something
+		// FIXME LOW test for isLive() here... or something
 		serialFormatUID = srl.serialFormatUID;
 		serialiser = srl;
 	}
@@ -145,7 +145,8 @@ final public class ProtoIndex implements Index {
 
 
 	public class getTermEntriesHandler extends AbstractExecution<Set<TermEntry>> implements Runnable, ChainedProgress {
-		// TODO have a Runnable field instead of extending Runnable
+		// TODO NORM have a Runnable field instead of extending Runnable
+		// basically, redesign this entire class and series of classes
 
 		final Map<Object, ProgressTracker> trackers = new LinkedHashMap<Object, ProgressTracker>();
 		Object current_meta;
@@ -156,7 +157,7 @@ final public class ProtoIndex implements Index {
 		}
 
 		@Override public ProgressParts getParts() throws TaskAbortException {
-			// TODO tidy this up
+			// TODO NORM tidy this up
 			Set<TermEntry> result = getResult();
 			int started = trackers.size();
 			int known = started;
@@ -176,7 +177,7 @@ final public class ProtoIndex implements Index {
 			return last != null? last: current_tracker == null? null: current_tracker.getPullProgressFor(current_meta);
 		}
 
-		// URGENT tidy this - see SkeletonBTreeMap.inflate() for details
+		// TODO HIGH tidy this - see SkeletonBTreeMap.inflate() for details
 		Progress last = null;
 		/*@Override**/ public void run() {
 			try {
@@ -194,7 +195,7 @@ final public class ProtoIndex implements Index {
 				}
 
 				if (root == null) {
-					// PRIORITY better way to handle this
+					// TODO HIGH better way to handle this
 					throw new TaskAbortException("Index does not contain term " + subject, null);
 				}
 				last = root.getProgressInflate(); // REMOVE ME

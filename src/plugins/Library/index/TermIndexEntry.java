@@ -24,7 +24,7 @@ public class TermIndexEntry extends TermEntry {
 		if (i == null) {
 			throw new IllegalArgumentException("can't have a null index");
 		}
-		// OPTIMISE have some intern pool of FreenetURIs like we have for Token.
+		// OPT LOW have some intern pool of FreenetURIs like we have for Token.
 		// Or just use a string instead?
 		index = i;
 	}
@@ -41,7 +41,7 @@ public class TermIndexEntry extends TermEntry {
 	@Override public int compareTo(TermEntry o) {
 		int a = super.compareTo(o);
 		if (a != 0) { return a; }
-		// OPTIMISE find a more efficient way than this
+		// OPT NORM make a more efficient way of comparing these
 		return index.toString().compareTo(((TermIndexEntry)o).index.toString());
 	}
 

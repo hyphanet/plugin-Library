@@ -15,9 +15,6 @@ package plugins.Library.index;
 ** * {@link #equals(Object)}
 ** * {@link #hashCode()}
 **
-** TODO better way to compare FreenetURIs than toString().compareTo() (this
-** applies for TermIndexEntry, TokenPageEntry)
-**
 ** @author infinity0
 */
 abstract public class TermEntry implements Comparable<TermEntry> {

@@ -22,7 +22,7 @@ package plugins.Library.util.exec;
 ** in deadlock or task data being retrieved before the task is properly
 ** complete. For more details, see the source code.
 **
-** TODO perhaps synchronize
+** TODO NORM perhaps synchronize
 **
 ** @author infinity0
 */
