@@ -542,6 +542,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		try {
 			nodequeue.add((SkeletonNode)root);
 
+			// FIXME make a copy of the deflated root so that we can restore it if the
+			// operation fails
+
 			do {
 				//System.out.println("pushed: " + DEBUG_pushed + "; popped: " + DEBUG_popped);
 
@@ -651,9 +654,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** @throws UnsupportedOperationException if {@code remkey} is not empty
 	*/
 	public <X extends Exception> void update(
-		SortedSet<K> putkey,
-		SortedSet<K> remkey,
-		Closure<Map.Entry<K, V>, X> value_handler
+		SortedSet<K> putkey, SortedSet<K> remkey, Closure<Map.Entry<K, V>, X> value_handler
 	) throws TaskAbortException {
 
 		if (!remkey.isEmpty()) {
@@ -691,7 +692,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		*/
 
-		// URGENT OPTIMISE need a way of bypassing value_handler so that we
+		// TODO HIGH need a way of bypassing value_handler so that we
 		// can update the values synchronously (ie. when we don't need to retrieve
 		// network data).
 
@@ -1019,7 +1020,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				}
 
 				Thread.sleep(1000);
-
 			} while (proc_pull.hasPending() || proc_push.hasPending() || proc_val.hasPending());
 
 		} catch (DataFormatException e) {

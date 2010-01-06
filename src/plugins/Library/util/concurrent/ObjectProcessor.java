@@ -42,7 +42,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** and the closure's invoke method is also thread-safe.
 	**
 	** If the {@code closure} parameter is {@code null}, it is expected that
-	** {@link createJobFor} will overridden appropriately.
+	** {@link #createJobFor(Object)} will be overridden appropriately.
 	**
 	** @param input Queue for input items
 	** @param output Queue for output/error items
@@ -133,10 +133,10 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	}
 
 	/**
-	** Creates a {@link Runnable} for processing a submitted item and sends it
-	** to {@link #exec} for execution. This method is provided for completeness
-	** in case anyone needs it; {@link #auto(SafeClosure)} should be adequate
-	** for most purposes.
+	** Waits on the input queue. When an item is obtained, a job is {@linkplain
+	** #createJobFor(Object) created} for it, and sent to {@link #exec} to be
+	** executed. This method is provided for completeness, in case anyone needs
+	** it; {@link #auto(SafeClosure)} should be adequate for most purposes.
 	*/
 	public void handle() throws InterruptedException {
 		T item = in.take();
@@ -144,7 +144,11 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	}
 
 	/**
-	** DOCUMENT.
+	** Creates a {@link Runnable} to process the item and push it onto the
+	** output queue, along with any exception that aborted the process.
+	**
+	** The default implementation invokes {@link #clo} on the item, and then
+	** adds the appropriate data onto the output queue.
 	*/
 	protected Runnable createJobFor(final T item) {
 		if (clo == null) {

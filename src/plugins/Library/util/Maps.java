@@ -5,6 +5,7 @@ package plugins.Library.util;
 
 import static plugins.Library.util.Maps.$;
 
+import java.util.Map.Entry; // workaround javadoc bug #4464323
 import java.util.Map;
 
 /**
@@ -15,7 +16,7 @@ import java.util.Map;
 final public class Maps {
 
 	/**
-	** A simple {@link Map.Entry} with no special properties.
+	** A simple {@link Entry} with no special properties.
 	*/
 	public static class BaseEntry<K, V> implements Map.Entry<K, V> {
 
@@ -31,7 +32,7 @@ final public class Maps {
 	}
 
 	/**
-	** A {@link Map.Entry} whose value cannot be modified.
+	** A {@link Entry} whose value cannot be modified.
 	*/
 	public static class ImmutableEntry<K, V> extends BaseEntry<K, V> {
 
@@ -47,7 +48,7 @@ final public class Maps {
 	}
 
 	/**
-	** A {@link Map.Entry} whose {@link Object#equals(Object)} and {@link
+	** A {@link Entry} whose {@link Object#equals(Object)} and {@link
 	** Object#hashCode()} are defined purely in terms of the key, which is
 	** immutable in the entry.
 	*/
