@@ -72,7 +72,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		try {
 			proc.submit(item, deposit);
 		} catch (InterruptedException e) {
-			throw new IllegalArgumentException("ObjectProcessor: abuse of submitSafe. Blame the programmer, who did not know what they were doing", e);
+			throw new IllegalArgumentException("ObjectProcessor: abuse of submitSafe(). Blame the programmer, who did not know what they were doing", e);
 		}
 	}
 

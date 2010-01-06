@@ -672,21 +672,19 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		** - node gets popped from inflated
 		** - enter InflateChildNodes
-		**   - subnodes get pushed into pull_queue
+		**   - subnodes get pushed into proc_pull
 		**   - (recurse for each subnode)
-		**     - subnode gets popped from inflated
+		**     - subnode gets popped from proc_pull
 		**     - etc
-		**     - split-subnodes get pushed into push_queue
-		** - wait for all:
-		**   - split-subnodes get popped from deflated
+		**     - split-subnodes get pushed into proc_push
+		** - wait for all: split-subnodes get popped from proc_push
 		** - enter SplitNode
-		**   - for each item in the original node's value_clo
+		**   - for each item in the original node's DeflateNode
 		**     - release the item and acquire it on
-		**       - the parent's value_clo if the item is a separator
-		**       - a new value_clo if the item is now in a split-node
+		**       - the parent's DeflateNode if the item is a separator
+		**       - a new DeflateNode if the item is now in a split-node
 		** - for each split-node:
-		**   - wait for all:
-		**     - values get popped from values_complete
+		**   - wait for all: values get popped from proc_val; SplitNode to close()
 		**   - enter DeflateNode
 		**     - split-node gets pushed into push_queue (except for root)
 		**
@@ -725,7 +723,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 
 			/**
-			** Run only after all the node's local values have been obtained.
+			** Push this node. This is run when this sweeper is cleared, which
+			** happens after all the node's local values have been obtained,
+			** '''and''' the node has passed through SplitNode (which closes
+			** this sweeper).
 			*/
 			public void run() {
 				if (parNClo == null) {
@@ -737,7 +738,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 
 			/**
-			** Update the key's value in the node.
+			** Update the key's value in the node. Runs whenever an entry is
+			** popped from proc_val.
 			*/
 			public void invoke(Map.Entry<K, V> en) {
 				assert(node.entries.containsKey(en.getKey()));
@@ -779,7 +781,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 
 			/**
-			** Splits a node, after all its children have been deflated.
+			** Closes the node's DeflateNode, and (if appropriate) splits the
+			** node and updates the deposits for each key moved. This is run
+			** after all its children have been deflated.
 			*/
 			public void run() {
 
@@ -788,7 +792,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				nodeVClo.close();
 
 				int sk = minKeysFor(node.nodeSize());
-
 				// No need to split
 				if (sk == 0) {
 					if (nodeVClo.isCleared()) { nodeVClo.run(); }
@@ -832,6 +835,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						reassignKeyToSweeper(key, vClo);
 					}
 					vClo.close();
+					if (vClo.isCleared()) { vClo.run(); } // if no keys were added
 
 					parNClo.acquire(n);
 				}
@@ -888,7 +892,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			/**
 			** Merge the relevant parts of the map into the node, and inflate its
-			** children. To be called after a node is itself inflated.
+			** children. Runs whenever a node is popped from proc_pull.
 			*/
 			public void invoke(SkeletonNode node) {
 				assert(compareL(node.lkey, putkey.first()) < 0);
