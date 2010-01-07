@@ -4,11 +4,13 @@
 package plugins.Library.util.concurrent;
 
 import plugins.Library.util.func.Closure;
-import plugins.Library.util.func.SafeClosure;
 import plugins.Library.util.func.Tuples.*;
 import static plugins.Library.util.func.Tuples.*;
 
+import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -33,8 +35,12 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	final protected Closure<T, X> clo;
 	final protected Executor exec;
 
-	protected Thread auto = null;
-	protected boolean open = true;
+	protected volatile boolean open = true;
+
+	// JDK6 replace with ConcurrentSkipListSet
+	final private static ConcurrentMap<ObjectProcessor, Boolean> running = new ConcurrentHashMap<ObjectProcessor, Boolean>();
+	// This must only be modified in a static synchronized block
+	private static Thread auto = null;
 
 	/**
 	** Constructs a new processor. The processor itself will be thread-safe
@@ -49,6 +55,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** @param deposit Map for item deposits
 	** @param closure Closure to call on each item
 	** @param executor Executor to run each closure call
+	** @param autostart Whether to start an {@link #auto()} autohandler
 	*/
 	public ObjectProcessor(
 		BlockingQueue<T> input, BlockingQueue<$2<T, X>> output, Map<T, E> deposit,
@@ -133,14 +140,35 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	}
 
 	/**
-	** Waits on the input queue. When an item is obtained, a job is {@linkplain
-	** #createJobFor(Object) created} for it, and sent to {@link #exec} to be
-	** executed. This method is provided for completeness, in case anyone needs
-	** it; {@link #auto(SafeClosure)} should be adequate for most purposes.
+	** Retrieves an item by calling {@link BlockingQueue#take()} on the input
+	** queue. If this succeeds, a job is {@linkplain #createJobFor(Object)
+	** created} for it, and sent to {@link #exec} to be executed.
+	**
+	** This method is provided for completeness, in case anyone needs it;
+	** {@link #auto()} should be adequate for most purposes.
+	**
+	** @throws InterruptedExeception if interrupted whilst waiting
 	*/
-	public void handle() throws InterruptedException {
+	public void dispatchTake() throws InterruptedException {
 		T item = in.take();
 		exec.execute(createJobFor(item));
+	}
+
+	/**
+	** Retrieves an item by calling {@link BlockingQueue#poll()} on the input
+	** queue. If this succeeds, a job is {@linkplain #createJobFor(Object)
+	** created} for it, and sent to {@link #exec} to be executed.
+	**
+	** This method is provided for completeness, in case anyone needs it;
+	** {@link #auto()} should be adequate for most purposes.
+	**
+	** @return Whether a task was retrieved and executed
+	*/
+	public boolean dispatchPoll() {
+		T item = in.poll();
+		if (item == null) { return false; }
+		exec.execute(createJobFor(item));
+		return true;
 	}
 
 	/**
@@ -160,65 +188,79 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 				try { clo.invoke(item); }
 				catch (Exception e) { ex = (X)e; }
 				try { out.put($2(item, ex)); }
-				catch (InterruptedException e) { throw new UnsupportedOperationException(); }
+				catch (InterruptedException e) { throw new UnsupportedOperationException(e); }
 			}
 		};
 	}
 
 	/**
-	** Starts a new {@link Thread} which waits on the input queue and calls
-	** {@link #handle()} for each incoming item.
-	**
-	** @param shutdown If not {@code null}, this is called on {@link #exec}
-	**        when the thread completes.
-	** @throws IllegalThreadStateException if a thread was already started
+	** Start a new thread to run the {@link #active} processors, if one is not
+	** already running.
 	*/
-	public synchronized void auto(final SafeClosure<Executor> shutdown) {
-		// OPT HIGH don't start a new thread. otherwise things could get pretty
-		// inefficient. instead, have a static Collection<ObjectProcessor> with one
-		// thread polling each, and Thread.sleep(((size()-1)>>8)+1<<10);
-		if (auto == null) {
-			auto = new Thread() {
-				@Override public void run() {
+	private static synchronized void ensureAutoHandler() {
+		if (auto != null) { return; }
+		auto = new Thread() {
+			@Override public void run() {
+				final int timeout = 4;
+				int t = timeout;
+				while (!running.isEmpty() && (t=timeout) == timeout || t-- > 0) {
+					for (Iterator<ObjectProcessor> it = running.keySet().iterator(); it.hasNext();) {
+						ObjectProcessor proc = it.next();
+						boolean o = proc.open;
+						while (proc.dispatchPoll());
+						if (!o) { it.remove(); }
+					}
 					try {
-						while (open || !in.isEmpty()) {
-							try {
-								handle();
-							} catch (InterruptedException e) {
-								continue;
-							}
-						}
-					} finally {
-						if (shutdown != null) { shutdown.invoke(exec); }
+						// sleep 2^10ms for every 2^10 processors
+						Thread.sleep(((running.size()-1)>>10)+1<<10);
+					} catch (InterruptedException e) {
+						// TODO LOW log this somewhere
+					}
+
+					if (t > 0) { continue; }
+					synchronized (ObjectProcessor.class) {
+						// if auto() was called just before we entered this synchronized block,
+						// then its ensureAutoHandler() would have done nothing. so we want to keep
+						// this thread running to take care of the new addition.
+						if (!running.isEmpty()) { continue; }
+						// otherwise we can safely discard this thread, since ensureAutoHandler()
+						// cannot be called as long as we are in this block.
+						auto = null;
+						return;
 					}
 				}
-			};
-		}
+				throw new AssertionError("ObjectProcessor: bad exit in autohandler. this is a bug; please report.");
+			}
+		};
 		auto.start();
 	}
 
 	/**
-	** @see #auto(SafeClosure)
+	** Add this processor to the collection of {@link #active} processes, and
+	** makes sure there is a thread to handle them.
+	**
+	** @return Whether the processor was not already being handled.
 	*/
-	public void auto() {
-		auto(null);
+	public boolean auto() {
+		Boolean r = ObjectProcessor.running.put(this, Boolean.TRUE);
+		ObjectProcessor.ensureAutoHandler();
+		return r == null;
 	}
 
 	/**
-	** Stop accepting {@linkplain #submit(Object, Object) new submissions} or
-	** {@linkplain #update(Object, Object) updates}. Held items can still be
-	** {@linkplain #handle() handled} and {@linkplain #accept() retrieved}, and
-	** if an {@linkplain #auto(SafeClosure) auto-handler} is running, it will
-	** run until all items have been processed.
+	** Stop accepting new submissions or deposit updates. Held items can still
+	** be processed and retrieved, and if an {@linkplain #auto() auto-handler}
+	** is running, it will run until all such items have been processed.
 	*/
-	/*@Override**/ public synchronized void close() {
+	/*@Override**/ public void close() {
 		open = false;
-		if (auto != null) { auto.interrupt(); }
 	}
 
 	// public class Object
 
 	/**
+	** {@inheritDoc}
+	**
 	** This implementation just calls {@link #close()}.
 	*/
 	@Override public void finalize() {
