@@ -174,6 +174,9 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** @throws IllegalThreadStateException if a thread was already started
 	*/
 	public synchronized void auto(final SafeClosure<Executor> shutdown) {
+		// OPT HIGH don't start a new thread. otherwise things could get pretty
+		// inefficient. instead, have a static Collection<ObjectProcessor> with one
+		// thread polling each, and Thread.sleep(((size()-1)>>8)+1<<10);
 		if (auto == null) {
 			auto = new Thread() {
 				@Override public void run() {
