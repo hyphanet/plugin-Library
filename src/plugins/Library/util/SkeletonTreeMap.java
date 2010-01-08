@@ -27,6 +27,9 @@ import java.util.HashMap;
 **
 ** Note: this implementation, like {@link TreeMap}, is not thread-safe.
 **
+** TODO NORM "issub" should not be necessary, but need to check bounds on
+** submaps before trying to remove an item.
+**
 ** @author infinity0
 */
 public class SkeletonTreeMap<K, V>
@@ -98,7 +101,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		public V data;
 		/**
 		** Thes is true by default, to make the {@link #putGhost(Object,
-		** Object)} and {@link #put(Object, Object)} algorithms simpler.
+		** Object)} and {@link #put(Object, Object)} methods simpler.
 		*/
 		protected boolean isLoaded = true;
 
@@ -434,32 +437,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	private transient Set<Map.Entry<K,V>> entries;
 	@Override public Set<Map.Entry<K,V>> entrySet() {
 		if (entries == null) {
-			entries = new AbstractSet<Map.Entry<K, V>>() {
-
-				@Override public int size() { return skmap.size(); }
-
-				@Override public Iterator<Map.Entry<K, V>> iterator() {
-					return new UnwrappingIterator<Map.Entry<K, V>>(skmap.entrySet().iterator(), UnwrappingIterator.ENTRY);
-				}
-
-				@Override public void clear() {
-					SkeletonTreeMap.this.clear();
-				}
-
-				@Override public boolean contains(Object o) {
-					if (!(o instanceof Map.Entry)) { return false; }
-					Map.Entry e = (Map.Entry)o;
-					return SkeletonTreeMap.this.get(e.getKey()).equals(e.getValue());
-				}
-
-				@Override public boolean remove(Object o) {
-					// SkeletonTreeMap.remove() called, which automatically updates _ghosts
-					boolean c = contains(o);
-					if (c) { SkeletonTreeMap.this.remove(((Map.Entry)o).getKey()); }
-					return c;
-				}
-
-			};
+			entries = new UnwrappingEntrySet(skmap, false);
 		}
 		return entries;
 	}
@@ -473,7 +451,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 				@Override public int size() { return skmap.size(); }
 
 				@Override public Iterator<K> iterator() {
-					return new UnwrappingIterator<K>(skmap.entrySet().iterator(), UnwrappingIterator.KEY);
+					return new UnwrappingIterator<K>(skmap.entrySet().iterator(), UnwrappingIterator.KEY, false);
 				}
 
 				@Override public void clear() { SkeletonTreeMap.this.clear(); }
@@ -501,7 +479,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 				@Override public int size() { return SkeletonTreeMap.this.size(); }
 
 				@Override public Iterator<V> iterator() {
-					return new UnwrappingIterator<V>(skmap.entrySet().iterator(), UnwrappingIterator.VALUE);
+					return new UnwrappingIterator<V>(skmap.entrySet().iterator(), UnwrappingIterator.VALUE, false);
 				}
 
 				@Override public void clear() { SkeletonTreeMap.this.clear(); }
@@ -527,7 +505,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** most of its methods. For details, see {@link UnwrappingSortedSubMap}.
 	*/
 	@Override public SortedMap<K, V> subMap(K fr, K to) {
-		return new UnwrappingSortedSubMap<K, V>(skmap.subMap(fr, to));
+		return new UnwrappingSortedSubMap(skmap.subMap(fr, to));
 	}
 
 	/**
@@ -538,7 +516,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** most of its methods. For details, see {@link UnwrappingSortedSubMap}.
 	*/
 	@Override public SortedMap<K, V> headMap(K to) {
-		return new UnwrappingSortedSubMap<K, V>(skmap.headMap(to));
+		return new UnwrappingSortedSubMap(skmap.headMap(to));
 	}
 
 	/**
@@ -549,7 +527,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** most of its methods. For details, see {@link UnwrappingSortedSubMap}.
 	*/
 	@Override public SortedMap<K, V> tailMap(K fr) {
-		return new UnwrappingSortedSubMap<K, V>(skmap.tailMap(fr));
+		return new UnwrappingSortedSubMap(skmap.tailMap(fr));
 	}
 
 
@@ -611,6 +589,12 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		final protected static int VALUE = 1;
 		final protected static int ENTRY = 2;
 
+		/**
+		** Whether this is a view of a submap {@link SkeletonTreeMap}. Currently,
+		** this determines whether attempts to modify the view will fail, since
+		** it's a bitch to keep track of the ghost counter.
+		*/
+		final protected boolean issub;
 		protected boolean gotvalue;
 
 		/**
@@ -629,10 +613,11 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** @param it The backing iterator
 		** @param t The {@link #type} of iterator
 		*/
-		protected UnwrappingIterator(Iterator<Map.Entry<K, SkeletonValue<V>>> it, int t) {
+		protected UnwrappingIterator(Iterator<Map.Entry<K, SkeletonValue<V>>> it, int t, boolean sub) {
 			assert(t == KEY || t == VALUE || t == ENTRY);
 			type = t;
 			iter = it;
+			issub = sub;
 		}
 
 		public boolean hasNext() {
@@ -659,6 +644,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 
 		public void remove() {
+			if (issub) { throw new UnsupportedOperationException("not implemented"); }
 			if (last == null) { throw new IllegalStateException("Iteration has not yet begun, or the element has already been removed."); }
 			if (!last.getValue().isLoaded) { --ghosts; }
 			iter.remove();
@@ -734,9 +720,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	**
 	** @author infinity0
 	*/
-	protected static class UnwrappingSortedSubMap<K, V>
-	extends AbstractMap<K, V>
-	implements Map<K, V>, SortedMap<K, V> {
+	protected class UnwrappingSortedSubMap extends AbstractMap<K, V> implements SortedMap<K, V> {
 
 		final SortedMap<K, SkeletonValue<V>> bkmap;
 
@@ -764,9 +748,12 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			return bkmap.lastKey();
 		}
 
+		private transient Set<Map.Entry<K, V>> entries;
 		@Override public Set<Map.Entry<K, V>> entrySet() {
-			// TODO NOW required by other stuff.
-			throw new UnsupportedOperationException("not implemented");
+			if (entries == null) {
+				entries = new UnwrappingEntrySet(bkmap, true);
+			}
+			return entries;
 		}
 
 		/**
@@ -776,7 +763,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** UnwrappingSortedSubMap same limitations} as this class.
 		*/
 		/*@Override**/ public SortedMap<K, V> subMap(K fr, K to) {
-			return new UnwrappingSortedSubMap<K, V>(bkmap.subMap(fr, to));
+			return new UnwrappingSortedSubMap(bkmap.subMap(fr, to));
 		}
 
 		/**
@@ -786,7 +773,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** UnwrappingSortedSubMap same limitations} as this class.
 		*/
 		/*@Override**/ public SortedMap<K, V> headMap(K to) {
-			return new UnwrappingSortedSubMap<K, V>(bkmap.headMap(to));
+			return new UnwrappingSortedSubMap(bkmap.headMap(to));
 		}
 
 		/**
@@ -796,9 +783,64 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** UnwrappingSortedSubMap same limitations} as this class.
 		*/
 		/*@Override**/ public SortedMap<K, V> tailMap(K fr) {
-			return new UnwrappingSortedSubMap<K, V>(bkmap.tailMap(fr));
+			return new UnwrappingSortedSubMap(bkmap.tailMap(fr));
 		}
 
 	}
+
+
+	/************************************************************************
+	** DOCUMENT
+	**
+	** @author infinity0
+	*/
+	protected class UnwrappingEntrySet extends AbstractSet<Map.Entry<K, V>> {
+
+		final protected SortedMap<K, SkeletonValue<V>> bkmap;
+		/**
+		** Whether this is a view of a submap {@link SkeletonTreeMap}. Currently,
+		** this determines whether attempts to modify the view will fail, since
+		** it's a bitch to keep track of the ghost counter.
+		*/
+		final protected boolean issub;
+
+		protected UnwrappingEntrySet(SortedMap<K, SkeletonValue<V>> bk, boolean sub) {
+			bkmap = bk;
+			issub = sub;
+		}
+
+		@Override public int size() { return bkmap.size(); }
+
+		@Override public Iterator<Map.Entry<K, V>> iterator() {
+			return new UnwrappingIterator<Map.Entry<K, V>>(bkmap.entrySet().iterator(), UnwrappingIterator.ENTRY, issub);
+		}
+
+		@Override public void clear() {
+			if (issub) { throw new UnsupportedOperationException("not implemented"); }
+			SkeletonTreeMap.this.clear();
+		}
+
+		@Override public boolean contains(Object o) {
+			if (!(o instanceof Map.Entry)) { return false; }
+			Map.Entry en = (Map.Entry)o;
+			Object key = en.getKey(); Object val = en.getValue();
+			// return SkeletonTreeMap.this.get(e.getKey()).equals(e.getValue());
+			SkeletonValue<V> sk = bkmap.get(key);
+			if (sk == null) { return false; }
+			if (!sk.isLoaded) { throw new DataNotLoadedException("Data not loaded for key " + key + ": " + sk.meta, SkeletonTreeMap.this, key, sk.meta); }
+			return sk.data == null && val == null || sk.data.equals(val);
+		}
+
+		@Override public boolean remove(Object o) {
+			if (issub) { throw new UnsupportedOperationException("not implemented"); }
+			// SkeletonTreeMap.remove() called, which automatically updates _ghosts
+			boolean c = contains(o);
+			if (c) { SkeletonTreeMap.this.remove(((Map.Entry)o).getKey()); }
+			return c;
+		}
+
+	}
+
+
 
 }
