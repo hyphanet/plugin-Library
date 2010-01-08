@@ -431,7 +431,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		return sk.data;
 	}
 
-	private Set<Map.Entry<K,V>> entries;
+	private transient Set<Map.Entry<K,V>> entries;
 	@Override public Set<Map.Entry<K,V>> entrySet() {
 		if (entries == null) {
 			entries = new AbstractSet<Map.Entry<K, V>>() {
@@ -455,10 +455,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 				@Override public boolean remove(Object o) {
 					// SkeletonTreeMap.remove() called, which automatically updates _ghosts
 					boolean c = contains(o);
-					if (c) {
-						Map.Entry e = (Map.Entry)o;
-						SkeletonTreeMap.this.remove(e.getKey());
-					}
+					if (c) { SkeletonTreeMap.this.remove(((Map.Entry)o).getKey()); }
 					return c;
 				}
 
@@ -467,7 +464,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		return entries;
 	}
 
-	private Set<K> keys;
+	private transient Set<K> keys;
 	@Override public Set<K> keySet() {
 		if (keys == null) {
 			// OPT NORM make this implement a SortedSet
@@ -496,7 +493,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		return keys;
 	}
 
-	private Collection<V> values;
+	private transient Collection<V> values;
 	@Override public Collection<V> values() {
 		if (values == null) {
 			values = new AbstractCollection<V>() {
@@ -747,12 +744,16 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			bkmap = sub;
 		}
 
-		/*@Override**/ public Comparator<? super K> comparator() {
-			return bkmap.comparator();
+		@Override public int size() {
+			return bkmap.size();
 		}
 
 		@Override public boolean isEmpty() {
 			return bkmap.isEmpty();
+		}
+
+		/*@Override**/ public Comparator<? super K> comparator() {
+			return bkmap.comparator();
 		}
 
 		/*@Override**/ public K firstKey() {
@@ -764,6 +765,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 
 		@Override public Set<Map.Entry<K, V>> entrySet() {
+			// TODO NOW required by other stuff.
 			throw new UnsupportedOperationException("not implemented");
 		}
 

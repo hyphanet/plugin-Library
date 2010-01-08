@@ -6,6 +6,7 @@ package plugins.Library.index;
 import junit.framework.TestCase;
 
 import plugins.Library.util.*;
+import plugins.Library.util.func.*;
 import plugins.Library.util.exec.*;
 import plugins.Library.io.serial.*;
 import plugins.Library.io.serial.Serialiser.*;
@@ -69,24 +70,45 @@ public class BIndexTest extends TestCase {
 		timeDiff();
 	}
 
-	public void fullInflate() throws TaskAbortException {
-		newTestSkeleton();
+	protected SkeletonBTreeSet<TermEntry> makeEntryTree() {
+		SkeletonBTreeSet<TermEntry> tree = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
+		csrl.setSerialiserFor(tree);
+		return tree;
+	}
 
-		int totalentries = 0;
+	protected int fillEntrySet(String key, SortedSet<TermEntry> tree) {
+		int n = rand.nextInt(0xF0) + 0x10;
+		for (int j=0; j<n; ++j) {
+			tree.add(Generators.rndEntry(key));
+		}
+		return n;
+	}
 
+	protected int fillRootTree(SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> tree) {
+		int total = 0;
 		for (int i=0; i<0x100; ++i) {
 			String key = Generators.rndKey();
-			SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
-			csrl.setSerialiserFor(entries);
-
-			int n = rand.nextInt(0xF0) + 0x10;
-			totalentries += n;
-
-			for (int j=0; j<n; ++j) {
-				entries.add(Generators.rndEntry(key));
-			}
-			idx.ttab.put(key, entries);
+			SkeletonBTreeSet<TermEntry> entries = makeEntryTree();
+			total += fillEntrySet(key, entries);
+			tree.put(key, entries);
 		}
+		return total;
+	}
+
+	protected SortedSet<String> randomSubset(Set<String> set) {
+		SortedSet<String> sub = new TreeSet<String>();
+		for (String s: set) {
+			int r = Generators.rand.nextInt(2);
+			if (r == 0) {
+				sub.add(s);
+			}
+		}
+		return sub;
+	}
+
+	public void fullInflate() throws TaskAbortException {
+		newTestSkeleton();
+		int totalentries = fillRootTree(idx.ttab);
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
 
 		for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
@@ -104,7 +126,7 @@ public class BIndexTest extends TestCase {
 		srl.pull(task2);
 		idx = task2.data;
 
-		idx.ttab.inflate();
+		idx.ttab.inflate(); // currently, this inflates all the entries too..
 		assertTrue(idx.ttab.isLive());
 		assertFalse(idx.ttab.isBare());
 		System.out.print("inflated in " + timeDiff() + " ms, ");
@@ -118,7 +140,31 @@ public class BIndexTest extends TestCase {
 		assertFalse(idx.ttab.isLive());
 		PushTask<ProtoIndex> task3 = new PushTask<ProtoIndex>(idx);
 		srl.push(task3);
-		System.out.println("re-deflated in " + timeDiff() + " ms, root at " + task3.meta);
+		System.out.print("re-deflated in " + timeDiff() + " ms, root at " + task3.meta + ", ");
+
+		final SortedSet<String> randAdd = randomSubset(randomWords);
+		final Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
+		int added = 0;
+		for (String k: randAdd) {
+			SortedSet<TermEntry> set = new TreeSet<TermEntry>();
+			added += fillEntrySet(k, set);
+			newtrees.put(k, set);
+		}
+
+		Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo = new
+		Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
+			/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
+				String key = entry.getKey();
+				SkeletonBTreeSet<TermEntry> tree = entry.getValue();
+				if (tree == null) {
+					entry.setValue(tree = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN));
+				}
+				tree.update(newtrees.get(key), null);
+			}
+		};
+		idx.ttab.update(randAdd, null, clo);
+		System.out.println(added + " entries merged in " + timeDiff() + " ms.");
+
 	}
 
 	public void testBasicMulti() throws TaskAbortException {

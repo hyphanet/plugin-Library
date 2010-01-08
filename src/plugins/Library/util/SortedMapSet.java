@@ -5,8 +5,8 @@ package plugins.Library.util;
 
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.SortedMap;
 import java.util.AbstractSet;
@@ -35,9 +35,8 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	/**
 	** Construct a set backed by the given {@link SortedMap}.
 	**
-	** Note: this constructor assumes that all of the mappings in given map are
-	** self-mappings, ie. for all {@code (k,v)} in {@code m}: {@code k == v}.
-	** It is up to the calling code to ensure that this holds.
+	** It is '''assumed''' that every key already in this map, is mapped to
+	** itself. It is up to the caller to ensure that this holds.
 	*/
 	protected SortedMapSet(M m) {
 		bkmap = m;

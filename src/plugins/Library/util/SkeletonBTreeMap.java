@@ -498,8 +498,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	BaseCompositeProgress pr_inf = new BaseCompositeProgress();
 	public BaseCompositeProgress getProgressInflate() { return pr_inf; } // REMOVE ME
 	/**
-	** Parallel bulk-inflate. Not yet thread safe, but ideally it should be.
-	** See source code for details.
+	** Parallel bulk-inflate. At the moment, this will inflate all the values
+	** of each nodes too.
+	**
+	** Not yet thread safe, but ideally it should be. See source for details.
 	*/
 	/*@Override**/ public void inflate() throws TaskAbortException {
 
@@ -647,7 +649,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** @see #update(SortedSet, SortedSet, SortedMap, SafeClosure)
 	*/
 	public <X extends Exception> void update(SortedSet<K> putkey, SortedSet<K> remkey, Closure<Map.Entry<K, V>, X> value_handler) throws TaskAbortException {
-		update(putkey, remkey, value_handler);
+		update(putkey, remkey, null, value_handler);
 	}
 
 	/**

@@ -13,6 +13,8 @@ import plugins.Library.util.exec.TaskAbortException;
 import java.util.Comparator;
 import java.util.Collection;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.ArrayList;
 
 /**
@@ -67,6 +69,12 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 	// TODO NORM tidy this - see SkeletonBTreeMap.inflate() for details
 	public plugins.Library.util.exec.BaseCompositeProgress getProgressInflate() {
 		return ((SkeletonBTreeMap<E, E>)bkmap).pr_inf;
+	}
+
+	// TODO NORM tidy this, etc. note that we don't need async update() because
+	// we don't have a value that can be updated (it's always just the key)
+	public void update(SortedSet<E> putset, SortedSet<E> remset) throws TaskAbortException {
+		((SkeletonBTreeMap<E, E>)bkmap).update(null, remset, new SortedSetMap<E, SortedSet<E>>(putset), null);
 	}
 
 	/**
