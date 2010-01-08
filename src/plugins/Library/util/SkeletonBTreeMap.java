@@ -836,6 +836,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				}
 
 				Collection<K> keys = Sorted.select(Sorted.keySet(node.entries), sk);
+				// FIXME NOW BTreeMap needs a method to transfer entries between nodes
+				// even if the values are not loaded
 				parent.split(node.lkey, keys, node.rkey);
 				Iterable<Node> nodes = parent.iterNodes(node.lkey, node.rkey);
 
@@ -965,11 +967,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					}
 
 					for (SortedSet<K> rng: range) {
-						SkeletonNode n = (SkeletonNode)node.selectNode(rng.first());
-						assert(n.isGhost());
+						GhostNode n = (GhostNode)node.selectNode(rng.first());
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(n);
 
-						nClo.acquire(n);
+						nClo.acquire((SkeletonNode)null); // dirty hack. FIXME LOW
+						// possibly re-design CountingSweeper to not care about types, or use CountingSweeper<Node> instead
 						ObjectProcessor.submitSafe(proc_pull, task, new InflateChildNodes(node, rng, nClo, vClo));
 					}
 				}
