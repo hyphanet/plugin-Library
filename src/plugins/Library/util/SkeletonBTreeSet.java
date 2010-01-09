@@ -94,18 +94,20 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 	** {@link Translator} between a {@link Collection} and a {@link Map} of
 	** keys to themselves. Used by {@link TreeSetTranslator}.
 	**
+	** OPT HIGH make this return a *view* instead of a copy
+	**
 	** @author infinity0
 	*/
-	abstract public static class MapCollectionTranslator<E, M extends Map<E, E>, C extends Collection<E>>
+	abstract public static class MapCollectionTranslator<E, M extends SkeletonTreeMap<E, E>, C extends Collection<E>>
 	implements Translator<M, C> {
 
-		public static <E, M extends Map<E, E>, C extends Collection<E>> C app(M src, C dst) {
+		public static <E, M extends SkeletonTreeMap<E, E>, C extends Collection<E>> C app(M src, C dst) {
 			for (E k: src.keySet()) { dst.add(k); }
 			return dst;
 		}
 
-		public static <E, M extends Map<E, E>, C extends Collection<E>> M rev(C src, M dst) {
-			for (E e: src) { dst.put(e, e); }
+		public static <E, M extends SkeletonTreeMap<E, E>, C extends Collection<E>> M rev(C src, M dst) {
+			for (E e: src) { dst.putGhost(e, e); }
 			return dst;
 		}
 
@@ -134,6 +136,7 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 			// TODO LOW make it use a comparator that can be passed to the constructor
 			SkeletonTreeMap<E, E> dst = new SkeletonTreeMap<E, E>();
 			rev(src, dst);
+			assert(dst.isBare());
 			return dst;
 		}
 

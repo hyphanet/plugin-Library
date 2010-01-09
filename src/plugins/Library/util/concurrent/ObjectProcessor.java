@@ -126,7 +126,8 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	}
 
 	/**
-	** Whether there are any unprocessed items.
+	** Whether there are any unprocessed items (including completed tasks not
+	** yet retrieved by the submitter).
 	*/
 	public synchronized boolean hasPending() {
 		return !dep.isEmpty();
@@ -137,6 +138,13 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	*/
 	public synchronized boolean hasCompleted() {
 		return !out.isEmpty();
+	}
+
+	/**
+	** Number of unprocessed tasks.
+	*/
+	public synchronized int size() {
+		return dep.size();
 	}
 
 	/**

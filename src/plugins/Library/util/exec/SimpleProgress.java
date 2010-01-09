@@ -210,7 +210,7 @@ public class SimpleProgress implements Progress {
 	/*@Override**/ public ProgressParts getParts() throws TaskAbortException {
 		// updates are made such that the ProgressParts contract isn't broken even
 		// in mid-update so we don't need to synchronize here.
-		if (abort != null) { throw abort; }
+		if (abort != null) { throw new TaskAbortException("Task failed", abort); }
 		return new ProgressParts(pdone, known, known, estimate);
 	}
 
@@ -227,13 +227,13 @@ public class SimpleProgress implements Progress {
 	/*@Override**/ public boolean isDone() throws TaskAbortException {
 		// updates are made such that the ProgressParts contract isn't broken even
 		// in mid-update so we don't need to synchronize here.
-		if (abort != null) { throw abort; }
+		if (abort != null) { throw new TaskAbortException("Task failed", abort); }
 		return finalizedTotal() && pdone == known;
 	}
 
 	/*@Override**/ public synchronized void join() throws InterruptedException, TaskAbortException {
 		while (inprogress) { wait(); }
-		if (abort != null) { throw abort; }
+		if (abort != null) { throw new TaskAbortException("Task failed", abort); }
 	}
 
 }

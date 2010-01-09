@@ -38,11 +38,6 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	// We don't actually use any of the methods or fields of TreeMap directly,
 	// but we need to extend it to pretend that this "is" a TreeMap.
 
-	/*static {
-		// DEBUG
-		System.out.println("Using the new SkeletonTreeMap implementation");
-	}*/
-
 	/**
 	** The backing map. This map is only ever modified structurally - ie. the
 	** {@link SkeletonValue} for a given key is never overwritten; only its
@@ -218,6 +213,9 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		for (Map.Entry<K, SkeletonValue<V>> en: skmap.entrySet()) {
 			SkeletonValue<V> skel = en.getValue();
 			tasks.put(en.getKey(), new PushTask<V>(skel.data, skel.meta));
+			if (skel.data instanceof SkeletonBTreeSet) {
+				SkeletonBTreeSet ss = (SkeletonBTreeSet)skel.data;
+			}
 		}
 		serialiser.push(tasks, mapmeta);
 

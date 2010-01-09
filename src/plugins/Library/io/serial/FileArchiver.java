@@ -30,8 +30,7 @@ import java.nio.channels.FileLock;
 ** @author infinity0
 */
 public class FileArchiver<T>
-implements Archiver<T>,
-           LiveArchiver<T, SimpleProgress> {
+implements Archiver<T>, LiveArchiver<T, SimpleProgress> {
 
 	// DEBUG
 	private static boolean testmode = false;

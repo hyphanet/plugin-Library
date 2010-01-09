@@ -24,8 +24,8 @@ import java.io.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 2;
-	final public static int it_partial = 2;
+	final public static int it_basic = 1;
+	final public static int it_partial = 0;
 	final public static boolean disabled_progress = true;
 
 	static {
@@ -86,7 +86,7 @@ public class BIndexTest extends TestCase {
 
 	protected int fillRootTree(SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> tree) {
 		int total = 0;
-		for (int i=0; i<0x10; ++i) {
+		for (int i=0; i<0x100; ++i) {
 			String key = Generators.rndKey();
 			SkeletonBTreeSet<TermEntry> entries = makeEntryTree();
 			total += fillEntrySet(key, entries);
@@ -130,7 +130,6 @@ public class BIndexTest extends TestCase {
 		PullTask<ProtoIndex> task2 = new PullTask<ProtoIndex>(task1.meta);
 		srl.pull(task2);
 		idx = task2.data;
-
 		idx.ttab.inflate(); // currently, this inflates all the entries too..
 		assertTrue(idx.ttab.isLive());
 		assertFalse(idx.ttab.isBare());
@@ -155,23 +154,22 @@ public class BIndexTest extends TestCase {
 			added += fillEntrySet(k, set);
 			newtrees.put(k, set);
 		}
+		System.out.println("adding to " + randAdd.size() + " keys");
+		System.out.println(randAdd);
 
 		Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo = new
 		Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
 			/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
 				String key = entry.getKey();
-				//System.out.println("handling " + key + " id ");
 				SkeletonBTreeSet<TermEntry> tree = entry.getValue();
+				//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
 				if (tree == null) {
 					entry.setValue(tree = makeEntryTree());
-					//System.out.println("new tree for key " + key);
-				} else {
-					System.out.println("no new tree for key " + key);
 				}
 				//assertTrue(tree.isBare());
 				//tree.update(newtrees.get(key), null);
-				//assertTrue(tree.isBare());
-				System.out.println("handled " + key);
+				assertTrue(tree.isBare());
+				//System.out.println("handled " + key);
 			}
 		};
 		assertTrue(idx.ttab.isBare());
@@ -184,7 +182,7 @@ public class BIndexTest extends TestCase {
 	public void testBasicMulti() throws TaskAbortException {
 		for (int i=0; i<it_basic; ++i) {
 			System.out.print(i + "/" + it_basic + ": ");
-			fullInflate();
+		fullInflate();
 		}
 	}
 

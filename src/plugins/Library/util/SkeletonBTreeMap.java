@@ -585,6 +585,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// go through the nodequeue and add any child ghost nodes to the tasks queue
 				while (!nodequeue.isEmpty()) {
 					SkeletonNode node = nodequeue.remove();
+					// TODO HIGH this needs to be asynchronous
 					((SkeletonTreeMap<K, V>)node.entries).inflate(); // SUBMAP here
 
 					if (node.isLeaf()) { continue; }
@@ -761,7 +762,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					assert(node == root);
 					return;
 				}
-				assert(node.isBare());
 				ObjectProcessor.submitSafe(proc_push, new PushTask<SkeletonNode>(node), parNClo);
 			}
 
@@ -841,8 +841,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				}
 
 				Collection<K> keys = Sorted.select(Sorted.keySet(node.entries), sk);
-				// FIXME NOW BTreeMap needs a method to transfer entries between nodes
-				// even if the values are not loaded
 				parent.split(node.lkey, keys, node.rkey);
 				Iterable<Node> nodes = parent.iterNodes(node.lkey, node.rkey);
 
@@ -1015,6 +1013,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		try {
 
+			((SkeletonTreeMap<K, V>)root.entries).inflate(); // FIXME HIGH make this asynchronous
 			(new InflateChildNodes(putkey)).invoke((SkeletonNode)root);
 
 			// FIXME HIGH make a copy of the deflated root so that we can restore it if the
@@ -1033,6 +1032,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					}
 
 					SkeletonNode node = postPullTask(task, ((InflateChildNodes)clo).parent);
+					((SkeletonTreeMap<K, V>)node.entries).inflate(); // FIXME HIGH make this asynchronous
 					clo.invoke(node);
 				}
 
@@ -1066,10 +1066,17 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					sw.invoke(en);
 					sw.release(en.getKey());
-					if (sw.isCleared()) { ((Runnable)sw).run(); }
+					if (sw.isCleared()) {
+						SkeletonNode n = sw.node;
+						((SkeletonTreeMap<K, V>)n.entries).deflate(); // FIXME HIGH make this asynchronous
+						sw.run();
+					}
+					System.out.println("ping: " + proc_val.size() + " left");
 				}
 
 			} while (proc_pull.hasPending() || proc_push.hasPending() || (proc_val != null && proc_val.hasPending()));
+
+			((SkeletonTreeMap<K, V>)root.entries).deflate(); // FIXME HIGH make this asynchronous
 
 		} catch (DataFormatException e) {
 			throw new TaskAbortException("Bad data format", e);
@@ -1129,7 +1136,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		/*@Override**/ public Map<String, Object> app(SkeletonNode node) {
 			if (!node.isBare()) {
-				throw new IllegalStateException("Cannot translate non-bare node " + node.getRange());
+				throw new IllegalStateException("Cannot translate non-bare node " + node.getRange() + " size: " + node.nodeSize() + " ghosts: " + node.ghosts + " " + (root == node));
 			}
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("lkey", (ktr == null)? node.lkey: ktr.app(node.lkey));
@@ -1168,6 +1175,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					             : mtr.rev((R)map.get("entries")),
 					gh
 				);
+				if (!node.isBare()) {
+					throw new IllegalStateException("map-translator did not produce a bare SkeletonTreeMap: " + mtr);
+				}
 
 				verifyNodeIntegrity(node);
 				return node;

@@ -355,27 +355,33 @@ public class ProtoIndexComponentSerialiser {
 		}
 
 		/*@Override**/ public void pullLive(PullTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) throws TaskAbortException {
-			SkeletonBTreeMap<K, V>.GhostNode ghost = (SkeletonBTreeMap.GhostNode)task.meta;
-			PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(ghost.getMeta());
-			p.setSubject("Pulling " + name + ": " + ghost.getRange());
 			p.enteredSerialiser();
 			try {
+				SkeletonBTreeMap<K, V>.GhostNode ghost = (SkeletonBTreeMap.GhostNode)task.meta;
+				p.setSubject("Pulling " + name + ": " + ghost.getRange());
+				PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(ghost.getMeta());
 				subsrl.pullLive(serialisable, p);
 				ghost.setMeta(serialisable.meta); task.data = trans.rev(serialisable.data);
 				p.exitingSerialiser();
+			} catch (RuntimeException e) {
+				p.abort(new TaskAbortException("Could not pull B-tree node", e));
 			} catch (DataFormatException e) {
 				p.abort(new TaskAbortException("Could not pull B-tree node", e));
 			}
 		}
 
 		/*@Override**/ public void pushLive(PushTask<SkeletonBTreeMap<K, V>.SkeletonNode> task, SimpleProgress p) throws TaskAbortException {
-			Map<String, Object> intermediate = trans.app(task.data);
-			PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(intermediate, task.meta);
-			p.setSubject("Pushing " + name + ": " + task.data.getRange());
 			p.enteredSerialiser();
-			subsrl.pushLive(serialisable, p);
-			task.meta = task.data.makeGhost(serialisable.meta);
-			p.exitingSerialiser();
+			try {
+				p.setSubject("Pushing " + name + ": " + task.data.getRange());
+				Map<String, Object> intermediate = trans.app(task.data);
+				PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(intermediate, task.meta);
+				subsrl.pushLive(serialisable, p);
+				task.meta = task.data.makeGhost(serialisable.meta);
+				p.exitingSerialiser();
+			} catch (RuntimeException e) {
+				p.abort(new TaskAbortException("Could not push B-tree node", e));
+			}
 		}
 
 	}
@@ -460,10 +466,10 @@ public class ProtoIndexComponentSerialiser {
 		}
 
 		/*@Override**/ public void pullLive(PullTask<Map<K, V>> task, SimpleProgress p) throws TaskAbortException {
-			PullTask<Map<String, Object>> t = new PullTask<Map<String, Object>>(task.meta);
-			p.setSubject("Pulling root container " + task.meta);
 			p.enteredSerialiser();
 			try {
+				p.setSubject("Pulling root container " + task.meta);
+				PullTask<Map<String, Object>> t = new PullTask<Map<String, Object>>(task.meta);
 				subsrl.pullLive(t, p);
 
 				Map<K, V> map = new HashMap<K, V>(t.data.size()<<1);
@@ -478,23 +484,28 @@ public class ProtoIndexComponentSerialiser {
 
 				task.data = map;
 				p.exitingSerialiser();
+			} catch (RuntimeException e) {
+				p.abort(new TaskAbortException("Failed task: " + p.getSubject(), e));
 			} catch (DataFormatException e) {
-				p.abort(new TaskAbortException("Could not retrieve data from bin " + t.data.keySet(), e));
+				p.abort(new TaskAbortException("Failed task: " + p.getSubject(), e));
 			}
 		}
 
 		/*@Override**/ public void pushLive(PushTask<Map<K, V>> task, SimpleProgress p) throws TaskAbortException {
-			Map<String, Object> conv = new HashMap<String, Object>();
-			for (Map.Entry<K, V> mp: task.data.entrySet()) {
-				conv.put((ktr == null)? (String)mp.getKey(): ktr.app(mp.getKey()), btr.app(mp.getValue()));
-			}
-
-			PushTask<Map<String, Object>> t = new PushTask<Map<String, Object>>(conv, task.meta);
-			p.setSubject("Pushing root container for keys " + task.data.keySet());
 			p.enteredSerialiser();
-			subsrl.pushLive(t, p);
-			task.meta = t.meta;
-			p.exitingSerialiser();
+			try {
+				p.setSubject("Pushing root container for keys " + task.data.keySet());
+				Map<String, Object> conv = new HashMap<String, Object>();
+				for (Map.Entry<K, V> mp: task.data.entrySet()) {
+					conv.put((ktr == null)? (String)mp.getKey(): ktr.app(mp.getKey()), btr.app(mp.getValue()));
+				}
+				PushTask<Map<String, Object>> t = new PushTask<Map<String, Object>>(conv, task.meta);
+				subsrl.pushLive(t, p);
+				task.meta = t.meta;
+				p.exitingSerialiser();
+			} catch (RuntimeException e) {
+				p.abort(new TaskAbortException("Failed task: " + p.getSubject(), e));
+			}
 		}
 
 	}
