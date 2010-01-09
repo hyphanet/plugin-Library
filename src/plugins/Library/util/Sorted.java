@@ -252,6 +252,7 @@ final public class Sorted {
 			if (it.hasNext()) { sel.add(it.next()); }
 			else { assert(sel.size() == num && (inc == Inclusivity.NONE || inc == Inclusivity.LEFT)); }
 		}
+		assert(sel.size() == num);
 		return sel;
 	}
 

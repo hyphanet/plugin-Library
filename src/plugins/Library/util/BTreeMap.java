@@ -182,14 +182,16 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	/**
 	** DOCUMENT.
 	**
-	** It is '''assumed''' that neither keys belong to the set; it is up to the
-	** caller to ensure that this holds.
+	** OPT NORM
 	*/
-	protected static <K> SortedSet<K> subSet(SortedSet<K> set, K lkey, K rkey) {
+	protected SortedSet<K> subSet(SortedSet<K> set, K lkey, K rkey) {
 		// NULLNOTICE
-		return (lkey == null)?
+		SortedSet<K> ss = (lkey == null)?
 			((rkey == null)? set: set.headSet(rkey)):
 			((rkey == null)? set.tailSet(lkey): set.subSet(lkey, rkey));
+		if (ss.isEmpty() || !compare0(ss.first(), lkey)) { return ss; }
+		K k2 = Sorted.higher(ss, lkey);
+		return (k2 == null)? set.headSet(lkey): set.tailSet(k2);
 	}
 
 	/**
@@ -380,7 +382,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** @return Number of subnodes
 		*/
 		public int childCount() {
-			return rnodes.size();
+			return (rnodes == null)? 0: rnodes.size();
 		}
 
 		/**
@@ -651,13 +653,16 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		*/
 		protected Iterable<Node> iterNodes(K lk, K rk) {
 			assert(lk == null || rk == null || compare(lk, rk) < 0);
-			SortedMap<K, V> smap = (compare0(lk, lkey))?
-			((compare0(rk, rkey))? entries: entries.headMap(rk)):
-			((compare0(rk, rkey))? entries.tailMap(lk): entries.subMap(lk, rk));
-
-			return (isLeaf)? null: new CompositeIterable<K, Node>(smap.keySet()) {
-				@Override public Node nextFor(K key) { return rnodes.get(key); }
-			};
+			if (isLeaf) { return null; }
+			// TODO LOW make a proper iterator..
+			List<Node> nodes = new java.util.ArrayList<Node>();
+			SortedSet<K> skey = Sorted.keySet(subEntries(lk, rk));
+			if (skey.isEmpty()) { return nodes; }
+			for (K key: skey) {
+				nodes.add(lnodes.get(key));
+			}
+			nodes.add(rnodes.get(skey.last()));
+			return nodes;
 		}
 
 		/**

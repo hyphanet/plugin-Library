@@ -24,7 +24,7 @@ import java.io.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 1;
+	final public static int it_basic = 8;
 	final public static int it_partial = 0;
 	final public static boolean disabled_progress = true;
 
@@ -182,9 +182,14 @@ public class BIndexTest extends TestCase {
 		assertTrue(idx.ttab.isBare());
 		idx.ttab.update(randAdd, null, clo);
 		assertTrue(idx.ttab.isBare());
-		System.out.print(entriesadded + " entries merged in " + timeDiff() + " ms, ");
+		PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
+		srl.push(task4);
+		System.out.print(entriesadded + " entries merged in " + timeDiff() + " ms, root at " + task4.meta + ", ");
 
 		// full inflate (2)
+		PullTask<ProtoIndex> task5 = new PullTask<ProtoIndex>(task4.meta);
+		srl.pull(task5);
+		idx = task5.data;
 		idx.ttab.inflate(); // currently, this inflates all the entries too..
 		assertTrue(idx.ttab.isLive());
 		assertFalse(idx.ttab.isBare());

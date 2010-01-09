@@ -757,6 +757,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			** this sweeper).
 			*/
 			public void run() {
+				// FIXME HIGH make this asynchronous
+				try { ((SkeletonTreeMap<K, V>)node.entries).deflate(); } catch (TaskAbortException e) { throw new RuntimeException(e); }
+				assert(node.isBare());
 				if (parNClo == null) {
 					// do not deflate the root
 					assert(node == root);
@@ -814,6 +817,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			** after all its children have been deflated.
 			*/
 			public void run() {
+				assert(node.ghosts == node.childCount());
 
 				// All subnodes have been deflated, so nothing else can possibly add keys
 				// to this node.
@@ -862,10 +866,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					DeflateNode vClo = new DeflateNode(n, parNClo);
 
 					// reassign appropriate keys to the split-node's sweeper
-					SortedSet<K> subheld = BTreeMap.subSet(held, n.lkey, n.rkey);
+					SortedSet<K> subheld = subSet(held, n.lkey, n.rkey);
 					assert(subheld.isEmpty() || compareL(n.lkey, subheld.first()) < 0 && compareR(subheld.last(), n.rkey) < 0);
-					// FIXME NOW The above assertion has been observed to fail.
-					// triggered sometimes when we have new additions to the tree
 					for (K key: subheld) {
 						reassignKeyToSweeper(key, vClo);
 					}
@@ -932,6 +934,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			public void invoke(SkeletonNode node) {
 				assert(compareL(node.lkey, putkey.first()) < 0);
 				assert(compareR(putkey.last(), node.rkey) < 0);
+
+				// FIXME HIGH make this asynchronous
+				try { ((SkeletonTreeMap<K, V>)node.entries).inflate(); } catch (TaskAbortException e) { throw new RuntimeException(e); }
 
 				// closure to be called when all local values have been obtained
 				DeflateNode vClo = new DeflateNode(node, parNClo);
@@ -1014,7 +1019,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		try {
 
-			((SkeletonTreeMap<K, V>)root.entries).inflate(); // FIXME HIGH make this asynchronous
 			(new InflateChildNodes(putkey)).invoke((SkeletonNode)root);
 
 			// FIXME HIGH make a copy of the deflated root so that we can restore it if the
@@ -1034,7 +1038,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					}
 
 					SkeletonNode node = postPullTask(task, ((InflateChildNodes)clo).parent);
-					((SkeletonTreeMap<K, V>)node.entries).inflate(); // FIXME HIGH make this asynchronous
 					clo.invoke(node);
 				}
 
@@ -1068,20 +1071,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					sw.invoke(en);
 					sw.release(en.getKey());
-					if (sw.isCleared()) {
-						SkeletonNode n = sw.node;
-						((SkeletonTreeMap<K, V>)n.entries).deflate(); // FIXME HIGH make this asynchronous
-						sw.run();
-					}
+					if (sw.isCleared()) { sw.run(); }
 				}
 
 			} while (proc_pull.hasPending() || proc_push.hasPending() || (proc_val != null && proc_val.hasPending()));
 
-			((SkeletonTreeMap<K, V>)root.entries).deflate(); // FIXME HIGH make this asynchronous
-
 			size = root.totalSize();
-			//System.out.println("old " + olds + ", new " + size + ", put " + putkey.size());
 
+		} catch (RuntimeException e) {
+			throw new TaskAbortException("Task failed", e);
 		} catch (DataFormatException e) {
 			throw new TaskAbortException("Bad data format", e);
 		} catch (InterruptedException e) {
@@ -1140,7 +1138,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		/*@Override**/ public Map<String, Object> app(SkeletonNode node) {
 			if (!node.isBare()) {
-				throw new IllegalStateException("Cannot translate non-bare node " + node.getRange() + "; size: " + node.nodeSize() + "; ghosts: " + node.ghosts + "; root: " + (root == node));
+				throw new IllegalStateException("Cannot translate non-bare node " + node.getRange() + "; size:" + node.nodeSize() + "; ghosts:" + node.ghosts + "; root:" + (root == node));
 			}
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("lkey", (ktr == null)? node.lkey: ktr.app(node.lkey));
