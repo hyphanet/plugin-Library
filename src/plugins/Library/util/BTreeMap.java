@@ -685,9 +685,10 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 					return entries.headMap(rk);
 				}
 			} else {
-				SortedMap<K, V> tmap = entries.tailMap(lk);
-				if (tmap.isEmpty()) { return tmap; }
-				K k2 = tmap.keySet().iterator().next();
+				SortedSet<K> tset = Sorted.keySet(entries).tailSet(lk);
+				assert(!tset.isEmpty());
+				if (tset.size() == 1) { return entries.subMap(lk, lk); }
+				K k2 = Sorted.higher(tset, lk);
 				if (compare0(rk, rkey)) {
 					return entries.tailMap(k2);
 				} else {
@@ -737,7 +738,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		*/
 		protected void split(K lk, Iterable<K> keys, K rk) {
 			Node child = rnodes.get(lk);
-			assert(child.rkey == rk);
+			assert(compare0(child.rkey, rk));
 
 			for (K k: keys) {
 				swapKey(k, child, this);

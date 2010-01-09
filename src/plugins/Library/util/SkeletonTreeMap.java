@@ -121,6 +121,10 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			return old;
 		}
 
+		@Override public String toString() {
+			return "(" + data + ", " + meta + ", " + isLoaded + ")";
+		}
+
 		@Override public SkeletonValue<V> clone() {
 			try {
 				return (SkeletonValue<V>)super.clone();
