@@ -77,7 +77,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	protected int fillEntrySet(String key, SortedSet<TermEntry> tree) {
-		int n = rand.nextInt(0x10) + 0x10;
+		int n = rand.nextInt(0xF0) + 0x10;
 		for (int j=0; j<n; ++j) {
 			tree.add(Generators.rndEntry(key));
 		}
@@ -102,8 +102,7 @@ public class BIndexTest extends TestCase {
 			if (r == 0) {
 				sub.add(s);
 			} else {
-				// TODO NOW
-				//sub.add(Generators.rndKey());
+				sub.add(Generators.rndKey());
 			}
 		}
 		return sub;
@@ -114,8 +113,14 @@ public class BIndexTest extends TestCase {
 		int totalentries = fillRootTree(idx.ttab);
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
 
-		Set<String> words = new TreeSet<String>(idx.ttab.keySet());
+		// make a copy of the tree
+		Map<String, SortedSet<TermEntry>> origtrees = new TreeMap<String, SortedSet<TermEntry>>();
+		for (Map.Entry<String, SkeletonBTreeSet<TermEntry>> en: idx.ttab.entrySet()) {
+			origtrees.put(en.getKey(), new TreeSet<TermEntry>(en.getValue()));
+		}
+		assertTrue(origtrees.equals(idx.ttab));
 
+		// full deflate
 		for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
 			entries.deflate();
 			assertTrue(entries.isBare());
@@ -127,6 +132,7 @@ public class BIndexTest extends TestCase {
 		srl.push(task1);
 		System.out.print("deflated in " + timeDiff() + " ms, root at " + task1.meta + ", ");
 
+		// full inflate
 		PullTask<ProtoIndex> task2 = new PullTask<ProtoIndex>(task1.meta);
 		srl.pull(task2);
 		idx = task2.data;
@@ -135,6 +141,7 @@ public class BIndexTest extends TestCase {
 		assertFalse(idx.ttab.isBare());
 		System.out.print("inflated in " + timeDiff() + " ms, ");
 
+		// full deflate (1)
 		for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
 			entries.deflate();
 			assertTrue(entries.isBare());
@@ -146,17 +153,17 @@ public class BIndexTest extends TestCase {
 		srl.push(task3);
 		System.out.print("re-deflated in " + timeDiff() + " ms, root at " + task3.meta + ", ");
 
-		final SortedSet<String> randAdd = randomMixset(words);
+		// generate new set to merge
+		final SortedSet<String> randAdd = randomMixset(origtrees.keySet());
 		final Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
-		int added = 0;
+		int entriesadded = 0;
 		for (String k: randAdd) {
 			SortedSet<TermEntry> set = new TreeSet<TermEntry>();
-			added += fillEntrySet(k, set);
+			entriesadded += fillEntrySet(k, set);
 			newtrees.put(k, set);
 		}
-		System.out.println("adding to " + randAdd.size() + " keys");
-		System.out.println(randAdd);
 
+		// async merge
 		Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo = new
 		Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
 			/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
@@ -166,8 +173,8 @@ public class BIndexTest extends TestCase {
 				if (tree == null) {
 					entry.setValue(tree = makeEntryTree());
 				}
-				//assertTrue(tree.isBare());
-				//tree.update(newtrees.get(key), null);
+				assertTrue(tree.isBare());
+				tree.update(newtrees.get(key), null);
 				assertTrue(tree.isBare());
 				//System.out.println("handled " + key);
 			}
@@ -175,7 +182,25 @@ public class BIndexTest extends TestCase {
 		assertTrue(idx.ttab.isBare());
 		idx.ttab.update(randAdd, null, clo);
 		assertTrue(idx.ttab.isBare());
-		System.out.println(added + " entries merged in " + timeDiff() + " ms.");
+		System.out.print(entriesadded + " entries merged in " + timeDiff() + " ms, ");
+
+		// full inflate (2)
+		idx.ttab.inflate(); // currently, this inflates all the entries too..
+		assertTrue(idx.ttab.isLive());
+		assertFalse(idx.ttab.isBare());
+		System.out.print("re-inflated in " + timeDiff() + " ms, ");
+
+		// merge added trees into backup, and test against the stored version
+		for (Map.Entry<String, SortedSet<TermEntry>> en: newtrees.entrySet()) {
+			String key = en.getKey();
+			SortedSet<TermEntry> tree = origtrees.get(key);
+			if (tree == null) {
+				origtrees.put(key, tree = new TreeSet<TermEntry>());
+			}
+			tree.addAll(en.getValue());
+		}
+		assertTrue(origtrees.equals(idx.ttab));
+		System.out.println("merge validated");
 
 	}
 

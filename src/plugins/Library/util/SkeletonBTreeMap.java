@@ -837,7 +837,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					parNClo.acquire(node);
 					parNClo.close();
 					root = parent;
-					size = root.totalSize();
 				}
 
 				Collection<K> keys = Sorted.select(Sorted.keySet(node.entries), sk);
@@ -865,6 +864,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					// reassign appropriate keys to the split-node's sweeper
 					SortedSet<K> subheld = BTreeMap.subSet(held, n.lkey, n.rkey);
 					assert(subheld.isEmpty() || compareL(n.lkey, subheld.first()) < 0 && compareR(subheld.last(), n.rkey) < 0);
+					// FIXME NOW The above assertion has been observed to fail
 					for (K key: subheld) {
 						reassignKeyToSweeper(key, vClo);
 					}
@@ -1018,6 +1018,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			// FIXME HIGH make a copy of the deflated root so that we can restore it if the
 			// operation fails
+			int olds = size;
 
 			do {
 
@@ -1077,6 +1078,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			((SkeletonTreeMap<K, V>)root.entries).deflate(); // FIXME HIGH make this asynchronous
 
+			size = root.totalSize();
+			//System.out.println("old " + olds + ", new " + size + ", put " + putkey.size());
+
 		} catch (DataFormatException e) {
 			throw new TaskAbortException("Bad data format", e);
 		} catch (InterruptedException e) {
@@ -1135,7 +1139,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		/*@Override**/ public Map<String, Object> app(SkeletonNode node) {
 			if (!node.isBare()) {
-				throw new IllegalStateException("Cannot translate non-bare node " + node.getRange() + " size: " + node.nodeSize() + " ghosts: " + node.ghosts + " " + (root == node));
+				throw new IllegalStateException("Cannot translate non-bare node " + node.getRange() + "; size: " + node.nodeSize() + "; ghosts: " + node.ghosts + "; root: " + (root == node));
 			}
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("lkey", (ktr == null)? node.lkey: ktr.app(node.lkey));
