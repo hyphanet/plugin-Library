@@ -879,9 +879,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					reassignKeyToSweeper(key, parVClo);
 				}
 
-				System.out.println("parent:"+parent.getRange());
-				System.out.println("seps:"+keys);
-
+				//System.out.println("parent:"+parent.getRange()+"\nseps:"+keys+"\nheld:"+held);
 				parNClo.open();
 
 				// for each split-node, create a sweeper that will run when all its (k,v)
@@ -892,12 +890,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					// reassign appropriate keys to the split-node's sweeper
 					SortedSet<K> subheld = subSet(held, n.lkey, n.rkey);
-					try {
+					//try {
 					assert(subheld.isEmpty() || compareL(n.lkey, subheld.first()) < 0 && compareR(subheld.last(), n.rkey) < 0);
-					} catch (AssertionError e) {
-						System.out.println(n.lkey + " " + subheld.first() + " " + subheld.last() + " " + n.rkey);
-						throw e;
-					}
+					//} catch (AssertionError e) {
+//						System.out.println(n.lkey + " " + subheld.first() + " " + subheld.last() + " " + n.rkey);
+//						throw e;
+	//				}
 					for (K key: subheld) {
 						reassignKeyToSweeper(key, vClo);
 					}

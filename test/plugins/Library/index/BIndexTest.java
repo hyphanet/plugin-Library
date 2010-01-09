@@ -27,9 +27,10 @@ public class BIndexTest extends TestCase {
 	final public static int it_basic = 4;
 	final public static int it_partial = 2;
 	final public static boolean disabled_progress = true;
+	final public static boolean fuller = false;
 
 	static {
-		ProtoIndex.BTREE_NODE_MIN = 0x8; // DEBUG 0x10 so we see tree splits
+		ProtoIndex.BTREE_NODE_MIN = 0x4; // DEBUG 0x10 so we see tree splits
 		System.out.println("ProtoIndex B-tree node_min set to " + ProtoIndex.BTREE_NODE_MIN);
 	}
 
@@ -132,27 +133,29 @@ public class BIndexTest extends TestCase {
 		srl.push(task1);
 		System.out.println("deflated in " + timeDiff() + " ms, root at " + task1.meta + ".");
 
-		// full inflate
-		PullTask<ProtoIndex> task2 = new PullTask<ProtoIndex>(task1.meta);
-		srl.pull(task2);
-		idx = task2.data;
-		idx.ttab.inflate();
-		assertTrue(idx.ttab.isLive());
-		assertFalse(idx.ttab.isBare());
-		System.out.print("inflated in " + timeDiff() + " ms, ");
+		if (fuller) {
+			// full inflate
+			PullTask<ProtoIndex> task2 = new PullTask<ProtoIndex>(task1.meta);
+			srl.pull(task2);
+			idx = task2.data;
+			idx.ttab.inflate();
+			assertTrue(idx.ttab.isLive());
+			assertFalse(idx.ttab.isBare());
+			System.out.print("inflated in " + timeDiff() + " ms, ");
 
-		// full deflate (1)
-		for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
-			// inflating the root tree does not automatically inflate the trees for
-			// each entry, so these should already be bare
-			assertTrue(entries.isBare());
+			// full deflate (1)
+			for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
+				// inflating the root tree does not automatically inflate the trees for
+				// each entry, so these should already be bare
+				assertTrue(entries.isBare());
+			}
+			idx.ttab.deflate();
+			assertTrue(idx.ttab.isBare());
+			assertFalse(idx.ttab.isLive());
+			PushTask<ProtoIndex> task3 = new PushTask<ProtoIndex>(idx);
+			srl.push(task3);
+			System.out.println("re-deflated in " + timeDiff() + " ms, root at " + task3.meta + ".");
 		}
-		idx.ttab.deflate();
-		assertTrue(idx.ttab.isBare());
-		assertFalse(idx.ttab.isLive());
-		PushTask<ProtoIndex> task3 = new PushTask<ProtoIndex>(idx);
-		srl.push(task3);
-		System.out.println("re-deflated in " + timeDiff() + " ms, root at " + task3.meta + ".");
 
 		// generate new set to merge
 		final SortedSet<String> randAdd = randomMixset(origtrees.keySet());
@@ -174,8 +177,8 @@ public class BIndexTest extends TestCase {
 				if (tree == null) {
 					entry.setValue(tree = makeEntryTree());
 				}
-				//assertTrue(tree.isBare());
-				//tree.update(newtrees.get(key), null);
+				assertTrue(tree.isBare());
+				tree.update(newtrees.get(key), null);
 				assertTrue(tree.isBare());
 				//System.out.println("handled " + key);
 			}

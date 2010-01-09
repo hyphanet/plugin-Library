@@ -184,14 +184,17 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** OPT NORM
 	*/
-	protected SortedSet<K> subSet(SortedSet<K> set, K lkey, K rkey) {
+	public SortedSet<K> subSet(SortedSet<K> set, K lk, K rk) {
 		// NULLNOTICE
-		SortedSet<K> ss = (lkey == null)?
-			((rkey == null)? set: set.headSet(rkey)):
-			((rkey == null)? set.tailSet(lkey): set.subSet(lkey, rkey));
-		if (ss.isEmpty() || !compare0(ss.first(), lkey)) { return ss; }
-		K k2 = Sorted.higher(ss, lkey);
-		return (k2 == null)? set.headSet(lkey): set.tailSet(k2);
+		// JDK6
+		if (lk == null) {
+			return (rk == null)? set: set.headSet(rk);
+		} else {
+			SortedSet<K> ss = (rk == null)? set.tailSet(lk): set.subSet(lk, rk);
+			if (ss.isEmpty() || !compare0(ss.first(), lk)) { return ss; }
+			K k2 = Sorted.higher(ss, lk);
+			return (k2 == null)? ss.headSet(lk): ss.tailSet(k2);
+		}
 	}
 
 	/**
@@ -670,21 +673,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		protected SortedMap<K, V> subEntries(K lk, K rk) {
 			assert(lk == null || rk == null || compare(lk, rk) < 0);
 			if (compare0(lk, lkey)) {
-				if (compare0(rk, rkey)) {
-					return entries;
-				} else {
-					return entries.headMap(rk);
-				}
+				return (compare0(rk, rkey))? entries: entries.headMap(rk);
 			} else {
 				SortedSet<K> tset = Sorted.keySet(entries).tailSet(lk);
 				assert(!tset.isEmpty());
 				if (tset.size() == 1) { return entries.subMap(lk, lk); }
 				K k2 = Sorted.higher(tset, lk);
-				if (compare0(rk, rkey)) {
-					return entries.tailMap(k2);
-				} else {
-					return entries.subMap(k2, rk);
-				}
+				return (compare0(rk, rkey))? entries.tailMap(k2): entries.subMap(k2, rk);
 			}
 		}
 

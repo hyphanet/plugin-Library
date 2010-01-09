@@ -5,11 +5,7 @@ package plugins.Library.util;
 
 import junit.framework.TestCase;
 
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.*;
 
 /**
 ** @author infinity0
@@ -86,6 +82,16 @@ public class BTreeMapTest extends SortedMapTestSkeleton {
 			assertTrue(testmap.getEntry(i).getKey().equals(i));
 		}
 
+	}
+
+	public void testUtilityMethods() {
+		// TODO HIGH more of these, like node.subEntries etc
+		SortedSet<String> ts = (new BTreeMap<String, String>(0x40)).subSet(new TreeSet<String>(
+			Arrays.asList("91665799", "93fc4806", "94ff78b2", "952225c8", "9678e897", "96bb4208",
+			"989c8d3f", "9a1f0877", "9faea63f", "9fec4192", "a19e7d4e", "a61a2c10",
+			"a6c681ec", "a72d4e4e", "a845d2cb")), "96bb4208", "9fec4192");
+		assertTrue(ts.first().equals("989c8d3f"));
+		assertTrue(ts.last().equals("9faea63f"));
 	}
 
 }
