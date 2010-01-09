@@ -4,6 +4,7 @@
 package plugins.Library.util.concurrent;
 
 import plugins.Library.util.func.Closure;
+import plugins.Library.util.func.SafeClosure;
 import plugins.Library.util.func.Tuples.*;
 import static plugins.Library.util.func.Tuples.*;
 
@@ -37,6 +38,22 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	final protected Executor exec;
 
 	protected volatile boolean open = true;
+	protected int dispatched = 0;
+	protected int completed = 0;
+
+	// TODO NORM make a more intelligent way of adjusting this
+	final public static int maxconc = 0x28;
+
+	final protected SafeClosure<$2<T, X>> postProcess = new SafeClosure<$2<T, X>>() {
+		/*@Override**/ public void invoke($2<T, X> res) {
+			try {
+				out.put(res);
+				++completed;
+			} catch (InterruptedException e) {
+				throw new UnsupportedOperationException();
+			}
+		}
+	};
 
 	// JDK6 replace with ConcurrentSkipListSet
 	final private static ConcurrentMap<ObjectProcessor, Boolean> running = new ConcurrentHashMap<ObjectProcessor, Boolean>();
@@ -159,8 +176,13 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** @throws InterruptedExeception if interrupted whilst waiting
 	*/
 	public void dispatchTake() throws InterruptedException {
+		throw new UnsupportedOperationException("not implemented");
+		/*
+		 * TODO NORM first needs a way of obeying maxconc
 		T item = in.take();
 		exec.execute(createJobFor(item));
+		++dispatched;
+		*/
 	}
 
 	/**
@@ -173,10 +195,12 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	**
 	** @return Whether a task was retrieved and executed
 	*/
-	public boolean dispatchPoll() {
+	public synchronized boolean dispatchPoll() {
+		if (dispatched - completed >= maxconc) { return false; }
 		T item = in.poll();
 		if (item == null) { return false; }
 		exec.execute(createJobFor(item));
+		++dispatched;
 		return true;
 	}
 
@@ -197,7 +221,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 				try { clo.invoke(item); }
 				// FIXME NORM this could throw RuntimeException
 				catch (Exception e) { ex = (X)e; }
-				try { out.put($2(item, ex)); }
+				try { out.put($2(item, ex)); ++completed; }
 				catch (InterruptedException e) { throw new UnsupportedOperationException(e); }
 			}
 		};
@@ -292,7 +316,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		name = n;
 	}
 	@Override public String toString() {
-		return "ObjProc-" + name + ":{" + size() + "}";
+		return "ObjProc-" + name + ":{" + size() + "|" + dispatched + "|" + completed + "}";
 	}
 
 }

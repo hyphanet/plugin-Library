@@ -46,7 +46,7 @@ public class IntegersTest extends TestCase {
 	public void testAllocateEvenlyRandom() {
 		for (int i=0; i<0x10; ++i) {
 			int total = rnd.nextInt(0x4000)+1;
-			int num = rnd.nextInt(total);
+			int num = rnd.nextInt(total)+1;
 			int share[] = new int[num];
 
 			Iterable<Integer> it = Integers.allocateEvenly(total, num);

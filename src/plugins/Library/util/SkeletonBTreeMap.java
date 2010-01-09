@@ -1096,7 +1096,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				//System.out.println(System.identityHashCode(this) + " " + proc_push + " " + ((proc_val == null)? "": proc_val+ " ") + proc_pull);
 
-				Thread.sleep(1000);
+				Thread.sleep(0x400);
 				if (proc_val == null) { continue; }
 
 				while (proc_val.hasCompleted()) {
@@ -1114,7 +1114,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					if (sw.isCleared()) { sw.run(); }
 				}
 
-				//System.out.println(System.identityHashCode(this) + " " + proc_val + " " + proc_pull + " " + proc_push);
+				System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push);
 
 			} while (proc_pull.hasPending() || proc_push.hasPending() || (proc_val != null && proc_val.hasPending()));
 

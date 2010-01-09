@@ -11,6 +11,7 @@ import plugins.Library.util.exec.Progress;
 import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.exec.TaskInProgressException;
 import plugins.Library.util.exec.TaskCompleteException;
+import plugins.Library.util.func.SafeClosure;
 import plugins.Library.util.func.Tuples.$2;
 import static plugins.Library.util.func.Tuples.$2;
 
@@ -64,7 +65,7 @@ implements IterableSerialiser<T>,
 		return tracker;
 	}
 
-	protected <K extends Task> Runnable createJoinRunnable(final K task, final TaskInProgressException e, final BlockingQueue<$2<K, TaskAbortException>> out) {
+	protected <K extends Task> Runnable createJoinRunnable(final K task, final TaskInProgressException e, final SafeClosure<$2<K, TaskAbortException>> post) {
 		return new Runnable() {
 			public void run() {
 				TaskAbortException ex;
@@ -79,8 +80,7 @@ implements IterableSerialiser<T>,
 				} catch (TaskAbortException a) {
 					ex = a;
 				}
-				try { if (out != null) { out.put($2(task, ex)); } }
-				catch (InterruptedException e) { throw new UnsupportedOperationException(); }
+				if (post != null) { post.invoke($2(task, ex)); }
 			}
 		};
 	}
@@ -88,7 +88,7 @@ implements IterableSerialiser<T>,
 	/**
 	** DOCUMENT.
 	**
-	** If {@code out} is {@code null}, it is assumed that {@link Progress}
+	** If {@code post} is {@code null}, it is assumed that {@link Progress}
 	** objects are created by the thread that calls this method. Failure to do
 	** this '''will result in deadlock'''.
 	**
@@ -96,28 +96,27 @@ implements IterableSerialiser<T>,
 	** task. If they are created before this, '''deadlock will result''' as the
 	** handler waits for that progress to complete.
 	*/
-	protected Runnable createPullJob(final PullTask<T> task, final BlockingQueue<$2<PullTask<T>, TaskAbortException>> out) {
+	protected Runnable createPullJob(final PullTask<T> task, final SafeClosure<$2<PullTask<T>, TaskAbortException>> post) {
 		try {
-			final P prog = (out != null)? tracker.addPullProgress(task): tracker.getPullProgress(task);
+			final P prog = (post != null)? tracker.addPullProgress(task): tracker.getPullProgress(task);
 			return new Runnable() {
 				public void run() {
 					TaskAbortException ex = null;
 					try { pullLive(task, prog); }
 					catch (RuntimeException e) { ex = new TaskAbortException("failed", e); }
 					catch (TaskAbortException e) { ex = e; }
-					try { if (out != null) { out.put($2(task, ex)); } }
-					catch (InterruptedException e) { throw new UnsupportedOperationException(); }
+					if (post != null) { post.invoke($2(task, ex)); }
 				}
 			};
 		} catch (final TaskInProgressException e) {
-			return createJoinRunnable(task, e, out);
+			return createJoinRunnable(task, e, post);
 		}
 	}
 
 	/**
 	** DOCUMENT.
 	**
-	** If {@code out} is {@code null}, it is assumed that {@link Progress}
+	** If {@code post} is {@code null}, it is assumed that {@link Progress}
 	** objects are created by the thread that calls this method. Failure to do
 	** this '''will result in deadlock'''.
 	**
@@ -125,21 +124,20 @@ implements IterableSerialiser<T>,
 	** task. If they are created before this, '''deadlock will result''' as the
 	** handler waits for that progress to complete.
 	*/
-	protected Runnable createPushJob(final PushTask<T> task, final BlockingQueue<$2<PushTask<T>, TaskAbortException>> out) {
+	protected Runnable createPushJob(final PushTask<T> task, final SafeClosure<$2<PushTask<T>, TaskAbortException>> post) {
 		try {
-			final P prog = (out != null)? tracker.addPushProgress(task): tracker.getPushProgress(task);
+			final P prog = (post != null)? tracker.addPushProgress(task): tracker.getPushProgress(task);
 			return new Runnable() {
 				public void run() {
 					TaskAbortException ex = null;
 					try { pushLive(task, prog); }
 					catch (RuntimeException e) { ex = new TaskAbortException("failed", e); }
 					catch (TaskAbortException e) { ex = e; }
-					try { if (out != null) { out.put($2(task, ex)); } }
-					catch (InterruptedException e) { throw new UnsupportedOperationException(); }
+					if (post != null) { post.invoke($2(task, ex)); }
 				}
 			};
 		} catch (final TaskInProgressException e) {
-			return createJoinRunnable(task, e, out);
+			return createJoinRunnable(task, e, post);
 		}
 	}
 
@@ -241,7 +239,7 @@ implements IterableSerialiser<T>,
 	) {
 		return new ObjectProcessor<PullTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR, true) {
 			@Override protected Runnable createJobFor(PullTask<T> task) {
-				return createPullJob(task, out);
+				return createPullJob(task, postProcess);
 			}
 		};
 	}
@@ -258,7 +256,7 @@ implements IterableSerialiser<T>,
 	) {
 		return new ObjectProcessor<PushTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR, true) {
 			@Override protected Runnable createJobFor(PushTask<T> task) {
-				return createPushJob(task, out);
+				return createPushJob(task, postProcess);
 			}
 		};
 	}
