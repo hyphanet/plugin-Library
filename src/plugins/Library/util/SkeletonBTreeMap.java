@@ -761,6 +761,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					assert(node == root);
 					return;
 				}
+				assert(node.isBare());
 				ObjectProcessor.submitSafe(proc_push, new PushTask<SkeletonNode>(node), parNClo);
 			}
 
@@ -999,6 +1000,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			** @param vClo The sweeper that tracks if the key's value has been obtained
 			*/
 			private void handleLocalPut(SkeletonNode n, K key, DeflateNode vClo) {
+				// FIXME NOW
+				// n is going to be bare so oldval will always be null. instead, pass the meta to the closure..
 				V oldval = n.entries.put(key, null);
 				vClo.acquire(key);
 				ObjectProcessor.submitSafe(proc_val, $K(key, oldval), vClo);

@@ -186,6 +186,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 			/*@Override**/ public void run() {
 				X ex = null;
 				try { clo.invoke(item); }
+				// FIXME NORM this could throw RuntimeException
 				catch (Exception e) { ex = (X)e; }
 				try { out.put($2(item, ex)); }
 				catch (InterruptedException e) { throw new UnsupportedOperationException(e); }

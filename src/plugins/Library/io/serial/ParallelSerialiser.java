@@ -74,6 +74,8 @@ implements IterableSerialiser<T>,
 					ex = new TaskCompleteException("Task complete: " + p.getSubject());
 				} catch (InterruptedException e) {
 					ex = new TaskAbortException("Progress join was interrupted", e, true);
+				} catch (RuntimeException e) {
+					ex = new TaskAbortException("failed", e);
 				} catch (TaskAbortException a) {
 					ex = a;
 				}
@@ -101,6 +103,7 @@ implements IterableSerialiser<T>,
 				public void run() {
 					TaskAbortException ex = null;
 					try { pullLive(task, prog); }
+					catch (RuntimeException e) { ex = new TaskAbortException("failed", e); }
 					catch (TaskAbortException e) { ex = e; }
 					try { if (out != null) { out.put($2(task, ex)); } }
 					catch (InterruptedException e) { throw new UnsupportedOperationException(); }
@@ -129,6 +132,7 @@ implements IterableSerialiser<T>,
 				public void run() {
 					TaskAbortException ex = null;
 					try { pushLive(task, prog); }
+					catch (RuntimeException e) { ex = new TaskAbortException("failed", e); }
 					catch (TaskAbortException e) { ex = e; }
 					try { if (out != null) { out.put($2(task, ex)); } }
 					catch (InterruptedException e) { throw new UnsupportedOperationException(); }

@@ -77,7 +77,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	protected int fillEntrySet(String key, SortedSet<TermEntry> tree) {
-		int n = rand.nextInt(0xF0) + 0x10;
+		int n = rand.nextInt(0x10) + 0x10;
 		for (int j=0; j<n; ++j) {
 			tree.add(Generators.rndEntry(key));
 		}
@@ -86,7 +86,7 @@ public class BIndexTest extends TestCase {
 
 	protected int fillRootTree(SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> tree) {
 		int total = 0;
-		for (int i=0; i<0x100; ++i) {
+		for (int i=0; i<0x10; ++i) {
 			String key = Generators.rndKey();
 			SkeletonBTreeSet<TermEntry> entries = makeEntryTree();
 			total += fillEntrySet(key, entries);
@@ -95,12 +95,15 @@ public class BIndexTest extends TestCase {
 		return total;
 	}
 
-	protected SortedSet<String> randomSubset(Set<String> set) {
+	protected SortedSet<String> randomMixset(Set<String> set) {
 		SortedSet<String> sub = new TreeSet<String>();
 		for (String s: set) {
 			int r = Generators.rand.nextInt(2);
 			if (r == 0) {
 				sub.add(s);
+			} else {
+				// TODO NOW
+				//sub.add(Generators.rndKey());
 			}
 		}
 		return sub;
@@ -110,6 +113,8 @@ public class BIndexTest extends TestCase {
 		newTestSkeleton();
 		int totalentries = fillRootTree(idx.ttab);
 		System.out.print(totalentries + " entries generated in " + timeDiff() + " ms, ");
+
+		Set<String> words = new TreeSet<String>(idx.ttab.keySet());
 
 		for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
 			entries.deflate();
@@ -142,7 +147,7 @@ public class BIndexTest extends TestCase {
 		srl.push(task3);
 		System.out.print("re-deflated in " + timeDiff() + " ms, root at " + task3.meta + ", ");
 
-		final SortedSet<String> randAdd = randomSubset(randomWords);
+		final SortedSet<String> randAdd = randomMixset(words);
 		final Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
 		int added = 0;
 		for (String k: randAdd) {
@@ -155,14 +160,23 @@ public class BIndexTest extends TestCase {
 		Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
 			/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
 				String key = entry.getKey();
+				//System.out.println("handling " + key + " id ");
 				SkeletonBTreeSet<TermEntry> tree = entry.getValue();
 				if (tree == null) {
 					entry.setValue(tree = makeEntryTree());
+					//System.out.println("new tree for key " + key);
+				} else {
+					System.out.println("no new tree for key " + key);
 				}
-				tree.update(newtrees.get(key), null);
+				//assertTrue(tree.isBare());
+				//tree.update(newtrees.get(key), null);
+				//assertTrue(tree.isBare());
+				System.out.println("handled " + key);
 			}
 		};
+		assertTrue(idx.ttab.isBare());
 		idx.ttab.update(randAdd, null, clo);
+		assertTrue(idx.ttab.isBare());
 		System.out.println(added + " entries merged in " + timeDiff() + " ms.");
 
 	}
