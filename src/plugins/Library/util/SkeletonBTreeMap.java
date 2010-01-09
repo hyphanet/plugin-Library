@@ -744,6 +744,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		*/
 
+		// TODO LOW - currently, the algorithm will automatically completely
+		// inflate each node as it is pulled in from the network (ie. inflate
+		// all of its values). this is not necessary, since not all of the
+		// values may be updated. it would be possible to make it work more
+		// efficiently, which would save some network traffic, but this would
+		// be quite fiddly. also, doing it this way allows the Packer to be
+		// more aggressive in packing the values into splitfiles.
+
 		final ObjectProcessor<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> proc_pull
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
 			new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL),
@@ -1036,8 +1044,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			** @param vClo The sweeper that tracks if the key's value has been obtained
 			*/
 			private void handleLocalPut(SkeletonNode n, K key, DeflateNode vClo) {
-				// FIXME NOW
-				// n is going to be bare so oldval will always be null. instead, pass the meta to the closure..
 				V oldval = n.entries.put(key, null);
 				vClo.acquire(key);
 				ObjectProcessor.submitSafe(proc_val, $K(key, oldval), vClo);

@@ -78,7 +78,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	protected int fillEntrySet(String key, SortedSet<TermEntry> tree) {
-		int n = rand.nextInt(0x10) + 0x10; // FIXME NOW if this goes above the split limit we get a "cannot deflate non-bare node"
+		int n = rand.nextInt(0x10) + 0x10;
 		for (int j=0; j<n; ++j) {
 			tree.add(Generators.rndEntry(key));
 		}
@@ -189,7 +189,7 @@ public class BIndexTest extends TestCase {
 		PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
 		srl.push(task4);
 		System.out.print(entriesadded + " entries merged in " + timeDiff() + " ms, root at " + task4.meta + ", ");
-/*
+
 		// full inflate (2)
 		PullTask<ProtoIndex> task5 = new PullTask<ProtoIndex>(task4.meta);
 		srl.pull(task5);
@@ -208,7 +208,7 @@ public class BIndexTest extends TestCase {
 			}
 			tree.addAll(en.getValue());
 		}
-		System.out.println("validating merge. this will take a minute or two, mostly due to Thread.sleep(). just be patient :-)");
+		System.out.println("validating merge. this will take a few minutes, mostly due to Thread.sleep(). just be patient :-)");
 		for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
 			// FIXME HIGH make some way of doing this in parallel, maybe
 			entries.inflate();
@@ -216,7 +216,7 @@ public class BIndexTest extends TestCase {
 		}
 		assertTrue(origtrees.equals(idx.ttab));
 		System.out.println("merge validated in " + timeDiff() + " ms.");
-*/
+
 		System.out.println("");
 
 	}
