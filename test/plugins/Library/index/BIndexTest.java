@@ -29,7 +29,7 @@ public class BIndexTest extends TestCase {
 	final public static boolean disabled_progress = true;
 
 	static {
-		ProtoIndex.BTREE_NODE_MIN = 0x10; // DEBUG 0x10 so we see tree splits
+		ProtoIndex.BTREE_NODE_MIN = 0x8; // DEBUG 0x10 so we see tree splits
 		System.out.println("ProtoIndex B-tree node_min set to " + ProtoIndex.BTREE_NODE_MIN);
 	}
 
@@ -86,7 +86,7 @@ public class BIndexTest extends TestCase {
 
 	protected int fillRootTree(SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> tree) {
 		int total = 0;
-		for (int i=0; i<0x40; ++i) {
+		for (int i=0; i<0x80; ++i) {
 			String key = Generators.rndKey();
 			SkeletonBTreeSet<TermEntry> entries = makeEntryTree();
 			total += fillEntrySet(key, entries);
@@ -174,8 +174,8 @@ public class BIndexTest extends TestCase {
 				if (tree == null) {
 					entry.setValue(tree = makeEntryTree());
 				}
-				assertTrue(tree.isBare());
-				tree.update(newtrees.get(key), null);
+				//assertTrue(tree.isBare());
+				//tree.update(newtrees.get(key), null);
 				assertTrue(tree.isBare());
 				//System.out.println("handled " + key);
 			}
@@ -186,7 +186,7 @@ public class BIndexTest extends TestCase {
 		PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
 		srl.push(task4);
 		System.out.print(entriesadded + " entries merged in " + timeDiff() + " ms, root at " + task4.meta + ", ");
-
+/*
 		// full inflate (2)
 		PullTask<ProtoIndex> task5 = new PullTask<ProtoIndex>(task4.meta);
 		srl.pull(task5);
@@ -213,6 +213,8 @@ public class BIndexTest extends TestCase {
 		}
 		assertTrue(origtrees.equals(idx.ttab));
 		System.out.println("merge validated in " + timeDiff() + " ms.");
+*/
+
 	}
 
 	public void testBasicMulti() throws TaskAbortException {

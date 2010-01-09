@@ -237,6 +237,25 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		/**
+		** {@inheritDoc}
+		*/
+		@Override protected void addChildNode(Node child) {
+			super.addChildNode(child);
+			if (child.isGhost()) { ++ghosts; }
+		}
+
+		/**
+		** DOCUMENT.
+		*/
+		protected void setChildNode(Node child) {
+			assert(lnodes.containsKey(child.rkey));
+			assert(rnodes.containsKey(child.lkey));
+			assert(lnodes.get(child.rkey) == rnodes.get(child.lkey));
+			lnodes.put(child.rkey, child);
+			rnodes.put(child.lkey, child);
+		}
+
+		/**
 		** Attaches a child {@link GhostNode}.
 		**
 		** It is '''assumed''' that there is already a {@link SkeletonNode} in
@@ -860,6 +879,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					reassignKeyToSweeper(key, parVClo);
 				}
 
+				System.out.println("parent:"+parent.getRange());
+				System.out.println("seps:"+keys);
+
 				parNClo.open();
 
 				// for each split-node, create a sweeper that will run when all its (k,v)
@@ -870,7 +892,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					// reassign appropriate keys to the split-node's sweeper
 					SortedSet<K> subheld = subSet(held, n.lkey, n.rkey);
+					try {
 					assert(subheld.isEmpty() || compareL(n.lkey, subheld.first()) < 0 && compareR(subheld.last(), n.rkey) < 0);
+					} catch (AssertionError e) {
+						System.out.println(n.lkey + " " + subheld.first() + " " + subheld.last() + " " + n.rkey);
+						throw e;
+					}
 					for (K key: subheld) {
 						reassignKeyToSweeper(key, vClo);
 					}
@@ -1020,6 +1047,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		}
 
+		proc_pull.setName("pull");
+		proc_push.setName("push");
+		if (proc_val != null) { proc_val.setName("val"); }
+
 		try {
 
 			(new InflateChildNodes(putkey)).invoke((SkeletonNode)root);
@@ -1044,6 +1075,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					clo.invoke(node);
 				}
 
+				//System.out.println(proc_pull + " " + proc_push + " " + ((proc_val == null)? "": proc_val));
+
 				while (proc_push.hasCompleted()) {
 					$3<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> res = proc_push.accept();
 					PushTask<SkeletonNode> task = res._0;
@@ -1058,6 +1091,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					sw.release(task.data);
 					if (sw.isCleared()) { ((Runnable)sw).run(); }
 				}
+
+				//System.out.println(proc_push + " " + ((proc_val == null)? "": proc_val+ " ") + proc_pull);
 
 				Thread.sleep(1000);
 				if (proc_val == null) { continue; }
@@ -1076,6 +1111,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					sw.release(en.getKey());
 					if (sw.isCleared()) { sw.run(); }
 				}
+
+				System.out.println(proc_val + " " + proc_pull + " " + proc_push);
 
 			} while (proc_pull.hasPending() || proc_push.hasPending() || (proc_val != null && proc_val.hasPending()));
 

@@ -361,7 +361,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** Add the given entries and subnodes to this node. The subnodes are
 		** added with {@link #addChildNode(BTreeMap.Node)}.
 		**
-		** It is up to the caller to leave the node in a consistent state.
+		** It is '''assumed''' that the entries are located exactly exclusively
+		** between the nodes (ie. like in an actual node); it is up to the
+		** caller to ensure that this holds.
 		**
 		** @param ent The entries to add
 		** @param nodes The subnodes to add
@@ -486,28 +488,17 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		/**
 		** Attaches a child via its {@code lkey}, {@code rkey} fields.
 		**
-		** This is the same as {@link #addChildNode(BTreeMap.Node)}, except
-		** this has {@code assert}s to check that a child with the same range
-		** is already present in the node.
-		**
-		** @param child The child to attach
-		*/
-		protected void setChildNode(Node child) {
-			assert(lnodes.containsKey(child.rkey));
-			assert(rnodes.containsKey(child.lkey));
-			assert(lnodes.get(child.rkey) == rnodes.get(child.lkey));
-			lnodes.put(child.rkey, child);
-			rnodes.put(child.lkey, child);
-		}
-
-		/**
-		** Attaches a child via its {@code lkey}, {@code rkey} fields.
+		** It is '''assumed''' that both keys are in the local entries map, and
+		** that there is no node between these keys. It is up to the caller to
+		** ensure that this holds.
 		**
 		** @param child The child to attach
 		*/
 		protected void addChildNode(Node child) {
-			assert(rkey == child.rkey || entries.containsKey(child.rkey));
-			assert(lkey == child.lkey || entries.containsKey(child.lkey));
+			assert(compare0(rkey, child.rkey) || entries.containsKey(child.rkey));
+			assert(compare0(lkey, child.lkey) || entries.containsKey(child.lkey));
+			assert(lnodes.get(child.rkey) == null);
+			assert(rnodes.get(child.lkey) == null);
 			lnodes.put(child.rkey, child);
 			rnodes.put(child.lkey, child);
 		}
@@ -743,6 +734,10 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			for (K k: keys) {
 				swapKey(k, child, this);
 			}
+
+			// to satisfy conditions for addChildNode()
+			lnodes.remove(rk);
+			rnodes.remove(lk);
 
 			for ($2<K, K> kp: new PairIterable<K>(lk, keys, rk)) {
 				Node newnode = newNode(kp._0, kp._1, child.isLeaf);

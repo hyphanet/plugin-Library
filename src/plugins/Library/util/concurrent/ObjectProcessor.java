@@ -15,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 
 /**
 ** A class that wraps around an {@link Executor}, for processing any given type
@@ -215,9 +216,16 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 				while (!running.isEmpty() && (t=timeout) == timeout || t-- > 0) {
 					for (Iterator<ObjectProcessor> it = running.keySet().iterator(); it.hasNext();) {
 						ObjectProcessor proc = it.next();
-						boolean o = proc.open;
-						while (proc.dispatchPoll());
-						if (!o) { it.remove(); }
+						try {
+							boolean o = proc.open;
+							while (proc.dispatchPoll());
+							if (!o) { it.remove(); }
+						} catch (RejectedExecutionException e) {
+							// FIXME NORM
+							// neither Executors.DEFAULT_EXECUTOR nor Freenet's in-built executors
+							// throw this, so this is not a high priority
+							System.out.println("REJECTED EXECUTION" + e);
+						}
 					}
 					try {
 						// sleep 2^10ms for every 2^10 processors
@@ -226,6 +234,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 					} catch (InterruptedException e) {
 						// TODO LOW log this somewhere
 					}
+					// System.out.println("Running " + running.size());
 
 					if (t > 0) { continue; }
 					synchronized (ObjectProcessor.class) {
@@ -275,6 +284,15 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	*/
 	@Override public void finalize() {
 		close();
+	}
+
+
+	protected String name;
+	public void setName(String n) {
+		name = n;
+	}
+	@Override public String toString() {
+		return "ObjProc-" + name + ":{" + size() + "}";
 	}
 
 }
