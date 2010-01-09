@@ -24,7 +24,7 @@ import java.io.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 2;
+	final public static int it_basic = 4;
 	final public static int it_partial = 2;
 	final public static boolean disabled_progress = true;
 
@@ -131,19 +131,20 @@ public class BIndexTest extends TestCase {
 		PushTask<ProtoIndex> task1 = new PushTask<ProtoIndex>(idx);
 		srl.push(task1);
 		System.out.println("deflated in " + timeDiff() + " ms, root at " + task1.meta + ".");
-/*
+
 		// full inflate
 		PullTask<ProtoIndex> task2 = new PullTask<ProtoIndex>(task1.meta);
 		srl.pull(task2);
 		idx = task2.data;
-		idx.ttab.inflate(); // currently, this inflates all the entries too..
+		idx.ttab.inflate();
 		assertTrue(idx.ttab.isLive());
 		assertFalse(idx.ttab.isBare());
 		System.out.print("inflated in " + timeDiff() + " ms, ");
 
 		// full deflate (1)
 		for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
-			entries.deflate();
+			// inflating the root tree does not automatically inflate the trees for
+			// each entry, so these should already be bare
 			assertTrue(entries.isBare());
 		}
 		idx.ttab.deflate();
@@ -151,8 +152,8 @@ public class BIndexTest extends TestCase {
 		assertFalse(idx.ttab.isLive());
 		PushTask<ProtoIndex> task3 = new PushTask<ProtoIndex>(idx);
 		srl.push(task3);
-		System.out.print("re-deflated in " + timeDiff() + " ms, root at " + task3.meta + ", ");
-*/
+		System.out.println("re-deflated in " + timeDiff() + " ms, root at " + task3.meta + ".");
+
 		// generate new set to merge
 		final SortedSet<String> randAdd = randomMixset(origtrees.keySet());
 		final Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
@@ -190,7 +191,7 @@ public class BIndexTest extends TestCase {
 		PullTask<ProtoIndex> task5 = new PullTask<ProtoIndex>(task4.meta);
 		srl.pull(task5);
 		idx = task5.data;
-		idx.ttab.inflate(); // currently, this inflates all the entries too..
+		idx.ttab.inflate();
 		assertTrue(idx.ttab.isLive());
 		assertFalse(idx.ttab.isBare());
 		System.out.println("re-inflated in " + timeDiff() + " ms.");
