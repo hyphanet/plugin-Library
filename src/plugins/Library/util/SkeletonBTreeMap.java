@@ -602,7 +602,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					}
 				}
 
-				Thread.sleep(1000);
+				Thread.sleep(0x40); // FIXME HIGH
+				// we really should put this higher, but BIndexTest tries to inflate a
+				// of trees in serial and with a 1 second-wait between each, this would
+				// take ages
 			} while (proc_pull.hasPending());
 
 			pr_inf.setEstimate(ProgressParts.TOTAL_FINALIZED);

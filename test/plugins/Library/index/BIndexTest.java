@@ -24,8 +24,8 @@ import java.io.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 8;
-	final public static int it_partial = 0;
+	final public static int it_basic = 2;
+	final public static int it_partial = 2;
 	final public static boolean disabled_progress = true;
 
 	static {
@@ -77,7 +77,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	protected int fillEntrySet(String key, SortedSet<TermEntry> tree) {
-		int n = rand.nextInt(0x04) + 0x04; // FIXME NOW if this goes above the split limit we get a "cannot deflate non-bare node"
+		int n = rand.nextInt(0x10) + 0x10; // FIXME NOW if this goes above the split limit we get a "cannot deflate non-bare node"
 		for (int j=0; j<n; ++j) {
 			tree.add(Generators.rndEntry(key));
 		}
@@ -130,7 +130,7 @@ public class BIndexTest extends TestCase {
 		assertFalse(idx.ttab.isLive());
 		PushTask<ProtoIndex> task1 = new PushTask<ProtoIndex>(idx);
 		srl.push(task1);
-		System.out.print("deflated in " + timeDiff() + " ms, root at " + task1.meta + ", ");
+		System.out.println("deflated in " + timeDiff() + " ms, root at " + task1.meta + ".");
 /*
 		// full inflate
 		PullTask<ProtoIndex> task2 = new PullTask<ProtoIndex>(task1.meta);
@@ -193,7 +193,7 @@ public class BIndexTest extends TestCase {
 		idx.ttab.inflate(); // currently, this inflates all the entries too..
 		assertTrue(idx.ttab.isLive());
 		assertFalse(idx.ttab.isBare());
-		System.out.print("re-inflated in " + timeDiff() + " ms, ");
+		System.out.println("re-inflated in " + timeDiff() + " ms.");
 
 		// merge added trees into backup, and test against the stored version
 		for (Map.Entry<String, SortedSet<TermEntry>> en: newtrees.entrySet()) {
@@ -204,9 +204,14 @@ public class BIndexTest extends TestCase {
 			}
 			tree.addAll(en.getValue());
 		}
+		System.out.println("validating merge. this will take a minute or two, mostly due to Thread.sleep(). just be patient :-)");
+		for (SkeletonBTreeSet<TermEntry> entries: idx.ttab.values()) {
+			// FIXME HIGH make some way of doing this in parallel, maybe
+			entries.inflate();
+			assertTrue(entries.isLive());
+		}
 		assertTrue(origtrees.equals(idx.ttab));
-		System.out.println("merge validated");
-
+		System.out.println("merge validated in " + timeDiff() + " ms.");
 	}
 
 	public void testBasicMulti() throws TaskAbortException {
