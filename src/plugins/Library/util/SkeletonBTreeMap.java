@@ -1046,7 +1046,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						throw new UnsupportedOperationException("SkeletonBTreeMap.update(): PushTask aborted; handler not implemented yet", ex);
 					}
 
-					postPushTask(task, ((SplitNode)sw).parent);
+					postPushTask(task, ((SplitNode)sw).node);
 					sw.release(task.data);
 					if (sw.isCleared()) { ((Runnable)sw).run(); }
 				}
@@ -1071,7 +1071,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						((SkeletonTreeMap<K, V>)n.entries).deflate(); // FIXME HIGH make this asynchronous
 						sw.run();
 					}
-					System.out.println("ping: " + proc_val.size() + " left");
 				}
 
 			} while (proc_pull.hasPending() || proc_push.hasPending() || (proc_val != null && proc_val.hasPending()));
