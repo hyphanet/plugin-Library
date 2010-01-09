@@ -864,7 +864,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					// reassign appropriate keys to the split-node's sweeper
 					SortedSet<K> subheld = BTreeMap.subSet(held, n.lkey, n.rkey);
 					assert(subheld.isEmpty() || compareL(n.lkey, subheld.first()) < 0 && compareR(subheld.last(), n.rkey) < 0);
-					// FIXME NOW The above assertion has been observed to fail
+					// FIXME NOW The above assertion has been observed to fail.
+					// triggered sometimes when we have new additions to the tree
 					for (K key: subheld) {
 						reassignKeyToSweeper(key, vClo);
 					}
