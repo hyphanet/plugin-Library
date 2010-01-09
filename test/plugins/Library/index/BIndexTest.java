@@ -78,7 +78,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	protected int fillEntrySet(String key, SortedSet<TermEntry> tree) {
-		int n = rand.nextInt(0x10) + 0x10; // FIXME NOW if this goes above the split limit we get a "cannot deflate non-bare node"
+		int n = rand.nextInt(0x8) + 0x8; // FIXME NOW if this goes above the split limit we get a "cannot deflate non-bare node"
 		for (int j=0; j<n; ++j) {
 			tree.add(Generators.rndEntry(key));
 		}

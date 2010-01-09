@@ -801,6 +801,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		}
 
+		// FIXME HIGH at the moment this is not scalable, because it tries to handle
+		// all the values in parallel. We should code a "max concurrent" into
+		// ObjectProcessor and make it not submit more jobs than this at any given time
+
 		// must be located after DeflateNode's class definition
 		final ObjectProcessor<Map.Entry<K, V>, DeflateNode, X> proc_val = (value_handler == null)? null
 		: new ObjectProcessor<Map.Entry<K, V>, DeflateNode, X>(
@@ -893,9 +897,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					//try {
 					assert(subheld.isEmpty() || compareL(n.lkey, subheld.first()) < 0 && compareR(subheld.last(), n.rkey) < 0);
 					//} catch (AssertionError e) {
-//						System.out.println(n.lkey + " " + subheld.first() + " " + subheld.last() + " " + n.rkey);
-//						throw e;
-	//				}
+					//	System.out.println(n.lkey + " " + subheld.first() + " " + subheld.last() + " " + n.rkey);
+					//	throw e;
+					//}
 					for (K key: subheld) {
 						reassignKeyToSweeper(key, vClo);
 					}
@@ -1073,7 +1077,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					clo.invoke(node);
 				}
 
-				//System.out.println(proc_pull + " " + proc_push + " " + ((proc_val == null)? "": proc_val));
+				//System.out.println(System.identityHashCode(this) + " " + proc_pull + " " + proc_push + " " + ((proc_val == null)? "": proc_val));
 
 				while (proc_push.hasCompleted()) {
 					$3<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> res = proc_push.accept();
@@ -1090,7 +1094,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					if (sw.isCleared()) { ((Runnable)sw).run(); }
 				}
 
-				//System.out.println(proc_push + " " + ((proc_val == null)? "": proc_val+ " ") + proc_pull);
+				//System.out.println(System.identityHashCode(this) + " " + proc_push + " " + ((proc_val == null)? "": proc_val+ " ") + proc_pull);
 
 				Thread.sleep(1000);
 				if (proc_val == null) { continue; }
@@ -1110,7 +1114,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					if (sw.isCleared()) { sw.run(); }
 				}
 
-				System.out.println(proc_val + " " + proc_pull + " " + proc_push);
+				//System.out.println(System.identityHashCode(this) + " " + proc_val + " " + proc_pull + " " + proc_push);
 
 			} while (proc_pull.hasPending() || proc_push.hasPending() || (proc_val != null && proc_val.hasPending()));
 
