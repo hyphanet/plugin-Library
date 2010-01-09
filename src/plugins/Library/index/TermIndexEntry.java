@@ -46,11 +46,11 @@ public class TermIndexEntry extends TermEntry {
 	}
 
 	@Override public boolean equals(Object o) {
-		return super.equals(o) && index.equals(((TermIndexEntry)o).index);
+		return o == this || super.equals(o) && index.equals(((TermIndexEntry)o).index);
 	}
 
 	@Override public boolean equalsTarget(TermEntry entry) {
-		return (entry instanceof TermIndexEntry) && index.equals(((TermIndexEntry)entry).index);
+		return entry == this || (entry instanceof TermIndexEntry) && index.equals(((TermIndexEntry)entry).index);
 	}
 
 	@Override public int hashCode() {

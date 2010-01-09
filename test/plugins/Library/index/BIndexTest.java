@@ -157,7 +157,7 @@ public class BIndexTest extends TestCase {
 				String key = entry.getKey();
 				SkeletonBTreeSet<TermEntry> tree = entry.getValue();
 				if (tree == null) {
-					entry.setValue(tree = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN));
+					entry.setValue(tree = makeEntryTree());
 				}
 				tree.update(newtrees.get(key), null);
 			}

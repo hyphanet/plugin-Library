@@ -470,6 +470,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		return new SkeletonNode(lk, rk, lf);
 	}
 
+	@Override protected void swapKey(K key, Node src, Node dst) {
+		SkeletonTreeMap.swapKey(key, (SkeletonTreeMap<K, V>)src.entries, (SkeletonTreeMap<K, V>)dst.entries);
+	}
+
 	/*========================================================================
 	  public interface SkeletonMap
 	 ========================================================================*/
@@ -860,8 +864,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					DeflateNode vClo = new DeflateNode(n, parNClo);
 
 					// reassign appropriate keys to the split-node's sweeper
-					assert(compareL(n.lkey, held.subSet(n.lkey, n.rkey).first()) < 0);
-					for (K key: BTreeMap.subSet(held, n.lkey, n.rkey)) {
+					SortedSet<K> subheld = BTreeMap.subSet(held, n.lkey, n.rkey);
+					assert(subheld.isEmpty() || compareL(n.lkey, subheld.first()) < 0 && compareR(subheld.last(), n.rkey) < 0);
+					for (K key: subheld) {
 						reassignKeyToSweeper(key, vClo);
 					}
 					vClo.close();

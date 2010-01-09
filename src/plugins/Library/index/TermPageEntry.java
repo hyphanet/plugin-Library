@@ -88,11 +88,11 @@ public class TermPageEntry extends TermEntry {
 	}
 
 	@Override public boolean equals(Object o) {
-		return super.equals(o) && page.equals(((TermPageEntry)o).page);
+		return o == this || super.equals(o) && page.equals(((TermPageEntry)o).page);
 	}
 
 	@Override public boolean equalsTarget(TermEntry entry) {
-		return (entry instanceof TermPageEntry) && page.equals(((TermPageEntry)entry).page);
+		return entry == this || (entry instanceof TermPageEntry) && page.equals(((TermPageEntry)entry).page);
 	}
 
 	@Override public int hashCode() {

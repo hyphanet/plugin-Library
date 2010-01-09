@@ -87,7 +87,7 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 	** specific to the subclass.
 	*/
 	@Override public boolean equals(Object o) {
-		if (getClass() != o.getClass()) { return false; }
+		if (o == null || getClass() != o.getClass()) { return false; }
 		TermEntry en = (TermEntry)o;
 		return rel == en.rel && subj.equals(en.subj);
 	}

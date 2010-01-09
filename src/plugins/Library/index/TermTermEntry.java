@@ -41,11 +41,11 @@ public class TermTermEntry extends TermEntry {
 	}
 
 	@Override public boolean equals(Object o) {
-		return super.equals(o) && term.equals(((TermTermEntry)o).term);
+		return o == this || super.equals(o) && term.equals(((TermTermEntry)o).term);
 	}
 
 	@Override public boolean equalsTarget(TermEntry entry) {
-		return (entry instanceof TermTermEntry) && term.equals(((TermTermEntry)entry).term);
+		return entry == this || (entry instanceof TermTermEntry) && term.equals(((TermTermEntry)entry).term);
 	}
 
 	@Override public int hashCode() {

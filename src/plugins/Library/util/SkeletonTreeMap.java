@@ -32,8 +32,7 @@ import java.util.HashMap;
 **
 ** @author infinity0
 */
-public class SkeletonTreeMap<K, V>
-extends TreeMap<K, V>
+public class SkeletonTreeMap<K, V> extends TreeMap<K, V>
 implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 
 	// We don't actually use any of the methods or fields of TreeMap directly,
@@ -156,6 +155,14 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			throw new IllegalStateException("Cannot change the serialiser when the structure is not live.");
 		}
 		serialiser = s;
+	}
+
+	public static <K, V> void swapKey(K key, SkeletonTreeMap<K, V> src, SkeletonTreeMap<K, V> dst) {
+		if (dst.containsKey(key)) { throw new IllegalArgumentException("SkeletonTreeMap.swapKey: key " + key + " already exists in target map"); }
+		if (!src.containsKey(key)) { throw new IllegalArgumentException("SkeletonTreeMap.swapKey: key " + key + " does not exist in source map"); }
+		SkeletonValue<V> sk = src.skmap.remove(key);
+		if (!sk.isLoaded) { --src.ghosts; ++dst.ghosts; }
+		dst.skmap.put(key, sk);
 	}
 
 	/*========================================================================
@@ -414,7 +421,34 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		return sk.set(value);
 	}
 
-	//public void putAll(Map<? extends K,? extends V> map);
+	@Override public void putAll(Map<? extends K,? extends V> map) {
+		SortedMap<K, SkeletonValue<V>> putmap;
+		if (map instanceof SkeletonTreeMap) {
+			putmap = ((SkeletonTreeMap<K, V>)map).skmap;
+		} else if (map instanceof SkeletonTreeMap.UnwrappingSortedSubMap) {
+			putmap = ((UnwrappingSortedSubMap)map).bkmap;
+		} else {
+			for (Map.Entry en: map.entrySet()) {
+				put((K)en.getKey(), (V)en.getValue());
+			}
+			return;
+		}
+		int g = 0;
+		for (Map.Entry<K, SkeletonValue<V>> en: putmap.entrySet()) {
+			SkeletonValue<V> sk = en.getValue();
+			SkeletonValue<V> old = skmap.put(en.getKey(), sk);
+			if (old == null) {
+				if (!sk.isLoaded) { ++g; }
+			} else {
+				if (old.isLoaded) {
+					if (!sk.isLoaded) { ++g; }
+				} else {
+					if (sk.isLoaded) { --g; }
+				}
+			}
+		}
+		ghosts += g;
+	}
 
 	/**
 	** {@inheritDoc}

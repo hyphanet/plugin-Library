@@ -366,8 +366,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		*/
 		protected void addAll(SortedMap<K, V> ent, Iterable<? extends Node> nodes) {
 			assert(ent.comparator() == comparator());
-			assert(compareL(lkey, ent.firstKey()) < 0);
-			assert(compareR(ent.lastKey(), rkey) < 0);
+			assert(ent.isEmpty() || compareL(lkey, ent.firstKey()) < 0);
+			assert(ent.isEmpty() || compareR(ent.lastKey(), rkey) < 0);
 			entries.putAll(ent);
 			if (!isLeaf) {
 				for (Node ch: nodes) {
@@ -640,9 +640,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** A view of child nodes exclusively between {@code lk}, {@code rk}, as
 		** an {@link Iterable}. Iteration occurs in '''sorted''' order.
 		**
-		** It is '''assumed''' that the input keys are all local to the node,
-		** and in the correct order; it is up to the caller to ensure that this
-		** holds.
+		** It is '''assumed''' that the input keys are all local to the node
+		** (or its lkey/rkey), and in the correct order; it is up to the caller
+		** to ensure that this holds.
 		**
 		** Returns {@code null} if this is a leaf.
 		**
@@ -651,7 +651,11 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		*/
 		protected Iterable<Node> iterNodes(K lk, K rk) {
 			assert(lk == null || rk == null || compare(lk, rk) < 0);
-			return (isLeaf)? null: new CompositeIterable<K, Node>(entries.subMap(lk, rk).keySet()) {
+			SortedMap<K, V> smap = (compare0(lk, lkey))?
+			((compare0(rk, rkey))? entries: entries.headMap(rk)):
+			((compare0(rk, rkey))? entries.tailMap(lk): entries.subMap(lk, rk));
+
+			return (isLeaf)? null: new CompositeIterable<K, Node>(smap.keySet()) {
 				@Override public Node nextFor(K key) { return rnodes.get(key); }
 			};
 		}
@@ -660,18 +664,31 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** A view of local entries exclusively between {@code lk}, {@code rk},
 		** as a {@link SortedMap}.
 		**
-		** It is '''assumed''' that the input keys are all local to the node,
-		** and in the correct order; it is up to the caller to ensure that this
-		** holds.
+		** It is '''assumed''' that the input keys are all local to the node
+		** (or its lkey/rkey), and in the correct order; it is up to the caller
+		** to ensure that this holds.
 		**
 		** @param lk The key on the L-side, exclusive
 		** @param rk The key on the R-side, exclusive
 		*/
 		protected SortedMap<K, V> subEntries(K lk, K rk) {
 			assert(lk == null || rk == null || compare(lk, rk) < 0);
-			SortedMap<K, V> tmap = entries.tailMap(lk);
-			K k2 = tmap.keySet().iterator().next();
-			return entries.subMap(k2, rk);
+			if (compare0(lk, lkey)) {
+				if (compare0(rk, rkey)) {
+					return entries;
+				} else {
+					return entries.headMap(rk);
+				}
+			} else {
+				SortedMap<K, V> tmap = entries.tailMap(lk);
+				if (tmap.isEmpty()) { return tmap; }
+				K k2 = tmap.keySet().iterator().next();
+				if (compare0(rk, rkey)) {
+					return entries.tailMap(k2);
+				} else {
+					return entries.subMap(k2, rk);
+				}
+			}
 		}
 
 		/**
@@ -718,7 +735,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			assert(child.rkey == rk);
 
 			for (K k: keys) {
-				entries.put(k, child.entries.get(k));
+				swapKey(k, child, this);
 			}
 
 			for ($2<K, K> kp: new PairIterable<K>(lk, keys, rk)) {
@@ -975,6 +992,20 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	*/
 	protected Node newNode(K lk, K rk, boolean lf) {
 		return new Node(lk, rk, lf);
+	}
+
+	/**
+	** Move the given key from the given source node to the given target node.
+	** This method should be used whenever entries need to be moved, so that
+	** eg. we can proceed even when the values have not been loaded (such as
+	** in a {@link SkeletonBTreeMap}).
+	**
+	** FIXME HIGH do this for everything in the class. ATM only Node.split()
+	** uses it.
+	*/
+	protected void swapKey(K key, Node src, Node dst) {
+		V val = src.entries.remove(key);
+		dst.entries.put(key, val);
 	}
 
 	/**
