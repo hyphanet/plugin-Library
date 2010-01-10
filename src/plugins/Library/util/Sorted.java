@@ -185,6 +185,7 @@ final public class Sorted {
 
 			if (csub != null && (nsep == null || !nsep.equals(csub))) {
 			//if (csub != null && ((Comparable<E>)csub).compareTo(nsub) <= 0) {
+				// FIXME HIGH this assertion has been observed to fail
 				assert(csub != null && ((Comparable<E>)csub).compareTo(nsub) <= 0);
 				assert(csep != null || nsep != null); // we already took care of sep.size() == 0
 				res.add(
