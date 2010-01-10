@@ -24,10 +24,13 @@ import java.io.*;
 */
 public class BIndexTest extends TestCase {
 
+	// mininum number of entries in a b-tree node.
+	final public static int node_size = 0x04;
+
 	// base number of keys in an index. the final size (after async-update) will be around double this.
 	final public static int index_size = 0x80;
 
-	// base number of entries for a key. the actual size per key varies between 1x-2x this.
+	// base number of entries for a key. the actual size (per key) varies between 1x-2x this.
 	final public static int entry_size = 0x10;
 
 	final public static int it_full = 4;
@@ -36,7 +39,7 @@ public class BIndexTest extends TestCase {
 	final public static boolean fuller = false;
 
 	static {
-		ProtoIndex.BTREE_NODE_MIN = 0x4; // DEBUG 0x10 so we see tree splits
+		ProtoIndex.BTREE_NODE_MIN = node_size;
 		System.out.println("ProtoIndex B-tree node_min set to " + ProtoIndex.BTREE_NODE_MIN);
 	}
 
@@ -228,8 +231,8 @@ public class BIndexTest extends TestCase {
 	}
 
 	public void testBasicMulti() throws TaskAbortException {
-		for (int i=0; i<it_basic; ++i) {
-			System.out.print(i + "/" + it_basic + ": ");
+		for (int i=0; i<it_full; ++i) {
+			System.out.print(i + "/" + it_full + ": ");
 			fullInflateDeflateUpdate();
 		}
 	}
@@ -282,7 +285,7 @@ public class BIndexTest extends TestCase {
 
 	public void testPartialInflateMulti() throws TaskAbortException {
 		for (int i=0; i<it_partial; ++i) {
-			System.out.print(i + "/" + it_basic + ": ");
+			System.out.print(i + "/" + it_full + ": ");
 			partialInflate();
 		}
 	}
