@@ -35,8 +35,11 @@ public class BIndexTest extends TestCase {
 
 	final public static int it_full = 4;
 	final public static int it_partial = 2;
-	final public static boolean disabled_progress = true;
 	final public static boolean fuller = false;
+
+	// TODO HIGH code a test that stores a huge on-disk index with repeated calls to update()
+	// this could be done in the same test as the progress test
+	final public static boolean disabled_progress = true;
 
 	static {
 		ProtoIndex.BTREE_NODE_MIN = node_size;

@@ -48,7 +48,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		/*@Override**/ public void invoke($2<T, X> res) {
 			try {
 				out.put(res);
-				++completed;
+				synchronized(ObjectProcessor.this) { ++completed; }
 			} catch (InterruptedException e) {
 				throw new UnsupportedOperationException();
 			}
@@ -175,7 +175,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	**
 	** @throws InterruptedExeception if interrupted whilst waiting
 	*/
-	public void dispatchTake() throws InterruptedException {
+	public synchronized void dispatchTake() throws InterruptedException {
 		throw new UnsupportedOperationException("not implemented");
 		/*
 		 * TODO NORM first needs a way of obeying maxconc
@@ -221,8 +221,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 				try { clo.invoke(item); }
 				// FIXME NORM this could throw RuntimeException
 				catch (Exception e) { ex = (X)e; }
-				try { out.put($2(item, ex)); ++completed; }
-				catch (InterruptedException e) { throw new UnsupportedOperationException(e); }
+				postProcess.invoke($2(item, ex));
 			}
 		};
 	}
