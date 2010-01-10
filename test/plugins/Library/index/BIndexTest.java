@@ -24,7 +24,13 @@ import java.io.*;
 */
 public class BIndexTest extends TestCase {
 
-	final public static int it_basic = 4;
+	// base number of keys in an index. the final size (after async-update) will be around double this.
+	final public static int index_size = 0x80;
+
+	// base number of entries for a key. the actual size per key varies between 1x-2x this.
+	final public static int entry_size = 0x10;
+
+	final public static int it_full = 4;
 	final public static int it_partial = 2;
 	final public static boolean disabled_progress = true;
 	final public static boolean fuller = false;
@@ -78,7 +84,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	protected int fillEntrySet(String key, SortedSet<TermEntry> tree) {
-		int n = rand.nextInt(0x10) + 0x10;
+		int n = rand.nextInt(entry_size) + entry_size;
 		for (int j=0; j<n; ++j) {
 			tree.add(Generators.rndEntry(key));
 		}
@@ -87,7 +93,7 @@ public class BIndexTest extends TestCase {
 
 	protected int fillRootTree(SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> tree) {
 		int total = 0;
-		for (int i=0; i<0x80; ++i) {
+		for (int i=0; i<index_size; ++i) {
 			String key = Generators.rndKey();
 			SkeletonBTreeSet<TermEntry> entries = makeEntryTree();
 			total += fillEntrySet(key, entries);
