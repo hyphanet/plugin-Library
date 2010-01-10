@@ -881,7 +881,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				parent.split(node.lkey, keys, node.rkey);
 				Iterable<Node> nodes = parent.iterNodes(node.lkey, node.rkey);
 
-				SortedSet<K> held = nodeVClo.view();
+				// WORKAROUND unnecessary cast here - bug in SunJDK6; works fine on OpenJDK6
+				SortedSet<K> held = (SortedSet<K>)nodeVClo.view();
 				// if synchronous, all values should have already been handled
 				assert(proc_val != null || held.size() == 0);
 
@@ -1020,9 +1021,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						GhostNode n = (GhostNode)node.selectNode(rng.first());
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(n);
 
+						// possibly re-design CountingSweeper to not care about types, or have acquire() instead
 						nClo.acquire((SkeletonNode)null); // dirty hack. FIXME LOW
-						// possibly re-design CountingSweeper to not care about types, or use CountingSweeper<Node> instead
-						ObjectProcessor.submitSafe(proc_pull, task, new InflateChildNodes(node, rng, nClo, vClo));
+						// WORKAROUND unnecessary cast here - bug in SunJDK6; works fine on OpenJDK6
+						ObjectProcessor.submitSafe(proc_pull, task, (SafeClosure<SkeletonNode>)new InflateChildNodes(node, rng, nClo, vClo));
 					}
 				}
 
