@@ -31,7 +31,7 @@ public class BIndexTest extends TestCase {
 	final public static int index_size = 0x80;
 
 	// base number of entries for a key. the actual size (per key) varies between 1x-2x this.
-	final public static int entry_size = 0x10;
+	final public static int entry_size = 0x20;
 
 	final public static int it_full = 4;
 	final public static int it_partial = 2;

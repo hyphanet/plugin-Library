@@ -72,12 +72,10 @@ import java.util.ConcurrentModificationException;
 ** stored in secondary storage, as the above paragraph describes.
 **
 ** NOTE: at the moment there is a slight bug in this implementation that causes
-** indeterminate behaviour when used with a comparator that admits {@code null}
-** keys. This is due to {@code null} having special semantics, meaning "end of
-** map", for the {@link Node#lkey} and {@link Node#rkey} fields. This is NOT
-** an urgent priority to fix, but might be done in the future. NULLNOTICE marks
-** the places in the code which are affected by this logic, as well as all
-** occurences of /\.[lr]key == null/.
+** '''indeterminate behaviour''' when used with a comparator that admits {@code
+** null} keys. This is due to {@code null} having special semantics, meaning
+** "end of map", for the {@link Node#lkey} and {@link Node#rkey} fields. This
+** is NOT an urgent priority to fix, but might be done in the future.
 **
 ** Note: this implementation, like {@link TreeMap}, is not thread-safe.
 **
@@ -111,6 +109,14 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** its children. To invalidate the cache, set Node._size to -1. This must
 	** be done whenever an operation has >0 chance of changing the total size.
 	**
+	** FIXME LOW atm there is a slight bug in this implementation that causes
+	** indeterminate behaviour when used with a comparator that admits null
+	** keys. This is due to null having special semantics ("end of map"), for
+	** the lkey and rkey fields. This is NOT an urgent priority to fix, but
+	** might be done in the future.
+	**
+	** NULLNOTICE marks the parts of the code which are affected by this logic,
+	** as well as all occurences of /\.[lr]key == null/.
 	*/
 
 	/**
@@ -180,7 +186,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	}
 
 	/**
-	** DOCUMENT.
+	** Returns the subset of the given {@link SortedSet}, exclusively between
+	** the given keys.
 	**
 	** OPT NORM
 	*/
