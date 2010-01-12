@@ -111,12 +111,7 @@ public class BIndexTest extends TestCase {
 	protected SortedSet<String> randomMixset(Set<String> set) {
 		SortedSet<String> sub = new TreeSet<String>();
 		for (String s: set) {
-			int r = Generators.rand.nextInt(2);
-			if (r == 0) {
-				sub.add(s);
-			} else {
-				sub.add(Generators.rndKey());
-			}
+			sub.add((rand.nextInt(2) == 0)? s: Generators.rndKey());
 		}
 		return sub;
 	}

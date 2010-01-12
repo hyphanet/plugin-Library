@@ -19,7 +19,10 @@ import java.util.TreeSet;
 */
 public class SortedTest extends TestCase {
 
-	public Random rnd = new Random();
+	final public static int rruns = 0x80;
+	final public static int rsizelow = 0x40; // must be > 8
+
+	public Random rand = new Random();
 
 	private Integer[] split_sep = { 8, 16, 24, 32 };
 	private Integer[][] split_subj = {
@@ -100,6 +103,87 @@ public class SortedTest extends TestCase {
 			for (int j=0; j<incs.length; ++j) {
 				List<Integer> res = Sorted.select(new TreeSet<Integer>(Arrays.asList(select_subj[i])), 2, incs[j]);
 				assertTrue(Arrays.deepEquals(select_res[i][j], res.toArray()));
+			}
+		}
+	}
+
+	public void verifySplit(SortedSet<String> subj, SortedSet<String> sep) {
+		// FIXME LOW this method assumes comparator is consistent with equals() and
+		// there are no null entries
+		SortedSet<String> fsep = new TreeSet<String>();
+		List<SortedSet<String>> subs = null;
+		try {
+			subs = Sorted.split(subj, sep, fsep);
+		} catch (Error e) {
+			System.out.println(subj);
+			System.out.println(sep);
+			throw e;
+		}
+
+		try {
+			Iterator<SortedSet<String>> lit = subs.iterator();
+			Iterator<String> pit = fsep.iterator();
+			Iterator<String> subit = null;
+			String cursep = pit.hasNext()? pit.next(): null;
+			for (Iterator<String> it = subj.iterator(); it.hasNext(); ) {
+				String key = it.next();
+				if (subit != null && subit.hasNext()) {
+					assertTrue(key.equals(subit.next()));
+					continue;
+				}
+				if (key.equals(cursep)) {
+					cursep = pit.hasNext()? pit.next(): null;
+					continue;
+				}
+				assertTrue(lit.hasNext());
+				subit = lit.next().iterator();
+				assertTrue(subit.hasNext());
+				assertTrue(key.equals(subit.next()));
+			}
+			assertFalse(lit.hasNext());
+			assertFalse(pit.hasNext());
+		} catch (Error e) {
+			System.out.println(subj);
+			System.out.println(sep);
+			System.out.println(fsep);
+			System.out.println(subs);
+			throw e;
+		}
+	}
+
+	protected void randomSelectSplit(int n, int k) {
+		SortedSet<String> subj = new TreeSet<String>();
+		for (int i=0; i<n; ++i) { subj.add(Generators.rndKey()); }
+
+		SortedSet<String> sep = new TreeSet<String>();
+		List<String> candsep = Sorted.select(subj, k);
+		assertTrue(candsep.size() == k);
+		for (String key: candsep) {
+			sep.add((rand.nextInt(2) == 0)? key: Generators.rndKey());
+		}
+		assertTrue(sep.size() == k);
+
+		verifySplit(subj, sep);
+	}
+
+	public void testRandomSelectSplit() {
+		int f = 0x10;
+		for (int n=0; n<f; ++n) {
+			for (int k=0; k<=n; ++k) {
+				randomSelectSplit(n, k);
+			}
+		}
+		for (int i=0; i<rruns; ++i) {
+			int n = rand.nextInt(rsizelow) + rsizelow;
+			randomSelectSplit(n, 0);
+			randomSelectSplit(n, 1);
+			randomSelectSplit(n, 2);
+			randomSelectSplit(n, n);
+			randomSelectSplit(n, n-1);
+			randomSelectSplit(n, n-2);
+			for (int j=0; j<0x10; ++j) {
+				int k = rand.nextInt(n-8)+4;
+				randomSelectSplit(n, k);
 			}
 		}
 	}

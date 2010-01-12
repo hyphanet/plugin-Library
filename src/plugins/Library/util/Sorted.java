@@ -172,9 +172,11 @@ final public class Sorted {
 				assert(subj.contains(csep));
 				foundsep.add(csep);
 				csub = second(subj.tailSet(csep)); // JDK6 subj.higher(csep);
+				continue;
 			}
 
 			nsep = (csep == null)? sep.first(): second(sep.tailSet(csep)); // JDK6 sep.higher(csep);
+			assert(nsep == null || ((Comparable<E>)csub).compareTo(nsep) < 0);
 
 			nsub = (nsep == null)? subj.last(): floor(subj, nsep); // JDK6 subj.floor(nsep);
 			assert(nsub != null);
@@ -183,17 +185,13 @@ final public class Sorted {
 				nsub = lower(subj, nsep); // JDK6 subj.lower(nsep);
 			}
 
-			if (csub != null && (nsep == null || !nsep.equals(csub))) {
-			//if (csub != null && ((Comparable<E>)csub).compareTo(nsub) <= 0) {
-				// FIXME HIGH this assertion has been observed to fail
-				assert(csub != null && ((Comparable<E>)csub).compareTo(nsub) <= 0);
-				assert(csep != null || nsep != null); // we already took care of sep.size() == 0
-				res.add(
-					(csep == null)? subj.headSet(nsep):
-					(nsep == null)? subj.tailSet(csub):
-					                subj.subSet(csub, nsep)
-				);
-			}
+			assert(csub != null && ((Comparable<E>)csub).compareTo(nsub) <= 0);
+			assert(csep != null || nsep != null); // we already took care of sep.size() == 0
+			res.add(
+				(csep == null)? subj.headSet(nsep):
+				(nsep == null)? subj.tailSet(csub):
+								subj.subSet(csub, nsep)
+			);
 			if (nsep == null) { break; }
 
 			csub = second(subj.tailSet(nsub)); // JDK6 subj.higher(nsub);

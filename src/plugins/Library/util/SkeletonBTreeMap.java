@@ -749,8 +749,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// all of its values). this is not necessary, since not all of the
 		// values may be updated. it would be possible to make it work more
 		// efficiently, which would save some network traffic, but this would
-		// be quite fiddly. also, doing it this way allows the Packer to be
-		// more aggressive in packing the values into splitfiles.
+		// be quite fiddly. also, the current way allows the Packer to be more
+		// aggressive in packing the values into splitfiles.
 
 		final ObjectProcessor<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> proc_pull
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
