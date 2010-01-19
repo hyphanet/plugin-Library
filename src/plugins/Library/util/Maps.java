@@ -66,7 +66,7 @@ final public class Maps {
 		}
 
 		@Override public int hashCode() {
-			return 31 * key.hashCode();
+			return 1 + key.hashCode();
 		}
 
 	}
