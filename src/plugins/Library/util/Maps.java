@@ -29,6 +29,17 @@ final public class Maps {
 		public V getValue() { return val; }
 		public V setValue(V n) { V o = val; val = n; return o; }
 
+		@Override public boolean equals(Object o) {
+			if (o == this) { return true; }
+			if (!(o instanceof Map.Entry)) { return false; }
+			Map.Entry en = (Map.Entry)o;
+			return (key == null? en.getKey() == null: key.equals(en.getKey())) && (val == null? en.getValue() == null : val.equals(en.getValue()));
+		}
+
+		@Override public int hashCode() {
+			return (key == null? 0: key.hashCode()) ^ (val == null? 0: val.hashCode());
+		}
+
 	}
 
 	/**
@@ -51,6 +62,9 @@ final public class Maps {
 	** A {@link Entry} whose {@link Object#equals(Object)} and {@link
 	** Object#hashCode()} are defined purely in terms of the key, which is
 	** immutable in the entry.
+	**
+	** Note: technically this breaks the contract of {@link Map.Entry}. Use
+	** only if you know what you're doing.
 	*/
 	public static class KeyEntry<K, V> extends BaseEntry<K, V> {
 
@@ -62,11 +76,12 @@ final public class Maps {
 		*/
 		@Override public boolean equals(Object o) {
 			if (!(o instanceof KeyEntry)) { return false; }
-			return key.equals(((KeyEntry)o).key);
+			KeyEntry en = (KeyEntry)o;
+			return key == null && en.key == null || key.equals(en.key);
 		}
 
 		@Override public int hashCode() {
-			return 1 + key.hashCode();
+			return key == null ? 0 : 1 + key.hashCode();
 		}
 
 	}

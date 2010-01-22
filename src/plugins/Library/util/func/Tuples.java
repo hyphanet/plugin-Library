@@ -33,6 +33,8 @@ package plugins.Library.util.func;
 ** recursively, so that you can give any (k+e)-tuple to a {@code Closure} that
 ** takes a k-tuple, assuming the types also match.
 **
+** TODO NORM override equals() and hashCode() for all of these
+**
 ** @author infinity0
 */
 final public class Tuples {
