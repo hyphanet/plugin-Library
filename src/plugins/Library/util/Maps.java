@@ -63,8 +63,8 @@ final public class Maps {
 	** Object#hashCode()} are defined purely in terms of the key, which is
 	** immutable in the entry.
 	**
-	** Note: technically this breaks the contract of {@link Map.Entry}. Use
-	** only if you know what you're doing.
+	** Note: technically this breaks the contract of {@link Entry}. Use only
+	** if you know what you're doing.
 	*/
 	public static class KeyEntry<K, V> extends BaseEntry<K, V> {
 

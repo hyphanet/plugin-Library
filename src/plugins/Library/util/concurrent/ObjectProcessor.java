@@ -56,7 +56,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	};
 
 	// JDK6 replace with ConcurrentSkipListSet
-	final private static ConcurrentMap<ObjectProcessor, Boolean> running = new ConcurrentHashMap<ObjectProcessor, Boolean>();
+	final private static ConcurrentMap<ObjectProcessor, Boolean> pending = new ConcurrentHashMap<ObjectProcessor, Boolean>();
 	// This must only be modified in a static synchronized block
 	private static Thread auto = null;
 
@@ -227,7 +227,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	}
 
 	/**
-	** Start a new thread to run the {@link #active} processors, if one is not
+	** Start a new thread to run the {@link #pending} processors, if one is not
 	** already running.
 	*/
 	private static synchronized void ensureAutoHandler() {
@@ -236,8 +236,8 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 			@Override public void run() {
 				final int timeout = 4;
 				int t = timeout;
-				while (!running.isEmpty() && (t=timeout) == timeout || t-- > 0) {
-					for (Iterator<ObjectProcessor> it = running.keySet().iterator(); it.hasNext();) {
+				while (!pending.isEmpty() && (t=timeout) == timeout || t-- > 0) {
+					for (Iterator<ObjectProcessor> it = pending.keySet().iterator(); it.hasNext();) {
 						ObjectProcessor proc = it.next();
 						try {
 							boolean o = proc.open;
@@ -253,18 +253,18 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 					try {
 						// sleep 2^10ms for every 2^10 processors
 						// TODO NORM more intelligent waiting
-						Thread.sleep(((running.size()-1)>>10)+1<<10);
+						Thread.sleep(((pending.size()-1)>>10)+1<<10);
 					} catch (InterruptedException e) {
 						// TODO LOW log this somewhere
 					}
-					// System.out.println("Running " + running.size());
+					// System.out.println("pending " + pending.size());
 
 					if (t > 0) { continue; }
 					synchronized (ObjectProcessor.class) {
 						// if auto() was called just before we entered this synchronized block,
 						// then its ensureAutoHandler() would have done nothing. so we want to keep
 						// this thread running to take care of the new addition.
-						if (!running.isEmpty()) { continue; }
+						if (!pending.isEmpty()) { continue; }
 						// otherwise we can safely discard this thread, since ensureAutoHandler()
 						// cannot be called as long as we are in this block.
 						auto = null;
@@ -278,13 +278,13 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	}
 
 	/**
-	** Add this processor to the collection of {@link #active} processes, and
+	** Add this processor to the collection of {@link #pending} processes, and
 	** makes sure there is a thread to handle them.
 	**
 	** @return Whether the processor was not already being handled.
 	*/
 	public boolean auto() {
-		Boolean r = ObjectProcessor.running.put(this, Boolean.TRUE);
+		Boolean r = ObjectProcessor.pending.put(this, Boolean.TRUE);
 		ObjectProcessor.ensureAutoHandler();
 		return r == null;
 	}

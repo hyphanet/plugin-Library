@@ -4,8 +4,7 @@
 package plugins.Library.index;
 
 /**
-** Represents data indexed by a {@link Token} and associated with a given
-** subject {@link String} term.
+** Represents data associated with a given subject {@link String} term.
 **
 ** Subclasses '''must''' override the following methods to use information
 ** specific to that subclass:
