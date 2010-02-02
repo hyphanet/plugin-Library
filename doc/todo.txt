@@ -7,6 +7,8 @@
 
 == Main areas ==
 
+0. l10n for the UI
+
 1. get merging working
   - "FreenetArchiver" extension (see below)
   - get a basic Index interface set up, that is *clean* (ie. nothing fancy for now)
