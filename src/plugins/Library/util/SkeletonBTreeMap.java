@@ -1268,7 +1268,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
 			map.put("node_min", tree.NODE_MIN);
 			map.put("size", tree.size);
-			Map<String, Object> rmap = tree.makeNodeTranslator(ktr, mtr).app((SkeletonBTreeMap<K,V>.SkeletonNode)tree.root);
+			Map<String, Object> rmap = tree.makeNodeTranslator(ktr, mtr).app((SkeletonBTreeMap.SkeletonNode)tree.root);
 			map.put("entries", rmap.get("entries"));
 			if (!tree.root.isLeaf()) {
 				map.put("subnodes", rmap.get("subnodes"));
