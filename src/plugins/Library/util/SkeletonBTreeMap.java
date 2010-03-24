@@ -752,6 +752,19 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// be quite fiddly. also, the current way allows the Packer to be more
 		// aggressive in packing the values into splitfiles.
 
+		// FIXME NORM - currently, there is a potential deadlock issue here,
+		// because proc_{pull,push,val} all use the same ThreadPoolExecutor to
+		// execute tasks. if the pool fills up with manager tasks {pull,push}
+		// then worker tasks {val} cannot execute, resulting in deadlock. at
+		// present, this is avoided by having ObjectProcessor.maxconc less than
+		// the poolsize, but future developers may change this unknowingly.
+		//
+		// a proper solution would be to have manager and worker tasks use
+		// different thread pools, ie. different ThreadPoolExecutors. care
+		// needs to be taken when doing this because the call can be recursive;
+		// ie. if the values are also SkeletonBTreeMaps, then the workers might
+		// start child "manager" tasks by calling value.update()
+
 		final ObjectProcessor<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> proc_pull
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
 			new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL),
@@ -808,10 +821,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 
 		}
-
-		// FIXME HIGH at the moment this is not scalable, because it tries to handle
-		// all the values in parallel. We should code a "max concurrent" into
-		// ObjectProcessor and make it not submit more jobs than this at any given time
 
 		// must be located after DeflateNode's class definition
 		final ObjectProcessor<Map.Entry<K, V>, DeflateNode, X> proc_val = (value_handler == null)? null
