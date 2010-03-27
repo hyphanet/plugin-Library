@@ -120,40 +120,40 @@ final public class Tuples {
 		}
 	}
 
-	final private static X0 x0 = new X0();
+	final private static X0 X0 = new X0();
 
 	/**
 	** Returns a {@link X0 0-tuple}.
 	*/
-	public static X0 x0() {
-		return x0;
+	public static X0 X0() {
+		return X0;
 	}
 
 	/**
 	** Creates a new {@link X1 1-tuple} from the given parameters.
 	*/
-	public static <T0> X1<T0> x1(T0 v0) {
+	public static <T0> X1<T0> X1(T0 v0) {
 		return new X1<T0>(v0);
 	}
 
 	/**
 	** Creates a new {@link X2 2-tuple} from the given parameters.
 	*/
-	public static <T0, T1> X2<T0, T1> x2(T0 v0, T1 v1) {
+	public static <T0, T1> X2<T0, T1> X2(T0 v0, T1 v1) {
 		return new X2<T0, T1>(v0, v1);
 	}
 
 	/**
 	** Creates a new {@link X3 3-tuple} from the given parameters.
 	*/
-	public static <T0, T1, T2> X3<T0, T1, T2> x3(T0 v0, T1 v1, T2 v2) {
+	public static <T0, T1, T2> X3<T0, T1, T2> X3(T0 v0, T1 v1, T2 v2) {
 		return new X3<T0, T1, T2>(v0, v1, v2);
 	}
 
 	/**
 	** Creates a new {@link X4 4-tuple} from the given parameters.
 	*/
-	public static <T0, T1, T2, T3> X4<T0, T1, T2, T3> x4(T0 v0, T1 v1, T2 v2, T3 v3) {
+	public static <T0, T1, T2, T3> X4<T0, T1, T2, T3> X4(T0 v0, T1 v1, T2 v2, T3 v3) {
 		return new X4<T0, T1, T2, T3>(v0, v1, v2, v3);
 	}
 

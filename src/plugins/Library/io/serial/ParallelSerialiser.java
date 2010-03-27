@@ -12,8 +12,7 @@ import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.exec.TaskInProgressException;
 import plugins.Library.util.exec.TaskCompleteException;
 import plugins.Library.util.func.SafeClosure;
-import plugins.Library.util.func.Tuples.X2;
-import static plugins.Library.util.func.Tuples.x2;
+import static plugins.Library.util.func.Tuples.X2; // also imports the class
 
 import java.util.Iterator;
 import java.util.List;
@@ -80,7 +79,7 @@ implements IterableSerialiser<T>,
 				} catch (TaskAbortException a) {
 					ex = a;
 				}
-				if (post != null) { post.invoke(x2(task, ex)); }
+				if (post != null) { post.invoke(X2(task, ex)); }
 			}
 		};
 	}
@@ -105,7 +104,7 @@ implements IterableSerialiser<T>,
 					try { pullLive(task, prog); }
 					catch (RuntimeException e) { ex = new TaskAbortException("failed", e); }
 					catch (TaskAbortException e) { ex = e; }
-					if (post != null) { post.invoke(x2(task, ex)); }
+					if (post != null) { post.invoke(X2(task, ex)); }
 				}
 			};
 		} catch (final TaskInProgressException e) {
@@ -133,7 +132,7 @@ implements IterableSerialiser<T>,
 					try { pushLive(task, prog); }
 					catch (RuntimeException e) { ex = new TaskAbortException("failed", e); }
 					catch (TaskAbortException e) { ex = e; }
-					if (post != null) { post.invoke(x2(task, ex)); }
+					if (post != null) { post.invoke(X2(task, ex)); }
 				}
 			};
 		} catch (final TaskInProgressException e) {

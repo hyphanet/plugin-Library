@@ -5,10 +5,8 @@ package plugins.Library.util.concurrent;
 
 import plugins.Library.util.func.Closure;
 import plugins.Library.util.func.SafeClosure;
-import plugins.Library.util.func.Tuples.X2;
-import plugins.Library.util.func.Tuples.X3;
-import static plugins.Library.util.func.Tuples.x2;
-import static plugins.Library.util.func.Tuples.x3;
+import static plugins.Library.util.func.Tuples.X2; // also imports the class
+import static plugins.Library.util.func.Tuples.X3; // also imports the class
 
 import java.util.Iterator;
 import java.util.Map;
@@ -142,7 +140,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	*/
 	public synchronized X3<T, E, X> accept() throws InterruptedException {
 		X2<T, X> item = out.take();
-		return x3(item._0, dep.remove(item._0), item._1);
+		return X3(item._0, dep.remove(item._0), item._1);
 	}
 
 	/**
@@ -223,7 +221,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 				try { clo.invoke(item); }
 				// FIXME NORM this could throw RuntimeException
 				catch (Exception e) { ex = (X)e; }
-				postProcess.invoke(x2(item, ex));
+				postProcess.invoke(X2(item, ex));
 			}
 		};
 	}
