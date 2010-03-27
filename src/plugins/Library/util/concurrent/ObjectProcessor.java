@@ -5,8 +5,10 @@ package plugins.Library.util.concurrent;
 
 import plugins.Library.util.func.Closure;
 import plugins.Library.util.func.SafeClosure;
-import plugins.Library.util.func.Tuples.*;
-import static plugins.Library.util.func.Tuples.*;
+import plugins.Library.util.func.Tuples.X2;
+import plugins.Library.util.func.Tuples.X3;
+import static plugins.Library.util.func.Tuples.x2;
+import static plugins.Library.util.func.Tuples.x3;
 
 import java.util.Iterator;
 import java.util.Map;
@@ -32,7 +34,7 @@ import java.util.concurrent.RejectedExecutionException;
 public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 
 	final protected BlockingQueue<T> in;
-	final protected BlockingQueue<$2<T, X>> out;
+	final protected BlockingQueue<X2<T, X>> out;
 	final protected Map<T, E> dep;
 	final protected Closure<T, X> clo;
 	final protected Executor exec;
@@ -44,8 +46,8 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	// TODO NORM make a more intelligent way of adjusting this
 	final public static int maxconc = 0x28;
 
-	final protected SafeClosure<$2<T, X>> postProcess = new SafeClosure<$2<T, X>>() {
-		/*@Override**/ public void invoke($2<T, X> res) {
+	final protected SafeClosure<X2<T, X>> postProcess = new SafeClosure<X2<T, X>>() {
+		/*@Override**/ public void invoke(X2<T, X> res) {
 			try {
 				out.put(res);
 				synchronized(ObjectProcessor.this) { ++completed; }
@@ -76,7 +78,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** @param autostart Whether to start an {@link #auto()} autohandler
 	*/
 	public ObjectProcessor(
-		BlockingQueue<T> input, BlockingQueue<$2<T, X>> output, Map<T, E> deposit,
+		BlockingQueue<T> input, BlockingQueue<X2<T, X>> output, Map<T, E> deposit,
 		Closure<T, X> closure, Executor executor, boolean autostart
 	) {
 		in = input;
@@ -138,9 +140,9 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** Retrieved a processed item, along with its deposit and any exception
 	** that caused processing to abort.
 	*/
-	public synchronized $3<T, E, X> accept() throws InterruptedException {
-		$2<T, X> item = out.take();
-		return $3(item._0, dep.remove(item._0), item._1);
+	public synchronized X3<T, E, X> accept() throws InterruptedException {
+		X2<T, X> item = out.take();
+		return x3(item._0, dep.remove(item._0), item._1);
 	}
 
 	/**
@@ -221,7 +223,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 				try { clo.invoke(item); }
 				// FIXME NORM this could throw RuntimeException
 				catch (Exception e) { ex = (X)e; }
-				postProcess.invoke($2(item, ex));
+				postProcess.invoke(x2(item, ex));
 			}
 		};
 	}

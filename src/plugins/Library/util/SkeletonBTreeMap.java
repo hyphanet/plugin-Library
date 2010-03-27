@@ -11,8 +11,8 @@ import plugins.Library.io.serial.Translator;
 import plugins.Library.io.DataFormatException;
 import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.exec.TaskCompleteException;
-import plugins.Library.util.func.Tuples.$2;
-import plugins.Library.util.func.Tuples.$3;
+import plugins.Library.util.func.Tuples.X2;
+import plugins.Library.util.func.Tuples.X3;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -174,7 +174,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					throw new IllegalArgumentException("SkeletonNode: in constructing " + getName() + ", got size mismatch: map:" + map.size() + "; gh:" + gh.size());
 				}
 				Iterator<GhostNode> it = gh.iterator();
-				for ($2<K, K> kp: iterKeyPairs()) {
+				for (X2<K, K> kp: iterKeyPairs()) {
 					GhostNode ghost = it.next();
 					ghost.lkey = kp._0;
 					ghost.rkey = kp._1;
@@ -557,7 +557,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final ObjectProcessor<PullTask<SkeletonNode>, SkeletonNode, TaskAbortException> proc_pull
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
 			new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL),
-			new LinkedBlockingQueue<$2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
+			new LinkedBlockingQueue<X2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
 			new HashMap<PullTask<SkeletonNode>, SkeletonNode>()
 		);
 		//System.out.println("Using scheduler");
@@ -576,7 +576,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// THREAD progress tracker should prevent this from being run twice for the
 				// same node, but what if we didn't use a progress tracker? hmm...
 				while (proc_pull.hasCompleted()) {
-					$3<PullTask<SkeletonNode>, SkeletonNode, TaskAbortException> res = proc_pull.accept();
+					X3<PullTask<SkeletonNode>, SkeletonNode, TaskAbortException> res = proc_pull.accept();
 					PullTask<SkeletonNode> task = res._0;
 					SkeletonNode parent = res._1;
 					TaskAbortException ex = res._2;
@@ -772,14 +772,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final ObjectProcessor<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> proc_pull
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
 			new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL),
-			new LinkedBlockingQueue<$2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
+			new LinkedBlockingQueue<X2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
 			new HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>()
 		);
 
 		final ObjectProcessor<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> proc_push
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pushSchedule(
 			new PriorityBlockingQueue<PushTask<SkeletonNode>>(0x10, CMP_PUSH),
-			new LinkedBlockingQueue<$2<PushTask<SkeletonNode>, TaskAbortException>>(0x10),
+			new LinkedBlockingQueue<X2<PushTask<SkeletonNode>, TaskAbortException>>(0x10),
 			new HashMap<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>>()
 		);
 
@@ -830,7 +830,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final ObjectProcessor<Map.Entry<K, V>, DeflateNode, X> proc_val = (value_handler == null)? null
 		: new ObjectProcessor<Map.Entry<K, V>, DeflateNode, X>(
 			new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
-			new LinkedBlockingQueue<$2<Map.Entry<K, V>, X>>(),
+			new LinkedBlockingQueue<X2<Map.Entry<K, V>, X>>(),
 			new HashMap<Map.Entry<K, V>, DeflateNode>(),
 			value_handler, Executors.DEFAULT_EXECUTOR, true
 		);
@@ -1085,7 +1085,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			do {
 
 				while (proc_pull.hasCompleted()) {
-					$3<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> res = proc_pull.accept();
+					X3<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> res = proc_pull.accept();
 					PullTask<SkeletonNode> task = res._0;
 					SafeClosure<SkeletonNode> clo = res._1;
 					TaskAbortException ex = res._2;
@@ -1101,7 +1101,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				//System.out.println(System.identityHashCode(this) + " " + proc_pull + " " + proc_push + " " + ((proc_val == null)? "": proc_val));
 
 				while (proc_push.hasCompleted()) {
-					$3<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> res = proc_push.accept();
+					X3<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> res = proc_push.accept();
 					PushTask<SkeletonNode> task = res._0;
 					CountingSweeper<SkeletonNode> sw = res._1;
 					TaskAbortException ex = res._2;
@@ -1121,7 +1121,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				if (proc_val == null) { continue; }
 
 				while (proc_val.hasCompleted()) {
-					$3<Map.Entry<K, V>, DeflateNode, X> res = proc_val.accept();
+					X3<Map.Entry<K, V>, DeflateNode, X> res = proc_val.accept();
 					Map.Entry<K, V> en = res._0;
 					DeflateNode sw = res._1;
 					X ex = res._2;
@@ -1210,7 +1210,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			if (!node.isLeaf()) {
 				Map<Object, Integer> subnodes = new LinkedHashMap<Object, Integer>();
-				for ($3<K, Node, K> next: node.iterNodesK()) {
+				for (X3<K, Node, K> next: node.iterNodesK()) {
 					GhostNode gh = (GhostNode)(next._1);
 					subnodes.put(gh.getMeta(), gh.totalSize());
 				}

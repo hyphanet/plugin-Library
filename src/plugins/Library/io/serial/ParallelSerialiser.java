@@ -12,8 +12,8 @@ import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.exec.TaskInProgressException;
 import plugins.Library.util.exec.TaskCompleteException;
 import plugins.Library.util.func.SafeClosure;
-import plugins.Library.util.func.Tuples.$2;
-import static plugins.Library.util.func.Tuples.$2;
+import plugins.Library.util.func.Tuples.X2;
+import static plugins.Library.util.func.Tuples.x2;
 
 import java.util.Iterator;
 import java.util.List;
@@ -65,7 +65,7 @@ implements IterableSerialiser<T>,
 		return tracker;
 	}
 
-	protected <K extends Task> Runnable createJoinRunnable(final K task, final TaskInProgressException e, final SafeClosure<$2<K, TaskAbortException>> post) {
+	protected <K extends Task> Runnable createJoinRunnable(final K task, final TaskInProgressException e, final SafeClosure<X2<K, TaskAbortException>> post) {
 		return new Runnable() {
 			public void run() {
 				TaskAbortException ex;
@@ -80,7 +80,7 @@ implements IterableSerialiser<T>,
 				} catch (TaskAbortException a) {
 					ex = a;
 				}
-				if (post != null) { post.invoke($2(task, ex)); }
+				if (post != null) { post.invoke(x2(task, ex)); }
 			}
 		};
 	}
@@ -96,7 +96,7 @@ implements IterableSerialiser<T>,
 	** task. If they are created before this, '''deadlock will result''' as the
 	** handler waits for that progress to complete.
 	*/
-	protected Runnable createPullJob(final PullTask<T> task, final SafeClosure<$2<PullTask<T>, TaskAbortException>> post) {
+	protected Runnable createPullJob(final PullTask<T> task, final SafeClosure<X2<PullTask<T>, TaskAbortException>> post) {
 		try {
 			final P prog = (post != null)? tracker.addPullProgress(task): tracker.getPullProgress(task);
 			return new Runnable() {
@@ -105,7 +105,7 @@ implements IterableSerialiser<T>,
 					try { pullLive(task, prog); }
 					catch (RuntimeException e) { ex = new TaskAbortException("failed", e); }
 					catch (TaskAbortException e) { ex = e; }
-					if (post != null) { post.invoke($2(task, ex)); }
+					if (post != null) { post.invoke(x2(task, ex)); }
 				}
 			};
 		} catch (final TaskInProgressException e) {
@@ -124,7 +124,7 @@ implements IterableSerialiser<T>,
 	** task. If they are created before this, '''deadlock will result''' as the
 	** handler waits for that progress to complete.
 	*/
-	protected Runnable createPushJob(final PushTask<T> task, final SafeClosure<$2<PushTask<T>, TaskAbortException>> post) {
+	protected Runnable createPushJob(final PushTask<T> task, final SafeClosure<X2<PushTask<T>, TaskAbortException>> post) {
 		try {
 			final P prog = (post != null)? tracker.addPushProgress(task): tracker.getPushProgress(task);
 			return new Runnable() {
@@ -133,7 +133,7 @@ implements IterableSerialiser<T>,
 					try { pushLive(task, prog); }
 					catch (RuntimeException e) { ex = new TaskAbortException("failed", e); }
 					catch (TaskAbortException e) { ex = e; }
-					if (post != null) { post.invoke($2(task, ex)); }
+					if (post != null) { post.invoke(x2(task, ex)); }
 				}
 			};
 		} catch (final TaskInProgressException e) {
@@ -234,7 +234,7 @@ implements IterableSerialiser<T>,
 	*/
 	/*@Override**/ public <E> ObjectProcessor<PullTask<T>, E, TaskAbortException> pullSchedule(
 		BlockingQueue<PullTask<T>> input,
-		BlockingQueue<$2<PullTask<T>, TaskAbortException>> output,
+		BlockingQueue<X2<PullTask<T>, TaskAbortException>> output,
 		Map<PullTask<T>, E> deposit
 	) {
 		return new ObjectProcessor<PullTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR, true) {
@@ -251,7 +251,7 @@ implements IterableSerialiser<T>,
 	*/
 	/*@Override**/ public <E> ObjectProcessor<PushTask<T>, E, TaskAbortException> pushSchedule(
 		BlockingQueue<PushTask<T>> input,
-		BlockingQueue<$2<PushTask<T>, TaskAbortException>> output,
+		BlockingQueue<X2<PushTask<T>, TaskAbortException>> output,
 		Map<PushTask<T>, E> deposit
 	) {
 		return new ObjectProcessor<PushTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR, true) {

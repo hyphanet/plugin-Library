@@ -7,7 +7,7 @@ import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.concurrent.Scheduler;
 import plugins.Library.util.concurrent.ObjectProcessor;
 import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.util.func.Tuples.$2;
+import plugins.Library.util.func.Tuples.X2;
 
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -31,7 +31,7 @@ public interface ScheduledSerialiser<T> extends IterableSerialiser<T> {
 	// TODO LOW public <E> Scheduler pullSchedule(
 	public <E> ObjectProcessor<PullTask<T>, E, TaskAbortException> pullSchedule(
 		BlockingQueue<PullTask<T>> input,
-		BlockingQueue<$2<PullTask<T>, TaskAbortException>> output,
+		BlockingQueue<X2<PullTask<T>, TaskAbortException>> output,
 		Map<PullTask<T>, E> deposit
 	);
 
@@ -46,7 +46,7 @@ public interface ScheduledSerialiser<T> extends IterableSerialiser<T> {
 	// TODO LOW public <E> Scheduler pushSchedule(
 	public <E> ObjectProcessor<PushTask<T>, E, TaskAbortException> pushSchedule(
 		BlockingQueue<PushTask<T>> input,
-		BlockingQueue<$2<PushTask<T>, TaskAbortException>> output,
+		BlockingQueue<X2<PushTask<T>, TaskAbortException>> output,
 		Map<PushTask<T>, E> deposit
 	);
 

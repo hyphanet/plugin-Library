@@ -4,8 +4,8 @@
 package plugins.Library.util;
 
 import plugins.Library.util.CompositeIterable;
-import plugins.Library.util.func.Tuples.$2;
-import plugins.Library.util.func.Tuples.$3;
+import plugins.Library.util.func.Tuples.X2;
+import plugins.Library.util.func.Tuples.X3;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -207,7 +207,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	/**
 	** DOCUMENT.
 	*/
-	public static class PairIterable<E> implements Iterable<$2<E, E>> {
+	public static class PairIterable<E> implements Iterable<X2<E, E>> {
 
 		final protected E lobj;
 		final protected E robj;
@@ -219,8 +219,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			robj = ro;
 		}
 
-		public Iterator<$2<E, E>> iterator() {
-			return new Iterator<$2<E, E>>() {
+		public Iterator<X2<E, E>> iterator() {
+			return new Iterator<X2<E, E>>() {
 
 				final Iterator<E> it = ib.iterator();
 				E prev = lobj;
@@ -229,9 +229,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 					return (it.hasNext() || prev != robj);
 				}
 
-				public $2<E, E> next() {
+				public X2<E, E> next() {
 					E rk = (!it.hasNext() && prev != robj)? robj: it.next();
-					return new $2<E, E>(prev, prev = rk);
+					return new X2<E, E>(prev, prev = rk);
 				}
 
 				public void remove() {
@@ -513,7 +513,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			rnodes.put(child.lkey, child);
 		}
 
-		private transient Iterable<$3<K, Node, K>> _iterNodesK;
+		private transient Iterable<X3<K, Node, K>> _iterNodesK;
 		/**
 		** A view of all subnodes with their lkey and rkey, as an {@link
 		** Iterable}. Iteration occurs in '''sorted''' order.
@@ -521,11 +521,11 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		** TODO LOW this method does not check that this node actually has subnodes
 		** (ie. non-leaf). This may or may not change in the future.
 		*/
-		public Iterable<$3<K, Node, K>> iterNodesK() {
+		public Iterable<X3<K, Node, K>> iterNodesK() {
 			if (_iterNodesK == null) {
-				_iterNodesK = new CompositeIterable<$2<K, K>, $3<K, Node, K>>(iterKeyPairs(), true) {
-					@Override protected $3<K, Node, K> nextFor($2<K, K> kp) {
-						return new $3<K, Node, K>(kp._0, rnodes.get(kp._0), kp._1);
+				_iterNodesK = new CompositeIterable<X2<K, K>, X3<K, Node, K>>(iterKeyPairs(), true) {
+					@Override protected X3<K, Node, K> nextFor(X2<K, K> kp) {
+						return new X3<K, Node, K>(kp._0, rnodes.get(kp._0), kp._1);
 					}
 				};
 			}
@@ -605,17 +605,17 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			return _iterAllKeys;
 		}
 
-		private transient Iterable<$2<K, K>> _iterKeyPairs;
+		private transient Iterable<X2<K, K>> _iterKeyPairs;
 		/**
 		** A view of adjacent key pairs (including {@code lkey}, {@code rkey})
 		** as an {@link Iterable}. Iteration occurs in '''sorted''' order.
 		*/
-		public Iterable<$2<K, K>> iterKeyPairs() {
+		public Iterable<X2<K, K>> iterKeyPairs() {
 			if (_iterKeyPairs == null) {
 				// TODO NORM replace this with PairIterable when we make lkey/rkey final
-				_iterKeyPairs = new Iterable<$2<K, K>>() {
-					public Iterator<$2<K, K>> iterator() {
-						return new Iterator<$2<K, K>>() {
+				_iterKeyPairs = new Iterable<X2<K, K>>() {
+					public Iterator<X2<K, K>> iterator() {
+						return new Iterator<X2<K, K>>() {
 
 							final Iterator<K> it = entries.keySet().iterator();
 							K lastkey = lkey;
@@ -624,9 +624,9 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 								return (it.hasNext() || lastkey != rkey);
 							}
 
-							public $2<K, K> next() {
+							public X2<K, K> next() {
 								K rk = (!it.hasNext() && lastkey != rkey)? rkey: it.next();
-								return new $2<K, K>(lastkey, lastkey = rk);
+								return new X2<K, K>(lastkey, lastkey = rk);
 							}
 
 							public void remove() {
@@ -741,7 +741,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			lnodes.remove(rk);
 			rnodes.remove(lk);
 
-			for ($2<K, K> kp: new PairIterable<K>(lk, keys, rk)) {
+			for (X2<K, K> kp: new PairIterable<K>(lk, keys, rk)) {
 				Node newnode = newNode(kp._0, kp._1, child.isLeaf);
 				newnode.addAll(child.subEntries(kp._0, kp._1), child.iterNodes(kp._0, kp._1));
 				addChildNode(newnode);
