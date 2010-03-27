@@ -39,6 +39,10 @@ package plugins.Library.util.func;
 */
 final public class Tuples {
 
+	// FIXME NOW
+	// rename all the classes to Xn (X0, X1, X2 etc)
+	// and all the methods to xn (x0, x1, x2 etc)
+
 	private Tuples() {}
 
 	/**

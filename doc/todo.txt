@@ -1,10 +1,5 @@
 = TODO =
 
-== Schedule ==
-
-- implement filters
-- design WriteableIndex
-
 == Main areas ==
 
 0. l10n for the UI
@@ -13,9 +8,16 @@
   - "FreenetArchiver" extension (see below)
   - get a basic Index interface set up, that is *clean* (ie. nothing fancy for now)
 
-2. Re-design progress system
+2. Re-design progress / serialisation system
   - Remove "Task" class and make PushTask.data, PullTask.meta fields *final*.
   - re-structure "serialiser" classes
+  - Have SkeletonBTreeMap use freenet's async IO interface instead of Threads, 
+    which atm do nothing except wait for the IO to finish. This is pointless
+    and wastes unnecessary threads. The BlockingQueues should stay, only the
+    serialser part needs to be changed.
+    - this will need additional asynchronous serialiser methods, instead of just
+      push()/pull(), and a class instead of ParallelSerialiser / ObjectProcesser,
+      that handles these async calls
 
 3. Clean-up Skeleton*
   - remove unnecessary methods, etc
@@ -26,13 +28,13 @@
 
 == Serialisation ==
 
-- OPT HIGH have the MapCollectionTranslators generate map VIEWS of data
+- OPT HIGH have the MapCollectionTranslators generate map VIEWS of data (instead of copies)
 - OPT HIGH make getIndex() unblocking
   - use LiveArchiver for index root serialiser
-  - use SnoopMetadata
+  - use SnoopMetadata (ask toad about it)
 
-- better USK support for the FreenetArchiver, both insert and request
-- make an extension of FreenetArchiver that saves a local copy of a CHK,
+- TODO NORM better USK support for the FreenetArchiver, both insert and request
+- TODO HIGH make an extension of FreenetArchiver that saves a local copy of a CHK,
   and tries to load from it next time
 
 - OPT LOW should have a better format than having BinInfo point to a top-level CHK
@@ -41,13 +43,13 @@
 
 == Resource usage ==
 
-- OPTIMISE Memory handling; discard index data after we're done with it.
+- OPT HIGH Memory handling; discard index data after we're done with it, during a user request
 
 == Execution/Progress ==
 
-- FIXME ProgressParts.getSubParts / ProgressParts.getParts: iterating might throw
+- FIXME NORM ProgressParts.getSubParts / ProgressParts.getParts: iterating might throw
   ConcurrentModificationException, deal with this!
-- FIXME wrap saved TaskAbortExceptions when we throw them again, so we get the right stack traces
+- FIXME NORM wrap saved TaskAbortExceptions when we throw them again, so we get the right stack traces
   - maybe new class "TaskAbortedException"? too confusing?
   - to find these, search for "throw e", "throw p" or something that's not "throw new"
 - TODO verify the synchronization of SimpleProgress, and BaseCompositeProgress...

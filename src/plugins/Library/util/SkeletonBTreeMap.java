@@ -764,6 +764,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// needs to be taken when doing this because the call can be recursive;
 		// ie. if the values are also SkeletonBTreeMaps, then the workers might
 		// start child "manager" tasks by calling value.update()
+		//
+		// arguably a better solution would be to not use threads, and use
+		// the async interface (i should have done this when i first coded it).
+		// see doc/todo.txt for details
 
 		final ObjectProcessor<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> proc_pull
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
