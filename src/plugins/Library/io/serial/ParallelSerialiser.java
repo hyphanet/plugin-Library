@@ -236,11 +236,11 @@ implements IterableSerialiser<T>,
 		BlockingQueue<X2<PullTask<T>, TaskAbortException>> output,
 		Map<PullTask<T>, E> deposit
 	) {
-		return new ObjectProcessor<PullTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR, true) {
+		return new ObjectProcessor<PullTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR) {
 			@Override protected Runnable createJobFor(PullTask<T> task) {
 				return createPullJob(task, postProcess);
 			}
-		};
+		}.autostart();
 	}
 
 	/**
@@ -253,11 +253,11 @@ implements IterableSerialiser<T>,
 		BlockingQueue<X2<PushTask<T>, TaskAbortException>> output,
 		Map<PushTask<T>, E> deposit
 	) {
-		return new ObjectProcessor<PushTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR, true) {
+		return new ObjectProcessor<PushTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR) {
 			@Override protected Runnable createJobFor(PushTask<T> task) {
 				return createPushJob(task, postProcess);
 			}
-		};
+		}.autostart();
 	}
 
 }

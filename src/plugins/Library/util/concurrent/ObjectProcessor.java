@@ -77,14 +77,13 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	*/
 	public ObjectProcessor(
 		BlockingQueue<T> input, BlockingQueue<X2<T, X>> output, Map<T, E> deposit,
-		Closure<T, X> closure, Executor executor, boolean autostart
+		Closure<T, X> closure, Executor executor
 	) {
 		in = input;
 		out = output;
 		dep = deposit;
 		clo = closure;
 		exec = executor;
-		if (autostart) { auto(); }
 	}
 
 	/**
@@ -287,6 +286,14 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		Boolean r = ObjectProcessor.pending.put(this, Boolean.TRUE);
 		ObjectProcessor.ensureAutoHandler();
 		return r == null;
+	}
+
+	/**
+	** Call {@link #auto()} and return {@code this}.
+	*/
+	public ObjectProcessor autostart() {
+		auto();
+		return this;
 	}
 
 	/**

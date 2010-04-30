@@ -146,7 +146,7 @@ final public class Sorted {
 	** @param sep Separators to split at
 	** @param foundsep An empty set which will be filled with the separators
 	**        that were also contained in the subject set.
-	** @return An list of subsets; each subset contains all entries between two
+	** @return A list of subsets; each subset contains all entries between two
 	**         adjacent separators, or an edge separator and the corresponding
 	**         edge of the set. The list is in sorted order.
 	** @throws NullPointerException if any of the inputs are {@code null}

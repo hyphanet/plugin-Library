@@ -724,7 +724,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		**
 		** Life cycle of a node:
 		**
-		** - node gets popped from inflated
+		** - node gets popped from proc_pull
 		** - enter InflateChildNodes
 		**   - subnodes get pushed into proc_pull
 		**   - (recurse for each subnode)
@@ -740,7 +740,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		** - for each split-node:
 		**   - wait for all: values get popped from proc_val; SplitNode to close()
 		**   - enter DeflateNode
-		**     - split-node gets pushed into push_queue (except for root)
+		**     - split-node gets pushed into proc_push (except for root)
 		**
 		*/
 
@@ -832,8 +832,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
 			new LinkedBlockingQueue<X2<Map.Entry<K, V>, X>>(),
 			new HashMap<Map.Entry<K, V>, DeflateNode>(),
-			value_handler, Executors.DEFAULT_EXECUTOR, true
-		);
+			value_handler, Executors.DEFAULT_EXECUTOR
+		).autostart();
 
 		// Dummy constant for SplitNode
 		final SortedMap<K, V> EMPTY_SORTEDMAP = new TreeMap<K, V>();
