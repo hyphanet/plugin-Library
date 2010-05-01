@@ -788,7 +788,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		*/
 		class DeflateNode extends TrackingSweeper<K, SortedSet<K>> implements Runnable, SafeClosure<Map.Entry<K, V>> {
 
+			/** The node to be pushed, when run() is called. */
 			final SkeletonNode node;
+			/** A closure for the parent node. This is called when all of its children (of
+			** which this.node is one) have been pushed. */
 			final CountingSweeper<SkeletonNode> parNClo;
 
 			protected DeflateNode(SkeletonNode n, CountingSweeper<SkeletonNode> pnc) {
@@ -843,10 +846,20 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		*/
 		class SplitNode extends CountingSweeper<SkeletonNode> implements Runnable {
 
+			/** The node to be split, when run() is called. */
 			final SkeletonNode node;
+			/** The node's parent, where new nodes/keys are attached during the split process. */
 			/*final*/ SkeletonNode parent;
+			/** The value-closure for this node. This keeps track of all unhandled values
+			 * in this node. If this node is split, and the values have not been handled,
+			 * they are passed onto the value-closures of the relevant split nodes (or
+			 * that of the parent node, if the key turns out to be a separator key). */
 			final DeflateNode nodeVClo;
+			/** The closure for the parent node, also a CountingSweeper. We keep a
+			 * reference to this so we can add the new split nodes to it. */
 			/*final*/ SplitNode parNClo;
+			/** The value-closure for the parent node. The comment for nodeVClo explains
+			 * why we need a reference to this. */
 			/*final*/ DeflateNode parVClo;
 
 			protected SplitNode(SkeletonNode n, SkeletonNode p, DeflateNode vc, SplitNode pnc, DeflateNode pvc) {
@@ -965,9 +978,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		*/
 		class InflateChildNodes implements SafeClosure<SkeletonNode> {
 
+			/** The parent node, passed to closures which need it. */
 			final SkeletonNode parent;
+			/** The keys to put into this node. */
 			final SortedSet<K> putkey;
+			/** The closure for the parent node, passed to closures which need it. */
 			final SplitNode parNClo;
+			/** The value-closure for the parent node, passed to closures which need it. */
 			final DeflateNode parVClo;
 
 			protected InflateChildNodes(SkeletonNode p, SortedSet<K> ki, SplitNode pnc, DeflateNode pvc) {
