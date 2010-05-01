@@ -4,6 +4,7 @@
 package plugins.Library.index;
 
 import junit.framework.TestCase;
+import static plugins.Library.util.Generators.rand;
 
 import plugins.Library.util.*;
 import plugins.Library.util.func.*;
@@ -33,6 +34,8 @@ public class BIndexTest extends TestCase {
 	// base number of entries for a key. the actual size (per key) varies between 1x-2x this.
 	final public static int entry_size = 0x20;
 
+	final public boolean extensive = Boolean.getBoolean("extensiveTesting");
+
 	final public static int it_full = 4;
 	final public static int it_partial = 2;
 	final public static boolean fuller = false;
@@ -57,8 +60,6 @@ public class BIndexTest extends TestCase {
 	ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex((File)null);
 	ProtoIndexComponentSerialiser csrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL);
 	ProtoIndex idx;
-
-	Random rand = new Random();
 
 	Set<String> randomWords = new HashSet<String>(Arrays.asList(
 		"Lorem", "ipsum", "dolor", "sit", "amet,", "consectetur", "adipisicing",
@@ -229,6 +230,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	public void testBasicMulti() throws TaskAbortException {
+		if (!extensive) { return; }
 		for (int i=0; i<it_full; ++i) {
 			System.out.print(i + "/" + it_full + ": ");
 			fullInflateDeflateUpdate();
@@ -282,14 +284,15 @@ public class BIndexTest extends TestCase {
 	}
 
 	public void testPartialInflateMulti() throws TaskAbortException {
+		if (!extensive) { return; }
 		for (int i=0; i<it_partial; ++i) {
 			System.out.print(i + "/" + it_full + ": ");
 			partialInflate();
 		}
 	}
 
-
 	public void testProgress() throws TaskAbortException {
+		if (!extensive) { return; }
 		if (disabled_progress) { return; }
 		newTestSkeleton();
 

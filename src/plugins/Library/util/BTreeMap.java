@@ -187,20 +187,22 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 	/**
 	** Returns the subset of the given {@link SortedSet}, exclusively between
-	** the given keys.
+	** the given keys. If either key is {@code null}, this will be treated to
+	** mean the relevant edge of the set.
 	**
 	** OPT NORM
 	*/
-	public SortedSet<K> subSet(SortedSet<K> set, K lk, K rk) {
+	public static <K> SortedSet<K> subSet(SortedSet<K> set, K lk, K rk) {
 		// NULLNOTICE
 		// JDK6
 		if (lk == null) {
 			return (rk == null)? set: set.headSet(rk);
 		} else {
 			SortedSet<K> ss = (rk == null)? set.tailSet(lk): set.subSet(lk, rk);
-			if (ss.isEmpty() || !compare0(ss.first(), lk)) { return ss; }
+			if (ss.isEmpty() || !compare0(ss.first(), lk, set.comparator())) { return ss; }
 			K k2 = Sorted.higher(ss, lk);
 			return (k2 == null)? ss.headSet(lk): ss.tailSet(k2);
+			// headSet() will create an empty set with the right comparator and of the right class
 		}
 	}
 
@@ -684,14 +686,18 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			} else {
 				SortedSet<K> tset = Sorted.keySet(entries).tailSet(lk);
 				assert(!tset.isEmpty());
-				if (tset.size() == 1) { return entries.subMap(lk, lk); }
+				if (tset.size() == 1) {
+					// create an empty set with the right comparator and of the right class
+					return entries.subMap(lk, lk);
+				}
 				K k2 = Sorted.higher(tset, lk);
 				return (compare0(rk, rkey))? entries.tailMap(k2): entries.subMap(k2, rk);
 			}
 		}
 
 		/**
-		** DOCUMENT
+		** Merge child nodes between the given keys. The merged node is added
+		** to this node, and the old children are discarded.
 		**
 		** It is '''assumed''' that the input keys are all local to the node,
 		** and in the correct order; it is up to the caller to ensure that this
@@ -719,7 +725,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		}
 
 		/**
-		** DOCUMENT
+		** Split a child node at the given keys. The split children are added
+		** to this node, and the old child is discarded.
 		**
 		** It is '''assumed''' that the input keys are all local to the node,
 		** and in the correct order; it is up to the caller to ensure that this
@@ -826,8 +833,12 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         don't implement {@link Comparable})
 	** @throws NullPointerException if either of the keys are {@code null}.
 	*/
-	public int compare(K key1, K key2) {
+	final public static <K> int compare(K key1, K key2, Comparator<? super K> comparator) {
 		return (comparator != null)? comparator.compare(key1, key2): ((Comparable<K>)key1).compareTo(key2);
+	}
+
+	protected int compare(K key1, K key2) {
+		return compare(key1, key2, comparator);
 	}
 
 	/**
@@ -840,9 +851,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         comparator, or if they cannot be compared naturally (ie. they
 	**         don't implement {@link Comparable})
 	*/
-	protected boolean compare0(K key1, K key2) {
+	final public static <K> boolean compare0(K key1, K key2, Comparator<? super K> comparator) {
 		return key1 == null? key2 == null: key2 == null? false:
 			   ((comparator != null)? comparator.compare(key1, key2): ((Comparable<K>)key1).compareTo(key2)) == 0;
+	}
+
+	protected boolean compare0(K key1, K key2) {
+		return compare0(key1, key2, comparator);
 	}
 
 	/**
@@ -856,7 +871,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	*/
 	protected int compareL(K lkey1, K lkey2) {
 		return (lkey1 == null)? ((lkey2 == null)? 0: -1):
-		                        ((lkey2 == null)? 1: compare(lkey1, lkey2));
+		                        ((lkey2 == null)? 1: compare(lkey1, lkey2, comparator));
 	}
 
 	/**
@@ -870,7 +885,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	*/
 	protected int compareR(K rkey1, K rkey2) {
 		return (rkey2 == null)? ((rkey1 == null)? 0: -1):
-		                        ((rkey1 == null)? 1: compare(rkey1, rkey2));
+		                        ((rkey1 == null)? 1: compare(rkey1, rkey2, comparator));
 	}
 
 	/**
@@ -1654,7 +1669,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				int k = minNodesFor(map.size());
 
 				nextlnodes = new HashMap<K, Node>(k<<1);
-				nextmap = new TreeMap<K, V>();
+				nextmap = new TreeMap<K, V>(comparator);
 
 				Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
 				K prevkey = null; // NULLNOTICE

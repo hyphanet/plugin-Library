@@ -4,6 +4,7 @@
 package plugins.Library.util;
 
 import junit.framework.TestCase;
+import static plugins.Library.util.Generators.rand;
 
 import java.util.Random;
 import java.util.Arrays;
@@ -12,8 +13,6 @@ import java.util.Arrays;
 ** @author infinity0
 */
 public class IntegersTest extends TestCase {
-
-	public Random rnd = new Random();
 
 	private int[] totals = {
 		10,
@@ -45,8 +44,8 @@ public class IntegersTest extends TestCase {
 
 	public void testAllocateEvenlyRandom() {
 		for (int i=0; i<0x10; ++i) {
-			int total = rnd.nextInt(0x4000)+1;
-			int num = rnd.nextInt(total)+1;
+			int total = rand.nextInt(0x4000)+1;
+			int num = rand.nextInt(total)+1;
 			int share[] = new int[num];
 
 			Iterable<Integer> it = Integers.allocateEvenly(total, num);

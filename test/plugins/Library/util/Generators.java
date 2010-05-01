@@ -18,6 +18,14 @@ import java.net.MalformedURLException;
 */
 final public class Generators {
 
+	final public static Random rand;
+
+	static {
+		long seed = System.currentTimeMillis();
+		rand = new Random(seed);
+		System.err.println("Generators.rand initialised with seed " + seed);
+	}
+
 	private Generators() {}
 
 	public static String rndStr() {
@@ -27,8 +35,6 @@ final public class Generators {
 	public static String rndKey() {
 		return rndStr().substring(0,8);
 	}
-
-	public static Random rand = new Random();
 
 	public static TermPageEntry rndEntry(String key) {
 		try {

@@ -795,7 +795,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			final CountingSweeper<SkeletonNode> parNClo;
 
 			protected DeflateNode(SkeletonNode n, CountingSweeper<SkeletonNode> pnc) {
-				super(true, true, new TreeSet<K>(), null);
+				super(true, true, new TreeSet<K>(comparator), null);
 				parNClo = pnc;
 				node = n;
 			}
@@ -839,7 +839,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		).autostart();
 
 		// Dummy constant for SplitNode
-		final SortedMap<K, V> EMPTY_SORTEDMAP = new TreeMap<K, V>();
+		final SortedMap<K, V> EMPTY_SORTEDMAP = new TreeMap<K, V>(comparator);
 
 		/**
 		** Deposit for a PushTask
@@ -1038,7 +1038,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					// only add keys that already exist locally in the node. other keys
 					// are delegated to the relevant child node.
 
-					SortedSet<K> fkey = new TreeSet<K>();
+					SortedSet<K> fkey = new TreeSet<K>(comparator);
 					Iterable<SortedSet<K>> range = Sorted.split(putkey, Sorted.keySet(node.entries), fkey);
 
 					if (proc_val == null) {

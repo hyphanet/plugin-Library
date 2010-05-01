@@ -4,6 +4,7 @@
 package plugins.Library.util;
 
 import junit.framework.TestCase;
+import static plugins.Library.util.Generators.rand;
 
 import plugins.Library.util.Sorted.Inclusivity;
 
@@ -21,8 +22,6 @@ public class SortedTest extends TestCase {
 
 	final public static int rruns = 0x80;
 	final public static int rsizelow = 0x40; // must be > 8
-
-	public Random rand = new Random();
 
 	private Integer[] split_sep = { 8, 16, 24, 32 };
 	private Integer[][] split_subj = {
