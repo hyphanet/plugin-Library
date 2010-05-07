@@ -5,6 +5,7 @@ package plugins.Library;
 
 import plugins.Library.client.*;
 import plugins.Library.util.exec.*;
+import plugins.Library.util.func.Closure;
 import plugins.Library.index.*;
 import plugins.Library.io.*;
 import plugins.Library.io.serial.*;
@@ -34,8 +35,10 @@ public class Tester {
 			return testPushProgress();
 		} else if (test.equals("autodetect")) {
 			return testAutoDetect(lib);
+		} else if (test.equals("push_merge")) {
+			return testPushAndMergeIndex();
 		}
-		return "tests: push_index, push_progress, autodetect";
+		return "tests: push_index, push_progress, autodetect, push_merge";
 	}
 
 	final public static String PAGE_START = "<html><head><meta http-equiv=\"refresh\" content=\"1\">\n<body>\n";
@@ -199,6 +202,166 @@ public class Tester {
 		return s.toString();
 	}
 
+	volatile static int push_phase;
+	static final List<FreenetURI> generatedURIs = new ArrayList<FreenetURI>();
+	
+	public static String testPushAndMergeIndex() {
+		
+		// Split it up.
+		int length = push_index_words.size();
+		final int divideInto = 5;
+		final TreeSet<String>[] phaseWords = new TreeSet[5];
+		for(int i=0;i<phaseWords.length;i++)
+			phaseWords[i] = new TreeSet<String>();
+		int x = 0;
+		for(String s : push_index_words) {
+			phaseWords[x++].add(s);
+			if(x == divideInto) x = 0;
+		}
+		
+		if (push_index_thread == null) {
+			push_index_start = new Date();
+			push_index_thread = new Thread() {
+				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI);
+				ProtoIndex idx;
+				Random rand = new Random();
+
+				@Override public void run() {
+					
+					try {
+						idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test");
+					} catch (java.net.MalformedURLException e) {
+						throw new AssertionError(e);
+					}
+					ProtoIndexComponentSerialiser.get().setSerialiserFor(idx);
+
+					for(push_phase = 0; push_phase < divideInto; push_phase++) {
+					
+					if(push_phase == 0) {
+						// Add stuff then push the tree.
+						
+						for (String key: phaseWords[push_phase]) {
+							SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
+							ProtoIndexComponentSerialiser.get().setSerialiserFor(entries);
+							int n = rand.nextInt(0x20) + 0x20;
+							for (int j=0; j<n; ++j) {
+								entries.add(Generators.rndEntry(key));
+							}
+							// URGENT use a WriteableIndex and make ProtoIndex's ttab protected again
+							idx.ttab.put(key, entries);
+						}
+						
+						try {
+							for (Map.Entry<String, SkeletonBTreeSet<TermEntry>> en: idx.ttab.entrySet()) {
+								push_index_status = "Deflating entry " + en.getKey() + " (" + en.getValue().size() + " entries)";
+								en.getValue().deflate();
+							}
+							push_index_status = "Deflating the term table";
+							idx.ttab.deflate();
+							PushTask<ProtoIndex> task1 = new PushTask<ProtoIndex>(idx);
+							push_index_status = "Deflating the index";
+							srl.push(task1);
+							push_index_status = "Done!";
+							push_index_endURI = (FreenetURI)task1.meta;
+							synchronized(generatedURIs) {
+								generatedURIs.add(push_index_endURI);
+							}
+						} catch (TaskAbortException e) {
+							push_index_error = e;
+							return;
+						}
+
+					} else { // phase > 0
+						
+						// Merge new data in.
+						
+						// generate new set to merge
+						final SortedSet<String> randAdd = phaseWords[push_phase];
+						final Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
+						int entriesadded = 0;
+						for (String k: randAdd) {
+							SortedSet<TermEntry> set = new TreeSet<TermEntry>();
+							entriesadded += fillEntrySet(k, set);
+							newtrees.put(k, set);
+						}
+
+						// async merge
+						Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo = new
+						Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
+							/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
+								String key = entry.getKey();
+								SkeletonBTreeSet<TermEntry> tree = entry.getValue();
+								//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
+								if (tree == null) {
+									entry.setValue(tree = makeEntryTree());
+								}
+								assert(tree.isBare());
+								tree.update(newtrees.get(key), null);
+								assert(tree.isBare());
+								//System.out.println("handled " + key);
+							}
+						};
+						try {
+						assert(idx.ttab.isBare());
+						idx.ttab.update(randAdd, null, clo);
+						assert(idx.ttab.isBare());
+						PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
+						srl.push(task4);
+//						System.out.print(entriesadded + " entries merged in " + timeDiff() + " ms, root at " + task4.meta + ", ");
+						push_index_status = "Done!";
+						push_index_endURI = (FreenetURI)task4.meta;
+						synchronized(generatedURIs) {
+							generatedURIs.add(push_index_endURI);
+						}
+						} catch (TaskAbortException e) {
+							push_index_error = e;
+							return;
+						}
+
+					}
+					
+					}
+						
+				}
+			};
+			push_index_thread.setUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+				public void uncaughtException(Thread t, Throwable e) {
+					push_index_error = e;
+				}
+			});
+			push_index_thread.start();
+		}
+
+		StringBuilder s = new StringBuilder();
+		s.append(PAGE_START);
+		s.append("<p>Pushing index with terms: ").append(push_index_words.toString()).append("</p>\n");
+		appendTimeElapsed(s, push_index_start);
+		s.append("<p>").append(push_index_status).append("</p>");
+		appendError(s, push_index_error);
+		appendResultURI(s, push_index_endURI);
+		synchronized(generatedURIs) {
+			s.append("<p>Phase: "+push_phase+" URIs generated: "+generatedURIs.size()+"</p><ul>");
+			for(FreenetURI uri : generatedURIs)
+				s.append("<li>"+uri.toASCIIString()+"</li>");
+			s.append("</ul>");
+		}
+		s.append(PAGE_END);
+		return s.toString();
+	}
+	
+	protected static int fillEntrySet(String key, SortedSet<TermEntry> tree) {
+		int n = Generators.rand.nextInt(0x20) + 0x20;
+		for (int j=0; j<n; ++j) {
+			tree.add(Generators.rndEntry(key));
+		}
+		return n;
+	}
+	
+	protected static SkeletonBTreeSet<TermEntry> makeEntryTree() {
+		SkeletonBTreeSet<TermEntry> tree = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
+		ProtoIndexComponentSerialiser.get().setSerialiserFor(tree);
+		return tree;
+	}
 
 	public static void appendError(StringBuilder s, Throwable th) {
 		if (th == null) { return; }
