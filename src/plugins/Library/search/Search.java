@@ -202,7 +202,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		if(query.matches("\\A[\\w\\d]*\\Z")) {
 			// single search term
 			// return null if stopword
-			if(isStopWord(query))
+			if(SearchUtil.isStopWord(query))
 				return null;
 			Execution<Set<TermEntry>> request = library.getIndex(indexuri).getTermEntries(query);
 			if (request == null)
@@ -577,16 +577,4 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		throw new UnsupportedOperationException("Not supported yet.");
 	}
 
-	private static List<String> stopWords = Arrays.asList(new String[]{
-		"the", "and", "that", "have", "for"		// English stop words
-	});
-	/**
-	 * Whether the given word is a stopword. Currently this is defined as: words
-	 * less than 3 letters long or included in the stopWords list.
-	 *
-	 * @param word The word to check
-	 */
-	private static boolean isStopWord(String word) {
-		return word.length() <3 || stopWords.contains(word);
-	}
 }
