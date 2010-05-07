@@ -199,7 +199,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 	 * @throws InvalidSearchException if search query is invalid
 	 */
 	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException, TaskAbortException{
-		if(query.matches("\\A[\\w\\d]*\\Z")) {
+		if(query.matches("\\A[\\p{L}\\d]*\\Z")) {
 			// single search term
 			// return null if stopword
 			if(SearchUtil.isStopWord(query))
@@ -213,7 +213,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		// Make phrase search
 		if(query.matches("\\A\"[^\"]*\"\\Z")){
 			ArrayList<Execution<Set<TermEntry>>> phrasesearches = new ArrayList();
-			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split("[^\\w\\d]+");
+			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split("[^\\p{L}\\d]+");
 			Logger.minor(Search.class, "Phrase split"+query);
 			for (String subquery : phrase){
 				Search term = startSearch(subquery, indexuri);
@@ -265,7 +265,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		Logger.minor(Search.class, "phrases removed query : "+formattedquery);
 
 		// treat hyphens as phrases, as they are treated equivalently in spider so this is the most effective way now
-		query = query.replaceAll("((?:[\\d\\w]+-)+[\\d\\w]+)", "\"$1\"");
+		query = query.replaceAll("((?:[\\d\\p{L}]+-)+[\\d\\p{L}]+)", "\"$1\"");
 		Logger.minor(Search.class, "Treat hyphenated words as phrases");
 
 		if(!query.contains("\"")){	// dont do the other splitting operations as we need to put phrases back in and call self
