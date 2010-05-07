@@ -89,6 +89,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		search = search.toLowerCase(Locale.US).trim();
 		if(search.length()==0)
 			throw new InvalidSearchException("Blank search");
+		search = fixCJK(search);
 
 		// See if the same search exists
 		if (hasSearch(search, indexuri))
@@ -116,6 +117,33 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		}
 	}
 
+
+	/** Transform <string of CJK> into characters separated by spaces.
+	 * FIXME: I'm sure we could handle this a lot better! */
+	private static String fixCJK(String search) {
+		StringBuffer sb = null;
+		int offset = 0;
+		boolean wasCJK = false;
+		for(;offset < search.length();) {
+			int character = search.codePointAt(offset);
+			if(SearchUtil.isCJK(character)) {
+				if(wasCJK) {
+					sb.append(' '); // Delimit characters by whitespace so we do an && search.
+				}
+				if(sb == null) {
+					sb = new StringBuffer();
+					sb.append(search.substring(0, offset));
+				}
+				wasCJK = true;
+			} else {
+				wasCJK = false;
+			}
+			if(sb != null)
+				sb.append(Character.toChars(character));
+			offset += Character.charCount(character);
+		}
+		return sb.toString();
+	}
 
 	/**
 	 * Creates Search instance depending on the given requests
