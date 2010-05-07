@@ -33,7 +33,9 @@ import freenet.node.RequestStarter;
 import freenet.node.NodeClientCore;
 import freenet.support.Logger;
 import freenet.support.api.Bucket;
+import freenet.support.io.BucketTools;
 import freenet.support.io.Closer;
+import freenet.support.io.FileBucket;
 
 import java.io.File;
 import java.io.InputStream;
@@ -49,6 +51,9 @@ import java.util.ArrayList;
 ** used to do the hard work once the relevant streams have been established,
 ** from temporary {@link Bucket}s.
 **
+** Supports a local cache.
+** FIXME: NOT GARBAGE COLLECTED! Eventually will fill up all available disk space!
+**
 ** @author infinity0
 */
 public class FreenetArchiver<T>
@@ -60,20 +65,30 @@ implements LiveArchiver<T, SimpleProgress> {
 
 	final protected String default_mime;
 	final protected int expected_bytes;
+	final File cacheDir;
 
-	public FreenetArchiver(NodeClientCore c, ObjectStreamReader r, ObjectStreamWriter w, String mime, int size) {
+	public FreenetArchiver(NodeClientCore c, ObjectStreamReader r, ObjectStreamWriter w, String mime, int size, File cacheDir) {
 		if (c == null) {
 			throw new IllegalArgumentException("Can't create a FreenetArchiver with a null NodeClientCore!");
 		}
+		this.cacheDir = cacheDir;
 		core = c;
 		reader = r;
 		writer = w;
 		default_mime = mime;
 		expected_bytes = size;
 	}
+	
+	public FreenetArchiver(NodeClientCore c, ObjectStreamReader r, ObjectStreamWriter w, String mime, int size) {
+		this(c, r, w, mime, size, null);
+	}
+
+	public <S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver(NodeClientCore c, S rw, String mime, int size, File cacheDir) {
+		this(c, rw, rw, mime, size, cacheDir);
+	}
 
 	public <S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver(NodeClientCore c, S rw, String mime, int size) {
-		this(c, rw, rw, mime, size);
+		this(c, rw, rw, mime, size, null);
 	}
 
 	/**
@@ -89,6 +104,12 @@ implements LiveArchiver<T, SimpleProgress> {
 			try {
 
 				FreenetURI furi = (FreenetURI)task.meta;
+				
+				if(cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
+					File cached = new File(cacheDir, furi.toASCIIString());
+					tempB = new FileBucket(cached, true, false, false, false, false);
+				} else {
+				
 				if (progress != null) {
 					hlsc.addEventHook(new SimpleProgressUpdater(progress));
 				}
@@ -118,6 +139,7 @@ implements LiveArchiver<T, SimpleProgress> {
 				}
 
 				tempB = res.asBucket();
+				}
 				is = tempB.getInputStream();
 				task.data = (T)reader.readObject(is);
 				is.close();
@@ -167,7 +189,6 @@ implements LiveArchiver<T, SimpleProgress> {
 
 				FreenetURI target = (task.meta instanceof FreenetURI)? (FreenetURI)task.meta: FreenetURI.EMPTY_CHK_URI;
 				InsertBlock ib = new InsertBlock(tempB, new ClientMetadata(default_mime), target);
-				tempB = null; // let GC know we don't need to reference this again from this scope
 
 				if (progress != null) {
 					hlsc.addEventHook(new SimpleProgressUpdater(progress));
@@ -198,6 +219,13 @@ implements LiveArchiver<T, SimpleProgress> {
 				}
 
 				task.meta = uri;
+				
+				if(cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
+					File cached = new File(cacheDir, uri.toASCIIString());
+					Bucket cachedBucket = new FileBucket(cached, false, false, false, false, false);
+					BucketTools.copy(tempB, cachedBucket);
+				}
+
 
 			} catch (InsertException e) {
 				throw new TaskAbortException("Failed to insert content", e, true);
