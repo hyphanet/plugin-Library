@@ -142,7 +142,10 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 				sb.append(Character.toChars(character));
 			offset += Character.charCount(character);
 		}
-		return sb.toString();
+		if(sb != null)
+			return sb.toString();
+		else
+			return search;
 	}
 
 	/**
