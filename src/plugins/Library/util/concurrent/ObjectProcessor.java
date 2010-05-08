@@ -40,6 +40,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	protected volatile boolean open = true;
 	protected int dispatched = 0;
 	protected int completed = 0;
+	protected int started = 0;
 
 	// TODO NORM make a more intelligent way of adjusting this
 	final public static int maxconc = 0x28;
@@ -47,6 +48,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	final protected SafeClosure<X2<T, X>> postProcess = new SafeClosure<X2<T, X>>() {
 		/*@Override**/ public void invoke(X2<T, X> res) {
 			try {
+				synchronized(ObjectProcessor.this) { ++started; }
 				out.put(res);
 				synchronized(ObjectProcessor.this) { ++completed; }
 			} catch (InterruptedException e) {
@@ -323,7 +325,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		name = n;
 	}
 	@Override public String toString() {
-		return "ObjProc-" + name + ":{" + size() + "|" + dispatched + "|" + completed + "}";
+		return "ObjProc-" + name + ":{" + size() + "|" + dispatched + "|" + started + "|" + completed + "}";
 	}
 
 }
