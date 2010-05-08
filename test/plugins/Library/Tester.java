@@ -336,7 +336,10 @@ public class Tester {
 
 		StringBuilder s = new StringBuilder();
 		s.append(PAGE_START);
-		s.append("<p>Pushing index with terms: ").append(push_index_words.toString()).append("</p>\n");
+		s.append("<p>Pushing index with terms:</p><ul>\n");
+		for(int i=0;i<phaseWords.length;i++)
+			s.append("<li>").append(phaseWords[i].toString()).append("</li>\n");
+		s.append("</ul>\n");
 		appendTimeElapsed(s, push_index_start);
 		s.append("<p>").append(push_index_status).append("</p>");
 		appendError(s, push_index_error);
