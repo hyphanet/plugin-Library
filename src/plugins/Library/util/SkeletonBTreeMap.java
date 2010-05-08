@@ -1201,9 +1201,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				//System.out.println(System.identityHashCode(this) + " " + proc_push + " " + ((proc_val == null)? "": proc_val+ " ") + proc_pull);
 
 				Thread.sleep(0x400);
-				if (proc_val == null) { continue; }
 
-				while (proc_val.hasCompleted()) {
+				while (proc_val != null && proc_val.hasCompleted()) {
 					X3<Map.Entry<K, V>, DeflateNode, X> res = proc_val.accept();
 					Map.Entry<K, V> en = res._0;
 					DeflateNode sw = res._1;
