@@ -28,8 +28,10 @@ import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import plugins.Library.util.exec.Progress;
 import plugins.Library.util.exec.ProgressParts;
@@ -680,6 +682,30 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	}
 
 	/**
+	** The executor backing {@link #VALUE_EXECUTOR}.
+	*/
+	private static Executor value_exec = null;
+
+	/**
+	 * Separate executor for value handlers. Value handlers can themselves call
+	 * update() and end up polling, so we need to keep them separate from the 
+	 * threads that do the actual work! */
+	final public static Executor VALUE_EXECUTOR = new Executor() {
+		/*@Override**/ public void execute(Runnable r) {
+			synchronized (Executors.class) {
+				if (value_exec == null) {
+					value_exec = new ThreadPoolExecutor(
+						0x40, 0x40, 1, TimeUnit.SECONDS,
+						new LinkedBlockingQueue<Runnable>(),
+						new ThreadPoolExecutor.CallerRunsPolicy()
+					);
+				}
+			}
+			value_exec.execute(r);
+		}
+	};
+
+	/**
 	** Asynchronously updates a remote B-tree. This uses two-pass merge/split
 	** algorithms (as opposed to the one-pass algorithms of the standard {@link
 	** BTreeMap}) since it assumes a copy-on-write backing data store, where
@@ -793,6 +819,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			/** A closure for the parent node. This is called when all of its children (of
 			** which this.node is one) have been pushed. */
 			final CountingSweeper<SkeletonNode> parNClo;
+			private boolean deflated;
 
 			protected DeflateNode(SkeletonNode n, CountingSweeper<SkeletonNode> pnc) {
 				super(true, true, new TreeSet<K>(comparator), null);
@@ -807,8 +834,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			** this sweeper).
 			*/
 			public void run() {
-				// FIXME HIGH make this asynchronous
-				try { ((SkeletonTreeMap<K, V>)node.entries).deflate(); } catch (TaskAbortException e) { throw new RuntimeException(e); }
+				try {
+					deflate();
+				} catch (TaskAbortException e) {
+					throw new RuntimeException(e); // FIXME HIGH
+				}
 				assert(node.isBare());
 				if (parNClo == null) {
 					// do not deflate the root
@@ -827,6 +857,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				node.entries.put(en.getKey(), en.getValue());
 			}
 
+			public void deflate() throws TaskAbortException {
+				synchronized(this) {
+					if(deflated) return;
+					deflated = true;
+				}
+				((SkeletonTreeMap<K, V>)node.entries).deflate();
+			}
+
 		}
 
 		// must be located after DeflateNode's class definition
@@ -835,8 +873,21 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
 			new LinkedBlockingQueue<X2<Map.Entry<K, V>, X>>(),
 			new HashMap<Map.Entry<K, V>, DeflateNode>(),
-			value_handler, Executors.DEFAULT_EXECUTOR
+			value_handler, VALUE_EXECUTOR // These can block so pool them separately.
 		).autostart();
+		
+		final ObjectProcessor<DeflateNode, SkeletonNode, TaskAbortException> proc_deflate =
+			new ObjectProcessor<DeflateNode, SkeletonNode, TaskAbortException>(
+					new PriorityBlockingQueue<DeflateNode>(0x10),
+					new LinkedBlockingQueue<X2<DeflateNode, TaskAbortException>>(),
+					new HashMap<DeflateNode, SkeletonNode>(),
+					new Closure<DeflateNode, TaskAbortException>() {
+
+						public void invoke(DeflateNode param) throws TaskAbortException {
+							param.deflate();
+						}
+						
+					}, Executors.DEFAULT_EXECUTOR).autostart();
 
 		// Dummy constant for SplitNode
 		final SortedMap<K, V> EMPTY_SORTEDMAP = new TreeMap<K, V>(comparator);
@@ -886,7 +937,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				int sk = minKeysFor(node.nodeSize());
 				// No need to split
 				if (sk == 0) {
-					if (nodeVClo.isCleared()) { nodeVClo.run(); }
+					if (nodeVClo.isCleared()) {
+						try {
+							proc_deflate.submit(nodeVClo, nodeVClo.node);
+						} catch (InterruptedException e) {
+							// Impossible ?
+							throw new RuntimeException(e);
+						}
+					}
 					return;
 				}
 
@@ -939,7 +997,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						reassignKeyToSweeper(key, vClo);
 					}
 					vClo.close();
-					if (vClo.isCleared()) { vClo.run(); } // if no keys were added
+					// if no keys were added
+					if (vClo.isCleared()) {
+						try {
+							proc_deflate.submit(vClo, vClo.node);
+						} catch (InterruptedException e) {
+							// Impossible ?
+							throw new RuntimeException(e);
+						}
+					} 
 
 					parNClo.acquire(n);
 				}
@@ -1149,12 +1215,24 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					sw.invoke(en);
 					sw.release(en.getKey());
-					if (sw.isCleared()) { sw.run(); }
+					if (sw.isCleared()) {
+						proc_deflate.submit(sw, sw.node);
+					}
+				}
+				
+				while(proc_deflate.hasCompleted()) {
+					X3<DeflateNode, SkeletonNode, TaskAbortException> res = proc_deflate.accept();
+					DeflateNode sw = res._0;
+					TaskAbortException ex = res._2;
+					if(ex != null)
+						// FIXME HIGH
+						throw ex;
+					sw.run();
 				}
 
 				System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push);
 
-			} while (proc_pull.hasPending() || proc_push.hasPending() || (proc_val != null && proc_val.hasPending()));
+			} while (proc_pull.hasPending() || proc_push.hasPending() || (proc_val != null && proc_val.hasPending()) || proc_deflate.hasPending());
 
 			size = root.totalSize();
 
