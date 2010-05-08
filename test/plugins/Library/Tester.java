@@ -275,6 +275,7 @@ public class Tester {
 						
 						// Merge new data in.
 						
+						long mergeStartTime = System.currentTimeMillis();
 						// generate new set to merge
 						final SortedSet<String> randAdd = phaseWords[push_phase];
 						final Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
@@ -307,7 +308,8 @@ public class Tester {
 						assert(idx.ttab.isBare());
 						PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
 						srl.push(task4);
-//						System.out.print(entriesadded + " entries merged in " + timeDiff() + " ms, root at " + task4.meta + ", ");
+						long mergeEndTime = System.currentTimeMillis();
+						System.out.print(entriesadded + " entries merged in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta + ", ");
 						push_index_status = "Done!";
 						push_index_endURI = (FreenetURI)task4.meta;
 						synchronized(generatedURIs) {
