@@ -1156,6 +1156,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		proc_pull.setName("pull");
 		proc_push.setName("push");
 		if (proc_val != null) { proc_val.setName("val"); }
+		proc_deflate.setName("deflate");
 
 		try {
 
