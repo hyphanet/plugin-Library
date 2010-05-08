@@ -7,6 +7,7 @@ import freenet.pluginmanager.PluginReplySender;
 import freenet.support.SimpleFieldSet;
 import freenet.support.api.Bucket;
 import freenet.support.io.Closer;
+import freenet.support.io.NativeThread;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -138,37 +139,74 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		}
 	}
 
-	public void handle(PluginReplySender replysender, SimpleFieldSet params, Bucket data, int accesstype) {
+	private Object handlingSync = new Object();
+	private boolean handling;
+	
+	public void handle(PluginReplySender replysender, SimpleFieldSet params, final Bucket data, int accesstype) {
 		if("pushBuffer".equals(params.get("command"))){
-			Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes, not implemented yet, saved to file : buffer");
-			File f = new File("buffer");
-			FileWriter w = null;
-			try {
-				f.createNewFile();
-				w = new FileWriter(f);
-				InputStream is = data.getInputStream();
-				try{
-					while(true){	// Keep going til an EOFExcepiton is thrown
-						TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
-						w.write(readObject.toString()+"\n");
+
+			// Process data off-thread, but only one load at a time.
+			// Hence it won't stall XMLSpider unless we get behind.
+			
+			synchronized(handlingSync) {
+				while(handling) {
+					Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish");
+					try {
+						wait();
+					} catch (InterruptedException e) {
+						// Ignore
 					}
-				}catch(EOFException e){
-					// EOF, do nothing
 				}
-				w.close();
-				w = null;
-			} catch (IOException ex) {
-				java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-			} finally {
-				Closer.close(w);
+				handling = true;
+			}
+			try {
+				Runnable r = new Runnable() {
+
+					public void run() {
+						FileWriter w = null;
+						try {
+							Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes, not implemented yet, saved to file : buffer");
+							File f = new File("buffer");
+							f.createNewFile();
+							w = new FileWriter(f);
+							InputStream is = data.getInputStream();
+							try{
+								while(true){	// Keep going til an EOFExcepiton is thrown
+									TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
+									w.write(readObject.toString()+"\n");
+								}
+							}catch(EOFException e){
+								// EOF, do nothing
+							}
+							w.close();
+							w = null;
+						} catch (IOException ex) {
+							java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+						} finally {
+							Closer.close(w);
+							synchronized(handlingSync) {
+								handling = false;
+								handlingSync.notifyAll();
+							}
+						}
+					}
+					
+				};
+				new NativeThread(r, "Library: Handle data from XMLSpider", NativeThread.NORM_PRIORITY, false).start();
+			} catch (RuntimeException t) {
+				synchronized(handlingSync) {
+					handling = false;
+				}
+				throw t;
+			} catch (Error t) {
+				synchronized(handlingSync) {
+					handling = false;
+				}
+				throw t;
 			}
 		} else {
 			Logger.error(this, "Unknown command : \""+params.get("command"));
 		}
 	}
-
-
-
-
 
 }
