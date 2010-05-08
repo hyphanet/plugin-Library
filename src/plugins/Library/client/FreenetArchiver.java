@@ -112,37 +112,37 @@ implements LiveArchiver<T, SimpleProgress> {
 				
 				if(tempB == null) {
 					
-				System.out.println("Fetching block for FreenetArchiver from network: "+furi);
-				
-				if (progress != null) {
-					hlsc.addEventHook(new SimpleProgressUpdater(progress));
-				}
-
-				// code for async fetch - maybe be useful elsewhere
-				//ClientContext cctx = core.clientContext;
-				//FetchContext fctx = hlsc.getFetchContext();
-				//FetchWaiter fw = new FetchWaiter();
-				//ClientGetter gu = hlsc.fetch(furi, false, null, false, fctx, fw);
-				//gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
-				//FetchResult res = fw.waitForCompletion();
-
-				FetchResult res;
-
-				// bookkeeping. detects bugs in the SplitfileProgressEvent handler
-				if (progress != null) {
-					ProgressParts prog_old = progress.getParts();
-					res = hlsc.fetch(furi);
-					ProgressParts prog_new = progress.getParts();
-					if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
-						// TODO LOW if it turns out this happens a lot, maybe make it "continue anyway"
-						throw new TaskAbortException("Inconsistency when tracking split file progress", null, true);
+					System.out.println("Fetching block for FreenetArchiver from network: "+furi);
+					
+					if (progress != null) {
+						hlsc.addEventHook(new SimpleProgressUpdater(progress));
 					}
-					progress.addPartKnown(0, true);
-				} else {
-					res = hlsc.fetch(furi);
-				}
-
-				tempB = res.asBucket();
+					
+					// code for async fetch - maybe be useful elsewhere
+					//ClientContext cctx = core.clientContext;
+					//FetchContext fctx = hlsc.getFetchContext();
+					//FetchWaiter fw = new FetchWaiter();
+					//ClientGetter gu = hlsc.fetch(furi, false, null, false, fctx, fw);
+					//gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
+					//FetchResult res = fw.waitForCompletion();
+					
+					FetchResult res;
+					
+					// bookkeeping. detects bugs in the SplitfileProgressEvent handler
+					if (progress != null) {
+						ProgressParts prog_old = progress.getParts();
+						res = hlsc.fetch(furi);
+						ProgressParts prog_new = progress.getParts();
+						if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
+							// TODO LOW if it turns out this happens a lot, maybe make it "continue anyway"
+							throw new TaskAbortException("Inconsistency when tracking split file progress", null, true);
+						}
+						progress.addPartKnown(0, true);
+					} else {
+						res = hlsc.fetch(furi);
+					}
+					
+					tempB = res.asBucket();
 				}
 				long endTime = System.currentTimeMillis();
 				System.out.println("Fetched block for FreenetArchiver in "+(endTime-startTime)+"ms.");
