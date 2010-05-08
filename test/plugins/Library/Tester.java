@@ -130,14 +130,14 @@ public class Tester {
 	volatile static Set<String> push_index_words = new TreeSet<String>(Arrays.asList(
 		"Lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipisicing",
 		"elit", "sed", "do", "eiusmod", "tempor", "incididunt", "ut", "labore",
-		"et", "dolore", "magna", "aliqua.", "Ut", "enim", "ad", "minim",
+		"et", "dolore", "magna", "aliqua", "Ut", "enim", "ad", "minim",
 		"veniam", "quis", "nostrud", "exercitation", "ullamco", "laboris", "nisi",
-		"ut", "aliquip", "ex", "ea", "commodo", "consequat.", "Duis", "aute",
+		"ut", "aliquip", "ex", "ea", "commodo", "consequat", "Duis", "aute",
 		"irure", "dolor", "in", "reprehenderit", "in", "voluptate", "velit",
-		"esse", "cillum", "dolore", "eu", "fugiat", "nulla", "pariatur.",
+		"esse", "cillum", "dolore", "eu", "fugiat", "nulla", "pariatur",
 		"Excepteur", "sint", "occaecat", "cupidatat", "non", "proident", "sunt",
 		"in", "culpa", "qui", "officia", "deserunt", "mollit", "anim", "id", "est",
-		"laborum."
+		"laborum"
 	));
 	public static String testPushIndex() {
 		if (push_index_thread == null) {
