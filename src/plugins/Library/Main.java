@@ -6,6 +6,8 @@ package plugins.Library;
 import freenet.pluginmanager.PluginReplySender;
 import freenet.support.SimpleFieldSet;
 import freenet.support.api.Bucket;
+import freenet.support.io.Closer;
+
 import java.io.IOException;
 import java.util.logging.Level;
 import plugins.Library.index.TermEntry;
@@ -140,9 +142,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		if("pushBuffer".equals(params.get("command"))){
 			Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes, not implemented yet, saved to file : buffer");
 			File f = new File("buffer");
+			FileWriter w = null;
 			try {
 				f.createNewFile();
-				FileWriter w = new FileWriter(f);
+				w = new FileWriter(f);
 				InputStream is = data.getInputStream();
 				try{
 					while(true){	// Keep going til an EOFExcepiton is thrown
@@ -152,8 +155,12 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				}catch(EOFException e){
 					// EOF, do nothing
 				}
+				w.close();
+				w = null;
 			} catch (IOException ex) {
 				java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+			} finally {
+				Closer.close(w);
 			}
 		} else {
 			Logger.error(this, "Unknown command : \""+params.get("command"));
