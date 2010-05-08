@@ -143,6 +143,12 @@ implements LiveArchiver<T, SimpleProgress> {
 					}
 					
 					tempB = res.asBucket();
+				} else {
+					// Make sure SimpleProgress.join() doesn't stall.
+					if(progress != null) {
+						progress.addPartKnown(1, true);
+						progress.addPartDone();
+					}
 				}
 				long endTime = System.currentTimeMillis();
 				System.out.println("Fetched block for FreenetArchiver in "+(endTime-startTime)+"ms.");
