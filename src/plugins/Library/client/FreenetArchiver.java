@@ -65,13 +65,16 @@ implements LiveArchiver<T, SimpleProgress> {
 
 	final protected String default_mime;
 	final protected int expected_bytes;
-	final File cacheDir;
+	private static File cacheDir;
+	
+	public static void setCacheDir(File dir) {
+		cacheDir = dir;
+	}
 
-	public FreenetArchiver(NodeClientCore c, ObjectStreamReader r, ObjectStreamWriter w, String mime, int size, File cacheDir) {
+	public FreenetArchiver(NodeClientCore c, ObjectStreamReader r, ObjectStreamWriter w, String mime, int size) {
 		if (c == null) {
 			throw new IllegalArgumentException("Can't create a FreenetArchiver with a null NodeClientCore!");
 		}
-		this.cacheDir = cacheDir;
 		core = c;
 		reader = r;
 		writer = w;
@@ -79,16 +82,8 @@ implements LiveArchiver<T, SimpleProgress> {
 		expected_bytes = size;
 	}
 	
-	public FreenetArchiver(NodeClientCore c, ObjectStreamReader r, ObjectStreamWriter w, String mime, int size) {
-		this(c, r, w, mime, size, null);
-	}
-
-	public <S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver(NodeClientCore c, S rw, String mime, int size, File cacheDir) {
-		this(c, rw, rw, mime, size, cacheDir);
-	}
-
 	public <S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver(NodeClientCore c, S rw, String mime, int size) {
-		this(c, rw, rw, mime, size, null);
+		this(c, rw, rw, mime, size);
 	}
 
 	/**

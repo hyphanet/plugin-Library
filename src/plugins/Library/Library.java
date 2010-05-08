@@ -676,19 +676,14 @@ final public class Library implements URLUpdateHook {
 	**         or if it does not have a respirator.
 	*/
 	public static <T> FreenetArchiver<T>
-	makeArchiver(ObjectStreamReader r, ObjectStreamWriter w, String mime, int size, File cacheDir) {
+	makeArchiver(ObjectStreamReader r, ObjectStreamWriter w, String mime, int size) {
 		if (lib == null || lib.pr == null) {
 			throw new IllegalStateException("Cannot archive to freenet without a fully live Library plugin connected to a freenet node.");
 		} else {
-			return new FreenetArchiver<T>(lib.pr.getNode().clientCore, r, w, mime, size, cacheDir);
+			return new FreenetArchiver<T>(lib.pr.getNode().clientCore, r, w, mime, size);
 		}
 	}
 
-	public static <T> FreenetArchiver<T>
-	makeArchiver(ObjectStreamReader r, ObjectStreamWriter w, String mime, int size) {
-		return makeArchiver(r, w, mime, size, null);
-	}
-	
 	/**
 	** Create a {@link FreenetArchiver} connected to the core of the
 	** singleton's {@link PluginRespirator}.

@@ -221,6 +221,11 @@ public class Tester {
 		
 		if (push_index_thread == null) {
 			push_index_start = new Date();
+			
+			final File cacheDir = new File("tester-cache-temp");
+			cacheDir.mkdir();
+			FreenetArchiver.setCacheDir(cacheDir);
+			
 			push_index_thread = new Thread() {
 				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI);
 				ProtoIndex idx;
@@ -235,44 +240,28 @@ public class Tester {
 					}
 					ProtoIndexComponentSerialiser.get().setSerialiserFor(idx);
 
+					try {
+						for (Map.Entry<String, SkeletonBTreeSet<TermEntry>> en: idx.ttab.entrySet()) {
+							push_index_status = "Deflating entry " + en.getKey() + " (" + en.getValue().size() + " entries)";
+							en.getValue().deflate();
+						}
+						push_index_status = "Deflating the term table";
+						idx.ttab.deflate();
+						PushTask<ProtoIndex> task1 = new PushTask<ProtoIndex>(idx);
+						push_index_status = "Deflating the index";
+						srl.push(task1);
+						push_index_status = "Done!";
+						push_index_endURI = (FreenetURI)task1.meta;
+						synchronized(generatedURIs) {
+							generatedURIs.add(push_index_endURI);
+						}
+					} catch (TaskAbortException e) {
+						push_index_error = e;
+						return;
+					}
+
 					for(push_phase = 0; push_phase < divideInto; push_phase++) {
 					
-					if(push_phase == 0) {
-						// Add stuff then push the tree.
-						
-						for (String key: phaseWords[push_phase]) {
-							SkeletonBTreeSet<TermEntry> entries = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
-							ProtoIndexComponentSerialiser.get().setSerialiserFor(entries);
-							int n = rand.nextInt(0x20) + 0x20;
-							for (int j=0; j<n; ++j) {
-								entries.add(Generators.rndEntry(key));
-							}
-							// URGENT use a WriteableIndex and make ProtoIndex's ttab protected again
-							idx.ttab.put(key, entries);
-						}
-						
-						try {
-							for (Map.Entry<String, SkeletonBTreeSet<TermEntry>> en: idx.ttab.entrySet()) {
-								push_index_status = "Deflating entry " + en.getKey() + " (" + en.getValue().size() + " entries)";
-								en.getValue().deflate();
-							}
-							push_index_status = "Deflating the term table";
-							idx.ttab.deflate();
-							PushTask<ProtoIndex> task1 = new PushTask<ProtoIndex>(idx);
-							push_index_status = "Deflating the index";
-							srl.push(task1);
-							push_index_status = "Done!";
-							push_index_endURI = (FreenetURI)task1.meta;
-							synchronized(generatedURIs) {
-								generatedURIs.add(push_index_endURI);
-							}
-						} catch (TaskAbortException e) {
-							push_index_error = e;
-							return;
-						}
-
-					} else { // phase > 0
-						
 						// Merge new data in.
 						
 						long mergeStartTime = System.currentTimeMillis();
@@ -320,8 +309,6 @@ public class Tester {
 							return;
 						}
 
-					}
-					
 					}
 						
 				}
