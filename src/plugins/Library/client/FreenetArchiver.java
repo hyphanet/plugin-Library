@@ -107,8 +107,12 @@ implements LiveArchiver<T, SimpleProgress> {
 				
 				if(cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
 					File cached = new File(cacheDir, furi.toASCIIString());
-					tempB = new FileBucket(cached, true, false, false, false, false);
-				} else {
+					if(cached.exists() && cached.length() != 0) {
+						tempB = new FileBucket(cached, true, false, false, false, false);
+					}
+				}
+				
+				if(tempB == null) {
 				
 				if (progress != null) {
 					hlsc.addEventHook(new SimpleProgressUpdater(progress));
