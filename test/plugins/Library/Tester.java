@@ -215,7 +215,7 @@ public class Tester {
 			phaseWords[i] = new TreeSet<String>();
 		int x = 0;
 		for(String s : push_index_words) {
-			phaseWords[x++].add(s);
+			phaseWords[x++].add(s.toLowerCase());
 			if(x == divideInto) x = 0;
 		}
 		
