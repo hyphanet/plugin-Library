@@ -103,16 +103,21 @@ implements LiveArchiver<T, SimpleProgress> {
 		try {
 			try {
 
+				long startTime = System.currentTimeMillis();
+				
 				FreenetURI furi = (FreenetURI)task.meta;
 				
 				if(cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
 					File cached = new File(cacheDir, furi.toASCIIString());
 					if(cached.exists() && cached.length() != 0) {
 						tempB = new FileBucket(cached, true, false, false, false, false);
+						System.out.println("Fetching block for FreenetArchiver from disk cache: "+furi);
 					}
 				}
 				
 				if(tempB == null) {
+					
+				System.out.println("Fetching block for FreenetArchiver from network: "+furi);
 				
 				if (progress != null) {
 					hlsc.addEventHook(new SimpleProgressUpdater(progress));
@@ -144,6 +149,8 @@ implements LiveArchiver<T, SimpleProgress> {
 
 				tempB = res.asBucket();
 				}
+				long endTime = System.currentTimeMillis();
+				System.out.println("Fetched block for FreenetArchiver in "+(endTime-startTime)+"ms.");
 				is = tempB.getInputStream();
 				task.data = (T)reader.readObject(is);
 				is.close();
@@ -194,6 +201,9 @@ implements LiveArchiver<T, SimpleProgress> {
 				FreenetURI target = (task.meta instanceof FreenetURI)? (FreenetURI)task.meta: FreenetURI.EMPTY_CHK_URI;
 				InsertBlock ib = new InsertBlock(tempB, new ClientMetadata(default_mime), target);
 
+				System.out.println("Inserting block for FreenetArchiver...");
+				long startTime = System.currentTimeMillis();
+				
 				if (progress != null) {
 					hlsc.addEventHook(new SimpleProgressUpdater(progress));
 				}
@@ -229,6 +239,9 @@ implements LiveArchiver<T, SimpleProgress> {
 					Bucket cachedBucket = new FileBucket(cached, false, false, false, false, false);
 					BucketTools.copy(tempB, cachedBucket);
 				}
+				
+				long endTime = System.currentTimeMillis();
+				System.out.println("Inserted block for FreenetArchiver in "+(endTime-startTime)+"ms to "+uri);
 
 
 			} catch (InsertException e) {
