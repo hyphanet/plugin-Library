@@ -48,7 +48,6 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	final protected SafeClosure<X2<T, X>> postProcess = new SafeClosure<X2<T, X>>() {
 		/*@Override**/ public void invoke(X2<T, X> res) {
 			try {
-				synchronized(ObjectProcessor.this) { ++started; }
 				out.put(res);
 				synchronized(ObjectProcessor.this) { ++completed; }
 			} catch (InterruptedException e) {
@@ -219,6 +218,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		return new Runnable() {
 			/*@Override**/ public void run() {
 				X ex = null;
+				synchronized(ObjectProcessor.this) { ++started; }
 				try { clo.invoke(item); }
 				// FIXME NORM this could throw RuntimeException
 				catch (Exception e) { ex = (X)e; }
