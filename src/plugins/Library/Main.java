@@ -10,11 +10,23 @@ import freenet.support.io.Closer;
 import freenet.support.io.NativeThread;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.logging.Level;
+
+import plugins.Library.client.FreenetArchiver;
+import plugins.Library.index.ProtoIndex;
+import plugins.Library.index.ProtoIndexComponentSerialiser;
+import plugins.Library.index.ProtoIndexSerialiser;
 import plugins.Library.index.TermEntry;
 import plugins.Library.search.Search;
 import plugins.Library.ui.WebInterface;
+import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.concurrent.Executors;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.func.Closure;
 
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginL10n;
@@ -23,6 +35,7 @@ import freenet.pluginmanager.FredPluginThreadless;
 import freenet.pluginmanager.FredPluginVersioned;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Executor;
+import freenet.keys.FreenetURI;
 import freenet.l10n.BaseL10n.LANGUAGE;
 
 import freenet.pluginmanager.FredPluginFCP;
@@ -36,6 +49,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.security.MessageDigest;
 import plugins.Library.index.TermEntryReaderWriter;
+import plugins.Library.io.serial.Serialiser.PushTask;
 
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces
@@ -142,6 +156,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	private Object handlingSync = new Object();
 	private boolean handling;
 	
+	ProtoIndexSerialiser srl = null;
+	FreenetURI lastUploadURI = null;
+	ProtoIndex idx;
+	
 	public void handle(PluginReplySender replysender, SimpleFieldSet params, final Bucket data, int accesstype) {
 		if("pushBuffer".equals(params.get("command"))){
 
@@ -152,18 +170,40 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				while(handling) {
 					Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish");
 					try {
-						wait();
+						handlingSync.wait();
 					} catch (InterruptedException e) {
 						// Ignore
 					}
 				}
 				handling = true;
+				Logger.error(this, "Waited for previous handler to go away, moving on...");
 			}
 			try {
 				Runnable r = new Runnable() {
 
 					public void run() {
+						
+						try {
+						
+						if(FreenetArchiver.getCacheDir() == null) {
+							FreenetArchiver.setCacheDir(new File("library-spider-pushed-data-cache"));
+						}
+						
+						if(srl == null) {
+							srl = ProtoIndexSerialiser.forIndex(lastUploadURI);
+							
+							try {
+								idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test");
+							} catch (java.net.MalformedURLException e) {
+								throw new AssertionError(e);
+							}
+							ProtoIndexComponentSerialiser.get().setSerialiserFor(idx);
+						}
+						
 						FileWriter w = null;
+						final Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
+						final SortedSet<String> terms = new TreeSet<String>();
+						int entriesAdded = 0;
 						try {
 							Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes, not implemented yet, saved to file : buffer");
 							File f = new File("buffer");
@@ -173,7 +213,13 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							try{
 								while(true){	// Keep going til an EOFExcepiton is thrown
 									TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
+									SortedSet<TermEntry> set = newtrees.get(readObject.subj);
+									if(set == null)
+										newtrees.put(readObject.subj, set = new TreeSet<TermEntry>());
+									set.add(readObject);
+									terms.add(readObject.subj);
 									w.write(readObject.toString()+"\n");
+									entriesAdded++;
 								}
 							}catch(EOFException e){
 								// EOF, do nothing
@@ -184,11 +230,50 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
 						} finally {
 							Closer.close(w);
+						}
+						
+						// Do the upload
+						
+						// async merge
+						Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo = new
+						Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
+							/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
+								String key = entry.getKey();
+								SkeletonBTreeSet<TermEntry> tree = entry.getValue();
+								//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
+								if (tree == null) {
+									entry.setValue(tree = makeEntryTree());
+								}
+								assert(tree.isBare());
+								tree.update(newtrees.get(key), null);
+								assert(tree.isBare());
+								//System.out.println("handled " + key);
+							}
+						};
+						try {
+						long mergeStartTime = System.currentTimeMillis();
+						assert(idx.ttab.isBare());
+						idx.ttab.update(terms, null, clo);
+						assert(idx.ttab.isBare());
+						PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
+						srl.push(task4);
+						long mergeEndTime = System.currentTimeMillis();
+						System.out.print(entriesAdded + " entries merged in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta + ", ");
+						FreenetURI uri = (FreenetURI)task4.meta;
+						lastUploadURI = uri;
+						System.out.println("Uploaded new index to "+uri);
+						} catch (TaskAbortException e) {
+							Logger.error(this, "Failed to upload index for spider: "+e, e);
+							System.err.println("Failed to upload index for spider: "+e);
+							e.printStackTrace();
+						}
+						
+						} finally {
 							synchronized(handlingSync) {
 								handling = false;
 								handlingSync.notifyAll();
 							}
-						}
+						}						
 					}
 					
 				};
@@ -208,5 +293,13 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			Logger.error(this, "Unknown command : \""+params.get("command"));
 		}
 	}
+	
+	protected static SkeletonBTreeSet<TermEntry> makeEntryTree() {
+		SkeletonBTreeSet<TermEntry> tree = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
+		ProtoIndexComponentSerialiser.get().setSerialiserFor(tree);
+		return tree;
+	}
+
+
 
 }

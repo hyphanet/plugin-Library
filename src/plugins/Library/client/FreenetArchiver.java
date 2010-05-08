@@ -70,6 +70,10 @@ implements LiveArchiver<T, SimpleProgress> {
 	public static void setCacheDir(File dir) {
 		cacheDir = dir;
 	}
+	
+	public static File getCacheDir() {
+		return cacheDir;
+	}
 
 	public FreenetArchiver(NodeClientCore c, ObjectStreamReader r, ObjectStreamWriter w, String mime, int size) {
 		if (c == null) {
