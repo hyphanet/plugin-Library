@@ -252,10 +252,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 						}
 					}
 					try {
-						// sleep 2^10ms for every 2^10 processors
-						// TODO NORM more intelligent waiting
-						long sleepTime = ((pending.size()-1)>>10)+1<<10;
-						Thread.sleep(sleepTime);
+						Thread.sleep(1000);
 					} catch (InterruptedException e) {
 						// TODO LOW log this somewhere
 					}
