@@ -144,6 +144,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 
 				public void run() {
 					synchronized(handlingSync) {
+						globalHandling = true;
 						handling = true;
 					}
 					for(String filename : oldToMerge) {
@@ -152,6 +153,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					}
 					synchronized(handlingSync) {
 						handling = false;
+						globalHandling = false;
+						handlingSync.notifyAll();
 					}
 				}
 				
@@ -199,6 +202,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 
 	private Object handlingSync = new Object();
 	private boolean handling;
+	private boolean globalHandling;
 	
 	ProtoIndexSerialiser srl = null;
 	FreenetURI lastUploadURI = null;
@@ -238,8 +242,11 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 			synchronized(handlingSync) {
-				while(handling) {
-					Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish");
+				while(handling || globalHandling) {
+					if(!globalHandling) 
+						Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish");
+					else
+						Logger.error(this, "Waiting for merge of old data");
 					try {
 						handlingSync.wait();
 					} catch (InterruptedException e) {
@@ -485,7 +492,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							handling = false;
 							handlingSync.notifyAll();
 						}
-					}						
+					}
 				}
 				
 			};
