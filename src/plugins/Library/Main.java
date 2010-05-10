@@ -6,7 +6,9 @@ package plugins.Library;
 import freenet.pluginmanager.PluginReplySender;
 import freenet.support.SimpleFieldSet;
 import freenet.support.api.Bucket;
+import freenet.support.io.BucketTools;
 import freenet.support.io.Closer;
+import freenet.support.io.FileBucket;
 import freenet.support.io.NativeThread;
 
 import java.io.IOException;
@@ -49,6 +51,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -119,6 +122,36 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		Executors.setDefaultExecutor(exec);
 		webinterface = new WebInterface(library, pr);
 		webinterface.load();
+		final String[] oldToMerge = new File(".").list(new FilenameFilter() {
+
+			public boolean accept(File arg0, String arg1) {
+				if(!arg0.isFile()) return false;
+				if(arg0.length() == 0) return false;
+				if(arg0.getName().toLowerCase().startsWith(BASE_FILENAME_PUSH_DATA)) return true;
+				return false;
+			}
+			
+		});
+		if(oldToMerge != null && oldToMerge.length > 0) {
+			System.out.println("Found "+oldToMerge.length+" buckets of old index data to merge...");
+			Runnable r = new Runnable() {
+
+				public void run() {
+					synchronized(handlingSync) {
+						handling = true;
+					}
+					for(String filename : oldToMerge) {
+						File f = new File(filename);
+						innerHandle(new FileBucket(f, true, false, false, false, false), f);
+					}
+					synchronized(handlingSync) {
+						handling = false;
+					}
+				}
+				
+			};
+			new NativeThread(r, "Library: handle index data from previous run", NativeThread.NORM_PRIORITY, false).start();
+		}
 	}
 
 	public void terminate() {
@@ -167,17 +200,36 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	FreenetURI privURI;
 	FreenetURI pubURI;
 	long edition;
+	long pushNumber;
 	
 	static final String LAST_URL_FILENAME = "library.index.lastpushed.chk";
 	static final String PRIV_URI_FILENAME = "library.index.privkey";
 	static final String PUB_URI_FILENAME = "library.index.pubkey";
 	static final String EDITION_FILENAME = "library.index.edition";
 	
+	static final String BASE_FILENAME_PUSH_DATA = "library.index.data.";
+	
+	
 	public void handle(PluginReplySender replysender, SimpleFieldSet params, final Bucket data, int accesstype) {
 		if("pushBuffer".equals(params.get("command"))){
 
 			// Process data off-thread, but only one load at a time.
 			// Hence it won't stall XMLSpider unless we get behind.
+			
+			long pn;
+			synchronized(this) {
+				pn = pushNumber++;
+			}
+			
+			File pushFile = new File(BASE_FILENAME_PUSH_DATA);
+			FileBucket output = new FileBucket(pushFile, false, false, false, false, false);
+			try {
+				BucketTools.copy(data, output);
+			} catch (IOException e1) {
+				System.err.println("Unable to back up push data #"+pn+" : "+e1);
+				e1.printStackTrace();
+				Logger.error(this, "Unable to back up push data #"+pn, e1);
+			}
 			
 			synchronized(handlingSync) {
 				while(handling) {
@@ -191,18 +243,18 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				handling = true;
 				Logger.error(this, "Waited for previous handler to go away, moving on...");
 			}
-			innerHandle(data);
+			innerHandle(data, pushFile);
 		} else {
 			Logger.error(this, "Unknown command : \""+params.get("command"));
 		}
 
 	}
 	
-	public void innerHandle(final Bucket data) {
+	public void innerHandle(final Bucket data, final File pushFile) {
 		// FIXME symlink issues with writing straight to files?
 		// FIXME backup issues with writing straight to files? Factor out and do it properly.
 		if(privURI == null) {
-			File f = new File(LAST_URL_FILENAME);
+			File f = new File(PRIV_URI_FILENAME);
 			FileInputStream fis = null;
 			InsertableClientSSK privkey = null;
 			FreenetURI privURI = null;
@@ -395,6 +447,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							handling = false;
 							handlingSync.notifyAll();
 						}
+						pushFile.delete();
 					}						
 				}
 				
