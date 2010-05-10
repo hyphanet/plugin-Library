@@ -44,9 +44,12 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.EOFException;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.security.MessageDigest;
 import plugins.Library.index.TermEntryReaderWriter;
 import plugins.Library.io.serial.Serialiser.PushTask;
@@ -160,6 +163,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	FreenetURI lastUploadURI = null;
 	ProtoIndex idx;
 	
+	static final String LAST_URL_FILENAME = "library.index.lastpushed.chk";
+	
 	public void handle(PluginReplySender replysender, SimpleFieldSet params, final Bucket data, int accesstype) {
 		if("pushBuffer".equals(params.get("command"))){
 
@@ -177,6 +182,20 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				}
 				handling = true;
 				Logger.error(this, "Waited for previous handler to go away, moving on...");
+			}
+			if(lastUploadURI == null) {
+				File f = new File(LAST_URL_FILENAME);
+				FileInputStream fis = null;
+				try {
+					fis = new FileInputStream(f);
+					BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
+					lastUploadURI = new FreenetURI(br.readLine());
+					System.out.println("Continuing from last index URI: "+lastUploadURI);
+				} catch (IOException e) {
+					// Ignore
+				} finally {
+					Closer.close(fis);
+				}
 			}
 			try {
 				Runnable r = new Runnable() {
@@ -262,6 +281,17 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						FreenetURI uri = (FreenetURI)task4.meta;
 						lastUploadURI = uri;
 						System.out.println("Uploaded new index to "+uri);
+						FileOutputStream fos = null;
+						try {
+							fos = new FileOutputStream(LAST_URL_FILENAME);
+							OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+							osw.write(uri.toASCIIString());
+						} catch (IOException e) {
+							Logger.error(this, "Failed to write URL of uploaded index: "+uri, e);
+							System.out.println("Failed to write URL of uploaded index: "+uri+" : "+e);
+						} finally {
+							Closer.close(fos);
+						}
 						} catch (TaskAbortException e) {
 							Logger.error(this, "Failed to upload index for spider: "+e, e);
 							System.err.println("Failed to upload index for spider: "+e);
