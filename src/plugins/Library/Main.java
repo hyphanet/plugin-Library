@@ -122,16 +122,23 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		Executors.setDefaultExecutor(exec);
 		webinterface = new WebInterface(library, pr);
 		webinterface.load();
-		final String[] oldToMerge = new File(".").list(new FilenameFilter() {
-
-			public boolean accept(File arg0, String arg1) {
-				if(!arg0.isFile()) return false;
-				if(arg0.length() == 0) return false;
-				if(arg0.getName().toLowerCase().startsWith(BASE_FILENAME_PUSH_DATA)) return true;
-				return false;
-			}
-			
-		});
+		final String[] oldToMerge;
+		synchronized(handlingSync) {
+			oldToMerge = new File(".").list(new FilenameFilter() {
+				
+				public boolean accept(File arg0, String arg1) {
+					if(!arg0.isFile()) return false;
+					if(arg0.length() == 0) return false;
+					if(arg0.getName().toLowerCase().startsWith(BASE_FILENAME_PUSH_DATA)) {
+						String s = arg0.getName().substring(BASE_FILENAME_PUSH_DATA.length());
+						pushNumber = Math.max(pushNumber, Long.parseLong(s)+1);
+						return true;
+					}
+					return false;
+				}
+				
+			});
+		}
 		if(oldToMerge != null && oldToMerge.length > 0) {
 			System.out.println("Found "+oldToMerge.length+" buckets of old index data to merge...");
 			Runnable r = new Runnable() {
@@ -221,7 +228,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				pn = pushNumber++;
 			}
 			
-			File pushFile = new File(BASE_FILENAME_PUSH_DATA);
+			File pushFile = new File(BASE_FILENAME_PUSH_DATA+pn);
 			FileBucket output = new FileBucket(pushFile, false, false, false, false, false);
 			try {
 				BucketTools.copy(data, output);
@@ -288,7 +295,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					fos = new FileOutputStream(new File(PRIV_URI_FILENAME));
 					OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
 					osw.write(privURI.toASCIIString());
-					fos.close();
+					osw.close();
 					fos = null;
 				} catch (IOException e) {
 					Logger.error(this, "Failed to write new private key");
@@ -301,7 +308,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				fos = new FileOutputStream(new File(PUB_URI_FILENAME));
 				OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
 				osw.write(pubURI.toASCIIString());
-				fos.close();
+				osw.close();
 				fos = null;
 			} catch (IOException e) {
 				Logger.error(this, "Failed to write new pubkey", e);
@@ -417,6 +424,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							fos = new FileOutputStream(LAST_URL_FILENAME);
 							OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
 							osw.write(uri.toASCIIString());
+							osw.close();
+							fos = null;
 						} catch (IOException e) {
 							Logger.error(this, "Failed to write URL of uploaded index: "+uri, e);
 							System.out.println("Failed to write URL of uploaded index: "+uri+" : "+e);
@@ -430,11 +439,28 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							FreenetURI tmp = pr.getHLSimpleClient().insertRedirect(privUSK, uri);
 							edition = tmp.getEdition()+1;
 							System.out.println("Uploaded index as USK to "+tmp);
+							
+							fos = null;
+							try {
+								fos = new FileOutputStream(EDITION_FILENAME);
+								OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+								osw.write(Long.toString(edition));
+								osw.close();
+								fos = null;
+							} catch (IOException e) {
+								Logger.error(this, "Failed to write URL of uploaded index: "+uri, e);
+								System.out.println("Failed to write URL of uploaded index: "+uri+" : "+e);
+							} finally {
+								Closer.close(fos);
+							}
+							
 						} catch (InsertException e) {
 							System.err.println("Failed to upload USK for index update: "+e);
 							e.printStackTrace();
 							Logger.error(this, "Failed to upload USK for index update", e);
 						}
+						
+						
 						
 						} catch (TaskAbortException e) {
 							Logger.error(this, "Failed to upload index for spider: "+e, e);
