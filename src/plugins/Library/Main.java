@@ -156,7 +156,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				}
 				
 			};
-			new NativeThread(r, "Library: handle index data from previous run", NativeThread.NORM_PRIORITY, false).start();
+			pr.getNode().executor.execute(r, "Library: handle index data from previous run");
 		}
 	}
 
@@ -489,7 +489,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				}
 				
 			};
-			new NativeThread(r, "Library: Handle data from XMLSpider", NativeThread.NORM_PRIORITY, false).start();
+			pr.getNode().executor.execute(r, "Library: Handle data from XMLSpider");
 		} catch (RuntimeException t) {
 			synchronized(handlingSync) {
 				handling = false;
