@@ -232,7 +232,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 			File pushFile = new File(BASE_FILENAME_PUSH_DATA+pn);
-			FileBucket output = new FileBucket(pushFile, false, false, false, false, false);
+			FileBucket output = new FileBucket(pushFile, false, false, false, false, true);
 			try {
 				BucketTools.copy(data, output);
 			} catch (IOException e1) {
