@@ -706,6 +706,29 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	};
 
 	/**
+	** The executor backing {@link #VALUE_EXECUTOR}.
+	*/
+	private static Executor deflate_exec = null;
+
+	/**
+	 * Separate executor for deflating. We don't want update()'s to prevent actual
+	 * pushes. */
+	final public static Executor DEFLATE_EXECUTOR = new Executor() {
+		/*@Override**/ public void execute(Runnable r) {
+			synchronized (Executors.class) {
+				if (deflate_exec == null) {
+					deflate_exec = new ThreadPoolExecutor(
+						0x40, 0x40, 1, TimeUnit.SECONDS,
+						new LinkedBlockingQueue<Runnable>(),
+						new ThreadPoolExecutor.CallerRunsPolicy()
+					);
+				}
+			}
+			deflate_exec.execute(r);
+		}
+	};
+
+	/**
 	** Asynchronously updates a remote B-tree. This uses two-pass merge/split
 	** algorithms (as opposed to the one-pass algorithms of the standard {@link
 	** BTreeMap}) since it assumes a copy-on-write backing data store, where
@@ -887,7 +910,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 							param.deflate();
 						}
 						
-					}, Executors.DEFAULT_EXECUTOR).autostart();
+					}, DEFLATE_EXECUTOR).autostart();
 
 		// Dummy constant for SplitNode
 		final SortedMap<K, V> EMPTY_SORTEDMAP = new TreeMap<K, V>(comparator);
