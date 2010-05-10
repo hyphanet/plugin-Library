@@ -191,89 +191,97 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				handling = true;
 				Logger.error(this, "Waited for previous handler to go away, moving on...");
 			}
-			// FIXME symlink issues with writing straight to files?
-			// FIXME backup issues with writing straight to files? Factor out and do it properly.
+			innerHandle(data);
+		} else {
+			Logger.error(this, "Unknown command : \""+params.get("command"));
+		}
+
+	}
+	
+	public void innerHandle(final Bucket data) {
+		// FIXME symlink issues with writing straight to files?
+		// FIXME backup issues with writing straight to files? Factor out and do it properly.
+		if(privURI == null) {
+			File f = new File(LAST_URL_FILENAME);
+			FileInputStream fis = null;
+			InsertableClientSSK privkey = null;
+			FreenetURI privURI = null;
+			boolean newPrivKey = false;
+			try {
+				fis = new FileInputStream(f);
+				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
+				privURI = new FreenetURI(br.readLine());
+				System.out.println("Continuing from last index URI: "+lastUploadURI);
+				privkey = InsertableClientSSK.create(privURI);
+				this.privURI = privURI;
+				this.pubURI = privkey.getURI();
+				System.out.println("Recovered URI from disk, pubkey is "+pubURI);
+				fis.close();
+				fis = null;
+			} catch (IOException e) {
+				// Ignore
+			} finally {
+				Closer.close(fis);
+			}
 			if(privURI == null) {
-				File f = new File(LAST_URL_FILENAME);
-				FileInputStream fis = null;
-				InsertableClientSSK privkey = null;
-				FreenetURI privURI = null;
-				boolean newPrivKey = false;
+				InsertableClientSSK key = InsertableClientSSK.createRandom(pr.getNode().random, "");
+				privURI = key.getInsertURI();
+				pubURI = key.getURI();
+				newPrivKey = true;
+				System.out.println("Created new keypair, pubkey is "+pubURI);
+			}
+			FileOutputStream fos = null;
+			if(newPrivKey) {
 				try {
-					fis = new FileInputStream(f);
-					BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
-					privURI = new FreenetURI(br.readLine());
-					System.out.println("Continuing from last index URI: "+lastUploadURI);
-					privkey = InsertableClientSSK.create(privURI);
-					this.privURI = privURI;
-					this.pubURI = privkey.getURI();
-					System.out.println("Recovered URI from disk, pubkey is "+pubURI);
-					fis.close();
-					fis = null;
-				} catch (IOException e) {
-					// Ignore
-				} finally {
-					Closer.close(fis);
-				}
-				if(privURI == null) {
-					InsertableClientSSK key = InsertableClientSSK.createRandom(pr.getNode().random, "");
-					privURI = key.getInsertURI();
-					pubURI = key.getURI();
-					newPrivKey = true;
-					System.out.println("Created new keypair, pubkey is "+pubURI);
-				}
-				FileOutputStream fos = null;
-				if(newPrivKey) {
-					try {
-						fos = new FileOutputStream(new File(PRIV_URI_FILENAME));
-						OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-						osw.write(privURI.toASCIIString());
-						fos.close();
-						fos = null;
-					} catch (IOException e) {
-						Logger.error(this, "Failed to write new private key");
-						System.out.println("Failed to write new private key : "+e);
-					} finally {
-						Closer.close(fos);
-					}
-				}
-				try {
-					fos = new FileOutputStream(new File(PUB_URI_FILENAME));
+					fos = new FileOutputStream(new File(PRIV_URI_FILENAME));
 					OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-					osw.write(pubURI.toASCIIString());
+					osw.write(privURI.toASCIIString());
 					fos.close();
 					fos = null;
 				} catch (IOException e) {
-					Logger.error(this, "Failed to write new pubkey", e);
-					System.out.println("Failed to write new pubkey: "+e);
+					Logger.error(this, "Failed to write new private key");
+					System.out.println("Failed to write new private key : "+e);
 				} finally {
 					Closer.close(fos);
 				}
-				try {
-					fis = new FileInputStream(new File(EDITION_FILENAME));
-					BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
-					try {
-						edition = Long.parseLong(br.readLine());
-					} catch (NumberFormatException e) {
-						edition = 1;
-					}
-					System.out.println("Edition: "+edition);
-					fis.close();
-					fis = null;
-				} catch (IOException e) {
-					// Ignore
-					edition = 1;
-				} finally {
-					Closer.close(fis);
-				}
-
 			}
 			try {
-				Runnable r = new Runnable() {
-
-					public void run() {
-						
-						try {
+				fos = new FileOutputStream(new File(PUB_URI_FILENAME));
+				OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+				osw.write(pubURI.toASCIIString());
+				fos.close();
+				fos = null;
+			} catch (IOException e) {
+				Logger.error(this, "Failed to write new pubkey", e);
+				System.out.println("Failed to write new pubkey: "+e);
+			} finally {
+				Closer.close(fos);
+			}
+			try {
+				fis = new FileInputStream(new File(EDITION_FILENAME));
+				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
+				try {
+					edition = Long.parseLong(br.readLine());
+				} catch (NumberFormatException e) {
+					edition = 1;
+				}
+				System.out.println("Edition: "+edition);
+				fis.close();
+				fis = null;
+			} catch (IOException e) {
+				// Ignore
+				edition = 1;
+			} finally {
+				Closer.close(fis);
+			}
+			
+		}
+		try {
+			Runnable r = new Runnable() {
+				
+				public void run() {
+					
+					try {
 						
 						if(FreenetArchiver.getCacheDir() == null) {
 							FreenetArchiver.setCacheDir(new File("library-spider-pushed-data-cache"));
@@ -382,29 +390,26 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							e.printStackTrace();
 						}
 						
-						} finally {
-							synchronized(handlingSync) {
-								handling = false;
-								handlingSync.notifyAll();
-							}
-						}						
-					}
-					
-				};
-				new NativeThread(r, "Library: Handle data from XMLSpider", NativeThread.NORM_PRIORITY, false).start();
-			} catch (RuntimeException t) {
-				synchronized(handlingSync) {
-					handling = false;
+					} finally {
+						synchronized(handlingSync) {
+							handling = false;
+							handlingSync.notifyAll();
+						}
+					}						
 				}
-				throw t;
-			} catch (Error t) {
-				synchronized(handlingSync) {
-					handling = false;
-				}
-				throw t;
+				
+			};
+			new NativeThread(r, "Library: Handle data from XMLSpider", NativeThread.NORM_PRIORITY, false).start();
+		} catch (RuntimeException t) {
+			synchronized(handlingSync) {
+				handling = false;
 			}
-		} else {
-			Logger.error(this, "Unknown command : \""+params.get("command"));
+			throw t;
+		} catch (Error t) {
+			synchronized(handlingSync) {
+				handling = false;
+			}
+			throw t;
 		}
 	}
 	
