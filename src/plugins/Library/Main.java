@@ -35,7 +35,9 @@ import freenet.pluginmanager.FredPluginThreadless;
 import freenet.pluginmanager.FredPluginVersioned;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Executor;
+import freenet.client.InsertException;
 import freenet.keys.FreenetURI;
+import freenet.keys.InsertableClientSSK;
 import freenet.l10n.BaseL10n.LANGUAGE;
 
 import freenet.pluginmanager.FredPluginFCP;
@@ -162,8 +164,14 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	ProtoIndexSerialiser srl = null;
 	FreenetURI lastUploadURI = null;
 	ProtoIndex idx;
+	FreenetURI privURI;
+	FreenetURI pubURI;
+	long edition;
 	
 	static final String LAST_URL_FILENAME = "library.index.lastpushed.chk";
+	static final String PRIV_URI_FILENAME = "library.index.privkey";
+	static final String PUB_URI_FILENAME = "library.index.pubkey";
+	static final String EDITION_FILENAME = "library.index.edition";
 	
 	public void handle(PluginReplySender replysender, SimpleFieldSet params, final Bucket data, int accesstype) {
 		if("pushBuffer".equals(params.get("command"))){
@@ -183,19 +191,82 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				handling = true;
 				Logger.error(this, "Waited for previous handler to go away, moving on...");
 			}
-			if(lastUploadURI == null) {
+			// FIXME symlink issues with writing straight to files?
+			// FIXME backup issues with writing straight to files? Factor out and do it properly.
+			if(privURI == null) {
 				File f = new File(LAST_URL_FILENAME);
 				FileInputStream fis = null;
+				InsertableClientSSK privkey = null;
+				FreenetURI privURI = null;
+				boolean newPrivKey = false;
 				try {
 					fis = new FileInputStream(f);
 					BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
-					lastUploadURI = new FreenetURI(br.readLine());
+					privURI = new FreenetURI(br.readLine());
 					System.out.println("Continuing from last index URI: "+lastUploadURI);
+					privkey = InsertableClientSSK.create(privURI);
+					this.privURI = privURI;
+					this.pubURI = privkey.getURI();
+					System.out.println("Recovered URI from disk, pubkey is "+pubURI);
+					fis.close();
+					fis = null;
 				} catch (IOException e) {
 					// Ignore
 				} finally {
 					Closer.close(fis);
 				}
+				if(privURI == null) {
+					InsertableClientSSK key = InsertableClientSSK.createRandom(pr.getNode().random, "");
+					privURI = key.getInsertURI();
+					pubURI = key.getURI();
+					newPrivKey = true;
+					System.out.println("Created new keypair, pubkey is "+pubURI);
+				}
+				FileOutputStream fos = null;
+				if(newPrivKey) {
+					try {
+						fos = new FileOutputStream(new File(PRIV_URI_FILENAME));
+						OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+						osw.write(privURI.toASCIIString());
+						fos.close();
+						fos = null;
+					} catch (IOException e) {
+						Logger.error(this, "Failed to write new private key");
+						System.out.println("Failed to write new private key : "+e);
+					} finally {
+						Closer.close(fos);
+					}
+				}
+				try {
+					fos = new FileOutputStream(new File(PUB_URI_FILENAME));
+					OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+					osw.write(pubURI.toASCIIString());
+					fos.close();
+					fos = null;
+				} catch (IOException e) {
+					Logger.error(this, "Failed to write new pubkey", e);
+					System.out.println("Failed to write new pubkey: "+e);
+				} finally {
+					Closer.close(fos);
+				}
+				try {
+					fis = new FileInputStream(new File(EDITION_FILENAME));
+					BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
+					try {
+						edition = Long.parseLong(br.readLine());
+					} catch (NumberFormatException e) {
+						edition = 1;
+					}
+					System.out.println("Edition: "+edition);
+					fis.close();
+					fis = null;
+				} catch (IOException e) {
+					// Ignore
+					edition = 1;
+				} finally {
+					Closer.close(fis);
+				}
+
 			}
 			try {
 				Runnable r = new Runnable() {
@@ -292,6 +363,19 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						} finally {
 							Closer.close(fos);
 						}
+						
+						// Upload to USK
+						FreenetURI privUSK = privURI.setKeyType("USK").setDocName("index").setSuggestedEdition(edition);
+						try {
+							FreenetURI tmp = pr.getHLSimpleClient().insertRedirect(privUSK, uri);
+							edition = tmp.getEdition()+1;
+							System.out.println("Uploaded index as USK to "+tmp);
+						} catch (InsertException e) {
+							System.err.println("Failed to upload USK for index update: "+e);
+							e.printStackTrace();
+							Logger.error(this, "Failed to upload USK for index update", e);
+						}
+						
 						} catch (TaskAbortException e) {
 							Logger.error(this, "Failed to upload index for spider: "+e, e);
 							System.err.println("Failed to upload index for spider: "+e);
