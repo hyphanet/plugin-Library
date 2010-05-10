@@ -360,139 +360,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				
 				public void run() {
 					
-					try {
-						
-						if(FreenetArchiver.getCacheDir() == null) {
-							FreenetArchiver.setCacheDir(new File("library-spider-pushed-data-cache"));
-						}
-						
-						if(srl == null) {
-							srl = ProtoIndexSerialiser.forIndex(lastUploadURI);
-							
-							try {
-								idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test");
-							} catch (java.net.MalformedURLException e) {
-								throw new AssertionError(e);
-							}
-							ProtoIndexComponentSerialiser.get().setSerialiserFor(idx);
-						}
-						
-						FileWriter w = null;
-						final Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
-						final SortedSet<String> terms = new TreeSet<String>();
-						int entriesAdded = 0;
-						try {
-							Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes, not implemented yet, saved to file : buffer");
-							File f = new File("buffer");
-							f.createNewFile();
-							w = new FileWriter(f);
-							InputStream is = data.getInputStream();
-							try{
-								while(true){	// Keep going til an EOFExcepiton is thrown
-									TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
-									SortedSet<TermEntry> set = newtrees.get(readObject.subj);
-									if(set == null)
-										newtrees.put(readObject.subj, set = new TreeSet<TermEntry>());
-									set.add(readObject);
-									terms.add(readObject.subj);
-									w.write(readObject.toString()+"\n");
-									entriesAdded++;
-								}
-							}catch(EOFException e){
-								// EOF, do nothing
-							}
-							w.close();
-							w = null;
-						} catch (IOException ex) {
-							java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-						} finally {
-							Closer.close(w);
-						}
-						
-						// Do the upload
-						
-						// async merge
-						Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo = new
-						Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
-							/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
-								String key = entry.getKey();
-								SkeletonBTreeSet<TermEntry> tree = entry.getValue();
-								//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
-								if (tree == null) {
-									entry.setValue(tree = makeEntryTree());
-								}
-								assert(tree.isBare());
-								tree.update(newtrees.get(key), null);
-								assert(tree.isBare());
-								//System.out.println("handled " + key);
-							}
-						};
-						try {
-						long mergeStartTime = System.currentTimeMillis();
-						assert(idx.ttab.isBare());
-						idx.ttab.update(terms, null, clo);
-						assert(idx.ttab.isBare());
-						PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
-						srl.push(task4);
-						long mergeEndTime = System.currentTimeMillis();
-						System.out.print(entriesAdded + " entries merged in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta + ", ");
-						FreenetURI uri = (FreenetURI)task4.meta;
-						lastUploadURI = uri;
-						System.out.println("Uploaded new index to "+uri);
-						FileOutputStream fos = null;
-						try {
-							fos = new FileOutputStream(LAST_URL_FILENAME);
-							OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-							osw.write(uri.toASCIIString());
-							osw.close();
-							fos = null;
-							pushFile.delete();
-						} catch (IOException e) {
-							Logger.error(this, "Failed to write URL of uploaded index: "+uri, e);
-							System.out.println("Failed to write URL of uploaded index: "+uri+" : "+e);
-						} finally {
-							Closer.close(fos);
-						}
-						
-						// Upload to USK
-						FreenetURI privUSK = privURI.setKeyType("USK").setDocName("index").setSuggestedEdition(edition);
-						try {
-							FreenetURI tmp = pr.getHLSimpleClient().insertRedirect(privUSK, uri);
-							edition = tmp.getEdition()+1;
-							System.out.println("Uploaded index as USK to "+tmp);
-							
-							fos = null;
-							try {
-								fos = new FileOutputStream(EDITION_FILENAME);
-								OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-								osw.write(Long.toString(edition));
-								osw.close();
-								fos = null;
-							} catch (IOException e) {
-								Logger.error(this, "Failed to write URL of uploaded index: "+uri, e);
-								System.out.println("Failed to write URL of uploaded index: "+uri+" : "+e);
-							} finally {
-								Closer.close(fos);
-							}
-							
-						} catch (InsertException e) {
-							System.err.println("Failed to upload USK for index update: "+e);
-							e.printStackTrace();
-							Logger.error(this, "Failed to upload USK for index update", e);
-						}
-						
-						} catch (TaskAbortException e) {
-							Logger.error(this, "Failed to upload index for spider: "+e, e);
-							System.err.println("Failed to upload index for spider: "+e);
-							e.printStackTrace();
-						}
-						
-					} finally {
-						synchronized(handlingSync) {
-							handling = false;
-							handlingSync.notifyAll();
-						}
-					}
+					innerInnerHandle(data, pushFile);
+					
 				}
 				
 			};
@@ -510,6 +379,142 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		}
 	}
 	
+	protected void innerInnerHandle(Bucket data, File pushFile) {
+		try {
+			
+			if(FreenetArchiver.getCacheDir() == null) {
+				FreenetArchiver.setCacheDir(new File("library-spider-pushed-data-cache"));
+			}
+			
+			if(srl == null) {
+				srl = ProtoIndexSerialiser.forIndex(lastUploadURI);
+				
+				try {
+					idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test");
+				} catch (java.net.MalformedURLException e) {
+					throw new AssertionError(e);
+				}
+				ProtoIndexComponentSerialiser.get().setSerialiserFor(idx);
+			}
+			
+			FileWriter w = null;
+			final Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
+			final SortedSet<String> terms = new TreeSet<String>();
+			int entriesAdded = 0;
+			try {
+				Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes, not implemented yet, saved to file : buffer");
+				File f = new File("buffer");
+				f.createNewFile();
+				w = new FileWriter(f);
+				InputStream is = data.getInputStream();
+				try{
+					while(true){	// Keep going til an EOFExcepiton is thrown
+						TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
+						SortedSet<TermEntry> set = newtrees.get(readObject.subj);
+						if(set == null)
+							newtrees.put(readObject.subj, set = new TreeSet<TermEntry>());
+						set.add(readObject);
+						terms.add(readObject.subj);
+						w.write(readObject.toString()+"\n");
+						entriesAdded++;
+					}
+				}catch(EOFException e){
+					// EOF, do nothing
+				}
+				w.close();
+				w = null;
+			} catch (IOException ex) {
+				java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+			} finally {
+				Closer.close(w);
+			}
+			
+			// Do the upload
+			
+			// async merge
+			Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo = new
+			Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
+				/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
+					String key = entry.getKey();
+					SkeletonBTreeSet<TermEntry> tree = entry.getValue();
+					//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
+					if (tree == null) {
+						entry.setValue(tree = makeEntryTree());
+					}
+					assert(tree.isBare());
+					tree.update(newtrees.get(key), null);
+					assert(tree.isBare());
+					//System.out.println("handled " + key);
+				}
+			};
+			try {
+			long mergeStartTime = System.currentTimeMillis();
+			assert(idx.ttab.isBare());
+			idx.ttab.update(terms, null, clo);
+			assert(idx.ttab.isBare());
+			PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
+			srl.push(task4);
+			long mergeEndTime = System.currentTimeMillis();
+			System.out.print(entriesAdded + " entries merged in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta + ", ");
+			FreenetURI uri = (FreenetURI)task4.meta;
+			lastUploadURI = uri;
+			System.out.println("Uploaded new index to "+uri);
+			FileOutputStream fos = null;
+			try {
+				fos = new FileOutputStream(LAST_URL_FILENAME);
+				OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+				osw.write(uri.toASCIIString());
+				osw.close();
+				fos = null;
+				pushFile.delete();
+			} catch (IOException e) {
+				Logger.error(this, "Failed to write URL of uploaded index: "+uri, e);
+				System.out.println("Failed to write URL of uploaded index: "+uri+" : "+e);
+			} finally {
+				Closer.close(fos);
+			}
+			
+			// Upload to USK
+			FreenetURI privUSK = privURI.setKeyType("USK").setDocName("index").setSuggestedEdition(edition);
+			try {
+				FreenetURI tmp = pr.getHLSimpleClient().insertRedirect(privUSK, uri);
+				edition = tmp.getEdition()+1;
+				System.out.println("Uploaded index as USK to "+tmp);
+				
+				fos = null;
+				try {
+					fos = new FileOutputStream(EDITION_FILENAME);
+					OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+					osw.write(Long.toString(edition));
+					osw.close();
+					fos = null;
+				} catch (IOException e) {
+					Logger.error(this, "Failed to write URL of uploaded index: "+uri, e);
+					System.out.println("Failed to write URL of uploaded index: "+uri+" : "+e);
+				} finally {
+					Closer.close(fos);
+				}
+				
+			} catch (InsertException e) {
+				System.err.println("Failed to upload USK for index update: "+e);
+				e.printStackTrace();
+				Logger.error(this, "Failed to upload USK for index update", e);
+			}
+			
+			} catch (TaskAbortException e) {
+				Logger.error(this, "Failed to upload index for spider: "+e, e);
+				System.err.println("Failed to upload index for spider: "+e);
+				e.printStackTrace();
+			}
+			
+		} finally {
+			synchronized(handlingSync) {
+				handling = false;
+				handlingSync.notifyAll();
+			}
+		}
+	}
+
 	protected static SkeletonBTreeSet<TermEntry> makeEntryTree() {
 		SkeletonBTreeSet<TermEntry> tree = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
 		ProtoIndexComponentSerialiser.get().setSerialiserFor(tree);
