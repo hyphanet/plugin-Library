@@ -47,6 +47,8 @@ import java.util.SortedMap;
 import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.HashMap;
+
+import freenet.support.Logger;
 import plugins.Library.util.Sorted;
 import plugins.Library.util.concurrent.ObjectProcessor;
 import plugins.Library.util.concurrent.Executors;
@@ -1137,9 +1139,17 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					}
 
 					for (SortedSet<K> rng: range) {
-						GhostNode n = (GhostNode)node.selectNode(rng.first());
+						GhostNode n;
+						try {
+							n = (GhostNode)node.selectNode(rng.first());
+						} catch (ClassCastException e) {
+							// This has been seen in practice. I have no idea what it means.
+							// FIXME HIGH !!!
+							Logger.error(this, "Node is already loaded?!?!?!: "+node.selectNode(rng.first()));
+							continue;
+						}
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(n);
-
+						
 						// possibly re-design CountingSweeper to not care about types, or have acquire() instead
 						nClo.acquire((SkeletonNode)null); // dirty hack. FIXME LOW
 						// WORKAROUND unnecessary cast here - bug in SunJDK6; works fine on OpenJDK6
