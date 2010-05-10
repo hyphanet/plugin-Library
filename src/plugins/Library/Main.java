@@ -127,14 +127,13 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			oldToMerge = new File(".").list(new FilenameFilter() {
 				
 				public boolean accept(File arg0, String arg1) {
-					if(!arg0.isFile()) return false;
-					if(arg0.length() == 0) return false;
-					if(arg0.getName().toLowerCase().startsWith(BASE_FILENAME_PUSH_DATA)) {
-						String s = arg0.getName().substring(BASE_FILENAME_PUSH_DATA.length());
-						pushNumber = Math.max(pushNumber, Long.parseLong(s)+1);
-						return true;
-					}
-					return false;
+					if(!(arg1.toLowerCase().startsWith(BASE_FILENAME_PUSH_DATA))) return false;
+					File f = new File(arg0, arg1);
+					if(!f.isFile()) return false;
+					if(f.length() == 0) return false;
+					String s = f.getName().substring(BASE_FILENAME_PUSH_DATA.length());
+					pushNumber = Math.max(pushNumber, Long.parseLong(s)+1);
+					return true;
 				}
 				
 			});
