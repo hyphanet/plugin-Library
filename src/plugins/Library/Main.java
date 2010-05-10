@@ -259,19 +259,33 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	public void innerHandle(final Bucket data, final File pushFile) {
 		// FIXME symlink issues with writing straight to files?
 		// FIXME backup issues with writing straight to files? Factor out and do it properly.
+		if(lastUploadURI == null) {
+			File f = new File(LAST_URL_FILENAME);
+			FileInputStream fis = null;
+			try {
+				fis = new FileInputStream(f);
+				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
+				lastUploadURI = new FreenetURI(br.readLine());
+				System.out.println("Continuing from last index CHK: "+lastUploadURI);
+				fis.close();
+				fis = null;
+			} catch (IOException e) {
+				// Ignore
+			} finally {
+				Closer.close(fis);
+			}
+		}
 		if(privURI == null) {
 			File f = new File(PRIV_URI_FILENAME);
 			FileInputStream fis = null;
 			InsertableClientSSK privkey = null;
-			FreenetURI privURI = null;
 			boolean newPrivKey = false;
 			try {
 				fis = new FileInputStream(f);
 				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
-				privURI = new FreenetURI(br.readLine());
-				System.out.println("Continuing from last index URI: "+lastUploadURI);
+				privURI = new FreenetURI(br.readLine()).setDocName("index"); // Else InsertableClientSSK doesn't like it.
 				privkey = InsertableClientSSK.create(privURI);
-				this.privURI = privURI;
+				System.out.println("Read old privkey");
 				this.pubURI = privkey.getURI();
 				System.out.println("Recovered URI from disk, pubkey is "+pubURI);
 				fis.close();
@@ -282,7 +296,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				Closer.close(fis);
 			}
 			if(privURI == null) {
-				InsertableClientSSK key = InsertableClientSSK.createRandom(pr.getNode().random, "");
+				InsertableClientSSK key = InsertableClientSSK.createRandom(pr.getNode().random, "index");
 				privURI = key.getInsertURI();
 				pubURI = key.getURI();
 				newPrivKey = true;
@@ -425,6 +439,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							osw.write(uri.toASCIIString());
 							osw.close();
 							fos = null;
+							pushFile.delete();
 						} catch (IOException e) {
 							Logger.error(this, "Failed to write URL of uploaded index: "+uri, e);
 							System.out.println("Failed to write URL of uploaded index: "+uri+" : "+e);
@@ -459,8 +474,6 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							Logger.error(this, "Failed to upload USK for index update", e);
 						}
 						
-						
-						
 						} catch (TaskAbortException e) {
 							Logger.error(this, "Failed to upload index for spider: "+e, e);
 							System.err.println("Failed to upload index for spider: "+e);
@@ -472,7 +485,6 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							handling = false;
 							handlingSync.notifyAll();
 						}
-						pushFile.delete();
 					}						
 				}
 				
