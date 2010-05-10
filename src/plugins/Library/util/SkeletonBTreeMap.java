@@ -556,7 +556,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			pr_inf.setSubject("Pulling all entries in B-tree");
 		}
 
-		final ObjectProcessor<PullTask<SkeletonNode>, SkeletonNode, TaskAbortException> proc_pull
+		final ObjectProcessor<PullTask<SkeletonNode>, SkeletonNode> proc_pull
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
 			new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL),
 			new LinkedBlockingQueue<X2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
@@ -677,7 +677,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** @param value_handler Closure to retrieve the value for each putkey
 	** @see #update(SortedSet, SortedSet, SortedMap, Closure)
 	*/
-	public <X extends Exception> void update(SortedSet<K> putkey, SortedSet<K> remkey, Closure<Map.Entry<K, V>, X> value_handler) throws TaskAbortException {
+	public void update(SortedSet<K> putkey, SortedSet<K> remkey, Closure<Map.Entry<K, V>, TaskAbortException> value_handler) throws TaskAbortException {
 		update(putkey, remkey, null, value_handler);
 	}
 
@@ -748,7 +748,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	*/
 	protected <X extends Exception> void update(
 		SortedSet<K> putkey, SortedSet<K> remkey,
-		final SortedMap<K, V> putmap, Closure<Map.Entry<K, V>, X> value_handler
+		final SortedMap<K, V> putmap, Closure<Map.Entry<K, V>, TaskAbortException> value_handler
 	) throws TaskAbortException {
 
 		if (value_handler == null) {
@@ -818,14 +818,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// the async interface (i should have done this when i first coded it).
 		// see doc/todo.txt for details
 
-		final ObjectProcessor<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> proc_pull
+		final ObjectProcessor<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>> proc_pull
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
 			new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL),
 			new LinkedBlockingQueue<X2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
 			new HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>()
 		);
 
-		final ObjectProcessor<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> proc_push
+		final ObjectProcessor<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>> proc_push
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pushSchedule(
 			new PriorityBlockingQueue<PushTask<SkeletonNode>>(0x10, CMP_PUSH),
 			new LinkedBlockingQueue<X2<PushTask<SkeletonNode>, TaskAbortException>>(0x10),
@@ -891,16 +891,16 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		// must be located after DeflateNode's class definition
-		final ObjectProcessor<Map.Entry<K, V>, DeflateNode, X> proc_val = (value_handler == null)? null
-		: new ObjectProcessor<Map.Entry<K, V>, DeflateNode, X>(
+		final ObjectProcessor<Map.Entry<K, V>, DeflateNode> proc_val = (value_handler == null)? null
+		: new ObjectProcessor<Map.Entry<K, V>, DeflateNode>(
 			new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
-			new LinkedBlockingQueue<X2<Map.Entry<K, V>, X>>(),
+			new LinkedBlockingQueue<X2<Map.Entry<K, V>, TaskAbortException>>(),
 			new HashMap<Map.Entry<K, V>, DeflateNode>(),
 			value_handler, VALUE_EXECUTOR // These can block so pool them separately.
 		).autostart();
 		
-		final ObjectProcessor<DeflateNode, SkeletonNode, TaskAbortException> proc_deflate =
-			new ObjectProcessor<DeflateNode, SkeletonNode, TaskAbortException>(
+		final ObjectProcessor<DeflateNode, SkeletonNode> proc_deflate =
+			new ObjectProcessor<DeflateNode, SkeletonNode>(
 					new PriorityBlockingQueue<DeflateNode>(0x10),
 					new LinkedBlockingQueue<X2<DeflateNode, TaskAbortException>>(),
 					new HashMap<DeflateNode, SkeletonNode>(),
@@ -1227,10 +1227,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				Thread.sleep(0x400);
 
 				while (proc_val != null && proc_val.hasCompleted()) {
-					X3<Map.Entry<K, V>, DeflateNode, X> res = proc_val.accept();
+					X3<Map.Entry<K, V>, DeflateNode, TaskAbortException> res = proc_val.accept();
 					Map.Entry<K, V> en = res._0;
 					DeflateNode sw = res._1;
-					X ex = res._2;
+					TaskAbortException ex = res._2;
 					if (ex != null) {
 						// FIXME HIGH
 						throw new UnsupportedOperationException("SkeletonBTreeMap.update(): value-retrieval aborted; handler not implemented yet", ex);

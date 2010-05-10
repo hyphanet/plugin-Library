@@ -29,7 +29,7 @@ public interface ScheduledSerialiser<T> extends IterableSerialiser<T> {
 	** @param deposit Map of tasks to deposits
 	*/
 	// TODO LOW public <E> Scheduler pullSchedule(
-	public <E> ObjectProcessor<PullTask<T>, E, TaskAbortException> pullSchedule(
+	public <E> ObjectProcessor<PullTask<T>, E> pullSchedule(
 		BlockingQueue<PullTask<T>> input,
 		BlockingQueue<X2<PullTask<T>, TaskAbortException>> output,
 		Map<PullTask<T>, E> deposit
@@ -44,7 +44,7 @@ public interface ScheduledSerialiser<T> extends IterableSerialiser<T> {
 	** @param deposit Map of tasks to deposits
 	*/
 	// TODO LOW public <E> Scheduler pushSchedule(
-	public <E> ObjectProcessor<PushTask<T>, E, TaskAbortException> pushSchedule(
+	public <E> ObjectProcessor<PushTask<T>, E> pushSchedule(
 		BlockingQueue<PushTask<T>> input,
 		BlockingQueue<X2<PushTask<T>, TaskAbortException>> output,
 		Map<PushTask<T>, E> deposit

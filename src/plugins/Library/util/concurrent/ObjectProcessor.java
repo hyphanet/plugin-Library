@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util.concurrent;
 
+import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.func.Closure;
 import plugins.Library.util.func.SafeClosure;
 import static plugins.Library.util.func.Tuples.X2; // also imports the class
@@ -22,19 +23,22 @@ import java.util.concurrent.RejectedExecutionException;
 ** A class that wraps around an {@link Executor}, for processing any given type
 ** of object, not just {@link Runnable}. Each object must be accompanied by a
 ** secondary "deposit" object, which is returned with the object when it has
-** been processed. Any exceptions thrown are also returned.
+** been processed. Any exceptions thrown are also returned, provided they are
+** TaskAbortException's. Generics are not flexible enough to allow us to specify
+** the exception type as a parameter, because we can't catch it. If 
+** RuntimeException's are thrown we will convert them into TaskAbortException's.
 **
 ** @param <T> Type of object to be processed
 ** @param <E> Type of object to be used as a deposit
 ** @param <X> Type of exception thrown by {@link #clo}
 ** @author infinity0
 */
-public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
+public class ObjectProcessor<T, E> implements Scheduler {
 
 	final protected BlockingQueue<T> in;
-	final protected BlockingQueue<X2<T, X>> out;
+	final protected BlockingQueue<X2<T, TaskAbortException>> out;
 	final protected Map<T, E> dep;
-	final protected Closure<T, X> clo;
+	final protected Closure<T, TaskAbortException> clo;
 	final protected Executor exec;
 
 	protected volatile boolean open = true;
@@ -45,8 +49,8 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	// TODO NORM make a more intelligent way of adjusting this
 	final public static int maxconc = 0x28;
 
-	final protected SafeClosure<X2<T, X>> postProcess = new SafeClosure<X2<T, X>>() {
-		/*@Override**/ public void invoke(X2<T, X> res) {
+	final protected SafeClosure<X2<T, TaskAbortException>> postProcess = new SafeClosure<X2<T, TaskAbortException>>() {
+		/*@Override**/ public void invoke(X2<T, TaskAbortException> res) {
 			try {
 				out.put(res);
 				synchronized(ObjectProcessor.this) { ++completed; }
@@ -77,8 +81,8 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** @param autostart Whether to start an {@link #auto()} autohandler
 	*/
 	public ObjectProcessor(
-		BlockingQueue<T> input, BlockingQueue<X2<T, X>> output, Map<T, E> deposit,
-		Closure<T, X> closure, Executor executor
+		BlockingQueue<T> input, BlockingQueue<X2<T, TaskAbortException>> output, Map<T, E> deposit,
+		Closure<T, TaskAbortException> closure, Executor executor
 	) {
 		in = input;
 		out = output;
@@ -93,7 +97,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** does not throw {@link InterruptedException}, such as that of {@link
 	** java.util.concurrent.PriorityBlockingQueue}.
 	*/
-	public static <T, E, X extends Exception> void submitSafe(ObjectProcessor<T, E, X> proc, T item, E deposit) {
+	public static <T, E, X extends Exception> void submitSafe(ObjectProcessor<T, E> proc, T item, E deposit) {
 		try {
 			proc.submit(item, deposit);
 		} catch (InterruptedException e) {
@@ -138,8 +142,8 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** Retrieved a processed item, along with its deposit and any exception
 	** that caused processing to abort.
 	*/
-	public synchronized X3<T, E, X> accept() throws InterruptedException {
-		X2<T, X> item = out.take();
+	public synchronized X3<T, E, TaskAbortException> accept() throws InterruptedException {
+		X2<T, TaskAbortException> item = out.take();
 		return X3(item._0, dep.remove(item._0), item._1);
 	}
 
@@ -217,11 +221,12 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		}
 		return new Runnable() {
 			/*@Override**/ public void run() {
-				X ex = null;
+				TaskAbortException ex = null;
 				synchronized(ObjectProcessor.this) { ++started; }
 				try { clo.invoke(item); }
 				// FIXME NORM this could throw RuntimeException
-				catch (Exception e) { ex = (X)e; }
+				catch (TaskAbortException e) { ex = e; }
+				catch (Exception e) { ex = new TaskAbortException("ObjProc-"+name+":"+e.getMessage(), e); }
 				postProcess.invoke(X2(item, ex));
 			}
 		};
