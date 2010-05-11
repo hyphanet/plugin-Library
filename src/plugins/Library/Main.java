@@ -148,9 +148,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						globalHandling = true;
 						handling = true;
 					}
+					// Run all the recovery jobs synchronously, and don't let anything else run until they are all finished.
 					for(String filename : oldToMerge) {
 						File f = new File(filename);
-						innerHandle(new FileBucket(f, true, false, false, false, false), f);
+						innerHandle(new FileBucket(f, true, false, false, false, false), f, true);
 					}
 					synchronized(handlingSync) {
 						handling = false;
@@ -257,14 +258,14 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				handling = true;
 				Logger.error(this, "Waited for previous handler to go away, moving on...");
 			}
-			innerHandle(data, pushFile);
+			innerHandle(data, pushFile, false);
 		} else {
 			Logger.error(this, "Unknown command : \""+params.get("command"));
 		}
 
 	}
 	
-	public void innerHandle(final Bucket data, final File pushFile) {
+	public void innerHandle(final Bucket data, final File pushFile, boolean synchronous) {
 		// FIXME symlink issues with writing straight to files?
 		// FIXME backup issues with writing straight to files? Factor out and do it properly.
 		if(lastUploadURI == null) {
@@ -366,7 +367,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				}
 				
 			};
-			pr.getNode().executor.execute(r, "Library: Handle data from XMLSpider");
+			if(!synchronous)
+				pr.getNode().executor.execute(r, "Library: Handle data from XMLSpider");
+			else
+				r.run();
 		} catch (RuntimeException t) {
 			synchronized(handlingSync) {
 				handling = false;
