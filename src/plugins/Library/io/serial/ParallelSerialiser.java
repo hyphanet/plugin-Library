@@ -4,6 +4,7 @@
 package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.TaskAbortExceptionConvertor;
 import plugins.Library.util.concurrent.Scheduler;
 import plugins.Library.util.concurrent.ObjectProcessor;
 import plugins.Library.util.concurrent.Executors;
@@ -236,7 +237,7 @@ implements IterableSerialiser<T>,
 		BlockingQueue<X2<PullTask<T>, TaskAbortException>> output,
 		Map<PullTask<T>, E> deposit
 	) {
-		return new ObjectProcessor<PullTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR) {
+		return new ObjectProcessor<PullTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR, new TaskAbortExceptionConvertor()) {
 			@Override protected Runnable createJobFor(PullTask<T> task) {
 				return createPullJob(task, postProcess);
 			}
@@ -253,7 +254,7 @@ implements IterableSerialiser<T>,
 		BlockingQueue<X2<PushTask<T>, TaskAbortException>> output,
 		Map<PushTask<T>, E> deposit
 	) {
-		return new ObjectProcessor<PushTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR) {
+		return new ObjectProcessor<PushTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR, new TaskAbortExceptionConvertor()) {
 			@Override protected Runnable createJobFor(PushTask<T> task) {
 				return createPushJob(task, postProcess);
 			}

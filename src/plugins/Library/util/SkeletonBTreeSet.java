@@ -74,7 +74,7 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 	// TODO NORM tidy this, etc. note that we don't need async update() because
 	// we don't have a value that can be updated (it's always just the key)
 	public void update(SortedSet<E> putset, SortedSet<E> remset) throws TaskAbortException {
-		((SkeletonBTreeMap<E, E>)bkmap).update(null, remset, new SortedSetMap<E, SortedSet<E>>(putset), null);
+		((SkeletonBTreeMap<E, E>)bkmap).update(null, remset, new SortedSetMap<E, SortedSet<E>>(putset), null, new TaskAbortExceptionConvertor());
 	}
 
 	/**

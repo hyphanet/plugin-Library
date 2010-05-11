@@ -293,7 +293,7 @@ public class Tester {
 						};
 						try {
 						assert(idx.ttab.isBare());
-						idx.ttab.update(randAdd, null, clo);
+						idx.ttab.update(randAdd, null, clo, new TaskAbortExceptionConvertor());
 						assert(idx.ttab.isBare());
 						PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
 						srl.push(task4);

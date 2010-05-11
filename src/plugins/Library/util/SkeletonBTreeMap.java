@@ -50,6 +50,7 @@ import java.util.HashMap;
 
 import freenet.support.Logger;
 import plugins.Library.util.Sorted;
+import plugins.Library.util.concurrent.ExceptionConvertor;
 import plugins.Library.util.concurrent.ObjectProcessor;
 import plugins.Library.util.concurrent.Executors;
 import plugins.Library.util.event.TrackingSweeper;
@@ -670,7 +671,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** @see #update(SortedSet, SortedSet, SortedMap, Closure)
 	*/
 	public void update(SortedMap<K, V> putmap, SortedSet<K> remkey) throws TaskAbortException {
-		update(null, remkey, putmap, null);
+		update(null, remkey, putmap, null, new TaskAbortExceptionConvertor());
 	}
 
 	/**
@@ -679,8 +680,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** @param value_handler Closure to retrieve the value for each putkey
 	** @see #update(SortedSet, SortedSet, SortedMap, Closure)
 	*/
-	public <X extends Exception> void update(SortedSet<K> putkey, SortedSet<K> remkey, Closure<Map.Entry<K, V>, X> value_handler) throws TaskAbortException {
-		update(putkey, remkey, null, value_handler);
+	public <X extends Exception> void update(SortedSet<K> putkey, SortedSet<K> remkey, Closure<Map.Entry<K, V>, X> value_handler, ExceptionConvertor<X> conv) throws TaskAbortException {
+		update(putkey, remkey, null, value_handler, conv);
 	}
 
 	/**
@@ -750,7 +751,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	*/
 	protected <X extends Exception> void update(
 		SortedSet<K> putkey, SortedSet<K> remkey,
-		final SortedMap<K, V> putmap, Closure<Map.Entry<K, V>, X> value_handler
+		final SortedMap<K, V> putmap, Closure<Map.Entry<K, V>, X> value_handler,
+		ExceptionConvertor<X> conv
 	) throws TaskAbortException {
 
 		if (value_handler == null) {
@@ -898,7 +900,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
 			new LinkedBlockingQueue<X2<Map.Entry<K, V>, X>>(),
 			new HashMap<Map.Entry<K, V>, DeflateNode>(),
-			value_handler, VALUE_EXECUTOR // These can block so pool them separately.
+			value_handler, VALUE_EXECUTOR, conv // These can block so pool them separately.
 		).autostart();
 		
 		final ObjectProcessor<DeflateNode, SkeletonNode, TaskAbortException> proc_deflate =
@@ -912,7 +914,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 							param.deflate();
 						}
 						
-					}, DEFLATE_EXECUTOR).autostart();
+					}, DEFLATE_EXECUTOR, new TaskAbortExceptionConvertor()).autostart();
 
 		// Dummy constant for SplitNode
 		final SortedMap<K, V> EMPTY_SORTEDMAP = new TreeMap<K, V>(comparator);

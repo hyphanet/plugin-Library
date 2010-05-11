@@ -26,6 +26,7 @@ import plugins.Library.index.TermEntry;
 import plugins.Library.search.Search;
 import plugins.Library.ui.WebInterface;
 import plugins.Library.util.SkeletonBTreeSet;
+import plugins.Library.util.TaskAbortExceptionConvertor;
 import plugins.Library.util.concurrent.Executors;
 import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.func.Closure;
@@ -450,7 +451,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			try {
 			long mergeStartTime = System.currentTimeMillis();
 			assert(idx.ttab.isBare());
-			idx.ttab.update(terms, null, clo);
+			idx.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
 			assert(idx.ttab.isBare());
 			PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
 			srl.push(task4);

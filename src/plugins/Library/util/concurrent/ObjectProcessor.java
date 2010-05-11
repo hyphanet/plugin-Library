@@ -36,6 +36,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	final protected Map<T, E> dep;
 	final protected Closure<T, X> clo;
 	final protected Executor exec;
+	final protected ExceptionConvertor<X> convertor;
 
 	protected volatile boolean open = true;
 	protected int dispatched = 0;
@@ -78,13 +79,14 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	*/
 	public ObjectProcessor(
 		BlockingQueue<T> input, BlockingQueue<X2<T, X>> output, Map<T, E> deposit,
-		Closure<T, X> closure, Executor executor
+		Closure<T, X> closure, Executor executor, ExceptionConvertor<X> conv
 	) {
 		in = input;
 		out = output;
 		dep = deposit;
 		clo = closure;
 		exec = executor;
+		convertor = conv;
 	}
 
 	/**
@@ -219,8 +221,10 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 			/*@Override**/ public void run() {
 				X ex = null;
 				synchronized(ObjectProcessor.this) { ++started; }
+				RuntimeException ee = null;
 				try { clo.invoke(item); }
 				// FIXME NORM this could throw RuntimeException
+				catch (RuntimeException e) { ex = convertor.convert(e); }
 				catch (Exception e) { ex = (X)e; }
 				postProcess.invoke(X2(item, ex));
 			}

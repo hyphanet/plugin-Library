@@ -192,7 +192,7 @@ public class BIndexTest extends TestCase {
 			}
 		};
 		assertTrue(idx.ttab.isBare());
-		idx.ttab.update(randAdd, null, clo);
+		idx.ttab.update(randAdd, null, clo, new TaskAbortExceptionConvertor());
 		assertTrue(idx.ttab.isBare());
 		PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
 		srl.push(task4);
