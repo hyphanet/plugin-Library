@@ -151,7 +151,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					// Run all the recovery jobs synchronously, and don't let anything else run until they are all finished.
 					for(String filename : oldToMerge) {
 						File f = new File(filename);
-						innerHandle(new FileBucket(f, true, false, false, false, false), f, true);
+						innerHandle(new FileBucket(f, true, false, false, false, true), f, true);
 					}
 					synchronized(handlingSync) {
 						handling = false;
