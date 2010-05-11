@@ -1,10 +1,10 @@
-package plugins.Library.search;
+package plugins.XMLSpider;
 
 import java.lang.Character.UnicodeBlock;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Locale;
-import static plugins.Library.search.SearchUtil.*;
+import static plugins.XMLSpider.SearchUtil.*;
 
 /**
  * Search Tokenizer
@@ -19,6 +19,7 @@ class SearchTokenizer implements Iterable<String>, Iterator<String> {
 	private ArrayList<String> segments;
 	private int nextPos;
 	private final boolean returnPairs;
+	static final boolean KEEP_NON_LETTER = false;
 
 	private Iterator<String> cjkTokenizer;
 
@@ -67,8 +68,10 @@ class SearchTokenizer implements Iterable<String>, Iterator<String> {
 				sb.append(Character.toChars(codepoint));
 			} else if (sb.length() != 0) {
 				// last code point is not 0, add a separator
-				segments.add(sb.toString());
-				mode.add(curMode);
+				if(KEEP_NON_LETTER || curMode != Mode.UNDEF) {
+					segments.add(sb.toString());
+					mode.add(curMode);
+				}
 				curMode = Mode.UNDEF;
 				sb = new StringBuilder();
 			}
@@ -130,6 +133,10 @@ class SearchTokenizer implements Iterable<String>, Iterator<String> {
 			assert cjkTokenizer.hasNext();
 			return cjkTokenizer.next();
 
+		case UNDEF:
+			// E.g. a number. We do index these. FIXME should we? Probably yes...
+			return curSeg;
+			
 		default:
 			assert false; // DOH!
 		}
