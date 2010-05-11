@@ -231,12 +231,12 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	/*@Override**/ public <E> ObjectProcessor<PullTask<T>, E> pullSchedule(
+	/*@Override**/ public <E> ObjectProcessor<PullTask<T>, E, TaskAbortException> pullSchedule(
 		BlockingQueue<PullTask<T>> input,
 		BlockingQueue<X2<PullTask<T>, TaskAbortException>> output,
 		Map<PullTask<T>, E> deposit
 	) {
-		return new ObjectProcessor<PullTask<T>, E>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR) {
+		return new ObjectProcessor<PullTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR) {
 			@Override protected Runnable createJobFor(PullTask<T> task) {
 				return createPullJob(task, postProcess);
 			}
@@ -248,12 +248,12 @@ implements IterableSerialiser<T>,
 	**
 	** This implementation DOCUMENT
 	*/
-	/*@Override**/ public <E> ObjectProcessor<PushTask<T>, E> pushSchedule(
+	/*@Override**/ public <E> ObjectProcessor<PushTask<T>, E, TaskAbortException> pushSchedule(
 		BlockingQueue<PushTask<T>> input,
 		BlockingQueue<X2<PushTask<T>, TaskAbortException>> output,
 		Map<PushTask<T>, E> deposit
 	) {
-		return new ObjectProcessor<PushTask<T>, E>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR) {
+		return new ObjectProcessor<PushTask<T>, E, TaskAbortException>(input, output, deposit, null, Executors.DEFAULT_EXECUTOR) {
 			@Override protected Runnable createJobFor(PushTask<T> task) {
 				return createPushJob(task, postProcess);
 			}
