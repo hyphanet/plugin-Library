@@ -18,6 +18,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
+import freenet.support.Logger;
+
 /**
 ** A class that wraps around an {@link Executor}, for processing any given type
 ** of object, not just {@link Runnable}. Each object must be accompanied by a
@@ -224,7 +226,12 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 				RuntimeException ee = null;
 				try { clo.invoke(item); }
 				// FIXME NORM this could throw RuntimeException
-				catch (RuntimeException e) { ex = convertor.convert(e); }
+				catch (RuntimeException e) {
+					Logger.error(this, "Caught "+e, e);
+					System.err.println("In ObjProc-"+name+" : "+e);
+					e.printStackTrace();
+					ex = convertor.convert(e); 
+				}
 				catch (Exception e) { ex = (X)e; }
 				postProcess.invoke(X2(item, ex));
 			}
