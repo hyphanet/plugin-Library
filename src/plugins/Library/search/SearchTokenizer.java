@@ -1,10 +1,10 @@
-package plugins.XMLSpider;
+package plugins.Library.search;
 
 import java.lang.Character.UnicodeBlock;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Locale;
-import static plugins.XMLSpider.SearchUtil.*;
+import static plugins.Library.search.SearchUtil.*;
 
 /**
  * Search Tokenizer
