@@ -205,6 +205,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	private Object handlingSync = new Object();
 	private boolean handling;
 	private boolean globalHandling;
+	private boolean pushBroken;
 	
 	ProtoIndexSerialiser srl = null;
 	FreenetURI lastUploadURI = null;
@@ -256,6 +257,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					}
 				}
 				handling = true;
+				if(pushBroken) {
+					Logger.error(this, "Pushing is broken, failing");
+					return;
+				}
 				Logger.error(this, "Waited for previous handler to go away, moving on...");
 			}
 			innerHandle(data, pushFile, false);
@@ -510,6 +515,9 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				Logger.error(this, "Failed to upload index for spider: "+e, e);
 				System.err.println("Failed to upload index for spider: "+e);
 				e.printStackTrace();
+				synchronized(handlingSync) {
+					pushBroken = true;
+				}
 			}
 			
 		} finally {
