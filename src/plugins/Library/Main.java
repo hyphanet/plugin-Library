@@ -208,6 +208,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	/** The number of pushes that are ahead of us in the queue */
 	private int handlingCount;
 	static final int MAX_HANDLING_COUNT = 5; 
+	// When pushing is broken, allow max handling to reach this level before stalling forever to prevent running out of disk space.
+	private int PUSH_BROKEN_MAX_HANDLING_COUNT = 10;
 	// Don't use too much disk space, take into account fact that XMLSpider slows down over time.
 	
 	private boolean globalHandling;
@@ -264,11 +266,25 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						// Ignore
 					}
 				}
+				handlingCount++;
 				if(pushBroken) {
-					Logger.error(this, "Pushing is broken, failing");
+					if(handlingCount < PUSH_BROKEN_MAX_HANDLING_COUNT)
+						// We have written the data, it will be recovered after restart.
+						Logger.error(this, "Pushing is broken, failing");
+					else {
+						// Wait forever to prevent running out of disk space.
+						// XMLSpider is single threaded.
+						// FIXME: Use an error return or a throwable to shut down XMLSpider.
+						while(true) {
+							try {
+								handlingSync.wait();
+							} catch (InterruptedException e) {
+								// Ignore
+							}
+						}
+					}
 					return;
 				}
-				handlingCount++;
 				if(waited)
 					Logger.error(this, "Waited for previous handler to go away, moving on...");
 			}
