@@ -142,6 +142,7 @@
 		<copy todir="${build}/plugins/Library/ui/staticfiles">
 			<fileset dir="src/plugins/Library/ui/staticfiles"/>
 		</copy>
+		<assertions><enable/></assertions>
 	</target>
 
 	<target name="compile-tester" depends="compile" if="tester">
