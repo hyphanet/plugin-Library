@@ -22,6 +22,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.HashMap;
 
+import freenet.support.Logger;
+
 /**
 ** A {@link SkeletonMap} of a {@link TreeMap}. DOCUMENT
 **
@@ -216,6 +218,17 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		// load all the tasks, most MapSerialisers need this info
 		for (Map.Entry<K, SkeletonValue<V>> en: skmap.entrySet()) {
 			SkeletonValue<V> skel = en.getValue();
+			if(skel.data == null) {
+				if(skel.isLoaded)
+					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded = true, data = null, meta = "+skel.meta, new NullPointerException());
+				else if(skel.meta == null)
+					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded = false, data = null, meta = null", new NullPointerException());
+				else {
+					// Should be safe to process it anyway
+					Logger.error(this, "Skeleton value in "+this+" : isLoaded = false, data = null, meta = "+skel.meta, new Exception("error"));
+					continue;
+				}
+			}
 			tasks.put(en.getKey(), new PushTask<V>(skel.data, skel.meta));
 			if (skel.data instanceof SkeletonBTreeSet) {
 				SkeletonBTreeSet ss = (SkeletonBTreeSet)skel.data;
