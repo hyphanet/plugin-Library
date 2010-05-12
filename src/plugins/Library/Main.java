@@ -251,12 +251,14 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 			synchronized(handlingSync) {
+				boolean waited = false;
 				while(handlingCount >= MAX_HANDLING_COUNT || globalHandling) {
 					if(!globalHandling) 
 						Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish. Ahead of us in the queue: "+handlingCount);
 					else
 						Logger.error(this, "Waiting for merge of old data");
 					try {
+						waited = true;
 						handlingSync.wait();
 					} catch (InterruptedException e) {
 						// Ignore
@@ -267,7 +269,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					Logger.error(this, "Pushing is broken, failing");
 					return;
 				}
-				Logger.error(this, "Waited for previous handler to go away, moving on...");
+				if(waited)
+					Logger.error(this, "Waited for previous handler to go away, moving on...");
 			}
 			innerHandle(data, pushFile, false);
 		} else {
