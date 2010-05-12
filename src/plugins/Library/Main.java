@@ -234,6 +234,13 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	public void handle(PluginReplySender replysender, SimpleFieldSet params, final Bucket data, int accesstype) {
 		if("pushBuffer".equals(params.get("command"))){
 
+			if(data.size() == 0) {
+				Logger.error(this, "Bucket of data ("+data+") to push is empty", new Exception("error"));
+				System.err.println("Bucket of data ("+data+")to push from XMLSpider is empty");
+				data.free();
+				return;
+			}
+			
 			// Process data off-thread, but only one load at a time.
 			// Hence it won't stall XMLSpider unless we get behind.
 			
