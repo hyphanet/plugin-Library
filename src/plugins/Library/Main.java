@@ -146,7 +146,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				public void run() {
 					synchronized(handlingSync) {
 						globalHandling = true;
-						handling = true;
+						handlingCount += oldToMerge.length;
 					}
 					// Run all the recovery jobs synchronously, and don't let anything else run until they are all finished.
 					for(String filename : oldToMerge) {
@@ -157,7 +157,6 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						}
 					}
 					synchronized(handlingSync) {
-						handling = false;
 						globalHandling = false;
 						handlingSync.notifyAll();
 					}
@@ -206,7 +205,11 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	}
 
 	private Object handlingSync = new Object();
-	private boolean handling;
+	/** The number of pushes that are ahead of us in the queue */
+	private int handlingCount;
+	static final int MAX_HANDLING_COUNT = 5; 
+	// Don't use too much disk space, take into account fact that XMLSpider slows down over time.
+	
 	private boolean globalHandling;
 	private boolean pushBroken;
 	
@@ -248,9 +251,9 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 			synchronized(handlingSync) {
-				while(handling || globalHandling) {
+				while(handlingCount >= MAX_HANDLING_COUNT || globalHandling) {
 					if(!globalHandling) 
-						Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish");
+						Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish. Ahead of us in the queue: "+handlingCount);
 					else
 						Logger.error(this, "Waiting for merge of old data");
 					try {
@@ -259,7 +262,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						// Ignore
 					}
 				}
-				handling = true;
+				handlingCount++;
 				if(pushBroken) {
 					Logger.error(this, "Pushing is broken, failing");
 					return;
@@ -381,12 +384,12 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				r.run();
 		} catch (RuntimeException t) {
 			synchronized(handlingSync) {
-				handling = false;
+				handlingCount--;
 			}
 			throw t;
 		} catch (Error t) {
 			synchronized(handlingSync) {
-				handling = false;
+				handlingCount--;
 			}
 			throw t;
 		}
@@ -525,7 +528,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			
 		} finally {
 			synchronized(handlingSync) {
-				handling = false;
+				handlingCount--;
 				handlingSync.notifyAll();
 			}
 		}
