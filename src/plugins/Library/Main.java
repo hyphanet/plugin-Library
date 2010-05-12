@@ -152,6 +152,9 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					for(String filename : oldToMerge) {
 						File f = new File(filename);
 						innerHandle(new FileBucket(f, true, false, false, false, true), f, true);
+						synchronized(handlingSync) {
+							if(pushBroken) return;
+						}
 					}
 					synchronized(handlingSync) {
 						handling = false;
