@@ -882,6 +882,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			public void invoke(Map.Entry<K, V> en) {
 				assert(node.entries.containsKey(en.getKey()));
 				node.entries.put(en.getKey(), en.getValue());
+				Logger.minor(this, "New value for key "+en.getKey()+" : "+en.getValue()+" in "+node+" parent = "+parNClo);
 			}
 
 			public void deflate() throws TaskAbortException {
@@ -1059,6 +1060,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				clo.acquire(key);
 				//assert(((UpdateValue)value_closures.get(key)).node == node);
 				proc_val.update($K(key, (V)null), clo);
+				// FIXME what if it has already run???
+				Logger.minor(this, "Reassigning key "+key+" to "+clo+" on "+this+" parent="+parent+" parent split node "+parNClo+" parent deflate node "+parVClo);
 				// nodeVClo.release(key);
 				// this is unnecessary since nodeVClo() will only be used if we did not
 				// split its node (and never called this method)
@@ -1122,7 +1125,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						// OPT: could use a splice-merge here. for TreeMap, there is not an
 						// easy way of doing this, nor will it likely make a lot of a difference.
 						// however, if we re-implement SkeletonNode, this might become relevant.
-						for (K key: putkey) { node.entries.put(key, putmap.get(key)); }
+						for (K key: putkey) {
+							if(putmap.get(key) == null) throw new NullPointerException();
+							node.entries.put(key, putmap.get(key)); 
+						}
 					} else {
 						for (K key: putkey) { handleLocalPut(node, key, vClo); }
 					}
@@ -1135,7 +1141,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					Iterable<SortedSet<K>> range = Sorted.split(putkey, Sorted.keySet(node.entries), fkey);
 
 					if (proc_val == null) {
-						for (K key: fkey) { node.entries.put(key, putmap.get(key)); }
+						for (K key: fkey) { 
+							if(putmap.get(key) == null) throw new NullPointerException();
+							node.entries.put(key, putmap.get(key));
+						}
 					} else {
 						for (K key: fkey) { handleLocalPut(node, key, vClo); }
 					}
@@ -1179,6 +1188,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			private void handleLocalPut(SkeletonNode n, K key, DeflateNode vClo) {
 				V oldval = n.entries.put(key, null);
 				vClo.acquire(key);
+				Logger.minor(this, "handleLocalPut for key "+key+" old value "+oldval+" for deflate node "+vClo+" - passing to proc_val");
 				ObjectProcessor.submitSafe(proc_val, $K(key, oldval), vClo);
 			}
 

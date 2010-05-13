@@ -222,9 +222,9 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			SkeletonValue<V> skel = en.getValue();
 			if(skel.data == null) {
 				if(skel.isLoaded)
-					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded = true, data = null, meta = "+skel.meta, new NullPointerException());
+					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded = true, data = null, meta = "+skel.meta+" for "+en.getKey(), new NullPointerException());
 				else if(skel.meta == null)
-					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded = false, data = null, meta = null", new NullPointerException());
+					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded = false, data = null, meta = null for "+en.getKey(), new NullPointerException());
 				else {
 					// Should be safe to process it anyway
 					Logger.error(this, "Skeleton value in "+this+" : isLoaded = false, data = null, meta = "+skel.meta, new Exception("error"));

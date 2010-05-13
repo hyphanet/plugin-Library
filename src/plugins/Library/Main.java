@@ -483,6 +483,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
 					String key = entry.getKey();
 					SkeletonBTreeSet<TermEntry> tree = entry.getValue();
+					Logger.minor(this, "Processing: "+key+" : "+tree);
 					//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
 					if (tree == null) {
 						entry.setValue(tree = makeEntryTree());
@@ -490,6 +491,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					assert(tree.isBare());
 					tree.update(newtrees.get(key), null);
 					assert(tree.isBare());
+					Logger.minor(this, "Updated: "+key+" : "+tree);
 					//System.out.println("handled " + key);
 				}
 			};
