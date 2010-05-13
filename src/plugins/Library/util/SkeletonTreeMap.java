@@ -141,6 +141,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** Set the metadata for the {@link SkeletonValue} for a given key.
 	*/
 	public Object putGhost(K key, Object o) {
+		if(key == null) throw new IllegalArgumentException("No null keys");
 		if (o == null) {
 			throw new IllegalArgumentException("Cannot put a null dummy into the map. Use put(K, V) to mark an object as loaded.");
 		}
