@@ -157,7 +157,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return SkeletonBTreeMap.this.compare(t1.getKey(), t2.getKey());
 		}
 	};
-
+	
 	public class SkeletonNode extends Node implements Skeleton<K, IterableSerialiser<SkeletonNode>> {
 
 		protected int ghosts = 0;
@@ -904,9 +904,17 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			value_handler, VALUE_EXECUTOR, conv // These can block so pool them separately.
 		).autostart();
 		
+		final Comparator<DeflateNode> CMP_DEFLATE = new Comparator<DeflateNode>() {
+
+			public int compare(DeflateNode arg0, DeflateNode arg1) {
+				return arg0.node.compareTo(arg1.node);
+			}
+			
+		};
+
 		final ObjectProcessor<DeflateNode, SkeletonNode, TaskAbortException> proc_deflate =
 			new ObjectProcessor<DeflateNode, SkeletonNode, TaskAbortException>(
-					new PriorityBlockingQueue<DeflateNode>(0x10),
+					new PriorityBlockingQueue<DeflateNode>(0x10, CMP_DEFLATE),
 					new LinkedBlockingQueue<X2<DeflateNode, TaskAbortException>>(),
 					new HashMap<DeflateNode, SkeletonNode>(),
 					new Closure<DeflateNode, TaskAbortException>() {
