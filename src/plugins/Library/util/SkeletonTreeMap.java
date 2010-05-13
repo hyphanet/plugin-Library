@@ -430,6 +430,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** the user's discretion. This applies for CombinedEntry.setValue() too.
 	*/
 	@Override public V put(K key, V value) {
+		if(value == null) throw new NullPointerException();
+		if(key == null) throw new NullPointerException();
 		SkeletonValue<V> sk = skmap.get(key);
 		if (sk == null) { skmap.put(key, sk = new SkeletonValue<V>()); }
 		if (!sk.isLoaded) { --ghosts; }
