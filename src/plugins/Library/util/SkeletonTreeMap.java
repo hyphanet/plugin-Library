@@ -105,6 +105,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** Set the data and mark the value as loaded.
 		*/
 		public V set(V v) {
+			if(v == null) throw new NullPointerException();
 			V old = data;
 			data = v;
 			// meta = null; TODO LOW decide what to do with this.
@@ -116,6 +117,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** Set the metadata and mark the value as not loaded.
 		*/
 		public Object setGhost(Object m) {
+			if(m == null) throw new NullPointerException();
 			Object old = meta;
 			meta = m;
 			data = null;
@@ -267,6 +269,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 				// other keys may also have been inflated, so add them, but only if the
 				// generated metadata match.
 				PullTask<V> t = en.getValue();
+				if(t.data == null)
+					throw new DataFormatException("Inflate got null from PullTask for "+key+" on "+this, null, null, tasks, en.getKey());
 				SkeletonValue<V> sk = skmap.get(en.getKey());
 				if (sk == null) { throw new DataFormatException("SkeletonTreeMap got unexpected extra data from the serialiser.", null, sk, tasks, en.getKey()); }
 				if (sk.meta.equals(t.meta)) {
