@@ -105,7 +105,6 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** Set the data and mark the value as loaded.
 		*/
 		public V set(V v) {
-			if(v == null) throw new NullPointerException();
 			V old = data;
 			data = v;
 			// meta = null; TODO LOW decide what to do with this.
@@ -435,7 +434,6 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	** the user's discretion. This applies for CombinedEntry.setValue() too.
 	*/
 	@Override public V put(K key, V value) {
-		if(value == null) throw new NullPointerException();
 		if(key == null) throw new NullPointerException();
 		SkeletonValue<V> sk = skmap.get(key);
 		if (sk == null) { skmap.put(key, sk = new SkeletonValue<V>()); }
