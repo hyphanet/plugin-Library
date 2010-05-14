@@ -218,7 +218,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	static final String LAST_URL_FILENAME = "library.index.lastpushed.chk";
 	static final String PRIV_URI_FILENAME = "library.index.privkey";
 	static final String PUB_URI_FILENAME = "library.index.pubkey";
-	static final String EDITION_FILENAME = "library.index.edition";
+	static final String EDITION_FILENAME = "library.index.next-edition";
 	
 	static final String BASE_FILENAME_PUSH_DATA = "library.index.data.";
 	
