@@ -64,8 +64,9 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 			}
 			Map<Integer, String> pos = new HashMap<Integer, String>(size<<1);
 			for (int i=0; i<size; ++i) {
+				int index = dis.readInt();
 				String val = dis.readUTF();
-				pos.put(dis.readInt(), "".equals(val) ? null : val);
+				pos.put(index, "".equals(val) ? null : val);
 			}
 			return new TermPageEntry(subj, rel, page, title, pos);
 		default:
