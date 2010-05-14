@@ -146,21 +146,12 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 
 				public void run() {
 					synchronized(handlingSync) {
-						globalHandling = true;
-						handlingCount += oldToMerge.length;
-					}
-					// Run all the recovery jobs synchronously, and don't let anything else run until they are all finished.
-					for(String filename : oldToMerge) {
-						File f = new File(filename);
-						innerHandle(new FileBucket(f, true, false, false, false, true), f);
-						synchronized(handlingSync) {
-							if(pushBroken) return;
+						for(String filename : oldToMerge) {
+							File f = new File(filename);
+							toHandle.add(new FileBucket(f, true, false, false, false, true));
 						}
 					}
-					synchronized(handlingSync) {
-						globalHandling = false;
-						handlingSync.notifyAll();
-					}
+					innerHandle();
 				}
 				
 			};
@@ -207,14 +198,13 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 
 	private Object handlingSync = new Object();
 	private boolean runningHandler = false;
-	/** The number of pushes that are ahead of us in the queue */
-	private int handlingCount;
+	
+	private ArrayList<Bucket> toHandle;
 	static final int MAX_HANDLING_COUNT = 5; 
 	// When pushing is broken, allow max handling to reach this level before stalling forever to prevent running out of disk space.
 	private int PUSH_BROKEN_MAX_HANDLING_COUNT = 10;
 	// Don't use too much disk space, take into account fact that XMLSpider slows down over time.
 	
-	private boolean globalHandling;
 	private boolean pushBroken;
 	
 	ProtoIndexSerialiser srl = null;
@@ -252,22 +242,21 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 			final File pushFile = new File(BASE_FILENAME_PUSH_DATA+pn);
-			FileBucket output = new FileBucket(pushFile, false, false, false, false, true);
+			Bucket output = new FileBucket(pushFile, false, false, false, false, true);
 			try {
 				BucketTools.copy(data, output);
+				data.free();
 			} catch (IOException e1) {
 				System.err.println("Unable to back up push data #"+pn+" : "+e1);
 				e1.printStackTrace();
 				Logger.error(this, "Unable to back up push data #"+pn, e1);
+				output = data;
 			}
 			
 			synchronized(handlingSync) {
 				boolean waited = false;
-				while((handlingCount >= 0 || globalHandling) && !pushBroken) {
-					if(!globalHandling) 
-						Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish. Ahead of us in the queue: "+handlingCount);
-					else
-						Logger.error(this, "Waiting for merge of old data");
+				while(toHandle.size() > MAX_HANDLING_COUNT && !pushBroken) {
+					Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish. Ahead of us in the queue: "+toHandle.size());
 					try {
 						waited = true;
 						handlingSync.wait();
@@ -275,9 +264,9 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						// Ignore
 					}
 				}
-				handlingCount++;
+				toHandle.add(output);
 				if(pushBroken) {
-					if(handlingCount < PUSH_BROKEN_MAX_HANDLING_COUNT)
+					if(toHandle.size() < PUSH_BROKEN_MAX_HANDLING_COUNT)
 						// We have written the data, it will be recovered after restart.
 						Logger.error(this, "Pushing is broken, failing");
 					else {
@@ -296,11 +285,12 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				}
 				if(waited)
 					Logger.error(this, "Waited for previous handler to go away, moving on...");
+				if(runningHandler) return; // Already running, no need to restart it.
 			}
 			Runnable r = new Runnable() {
 				
 				public void run() {
-					innerHandle(data, pushFile);
+					innerHandle();
 				}
 				
 			};
@@ -312,12 +302,27 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 
 	}
 	
-	public void innerHandle(final Bucket data, final File pushFile) {
+	public void innerHandle() {
+		boolean first = true;
+		while(true) {
+		final Bucket data;
 		synchronized(handlingSync) {
-			if(runningHandler) {
+			if(first && runningHandler) {
 				Logger.error(this, "Already running a handler!");
 				return;
+			} else if((!first) && (!runningHandler)) {
+				Logger.error(this, "Already running yet runningHandler is false?!");
+				return;
 			}
+			first = false;
+			if(toHandle.size() == 0) {
+				Logger.minor(this, "Nothing to handle");
+				runningHandler = false;
+				handlingSync.notifyAll();
+				return;
+			}
+			data = toHandle.remove(0);
+			handlingSync.notifyAll();
 			runningHandler = true;
 		}
 		try {
@@ -412,32 +417,23 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 		}
-		try {
-			innerInnerHandle(data, pushFile);
-		} catch (RuntimeException t) {
-			synchronized(handlingSync) {
-				handlingCount--;
-				pushBroken = true;
-				handlingSync.notifyAll();
-			}
-			throw t;
-		} catch (Error t) {
-			synchronized(handlingSync) {
-				handlingCount--;
-				pushBroken = true;
-				handlingSync.notifyAll();
-			}
-			throw t;
-		}
-		} finally {
+		innerInnerHandle(data);
+		} catch (Throwable t) {
+			// Failed.
 			synchronized(handlingSync) {
 				runningHandler = false;
+				pushBroken = true;
+				handlingSync.notifyAll();
 			}
+			if(t instanceof RuntimeException)
+				throw (RuntimeException)t;
+			if(t instanceof Error)
+				throw (Error)t;
+		}
 		}
 	}
 	
-	protected void innerInnerHandle(Bucket data, File pushFile) {
-		try {
+	protected void innerInnerHandle(Bucket data) {
 			
 			if(FreenetArchiver.getCacheDir() == null) {
 				FreenetArchiver.setCacheDir(new File("library-spider-pushed-data-cache"));
@@ -525,7 +521,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				osw.write(uri.toASCIIString());
 				osw.close();
 				fos = null;
-				pushFile.delete();
+				data.free();
 			} catch (IOException e) {
 				Logger.error(this, "Failed to write URL of uploaded index: "+uri, e);
 				System.out.println("Failed to write URL of uploaded index: "+uri+" : "+e);
@@ -569,12 +565,6 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				}
 			}
 			
-		} finally {
-			synchronized(handlingSync) {
-				handlingCount--;
-				handlingSync.notifyAll();
-			}
-		}
 	}
 
 	protected static SkeletonBTreeSet<TermEntry> makeEntryTree() {
