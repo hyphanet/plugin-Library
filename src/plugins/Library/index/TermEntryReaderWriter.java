@@ -64,7 +64,8 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 			}
 			Map<Integer, String> pos = new HashMap<Integer, String>(size<<1);
 			for (int i=0; i<size; ++i) {
-				pos.put(dis.readInt(), dis.readUTF());
+				String val = dis.readUTF();
+				pos.put(dis.readInt(), "".equals(val) ? null : val);
 			}
 			return new TermPageEntry(subj, rel, page, title, pos);
 		default:
@@ -100,7 +101,10 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 			}
 			for (Map.Entry<Integer, String> p: enn.pos.entrySet()) {
 				dos.writeInt(p.getKey());
-				dos.writeUTF(p.getValue());
+				if(p.getValue() == null)
+					dos.writeUTF("");
+				else
+					dos.writeUTF(p.getValue());
 			}
 			return;
 		}
