@@ -206,6 +206,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	}
 
 	private Object handlingSync = new Object();
+	private boolean runningHandler = false;
 	/** The number of pushes that are ahead of us in the queue */
 	private int handlingCount;
 	static final int MAX_HANDLING_COUNT = 5; 
@@ -312,6 +313,14 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	}
 	
 	public void innerHandle(final Bucket data, final File pushFile) {
+		synchronized(handlingSync) {
+			if(runningHandler) {
+				Logger.error(this, "Already running a handler!");
+				return;
+			}
+			runningHandler = true;
+		}
+		try {
 		// FIXME symlink issues with writing straight to files?
 		// FIXME backup issues with writing straight to files? Factor out and do it properly.
 		if(lastUploadURI == null) {
@@ -419,6 +428,11 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				handlingSync.notifyAll();
 			}
 			throw t;
+		}
+		} finally {
+			synchronized(handlingSync) {
+				runningHandler = false;
+			}
 		}
 	}
 	
