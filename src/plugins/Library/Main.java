@@ -132,7 +132,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					if(!(arg1.toLowerCase().startsWith(BASE_FILENAME_PUSH_DATA))) return false;
 					File f = new File(arg0, arg1);
 					if(!f.isFile()) return false;
-					if(f.length() == 0) f.delete();
+					if(f.length() == 0) { f.delete(); return false; }
 					String s = f.getName().substring(BASE_FILENAME_PUSH_DATA.length());
 					pushNumber = Math.max(pushNumber, Long.parseLong(s)+1);
 					return true;
