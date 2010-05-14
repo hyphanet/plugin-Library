@@ -152,7 +152,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					// Run all the recovery jobs synchronously, and don't let anything else run until they are all finished.
 					for(String filename : oldToMerge) {
 						File f = new File(filename);
-						innerHandle(new FileBucket(f, true, false, false, false, true), f, true);
+						innerHandle(new FileBucket(f, true, false, false, false, true), f);
 						synchronized(handlingSync) {
 							if(pushBroken) return;
 						}
@@ -250,7 +250,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				pn = pushNumber++;
 			}
 			
-			File pushFile = new File(BASE_FILENAME_PUSH_DATA+pn);
+			final File pushFile = new File(BASE_FILENAME_PUSH_DATA+pn);
 			FileBucket output = new FileBucket(pushFile, false, false, false, false, true);
 			try {
 				BucketTools.copy(data, output);
@@ -296,14 +296,22 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				if(waited)
 					Logger.error(this, "Waited for previous handler to go away, moving on...");
 			}
-			innerHandle(data, pushFile, false);
+			Runnable r = new Runnable() {
+				
+				public void run() {
+					innerHandle(data, pushFile);
+				}
+				
+			};
+			pr.getNode().executor.execute(r, "Library: Handle data from XMLSpider");
+			
 		} else {
 			Logger.error(this, "Unknown command : \""+params.get("command"));
 		}
 
 	}
 	
-	public void innerHandle(final Bucket data, final File pushFile, boolean synchronous) {
+	public void innerHandle(final Bucket data, final File pushFile) {
 		// FIXME symlink issues with writing straight to files?
 		// FIXME backup issues with writing straight to files? Factor out and do it properly.
 		if(lastUploadURI == null) {
@@ -396,19 +404,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			
 		}
 		try {
-			Runnable r = new Runnable() {
-				
-				public void run() {
-					
-					innerInnerHandle(data, pushFile);
-					
-				}
-				
-			};
-			if(!synchronous)
-				pr.getNode().executor.execute(r, "Library: Handle data from XMLSpider");
-			else
-				r.run();
+			innerInnerHandle(data, pushFile);
 		} catch (RuntimeException t) {
 			synchronized(handlingSync) {
 				handlingCount--;
