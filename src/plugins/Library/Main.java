@@ -199,7 +199,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	private Object handlingSync = new Object();
 	private boolean runningHandler = false;
 	
-	private ArrayList<Bucket> toHandle;
+	private final ArrayList<Bucket> toHandle = new ArrayList<Bucket>();
 	static final int MAX_HANDLING_COUNT = 5; 
 	// When pushing is broken, allow max handling to reach this level before stalling forever to prevent running out of disk space.
 	private int PUSH_BROKEN_MAX_HANDLING_COUNT = 10;
