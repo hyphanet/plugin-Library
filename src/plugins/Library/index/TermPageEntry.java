@@ -64,8 +64,8 @@ public class TermPageEntry extends TermEntry {
 		if (u == null) {
 			throw new IllegalArgumentException("can't have a null page");
 		}
-		page = u; // OPT LOW make the translator use the same URI object as from the URI table?
-		title = t;
+		page = u.intern(); // OPT LOW make the translator use the same URI object as from the URI table?
+		title = t == null ? null : t.intern();
 		pos = (p == null)? Collections.<Integer, String>emptyMap(): Collections.unmodifiableMap(p); // OPT NORM could be more efficient...
 	}
 

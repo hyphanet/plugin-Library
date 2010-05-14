@@ -24,9 +24,7 @@ public class TermIndexEntry extends TermEntry {
 		if (i == null) {
 			throw new IllegalArgumentException("can't have a null index");
 		}
-		// OPT LOW have some intern pool of FreenetURIs like we have for Token.
-		// Or just use a string instead?
-		index = i;
+		index = i.intern();
 	}
 
 	/*========================================================================
