@@ -12,6 +12,7 @@ import freenet.support.io.FileBucket;
 import freenet.support.io.NativeThread;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedSet;
@@ -261,7 +262,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			
 			synchronized(handlingSync) {
 				boolean waited = false;
-				while((handlingCount >= MAX_HANDLING_COUNT || globalHandling) && !pushBroken) {
+				while((handlingCount >= 0 || globalHandling) && !pushBroken) {
 					if(!globalHandling) 
 						Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish. Ahead of us in the queue: "+handlingCount);
 					else
