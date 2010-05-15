@@ -29,8 +29,9 @@ public class TermPageEntry extends TermEntry {
 	*/
 	final public FreenetURI page;
 
-	/** Positions where the term occurs. May be null if we don't have that data. */
-	final public SortedIntSet positions;
+	/** Positions where the term occurs. May be null if we don't have that data. 
+	 * Specified as SortedSet<Integer> for ObjectBlueprint but will really always be a SortedIntSet. */
+	final public Set<Integer> positions;
 	
 	/**
 	** Map from positions in the text to a fragment of text around where it occurs.
@@ -99,16 +100,19 @@ public class TermPageEntry extends TermEntry {
 		}
 		page = u.intern(); // OPT LOW make the translator use the same URI object as from the URI table?
 		title = null;
-		if(pos instanceof SortedIntSet)
-			this.positions = (SortedIntSet) pos;
-		else {
-			Integer[] p = pos.toArray(new Integer[pos.size()]);
-			int[] pp = new int[p.length];
-			for(int i=0;i<pp.length;i++) pp[i] = p[i];
-			if(!(pos instanceof SortedSet))
-				Arrays.sort(pp);
-			this.positions = new SortedIntSet(pp);
-		}
+		if(pos != null) {
+			if(pos instanceof SortedIntSet)
+				this.positions = (SortedIntSet) pos;
+			else {
+				Integer[] p = pos.toArray(new Integer[pos.size()]);
+				int[] pp = new int[p.length];
+				for(int i=0;i<pp.length;i++) pp[i] = p[i];
+				if(!(pos instanceof SortedSet))
+					Arrays.sort(pp);
+				this.positions = new SortedIntSet(pp);
+			}
+		} else
+			positions = null;
 		this.posFragments = frags;
 	}
 
@@ -152,10 +156,19 @@ public class TermPageEntry extends TermEntry {
 		if(positions == null) return null;
 		if(posFragments != null) return posFragments;
 		HashMap<Integer, String> ret = new HashMap<Integer, String>(positions.size());
-		int[] array = positions.toArrayRaw();
-		for(int x : array)
-			ret.put(x, null);
-		return ret;
+		if(positions instanceof SortedIntSet) {
+			int[] array = ((SortedIntSet)positions).toArrayRaw();
+			for(int x : array)
+				ret.put(x, null);
+			return ret;
+		} else {
+			Integer[] array = positions.toArray(new Integer[positions.size()]);
+			if(!(positions instanceof SortedSet))
+				Arrays.sort(array);
+			for(int x : array)
+				ret.put(x, null);
+			return ret;
+		}
 	}
 
 	public boolean hasPosition(int i) {
@@ -163,15 +176,35 @@ public class TermPageEntry extends TermEntry {
 	}
 
 	public ArrayList<Integer> positions() {
-		int[] array = positions.toArrayRaw();
-		ArrayList<Integer> pos = new ArrayList<Integer>(array.length);
-		for(int x : array)
-			pos.add(x);
-		return pos;
+		if(positions instanceof SortedIntSet) {
+			int[] array = ((SortedIntSet)positions).toArrayRaw();
+			ArrayList<Integer> pos = new ArrayList<Integer>(array.length);
+			for(int x : array)
+				pos.add(x);
+			return pos;
+		} else {
+			Integer[] array = positions.toArray(new Integer[positions.size()]);
+			if(!(positions instanceof SortedSet))
+				Arrays.sort(array);
+			ArrayList<Integer> ret = new ArrayList<Integer>(positions.size());
+			for(int i=0;i<array.length;i++) ret.add(array[i]);
+			return ret;
+		}
 	}
 
 	public int[] positionsRaw() {
-		return positions.toArrayRaw();
+		if(positions instanceof SortedIntSet) {
+			return ((SortedIntSet)positions).toArrayRaw();
+		} else {
+			int[] ret = new int[positions.size()];
+			Integer[] r = new Integer[positions.size()];
+			r = positions.toArray(r);
+			for(int i=0;i<ret.length;i++)
+				ret[i] = r[i];
+			if(!(positions instanceof SortedSet))
+				Arrays.sort(ret);
+			return ret;
+		}
 	}
 
 	public int positionsSize() {
