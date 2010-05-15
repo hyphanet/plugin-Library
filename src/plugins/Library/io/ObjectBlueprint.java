@@ -306,7 +306,7 @@ public class ObjectBlueprint<T> {
 					value = type.cast(value);
 				}
 			} catch (ClassCastException e) {
-				throw new IllegalArgumentException("Parameter for property " +property+ " is not of the correct type", e);
+				throw new IllegalArgumentException("Parameter for property " +property+ " is not of the correct type should be "+type+" but is "+value.getClass(), e);
 			}
 			initargs[i++] = value;
 		}
