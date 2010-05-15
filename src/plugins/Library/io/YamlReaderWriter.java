@@ -111,7 +111,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		try {
 			tebp_term = new ObjectBlueprint<TermTermEntry>(TermTermEntry.class, Arrays.asList("subj", "rel", "term"));
 			tebp_index = new ObjectBlueprint<TermIndexEntry>(TermIndexEntry.class, Arrays.asList("subj", "rel", "index"));
-			tebp_page = new ObjectBlueprint<TermPageEntry>(TermPageEntry.class, Arrays.asList("subj", "rel", "page", "pos"));
+			tebp_page = new ObjectBlueprint<TermPageEntry>(TermPageEntry.class, Arrays.asList("subj", "rel", "page", "positions", "posFragments"));
 		} catch (NoSuchFieldException e) {
 			throw new AssertionError(e);
 		} catch (NoSuchMethodException e) {

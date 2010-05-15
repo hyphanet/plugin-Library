@@ -94,18 +94,28 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 		case PAGE:
 			TermPageEntry enn = (TermPageEntry)en;
 			enn.page.writeFullBinaryKeyWithLength(dos);
-			if (enn.title == null) {
-				dos.writeInt(enn.pos.size());
-			} else {
-				dos.writeInt(~enn.pos.size()); // invert bits to signify title is set
+			int size = enn.hasPositions() ? enn.positionsSize() : 0;
+			if(enn.title == null)
+				dos.writeInt(size);
+			else {
+				dos.writeInt(~size); // invert bits to signify title is set
 				dos.writeUTF(enn.title);
 			}
-			for (Map.Entry<Integer, String> p: enn.pos.entrySet()) {
-				dos.writeInt(p.getKey());
-				if(p.getValue() == null)
-					dos.writeUTF("");
-				else
-					dos.writeUTF(p.getValue());
+			if(size != 0) {
+				if(enn.hasFragments()) {
+					for(Map.Entry<Integer, String> p : enn.positionsMap().entrySet()) {
+						dos.writeInt(p.getKey());
+						if(p.getValue() == null)
+							dos.writeUTF("");
+						else
+							dos.writeUTF(p.getValue());
+					}
+				} else {
+					for(int x : enn.positionsRaw()) {
+						dos.writeInt(x);
+						dos.writeUTF("");
+					}
+				}
 			}
 			return;
 		}

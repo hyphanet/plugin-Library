@@ -6,7 +6,10 @@ package plugins.Library.index;
 import plugins.Library.index.TermEntry.EntryType;
 
 import freenet.keys.FreenetURI;
+import freenet.support.SortedIntSet;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,11 +27,15 @@ public class TermPageEntry extends TermEntry {
 	*/
 	final public FreenetURI page;
 
+	/** Positions where the term occurs. May be null if we don't have that data. */
+	private final SortedIntSet positions;
+	
 	/**
-	** Positions in the document where the term occurs, and an optional
-	** fragment of text surrounding this.
+	** Map from positions in the text to a fragment of text around where it occurs.
+	** Only non-null if we have the fragments of text (we may have positions but not details), 
+	** to save memory.
 	*/
-	final public Map<Integer, String> pos;
+	private final Map<Integer, String> posFragments;
 
 	/**
 	** Here for backwards-compatibility with the old URIWrapper class.
@@ -66,7 +73,18 @@ public class TermPageEntry extends TermEntry {
 		}
 		page = u.intern(); // OPT LOW make the translator use the same URI object as from the URI table?
 		title = t == null ? null : t.intern();
-		pos = (p == null)? Collections.<Integer, String>emptyMap(): Collections.unmodifiableMap(p); // OPT NORM could be more efficient...
+		if(p == null) {
+			posFragments = null;
+			positions = null;
+		} else {
+			posFragments = Collections.unmodifiableMap(p);
+			int[] pos = new int[p.size()];
+			int x = 0;
+			for(Integer i : p.keySet())
+				pos[x++] = i;
+			Arrays.sort(pos);
+			positions = new SortedIntSet(pos);
+		}
 	}
 
 	/*========================================================================
@@ -97,6 +115,47 @@ public class TermPageEntry extends TermEntry {
 
 	@Override public int hashCode() {
 		return super.hashCode() ^ page.hashCode();
+	}
+
+	/** Do we have term positions? Just because we do doesn't necessarily mean we have fragments. */
+	public boolean hasPositions() {
+		return positions != null;
+	}
+
+	/** Get the positions to fragments map. If we don't have fragments, create this from the positions list. */
+	public Map<Integer, String> positionsMap() {
+		if(positions == null) return null;
+		if(posFragments != null) return posFragments;
+		HashMap<Integer, String> ret = new HashMap<Integer, String>(positions.size());
+		int[] array = positions.toArrayRaw();
+		for(int x : array)
+			ret.put(x, null);
+		return ret;
+	}
+
+	public boolean hasPosition(int i) {
+		return positions.contains(i);
+	}
+
+	public ArrayList<Integer> positions() {
+		int[] array = positions.toArrayRaw();
+		ArrayList<Integer> pos = new ArrayList<Integer>(array.length);
+		for(int x : array)
+			pos.add(x);
+		return pos;
+	}
+
+	public int[] positionsRaw() {
+		return positions.toArrayRaw();
+	}
+
+	public int positionsSize() {
+		if(positions == null) return 0;
+		return positions.size();
+	}
+
+	public boolean hasFragments() {
+		return posFragments != null;
 	}
 
 }

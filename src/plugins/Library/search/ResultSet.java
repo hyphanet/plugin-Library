@@ -302,9 +302,9 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 				continue;
 			// if term entry is followed in all the others, add it to this
 			TermPageEntry termPageEntry = (TermPageEntry)termEntry;
-			if(termPageEntry.pos == null)
+			if(!termPageEntry.hasPositions())
 				continue;
-			Map<Integer, String> positions = new HashMap(termPageEntry.pos);
+			Map<Integer, String> positions = new HashMap(termPageEntry.positionsMap());
 
 			int i;	// Iterate over the other collections, checking for following
 			for (i = 1; positions != null && i < collections.length && positions.size() > 0; i++) {
@@ -313,15 +313,15 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 					continue;	// Treat stop words as blanks, dont check
 				// See if collection follows termEntry
 				TermPageEntry termPageEntry1 = (TermPageEntry)getIgnoreSubject(termPageEntry, collection);
-				if(termPageEntry1==null || termPageEntry1.pos==null)	// If collection doesnt contain this termpageentry or has not positions, it does not follow
+				if(termPageEntry1==null || !termPageEntry1.hasPositions())	// If collection doesnt contain this termpageentry or has not positions, it does not follow
 					positions = null;
 				else{
 					for (Iterator<Integer> it = positions.keySet().iterator(); it.hasNext();) {
 						int posi = it.next();
-						if ( !termPageEntry1.pos.containsKey(posi+i) )
+						if ( !termPageEntry1.hasPosition(posi+i))
 							it.remove();
 						else
-							Logger.minor(this, termPageEntry.page + "["+positions.keySet()+"] is followed by "+termPageEntry1.page+"["+termPageEntry1.pos.keySet()+"] +"+i);
+							Logger.minor(this, termPageEntry.page + "["+positions.keySet()+"] is followed by "+termPageEntry1.page+"["+termPageEntry1.positions()+"] +"+i);
 					}
 				}
 			}
@@ -340,7 +340,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 		if (termEntry instanceof TermTermEntry)
 			entry = new TermTermEntry(subject, rel, ((TermTermEntry)termEntry).term );
 		else if (termEntry instanceof TermPageEntry)
-			entry = new TermPageEntry(subject, rel, ((TermPageEntry)termEntry).page, ((TermPageEntry)termEntry).title, ((TermPageEntry)termEntry).pos );
+			entry = new TermPageEntry(subject, rel, ((TermPageEntry)termEntry).page, ((TermPageEntry)termEntry).title, ((TermPageEntry)termEntry).positionsMap() );
 		else if (termEntry instanceof TermIndexEntry)
 			entry = new TermIndexEntry(subject, rel, ((TermIndexEntry)termEntry).index );
 		else
@@ -370,7 +370,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 		if(combination instanceof TermIndexEntry){
 			combination = new TermIndexEntry(subject, entries[0].rel, ((TermIndexEntry)combination).index);
 		} else if(combination instanceof TermPageEntry){
-			combination = new TermPageEntry(subject, entries[0].rel, ((TermPageEntry)combination).page, ((TermPageEntry)combination).title, ((TermPageEntry)combination).pos);
+			combination = new TermPageEntry(subject, entries[0].rel, ((TermPageEntry)combination).page, ((TermPageEntry)combination).title, ((TermPageEntry)combination).positionsMap());
 		} else if(combination instanceof TermTermEntry){
 			combination = new TermTermEntry(subject, entries[0].rel, ((TermTermEntry)combination).term);
 		} else
@@ -395,12 +395,12 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 			TermPageEntry pageentry2 = (TermPageEntry)entry2;
 			// Merge positions
 			Map newPos = null;
-			if(pageentry1.pos == null && pageentry2.pos != null)
-				newPos = new HashMap(pageentry2.pos);
-			else if(pageentry1.pos != null){
-				newPos = new HashMap(pageentry1.pos);
-				if(pageentry2.pos != null)
-					newPos.putAll(pageentry2.pos);
+			if((!pageentry1.hasPositions()) && pageentry2.hasPositions())
+				newPos = new HashMap(pageentry2.positionsMap());
+			else if(pageentry1.hasPositions()){
+				newPos = new HashMap(pageentry1.positionsMap());
+				if(pageentry2.hasPositions())
+					newPos.putAll(pageentry2.positionsMap());
 			}
 			return new TermPageEntry(pageentry1.subj, newRel, pageentry1.page, (pageentry1.title!=null)?pageentry1.title:pageentry2.title, newPos);
 
