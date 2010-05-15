@@ -451,6 +451,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 			FileWriter w = null;
+			// FIXME do a disk-tree-to-disk-tree merge??? Would allow much bigger data ...
 			final Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
 			final SortedSet<String> terms = new TreeSet<String>();
 			int entriesAdded = 0;
@@ -497,6 +498,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					}
 					assert(tree.isBare());
 					tree.update(newtrees.get(key), null);
+					newtrees.remove(key);
 					assert(tree.isBare());
 					Logger.minor(this, "Updated: "+key+" : "+tree);
 					//System.out.println("handled " + key);
