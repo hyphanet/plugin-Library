@@ -450,7 +450,9 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	protected void innerInnerHandle(Bucket data) {
 			
 			if(FreenetArchiver.getCacheDir() == null) {
-				FreenetArchiver.setCacheDir(new File("library-spider-pushed-data-cache"));
+				File dir = new File("library-spider-pushed-data-cache");
+				dir.mkdir();
+				FreenetArchiver.setCacheDir(dir);
 			}
 			
 			if(srl == null) {
