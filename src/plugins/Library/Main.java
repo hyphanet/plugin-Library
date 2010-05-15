@@ -511,16 +511,13 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					//System.out.println("handled " + key);
 				}
 			};
-			// Synchronize anyway so garbage collector knows about it.
-			synchronized(this) {
-				newtrees = null;
-			}
 			try {
 			long mergeStartTime = System.currentTimeMillis();
 			assert(idx.ttab.isBare());
 			idx.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
 			// Synchronize anyway so garbage collector knows about it.
 			synchronized(this) {
+				newtrees = null;
 				terms = null;
 			}
 			assert(idx.ttab.isBare());
