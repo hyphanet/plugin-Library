@@ -140,6 +140,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		((SkeletonNode)root).setSerialiser();
 	}
 
+	static volatile boolean logMINOR;
+	static volatile boolean logDEBUG;
+	
+	static {
+		Logger.registerClass(SkeletonBTreeMap.class);
+	}
+	
 	final public Comparator<PullTask<SkeletonNode>> CMP_PULL = new Comparator<PullTask<SkeletonNode>>() {
 		/*@Override**/ public int compare(PullTask<SkeletonNode> t1, PullTask<SkeletonNode> t2) {
 			return ((GhostNode)t1.meta).compareTo((GhostNode)t2.meta);
@@ -882,7 +889,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			public void invoke(Map.Entry<K, V> en) {
 				assert(node.entries.containsKey(en.getKey()));
 				node.entries.put(en.getKey(), en.getValue());
-				Logger.minor(this, "New value for key "+en.getKey()+" : "+en.getValue()+" in "+node+" parent = "+parNClo);
+				if(logMINOR) Logger.minor(this, "New value for key "+en.getKey()+" : "+en.getValue()+" in "+node+" parent = "+parNClo);
 			}
 
 			public void deflate() throws TaskAbortException {
@@ -1069,7 +1076,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				//assert(((UpdateValue)value_closures.get(key)).node == node);
 				proc_val.update($K(key, (V)null), clo);
 				// FIXME what if it has already run???
-				Logger.minor(this, "Reassigning key "+key+" to "+clo+" on "+this+" parent="+parent+" parent split node "+parNClo+" parent deflate node "+parVClo);
+				if(logMINOR) Logger.minor(this, "Reassigning key "+key+" to "+clo+" on "+this+" parent="+parent+" parent split node "+parNClo+" parent deflate node "+parVClo);
 				// nodeVClo.release(key);
 				// this is unnecessary since nodeVClo() will only be used if we did not
 				// split its node (and never called this method)
@@ -1196,7 +1203,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			private void handleLocalPut(SkeletonNode n, K key, DeflateNode vClo) {
 				V oldval = n.entries.put(key, null);
 				vClo.acquire(key);
-				Logger.minor(this, "handleLocalPut for key "+key+" old value "+oldval+" for deflate node "+vClo+" - passing to proc_val");
+				if(logMINOR) Logger.minor(this, "handleLocalPut for key "+key+" old value "+oldval+" for deflate node "+vClo+" - passing to proc_val");
 				ObjectProcessor.submitSafe(proc_val, $K(key, oldval), vClo);
 			}
 

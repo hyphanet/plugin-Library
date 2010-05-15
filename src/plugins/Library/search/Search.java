@@ -5,6 +5,7 @@ package plugins.Library.search;
 
 import plugins.Library.Library;
 import plugins.Library.index.TermEntry;
+import plugins.Library.index.xml.XMLIndex;
 import plugins.Library.util.exec.Execution;
 import plugins.Library.util.exec.AbstractExecution;
 import plugins.Library.util.exec.ProgressParts;
@@ -65,6 +66,12 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 	private enum SearchStatus { Unstarted, Busy, Combining_First, Combining_Last, Formatting, Done };
 	private SearchStatus status = SearchStatus.Unstarted;
 
+	static volatile boolean logMINOR;
+	static volatile boolean logDEBUG;
+	
+	static {
+		Logger.registerClass(Search.class);
+	}
 
 	private synchronized static void storeSearch(Search search){
 		allsearches.put(search.getSubject(), search);
@@ -95,7 +102,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		if (hasSearch(search, indexuri))
 			return getSearch(search, indexuri);
 
-		Logger.minor(Search.class, "Starting new search for "+search+" in "+indexuri);
+		if(logMINOR) Logger.minor(Search.class, "Starting new search for "+search+" in "+indexuri);
 
 		String[] indices = indexuri.split("[ ;]");
 		if(indices.length<1 || search.trim().length()<1)
@@ -193,7 +200,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		}
 
 		storeSearch(this);
-		Logger.minor(this, "Created Search object for with subRequests :"+subsearches);
+		if(logMINOR) Logger.minor(this, "Created Search object for with subRequests :"+subsearches);
 	}
 
 	/**
@@ -245,7 +252,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		if(query.matches("\\A\"[^\"]*\"\\Z")){
 			ArrayList<Execution<Set<TermEntry>>> phrasesearches = new ArrayList();
 			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split("[^\\p{L}\\d]+");
-			Logger.minor(Search.class, "Phrase split"+query);
+			if(logMINOR) Logger.minor(Search.class, "Phrase split"+query);
 			for (String subquery : phrase){
 				Search term = startSearch(subquery, indexuri);
 				phrasesearches.add(term);
@@ -272,7 +279,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 
 
 
-		Logger.minor(Search.class, "Splitting " + query);
+		if(logMINOR) Logger.minor(Search.class, "Splitting " + query);
 		String formattedquery="";
 		// Remove phrases, place them in arraylist and replace tem with references to the arraylist
 		ArrayList<String> phrases = new ArrayList();
@@ -293,18 +300,18 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		
 		
 		
-		Logger.minor(Search.class, "phrases removed query : "+formattedquery);
+		if(logMINOR) Logger.minor(Search.class, "phrases removed query : "+formattedquery);
 
 		// treat hyphens as phrases, as they are treated equivalently in spider so this is the most effective way now
 		query = query.replaceAll("((?:[\\d\\p{L}]+-)+[\\d\\p{L}]+)", "\"$1\"");
-		Logger.minor(Search.class, "Treat hyphenated words as phrases");
+		if(logMINOR) Logger.minor(Search.class, "Treat hyphenated words as phrases");
 
 		if(!query.contains("\"")){	// dont do the other splitting operations as we need to put phrases back in and call self
 			formattedquery = formattedquery.replaceAll("\\s+or\\s+", "||");
 			formattedquery = formattedquery.replaceAll("\\s+(?:not\\s*|-)(\\S+)", "^^($1)");
-			Logger.minor(Search.class, "not query : "+formattedquery);
+			if(logMINOR) Logger.minor(Search.class, "not query : "+formattedquery);
 			formattedquery = formattedquery.replaceAll("\\s+", "&&");
-			Logger.minor(Search.class, "and query : "+formattedquery);
+			if(logMINOR) Logger.minor(Search.class, "and query : "+formattedquery);
 		}
 
 		// Put phrases back in
@@ -312,10 +319,10 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		formattedquery=phraseparts[0];
 		for (int i = 1; i < phraseparts.length; i++) {
 			String string = phraseparts[i];
-			Logger.minor(Search.class, "replacing phrase "+string.replaceFirst("(\\d+).*", "$1"));
+			if(logMINOR) Logger.minor(Search.class, "replacing phrase "+string.replaceFirst("(\\d+).*", "$1"));
 			formattedquery += "\""+ phrases.get(Integer.parseInt(string.replaceFirst("(\\d+).*", "$1"))) +"\"" + string.replaceFirst("\\d+£(.*)", "$1");
 		}
-		Logger.minor(Search.class, "phrase back query : "+formattedquery);
+		if(logMINOR) Logger.minor(Search.class, "phrase back query : "+formattedquery);
 
 		if(query.contains("\""))	// recall self to remove phrases
 			return splitQuery(query, indexuri);
@@ -446,7 +453,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 	 * @return List of Progresses this search depends on, it will not return CompositeProgresses
 	 */
 	public List<? extends Progress> getSubProgress(){
-		Logger.minor(this, toString());
+		if(logMINOR) Logger.minor(this, toString());
 
 		if (subsearches == null)
 			return null;

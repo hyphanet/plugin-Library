@@ -53,6 +53,12 @@ public class LibrarianHandler extends DefaultHandler {
 	private FreenetURI inFileURI;
 	private int inFileWordCount;
 
+	static volatile boolean logMINOR;
+	static volatile boolean logDEBUG;
+	
+	static {
+		Logger.registerClass(LibrarianHandler.class);
+	}
 
 	/**
 	 * Construct a LibrarianHandler to look for many terms
@@ -95,7 +101,7 @@ public class LibrarianHandler extends DefaultHandler {
 			String fileCount = attrs.getValue("", "totalFileCount");
 			if(fileCount != null)
 				this.totalFileCount = Integer.parseInt(fileCount);
-			Logger.minor(this, "totalfilecount = "+this.totalFileCount);
+			if(logMINOR) Logger.minor(this, "totalfilecount = "+this.totalFileCount);
 		}
 		if (elt_name.equals("keywords"))
 			processingWord = true;
@@ -114,7 +120,7 @@ public class LibrarianHandler extends DefaultHandler {
 						if (match.equals(r.getSubject())){
 							wordMatches.add(r);
 							it.remove();
-							Logger.minor(this, "found word match "+wordMatches);
+							if(logMINOR) Logger.minor(this, "found word match "+wordMatches);
 						}
 					}
 					if (attrs.getValue("fileCount")!=null)
@@ -172,7 +178,7 @@ public class LibrarianHandler extends DefaultHandler {
 									wordCounts.put(id, wordCount);
 								}
 							} catch (Exception e) {
-								//Logger.minor(this, "No wordcount found " + e.toString(), e);
+								//if(logMINOR) Logger.minor(this, "No wordcount found " + e.toString(), e);
 							}
 						}
 						uris.put(id, key);
@@ -214,17 +220,17 @@ public class LibrarianHandler extends DefaultHandler {
 				Set<TermPageEntry> result = match.getUnfinishedResult();
 				float relevance = 0;
 
-//					Logger.minor(this, "termcount "+termpositions.size()+" filewordcount = "+inFileWordCount);
+//					if(logMINOR) Logger.minor(this, "termcount "+termpositions.size()+" filewordcount = "+inFileWordCount);
 				if(termpositions!=null && termpositions.size()>0 && inFileWordCount>0 ){
 					relevance = (float)(termpositions.size()/(float)inFileWordCount);
 					if( totalFileCount > 0 && inWordFileCount > 0)
 						relevance *=  Math.log( (float)totalFileCount/(float)inWordFileCount);
-					//Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.rel+" - "+pageEntry.toString());
+					//if(logMINOR) Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.rel+" - "+pageEntry.toString());
 				}
 
 				TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), relevance, inFileURI, inFileTitle, termpositions);
 				result.add(pageEntry);
-				//Logger.minor(this, "added "+inFileURI+ " to "+ match);
+				//if(logMINOR) Logger.minor(this, "added "+inFileURI+ " to "+ match);
 			}
 		}
 	}

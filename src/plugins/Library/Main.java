@@ -59,6 +59,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.security.MessageDigest;
 import plugins.Library.index.TermEntryReaderWriter;
+import plugins.Library.index.xml.LibrarianHandler;
 import plugins.Library.io.serial.Serialiser.PushTask;
 
 /**
@@ -71,6 +72,13 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	private static PluginRespirator pr;
 	private Library library;
 	private WebInterface webinterface;
+	
+	static volatile boolean logMINOR;
+	static volatile boolean logDEBUG;
+	
+	static {
+		Logger.registerClass(Main.class);
+	}
 
 	public static PluginRespirator getPluginRespirator() {
 		return pr;
@@ -316,7 +324,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			first = false;
 			if(toHandle.size() == 0) {
-				Logger.minor(this, "Nothing to handle");
+				if(logMINOR) Logger.minor(this, "Nothing to handle");
 				runningHandler = false;
 				handlingSync.notifyAll();
 				return;
@@ -498,7 +506,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
 					String key = entry.getKey();
 					SkeletonBTreeSet<TermEntry> tree = entry.getValue();
-					Logger.minor(this, "Processing: "+key+" : "+tree);
+					if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
 					//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
 					if (tree == null) {
 						entry.setValue(tree = makeEntryTree());
@@ -507,7 +515,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					tree.update(newtrees.get(key), null);
 					newtrees.remove(key);
 					assert(tree.isBare());
-					Logger.minor(this, "Updated: "+key+" : "+tree);
+					if(logMINOR) Logger.minor(this, "Updated: "+key+" : "+tree);
 					//System.out.println("handled " + key);
 				}
 			};
