@@ -433,6 +433,12 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		}
 	}
 	
+	// This is a member variable because it is huge, and having huge stuff in local variables seems to upset the default garbage collector.
+	// It doesn't need to be synchronized because it's always used from innerInnerHandle, which never runs in parallel.
+	private Map<String, SortedSet<TermEntry>> newtrees;
+	// Ditto
+	private SortedSet<String> terms;
+	
 	protected void innerInnerHandle(Bucket data) {
 			
 			if(FreenetArchiver.getCacheDir() == null) {
@@ -452,8 +458,9 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			
 			FileWriter w = null;
 			// FIXME do a disk-tree-to-disk-tree merge??? Would allow much bigger data ...
-			final Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
-			final SortedSet<String> terms = new TreeSet<String>();
+			newtrees = new HashMap<String, SortedSet<TermEntry>>();
+			terms = new TreeSet<String>();
+			try {
 			int entriesAdded = 0;
 			try {
 				Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes, not implemented yet, saved to file : buffer");
@@ -504,10 +511,18 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					//System.out.println("handled " + key);
 				}
 			};
+			// Synchronize anyway so garbage collector knows about it.
+			synchronized(this) {
+				newtrees = null;
+			}
 			try {
 			long mergeStartTime = System.currentTimeMillis();
 			assert(idx.ttab.isBare());
 			idx.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
+			// Synchronize anyway so garbage collector knows about it.
+			synchronized(this) {
+				terms = null;
+			}
 			assert(idx.ttab.isBare());
 			PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
 			srl.push(task4);
@@ -566,7 +581,12 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					pushBroken = true;
 				}
 			}
-			
+			} finally {
+				synchronized(this) {
+					newtrees = null;
+					terms = null;
+				}
+			}
 	}
 
 	protected static SkeletonBTreeSet<TermEntry> makeEntryTree() {
