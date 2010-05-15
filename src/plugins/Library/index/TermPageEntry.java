@@ -28,14 +28,14 @@ public class TermPageEntry extends TermEntry {
 	final public FreenetURI page;
 
 	/** Positions where the term occurs. May be null if we don't have that data. */
-	private final SortedIntSet positions;
+	final public SortedIntSet positions;
 	
 	/**
 	** Map from positions in the text to a fragment of text around where it occurs.
 	** Only non-null if we have the fragments of text (we may have positions but not details), 
 	** to save memory.
 	*/
-	private final Map<Integer, String> posFragments;
+	final public Map<Integer, String> posFragments;
 
 	/**
 	** Here for backwards-compatibility with the old URIWrapper class.
@@ -52,7 +52,7 @@ public class TermPageEntry extends TermEntry {
 	**          surrounding it).
 	*/
 	public TermPageEntry(String s, float r, FreenetURI u, Map<Integer, String> p) {
-		this(s, r, u, null, p);
+		this(s, r, u, (String)null, p);
 	}
 
 	/**
@@ -85,6 +85,20 @@ public class TermPageEntry extends TermEntry {
 			Arrays.sort(pos);
 			positions = new SortedIntSet(pos);
 		}
+	}
+
+	/**
+	** For serialisation.
+	*/
+	public TermPageEntry(String s, float r, FreenetURI u, SortedIntSet pos, Map<Integer, String> frags) {
+		super(s, r);
+		if (u == null) {
+			throw new IllegalArgumentException("can't have a null page");
+		}
+		page = u.intern(); // OPT LOW make the translator use the same URI object as from the URI table?
+		title = null;
+		this.positions = pos;
+		this.posFragments = frags;
 	}
 
 	/*========================================================================
