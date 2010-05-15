@@ -1456,4 +1456,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	}
 
+	public String toString() {
+		// Default toString for an AbstractCollection dumps everything underneath it.
+		// We don't want that here, especially as they may not be loaded.
+		return getClass().getName() + "@" + System.identityHashCode(this)+":size="+size;
+	}
+	
 }
