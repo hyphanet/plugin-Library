@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
 
 /**
 ** A {@link TermEntry} that associates a subject term with a final target
@@ -90,14 +92,23 @@ public class TermPageEntry extends TermEntry {
 	/**
 	** For serialisation.
 	*/
-	public TermPageEntry(String s, float r, FreenetURI u, SortedIntSet pos, Map<Integer, String> frags) {
+	public TermPageEntry(String s, float r, FreenetURI u, Set<Integer> pos, Map<Integer, String> frags) {
 		super(s, r);
 		if (u == null) {
 			throw new IllegalArgumentException("can't have a null page");
 		}
 		page = u.intern(); // OPT LOW make the translator use the same URI object as from the URI table?
 		title = null;
-		this.positions = pos;
+		if(pos instanceof SortedIntSet)
+			this.positions = (SortedIntSet) pos;
+		else {
+			Integer[] p = pos.toArray(new Integer[pos.size()]);
+			int[] pp = new int[p.length];
+			for(int i=0;i<pp.length;i++) pp[i] = p[i];
+			if(!(pos instanceof SortedSet))
+				Arrays.sort(pp);
+			this.positions = new SortedIntSet(pp);
+		}
 		this.posFragments = frags;
 	}
 
