@@ -241,7 +241,8 @@ final public class Library implements URLUpdateHook {
 			return XMLIndex.class;
 		if(indexuri.lastMetaString()!=null && indexuri.lastMetaString().equals(ProtoIndex.DEFAULT_FILE))
 			return ProtoIndex.class;
-
+		if(indexuri.isUSK() && indexuri.getDocName().equals(ProtoIndex.DEFAULT_FILE))
+			return ProtoIndex.class;
 
 		NodeClientCore core = pr.getNode().clientCore;
 		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
