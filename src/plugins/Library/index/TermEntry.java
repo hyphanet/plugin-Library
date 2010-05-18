@@ -46,6 +46,11 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 		rel = r;
 	}
 
+	public TermEntry(TermEntry t, float newRel) {
+		this.subj = t.subj;
+		this.rel = newRel;
+	}
+
 	/**
 	** Returns the type of TermEntry. This '''must''' be constant for
 	** instances of the same class, and different between classes.

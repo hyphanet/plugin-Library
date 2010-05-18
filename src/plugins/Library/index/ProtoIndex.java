@@ -21,6 +21,8 @@ import plugins.Library.util.concurrent.Executors;
 
 import freenet.keys.FreenetURI;
 
+import java.util.AbstractSet;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
@@ -213,12 +215,91 @@ final public class ProtoIndex implements Index {
 				}
 				last = root.getProgressInflate(); // REMOVE ME
 				root.inflate();
-				setResult(Collections.unmodifiableSet(root));
+
+				// Post-process relevance.
+				double multiplier = 1.0;
+				if(totalPages >= 0) {
+					long total = totalPages; // Number of pages total
+					long specific = root.size(); // Number of pages in this entry
+					multiplier = Math.log(((double)total) / ((double)specific));
+				}
+				Set<TermEntry> entries = wrapper(root, multiplier);
+				
+				setResult(entries);
 
 			} catch (TaskAbortException e) {
 				setError(e);
 				return;
 			}
+		}
+
+		private Set<TermEntry> wrapper(final SkeletonBTreeSet<TermEntry> root, final double relAdjustment) {
+			return new AbstractSet<TermEntry>() {
+
+				public boolean add(TermEntry arg0) {
+					throw new UnsupportedOperationException();
+				}
+
+				public boolean addAll(Collection<? extends TermEntry> arg0) {
+					throw new UnsupportedOperationException();
+				}
+
+				public void clear() {
+					throw new UnsupportedOperationException();
+				}
+
+				public boolean contains(Object arg0) {
+					return root.contains(arg0);
+				}
+
+				public boolean containsAll(Collection<?> arg0) {
+					return root.containsAll(arg0);
+				}
+
+				public boolean isEmpty() {
+					return root.isEmpty();
+				}
+
+				public Iterator<TermEntry> iterator() {
+					final Iterator<TermEntry> entries = root.iterator();
+					return new Iterator<TermEntry>() {
+						public boolean hasNext() {
+							return entries.hasNext();
+						}
+
+						public TermEntry next() {
+							TermEntry t = entries.next();
+							if(t instanceof TermPageEntry && relAdjustment != 1.0) {
+								// Adjust relevance
+								return new TermPageEntry((TermPageEntry)t, (float)(relAdjustment*t.rel));
+							} else
+								return t;
+						}
+
+						public void remove() {
+							throw new UnsupportedOperationException();
+						}
+							
+					};
+				}
+
+				public boolean remove(Object arg0) {
+					throw new UnsupportedOperationException();
+				}
+
+				public boolean removeAll(Collection<?> arg0) {
+					throw new UnsupportedOperationException();
+				}
+
+				public boolean retainAll(Collection<?> arg0) {
+					throw new UnsupportedOperationException();
+				}
+
+				public int size() {
+					return root.size();
+				}
+
+			};
 		}
 
 	}

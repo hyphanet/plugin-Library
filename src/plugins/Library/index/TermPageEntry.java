@@ -128,6 +128,14 @@ public class TermPageEntry extends TermEntry {
 		} else
 			posFragments = null;
 	}
+	
+	public TermPageEntry(TermPageEntry t, float newRel) {
+		super(t, newRel);
+		this.page = t.page;
+		this.posFragments = t.posFragments;
+		this.positions = t.positions;
+		this.title = t.title;
+	}
 
 	/*========================================================================
 	  abstract public class TermEntry
