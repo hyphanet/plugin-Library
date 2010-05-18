@@ -93,13 +93,13 @@ public class TermPageEntry extends TermEntry {
 	/**
 	** For serialisation.
 	*/
-	public TermPageEntry(String s, float r, FreenetURI u, Set<Integer> pos, Map<Integer, String> frags) {
+	public TermPageEntry(String s, float r, FreenetURI u, String t, Set<Integer> pos, Map<Integer, String> frags) {
 		super(s, r);
 		if (u == null) {
 			throw new IllegalArgumentException("can't have a null page");
 		}
 		page = u.intern(); // OPT LOW make the translator use the same URI object as from the URI table?
-		title = null;
+		title = t;
 		if(pos != null) {
 			if(pos instanceof SortedIntSet)
 				this.positions = (SortedIntSet) pos;
