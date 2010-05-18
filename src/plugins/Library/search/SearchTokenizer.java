@@ -20,6 +20,7 @@ class SearchTokenizer implements Iterable<String>, Iterator<String> {
 	private int nextPos;
 	private final boolean returnPairs;
 	static final int KEEP_NON_LETTER_MIN_CHARS = 3;
+	static final String allowedMidWord = "'";
 
 	private Iterator<String> cjkTokenizer;
 
@@ -42,7 +43,8 @@ class SearchTokenizer implements Iterable<String>, Iterator<String> {
 		StringBuilder sb = new StringBuilder();
 		for (int offset = 0; offset < length;) {
 			final int codepoint = text.codePointAt(offset);
-			offset += Character.charCount(codepoint);
+			int charCount = Character.charCount(codepoint);
+			offset += charCount;
 
 			if (Character.isLetterOrDigit(codepoint)) {
 				boolean isCJK = isCJK(codepoint);
@@ -67,13 +69,23 @@ class SearchTokenizer implements Iterable<String>, Iterator<String> {
 
 				sb.append(Character.toChars(codepoint));
 			} else if (sb.length() != 0) {
-				// last code point is not 0, add a separator
-				if(curMode != Mode.UNDEF || sb.length() >= KEEP_NON_LETTER_MIN_CHARS) {
-					segments.add(sb.toString());
-					mode.add(curMode);
+				boolean passed = false;
+				if(charCount == 1) {
+					char c = text.charAt(offset-1);
+					if(allowedMidWord.indexOf(c) != -1) {
+						sb.append(c);
+						passed = true;
+					}
 				}
-				curMode = Mode.UNDEF;
-				sb = new StringBuilder();
+				if(!passed) {
+					// last code point is not 0, add a separator
+					if(curMode != Mode.UNDEF || sb.length() >= KEEP_NON_LETTER_MIN_CHARS) {
+						segments.add(sb.toString());
+						mode.add(curMode);
+					}
+					curMode = Mode.UNDEF;
+					sb = new StringBuilder();
+				}
 			}
 		}
 
