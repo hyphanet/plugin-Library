@@ -156,7 +156,7 @@ implements Archiver<ProtoIndex>,
 			map.put("name", idx.name);
 			map.put("ownerName", idx.indexOwnerName);
 			map.put("ownerEmail", idx.indexOwnerEmail);
-			map.put("totalPages", idx.totalPages);
+			map.put("totalPages", new Long(idx.totalPages));
 			map.put("modified", idx.modified);
 			map.put("extra", idx.extra);
 			map.put("utab", utrans.app(idx.utab));
@@ -174,7 +174,13 @@ implements Archiver<ProtoIndex>,
 					String name = (String)map.get("name");
 					String ownerName = (String)map.get("ownerName");
 					String ownerEmail = (String)map.get("ownerEmail");
-					long totalPages = (Long)map.get("totalPages");
+					// FIXME yaml idiocy??? It seems to give a Long if the number is big enough to need one, and an Integer otherwise.
+					long totalPages;
+					Object o = map.get("totalPages");
+					if(o instanceof Long)
+						totalPages = (Long)o;
+					else // Integer
+						totalPages = (Integer)o;
 					Date modified = (Date)map.get("modified");
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
 					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
