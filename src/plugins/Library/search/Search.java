@@ -237,7 +237,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 	 * @throws InvalidSearchException if search query is invalid
 	 */
 	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException, TaskAbortException{
-		if(query.matches("\\A[\\p{L}\\d]*\\Z")) {
+		if(query.matches("\\A[\\p{L}\\d]*\\Z") || query.matches("\\A[\\p{L}\\d][\\p{L}'\\d]*[\\p{L}\\d]\\Z")) {
 			// single search term
 			// return null if stopword
 			if(SearchUtil.isStopWord(query))
