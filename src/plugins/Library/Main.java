@@ -447,6 +447,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	// Ditto
 	private SortedSet<String> terms;
 	
+	static final String INDEX_DOCNAME = "index.yml";
+	
 	protected void innerInnerHandle(Bucket data) {
 			
 			if(FreenetArchiver.getCacheDir() == null) {
@@ -559,7 +561,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 			// Upload to USK
-			FreenetURI privUSK = privURI.setKeyType("USK").setDocName("index.yml").setSuggestedEdition(edition);
+			FreenetURI privUSK = privURI.setKeyType("USK").setDocName(INDEX_DOCNAME).setSuggestedEdition(edition);
 			try {
 				FreenetURI tmp = pr.getHLSimpleClient().insertRedirect(privUSK, uri);
 				edition = tmp.getEdition()+1;
