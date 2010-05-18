@@ -149,7 +149,7 @@ public class Tester {
 
 				@Override public void run() {
 					try {
-						idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test");
+						idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0);
 					} catch (java.net.MalformedURLException e) {
 						throw new AssertionError(e);
 					}
@@ -234,7 +234,7 @@ public class Tester {
 				@Override public void run() {
 					
 					try {
-						idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test");
+						idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0);
 					} catch (java.net.MalformedURLException e) {
 						throw new AssertionError(e);
 					}

@@ -9,6 +9,7 @@ import freenet.support.api.Bucket;
 import freenet.support.io.BucketTools;
 import freenet.support.io.Closer;
 import freenet.support.io.FileBucket;
+import freenet.support.io.LineReadingInputStream;
 import freenet.support.io.NativeThread;
 
 import java.io.IOException;
@@ -222,7 +223,6 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	FreenetURI pubURI;
 	long edition;
 	long pushNumber;
-	
 	static final String LAST_URL_FILENAME = "library.index.lastpushed.chk";
 	static final String PRIV_URI_FILENAME = "library.index.privkey";
 	static final String PUB_URI_FILENAME = "library.index.pubkey";
@@ -459,7 +459,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				srl = ProtoIndexSerialiser.forIndex(lastUploadURI);
 				
 				try {
-					idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test");
+					idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0L);
 				} catch (java.net.MalformedURLException e) {
 					throw new AssertionError(e);
 				}
@@ -478,6 +478,11 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				f.createNewFile();
 				w = new FileWriter(f);
 				InputStream is = data.getInputStream();
+				SimpleFieldSet fs = new SimpleFieldSet(new LineReadingInputStream(is), 1024, 512, true, true, true);
+				idx.setName(fs.get("index.title"));
+				idx.setOwnerEmail(fs.get("index.owner.email"));
+				idx.setOwner(fs.get("index.owner.name"));
+				idx.setTotalPages(fs.getLong("totalPages", -1));
 				try{
 					while(true){	// Keep going til an EOFExcepiton is thrown
 						TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);

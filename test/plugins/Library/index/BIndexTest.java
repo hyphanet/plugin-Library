@@ -76,7 +76,7 @@ public class BIndexTest extends TestCase {
 
 	protected void newTestSkeleton() {
 		try {
-			idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test");
+			idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0);
 		} catch (java.net.MalformedURLException e) {
 			assertTrue(false);
 		}

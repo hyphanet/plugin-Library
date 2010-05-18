@@ -40,7 +40,7 @@ import java.util.concurrent.Executor;
 */
 final public class ProtoIndex implements Index {
 
-	final static long serialVersionUID = 0xf8ea40b26c1e5b36L;
+	final static long serialVersionUID = 0xf8ea40b26c1e5b37L;
 
 	final public static String MIME_TYPE = ProtoIndexSerialiser.MIME_TYPE;
 	final public static String DEFAULT_FILE = "index" + ProtoIndexSerialiser.FILE_EXTENSION;
@@ -66,6 +66,16 @@ final public class ProtoIndex implements Index {
 	** Name for this index.
 	*/
 	protected String name;
+	
+	/** Name for index owner */
+	protected String indexOwnerName;
+	
+	/** Email (or more likely Freemail) address of index owner */
+	protected String indexOwnerEmail;
+	
+	/** Total number of indexed pages. Currently this is just passed in or set(), and used for rank calculations. 
+	 * In future we might get it from utab. */
+	protected long totalPages;
 
 	/**
 	** Last time this index was modified.
@@ -83,15 +93,15 @@ final public class ProtoIndex implements Index {
 	final protected SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab;
 
 
-	public ProtoIndex(FreenetURI id, String n) {
-		this(id, n, new Date(), new HashMap<String, Object>(),
+	public ProtoIndex(FreenetURI id, String n, String owner, String ownerEmail, long pages) {
+		this(id, n, owner, ownerEmail, pages, new Date(), new HashMap<String, Object>(),
 			new SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(BTREE_NODE_MIN),
 			new SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>>(BTREE_NODE_MIN)/*,
 			//filtab = new SkeletonPrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX)*/
 		);
 	}
 
-	protected ProtoIndex(FreenetURI id, String n, Date m, Map<String, Object> x,
+	protected ProtoIndex(FreenetURI id, String n, String owner, String ownerEmail, long pages, Date m, Map<String, Object> x,
 		SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> u,
 		SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> t/*,
 		SkeletonMap<Token, TokenFilter> f*/
@@ -100,6 +110,9 @@ final public class ProtoIndex implements Index {
 		name = (n == null)? "": n;
 		modified = m;
 		extra = x;
+		indexOwnerName = owner;
+		indexOwnerEmail = ownerEmail;
+		totalPages = pages;
 
 		//filtab = f;
 		ttab = t;
@@ -208,6 +221,23 @@ final public class ProtoIndex implements Index {
 			}
 		}
 
+	}
+
+
+	public void setName(String indexName) {
+		this.name = indexName;
+	}
+	
+	public void setTotalPages(long total) {
+		totalPages = total;
+	}
+	
+	public void setOwner(String owner) {
+		this.indexOwnerName = owner;
+	}
+	
+	public void setOwnerEmail(String address) {
+		this.indexOwnerEmail = address;
 	}
 
 

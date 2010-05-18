@@ -154,6 +154,9 @@ implements Archiver<ProtoIndex>,
 			map.put("serialFormatUID", idx.serialFormatUID);
 			map.put("insID", idx.insID);
 			map.put("name", idx.name);
+			map.put("ownerName", idx.indexOwnerName);
+			map.put("ownerEmail", idx.indexOwnerEmail);
+			map.put("totalPages", idx.totalPages);
 			map.put("modified", idx.modified);
 			map.put("extra", idx.extra);
 			map.put("utab", utrans.app(idx.utab));
@@ -169,12 +172,15 @@ implements Archiver<ProtoIndex>,
 					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"));
 					FreenetURI reqID = (FreenetURI)map.get("reqID");
 					String name = (String)map.get("name");
+					String ownerName = (String)map.get("ownerName");
+					String ownerEmail = (String)map.get("ownerEmail");
+					long totalPages = (Long)map.get("totalPages");
 					Date modified = (Date)map.get("modified");
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
 					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
 					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>)map.get("ttab"));
 
-					return cmpsrl.setSerialiserFor(new ProtoIndex(reqID, name, modified, extra, utab, ttab));
+					return cmpsrl.setSerialiserFor(new ProtoIndex(reqID, name, ownerName, ownerEmail, totalPages, modified, extra, utab, ttab));
 
 				} catch (ClassCastException e) {
 					// TODO LOW maybe find a way to pass the actual bad data to the exception
