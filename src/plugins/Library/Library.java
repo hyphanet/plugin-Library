@@ -239,6 +239,8 @@ final public class Library implements URLUpdateHook {
 	public Class<?> getIndexType(FreenetURI indexuri) throws FetchException {
 		if(indexuri.lastMetaString()!=null && indexuri.lastMetaString().equals(XMLIndex.DEFAULT_FILE))
 			return XMLIndex.class;
+		if(indexuri.lastMetaString()!=null && indexuri.lastMetaString().equals(ProtoIndex.DEFAULT_FILE))
+			return ProtoIndex.class;
 
 
 		NodeClientCore core = pr.getNode().clientCore;
