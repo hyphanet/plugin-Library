@@ -360,7 +360,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			try {
 				fis = new FileInputStream(f);
 				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
-				privURI = new FreenetURI(br.readLine()).setDocName("index"); // Else InsertableClientSSK doesn't like it.
+				privURI = new FreenetURI(br.readLine()).setDocName("index.yml"); // Else InsertableClientSSK doesn't like it.
 				privkey = InsertableClientSSK.create(privURI);
 				System.out.println("Read old privkey");
 				this.pubURI = privkey.getURI();
@@ -373,7 +373,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				Closer.close(fis);
 			}
 			if(privURI == null) {
-				InsertableClientSSK key = InsertableClientSSK.createRandom(pr.getNode().random, "index");
+				InsertableClientSSK key = InsertableClientSSK.createRandom(pr.getNode().random, "index.yml");
 				privURI = key.getInsertURI();
 				pubURI = key.getURI();
 				newPrivKey = true;
@@ -559,7 +559,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 			// Upload to USK
-			FreenetURI privUSK = privURI.setKeyType("USK").setDocName("index").setSuggestedEdition(edition);
+			FreenetURI privUSK = privURI.setKeyType("USK").setDocName("index.yml").setSuggestedEdition(edition);
 			try {
 				FreenetURI tmp = pr.getHLSimpleClient().insertRedirect(privUSK, uri);
 				edition = tmp.getEdition()+1;
