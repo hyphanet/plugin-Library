@@ -251,29 +251,34 @@ final public class Library implements URLUpdateHook {
 
 		for (FreenetURI uri: uris) {
 
-			ClientContext cctx = core.clientContext;
-			FetchContext fctx = hlsc.getFetchContext();
-			FetchWaiter fw = new FetchWaiter();
-			final ClientGetter gu = hlsc.fetch(uri, 0x10000, (RequestClient)hlsc, fw, fctx);
-			gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
-
-			final String[] mime = new String[1];
-			hlsc.addEventHook(new ClientEventListener() {
-				/*@Override**/ public void onRemoveEventProducer(ObjectContainer container){ }
-				/*@Override**/ public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
-					if (!(ce instanceof ExpectedMIMEEvent)) { return; }
-					mime[0] = ((ExpectedMIMEEvent)ce).expectedMIMEType;
-					gu.cancel(maybeContainer, context);
-				}
-			});
-
-			try {
-				FetchResult res = fw.waitForCompletion();
-				return getIndexTypeFromMIME(res.getMimeType());
-
-			} catch (FetchException e) {
-				if (e.getMode() == FetchException.CANCELLED) {
-					return getIndexTypeFromMIME(mime[0]);
+			for(int i=0;i<5;i++) {
+				ClientContext cctx = core.clientContext;
+				FetchContext fctx = hlsc.getFetchContext();
+				FetchWaiter fw = new FetchWaiter();
+				final ClientGetter gu = hlsc.fetch(uri, 0x10000, (RequestClient)hlsc, fw, fctx);
+				gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
+				
+				final String[] mime = new String[1];
+				hlsc.addEventHook(new ClientEventListener() {
+					/*@Override**/ public void onRemoveEventProducer(ObjectContainer container){ }
+					/*@Override**/ public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
+						if (!(ce instanceof ExpectedMIMEEvent)) { return; }
+						mime[0] = ((ExpectedMIMEEvent)ce).expectedMIMEType;
+						gu.cancel(maybeContainer, context);
+					}
+				});
+				
+				try {
+					FetchResult res = fw.waitForCompletion();
+					return getIndexTypeFromMIME(res.getMimeType());
+					
+				} catch (FetchException e) {
+					if (e.getMode() == FetchException.CANCELLED) {
+						return getIndexTypeFromMIME(mime[0]);
+					} else if(e.newURI != null) {
+						uri = e.newURI;
+						continue;
+					}
 				}
 			}
 
