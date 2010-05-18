@@ -14,7 +14,7 @@ import static plugins.Library.search.SearchUtil.*;
  * 
  * @author SDiZ <sdiz+freenet@gmail.com>
  */
-class SearchTokenizer implements Iterable<String>, Iterator<String> {
+public class SearchTokenizer implements Iterable<String>, Iterator<String> {
 	private ArrayList<Mode> mode;
 	private ArrayList<String> segments;
 	private int nextPos;
@@ -29,7 +29,7 @@ class SearchTokenizer implements Iterable<String>, Iterator<String> {
 		UNDEF, LATIN, CJK
 	};
 
-	SearchTokenizer(String text, boolean returnPairs) {
+	public SearchTokenizer(String text, boolean returnPairs) {
 		this.returnPairs = returnPairs;
 		// normalize
 		text = normalize(text);
@@ -72,6 +72,7 @@ class SearchTokenizer implements Iterable<String>, Iterator<String> {
 			} else if (sb.length() != 0) {
 				boolean passed = false;
 				if(charCount == 1) {
+					// Allow apostrophes mid-word.
 					char c = text.charAt(offset-1);
 					if(allowedMidWord.indexOf(c) != -1) {
 						sb.append(c);
@@ -97,8 +98,14 @@ class SearchTokenizer implements Iterable<String>, Iterator<String> {
 		}
 
 		if (sb.length() != 0) {
-			segments.add(sb.toString());
-			mode.add(curMode);
+			// Words can't end in an apostrophe.
+			while(sb.length() > 0 && discardIfEndWord.indexOf(sb.charAt(sb.length()-1)) != -1) {
+				sb.setLength(sb.length()-1);
+			}
+			if(sb.length() > 0) {
+				segments.add(sb.toString());
+				mode.add(curMode);
+			}
 		}
 	}
 
