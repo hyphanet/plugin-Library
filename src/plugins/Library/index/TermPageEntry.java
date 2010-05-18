@@ -113,7 +113,20 @@ public class TermPageEntry extends TermEntry {
 			}
 		} else
 			positions = null;
-		this.posFragments = frags;
+		if(frags != null) {
+			boolean allNulls = true;
+			for(String i : frags.values()) {
+				if(i != null) {
+					allNulls = false;
+					break;
+				}
+			}
+			if(allNulls)
+				posFragments = null;
+			else
+				posFragments = frags;
+		} else
+			posFragments = null;
 	}
 
 	/*========================================================================
