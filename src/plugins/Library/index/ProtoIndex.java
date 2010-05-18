@@ -177,7 +177,9 @@ final public class ProtoIndex implements Index {
 			int started = trackers.size();
 			int known = started;
 			int done = started - 1;
-			if (last != null) { ++started; ++done; }
+			// FIXME is ++known valid here? I get an exception with ProgressParts(0/1/0/2) without it,
+			// which presumably means last != null while trackers.size() == 0.
+			if (last != null) { ++started; ++done; ++known; }
 			if (done < 0) { done = 0; }
 			int estimate = (result != null)? ProgressParts.TOTAL_FINALIZED: Math.max(ttab.heightEstimate()+1, known);
 			return new ProgressParts(done, started, known, estimate);
