@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.client;
 
+import static freenet.support.Logger.error;
 import plugins.Library.util.exec.SimpleProgress;
 import plugins.Library.util.exec.ProgressParts;
 import plugins.Library.util.exec.TaskAbortException;
@@ -138,8 +139,8 @@ implements LiveArchiver<T, SimpleProgress> {
 						res = hlsc.fetch(furi);
 						ProgressParts prog_new = progress.getParts();
 						if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
-							// TODO LOW if it turns out this happens a lot, maybe make it "continue anyway"
-							throw new TaskAbortException("Inconsistency when tracking split file progress", null, true);
+							Logger.error(this, "Inconsistency when tracking split file progress (pulling): "+prog_old.known+" of "+prog_old.done+" -> "+prog_new.known+" of "+prog_new.done);
+							System.err.println("Inconsistency when tracking split file progress (pulling): "+prog_old.known+" of "+prog_old.done+" -> "+prog_new.known+" of "+prog_new.done);
 						}
 						progress.addPartKnown(0, true);
 					} else {
@@ -229,8 +230,8 @@ implements LiveArchiver<T, SimpleProgress> {
 					uri = hlsc.insert(ib, false, null);
 					ProgressParts prog_new = progress.getParts();
 					if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
-						// TODO LOW if it turns out this happens a lot, maybe make it "continue anyway"
-						throw new TaskAbortException("Inconsistency when tracking split file progress", null, true);
+						Logger.error(this, "Inconsistency when tracking split file progress (pushing): "+prog_old.known+" of "+prog_old.done+" -> "+prog_new.known+" of "+prog_new.done);
+						System.err.println("Inconsistency when tracking split file progress (pushing): "+prog_old.known+" of "+prog_old.done+" -> "+prog_new.known+" of "+prog_new.done);
 					}
 					progress.addPartKnown(0, true);
 				} else {
