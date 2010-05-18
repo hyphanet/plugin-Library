@@ -21,6 +21,7 @@ class SearchTokenizer implements Iterable<String>, Iterator<String> {
 	private final boolean returnPairs;
 	static final int KEEP_NON_LETTER_MIN_CHARS = 3;
 	static final String allowedMidWord = "'";
+	static final String discardIfEndWord = "'";
 
 	private Iterator<String> cjkTokenizer;
 
@@ -80,8 +81,14 @@ class SearchTokenizer implements Iterable<String>, Iterator<String> {
 				if(!passed) {
 					// last code point is not 0, add a separator
 					if(curMode != Mode.UNDEF || sb.length() >= KEEP_NON_LETTER_MIN_CHARS) {
-						segments.add(sb.toString());
-						mode.add(curMode);
+						// Words can't end in an apostrophe.
+						while(sb.length() > 0 && discardIfEndWord.indexOf(sb.charAt(sb.length()-1)) != -1) {
+							sb.setLength(sb.length()-1);
+						}
+						if(sb.length() > 0) {
+							segments.add(sb.toString());
+							mode.add(curMode);
+						}
 					}
 					curMode = Mode.UNDEF;
 					sb = new StringBuilder();
