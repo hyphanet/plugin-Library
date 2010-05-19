@@ -56,8 +56,13 @@ implements Archiver<ProtoIndex>,
 		subsrl = s;
 	}
 
-	final protected static HashMap<Class<?>, ProtoIndexSerialiser>
-	srl_cls = new HashMap<Class<?>, ProtoIndexSerialiser>();
+	/* FIXME HIGH: Parallelism in fetching multiple words for the same query.
+	 * A single serialiser means when we fetch two words for the same query, and they both end up in the same
+	 * bucket, we get an AssertionError when we fetch the bucket twice in ProgressTracker.addPullProgress.
+	 * So the solution, for the time being, is simply to use two separate serialisers. */
+	
+//	final protected static HashMap<Class<?>, ProtoIndexSerialiser>
+//	srl_cls = new HashMap<Class<?>, ProtoIndexSerialiser>();
 
 	public static ProtoIndexSerialiser forIndex(Object o) {
 		if (o instanceof FreenetURI) {
@@ -70,21 +75,29 @@ implements Archiver<ProtoIndex>,
 	}
 
 	public static ProtoIndexSerialiser forIndex(FreenetURI uri) {
-		ProtoIndexSerialiser srl = srl_cls.get(FreenetURI.class);
-		if (srl == null) {
-			// java's type-inference isn't that smart, see
-			FreenetArchiver<Map<String, Object>> arx = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN);
-			srl_cls.put(FreenetURI.class, srl = new ProtoIndexSerialiser(arx));
-		}
-		return srl;
+//		ProtoIndexSerialiser srl = srl_cls.get(FreenetURI.class);
+//		if (srl == null) {
+//			// java's type-inference isn't that smart, see
+//			FreenetArchiver<Map<String, Object>> arx = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN);
+//			srl_cls.put(FreenetURI.class, srl = new ProtoIndexSerialiser(arx));
+//		}
+//		return srl;
+		
+		// One serialiser per application. See comments above re srl_cls.
+		// java's type-inference isn't that smart, see
+		FreenetArchiver<Map<String, Object>> arx = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN);
+		return new ProtoIndexSerialiser(arx);
 	}
 
 	public static ProtoIndexSerialiser forIndex(File f) {
-		ProtoIndexSerialiser srl = srl_cls.get(File.class);
-		if (srl == null) {
-			srl_cls.put(File.class, srl = new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION)));
-		}
-		return srl;
+//		ProtoIndexSerialiser srl = srl_cls.get(File.class);
+//		if (srl == null) {
+//			srl_cls.put(File.class, srl = new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION)));
+//		}
+//		return srl;
+		
+		// One serialiser per application. See comments above re srl_cls.
+		return new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION));
 	}
 
 	/*@Override**/ public Archiver<Map<String, Object>> getChildSerialiser() {
