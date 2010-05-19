@@ -254,6 +254,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			try {
 				BucketTools.copy(data, output);
 				data.free();
+				System.out.println("Written data to "+pushFile);
 			} catch (IOException e1) {
 				System.err.println("Unable to back up push data #"+pn+" : "+e1);
 				e1.printStackTrace();
