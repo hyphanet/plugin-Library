@@ -214,17 +214,25 @@ final public class Library implements URLUpdateHook {
 			// Not much we can do...
 		}
 	}
+	
+	/* FIXME
+	 * Parallel fetch from the same index is not currently supported. This means that the only reliable way to
+	 * do e.g. an intersection search is to run two completely separate fetches. Otherwise we get assertion 
+	 * errors in e.g. BTreePacker.preprocessPullBins from TaskInProgressException's we can't handle from 
+	 * ProgressTracker.addPullProgress, when the terms are in the same bucket. We should make it possible to
+	 * search for multiple terms in the same btree, but for now, turning off caching is the only viable option.
+	 */
 
-	/**
-	** Holds all the read-indexes.
-	*/
-	private Map<String, Index> rtab = new HashMap<String, Index>();
-
-	/**
-	** Holds all the writeable indexes.
-	*/
-	private Map<String, WriteableIndex> wtab = new HashMap<String, WriteableIndex>();
-
+//	/**
+//	** Holds all the read-indexes.
+//	*/
+//	private Map<String, Index> rtab = new HashMap<String, Index>();
+//
+//	/**
+//	** Holds all the writeable indexes.
+//	*/
+//	private Map<String, WriteableIndex> wtab = new HashMap<String, WriteableIndex>();
+//
 	/**
 	** Holds all the bookmarks (aliases into the rtab).
 	*/
@@ -568,13 +576,14 @@ final public class Library implements URLUpdateHook {
 		return indices;
 	}
 
-	/**
-	 * Method to get all of the instatiated Indexes
-	 */
-	public final Iterable<Index> getAllIndices() {
-		return rtab.values();
-	}
-
+	// See comments near rtab. Can't use in parallel so not acceptable.
+//	/**
+//	 * Method to get all of the instatiated Indexes
+//	 */
+//	public final Iterable<Index> getAllIndices() {
+//		return rtab.values();
+//	}
+//
 	public final Index getIndex(String indexuri) throws InvalidSearchException, TaskAbortException {
 		return getIndex(indexuri, null);
 	}
@@ -605,9 +614,10 @@ final public class Library implements URLUpdateHook {
 				throw new InvalidSearchException("Index bookmark '"+indexuri+" does not exist");
 		}
 
-		if (rtab.containsKey(indexuri))
-			return rtab.get(indexuri);
-
+		// See comments near rtab. Can't use in parallel so caching is dangerous.
+//		if (rtab.containsKey(indexuri))
+//			return rtab.get(indexuri);
+//
 		Class<?> indextype;
 		Index index;
 		Object indexkey;
@@ -646,7 +656,8 @@ final public class Library implements URLUpdateHook {
 				throw new AssertionError();
 			}
 
-			rtab.put(indexuri, index);
+			// See comments near rtab. Can't use in parallel so caching is dangerous.
+			//rtab.put(indexuri, index);
 			Logger.normal(this, "Loaded index type " + indextype.getName() + " at " + indexuri);
 
 			return index;
