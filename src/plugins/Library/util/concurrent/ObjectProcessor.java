@@ -8,6 +8,7 @@ import plugins.Library.util.func.SafeClosure;
 import static plugins.Library.util.func.Tuples.X2; // also imports the class
 import static plugins.Library.util.func.Tuples.X3; // also imports the class
 
+import java.lang.ref.WeakReference;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
@@ -44,6 +45,9 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	protected int dispatched = 0;
 	protected int completed = 0;
 	protected int started = 0;
+	// Most ObjectProcessor's are likely to be autostart()'ed, and this way we can
+	// still use ConcurrentMap for pending while having garbage collection.
+	private final WeakReference<ObjectProcessor> myRef = new WeakReference<ObjectProcessor>(this);
 
 	// TODO NORM make a more intelligent way of adjusting this
 	final public static int maxconc = 0x28;
@@ -59,8 +63,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		}
 	};
 
-	// JDK6 replace with ConcurrentSkipListSet
-	final private static ConcurrentMap<ObjectProcessor, Boolean> pending = new ConcurrentHashMap<ObjectProcessor, Boolean>();
+	final private static ConcurrentMap<WeakReference<ObjectProcessor>, Boolean> pending = new ConcurrentHashMap<WeakReference<ObjectProcessor>, Boolean>();
 	// This must only be modified in a static synchronized block
 	private static Thread auto = null;
 
@@ -249,8 +252,13 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 				final int timeout = 4;
 				int t = timeout;
 				while (!pending.isEmpty() && (t=timeout) == timeout || t-- > 0) {
-					for (Iterator<ObjectProcessor> it = pending.keySet().iterator(); it.hasNext();) {
-						ObjectProcessor proc = it.next();
+					for (Iterator<WeakReference<ObjectProcessor>> it = pending.keySet().iterator(); it.hasNext();) {
+						WeakReference<ObjectProcessor> ref = it.next();
+						ObjectProcessor proc = ref.get();
+						if(proc == null) {
+							it.remove();
+							continue;
+						}
 						try {
 							boolean o = proc.open;
 							while (proc.dispatchPoll());
@@ -294,7 +302,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** @return Whether the processor was not already being handled.
 	*/
 	public boolean auto() {
-		Boolean r = ObjectProcessor.pending.put(this, Boolean.TRUE);
+		Boolean r = ObjectProcessor.pending.put(myRef, Boolean.TRUE);
 		ObjectProcessor.ensureAutoHandler();
 		return r == null;
 	}
