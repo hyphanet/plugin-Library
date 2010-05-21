@@ -297,7 +297,12 @@ public class Tester {
 						assert(idx.ttab.isBare());
 						PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
 						srl.push(task4);
+						
+						FreenetArchiver arch = (FreenetArchiver) srl.getChildSerialiser();
+						arch.waitForAsyncInserts();
+						
 						long mergeEndTime = System.currentTimeMillis();
+						
 						System.out.print(entriesadded + " entries merged in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta + ", ");
 						push_index_status = "Done!";
 						push_index_endURI = (FreenetURI)task4.meta;

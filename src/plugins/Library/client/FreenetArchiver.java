@@ -15,6 +15,8 @@ import com.db4o.ObjectContainer;
 
 import freenet.client.HighLevelSimpleClient;
 import freenet.client.ClientMetadata;
+import freenet.client.InsertContext;
+import freenet.client.InsertException;
 //import freenet.client.FetchContext;
 import freenet.client.FetchException;
 import freenet.client.FetchResult;
@@ -25,14 +27,20 @@ import freenet.client.InsertException;
 //import freenet.client.PutWaiter;
 //import freenet.client.async.ClientGetter;
 //import freenet.client.async.ClientPutter;
+import freenet.client.async.BaseClientPutter;
 import freenet.client.async.ClientContext;
+import freenet.client.async.ClientPutCallback;
+import freenet.client.async.ClientPutter;
+import freenet.client.async.DatabaseDisabledException;
 import freenet.client.events.ClientEventListener;
 import freenet.client.events.ClientEvent;
 import freenet.client.events.SplitfileProgressEvent;
 import freenet.keys.FreenetURI;
+import freenet.node.RequestClient;
 import freenet.node.RequestStarter;
 import freenet.node.NodeClientCore;
 import freenet.support.Logger;
+import freenet.support.MutableBoolean;
 import freenet.support.api.Bucket;
 import freenet.support.io.BucketTools;
 import freenet.support.io.Closer;
@@ -58,7 +66,7 @@ import java.util.ArrayList;
 ** @author infinity0
 */
 public class FreenetArchiver<T>
-implements LiveArchiver<T, SimpleProgress> {
+implements LiveArchiver<T, SimpleProgress>, RequestClient {
 
 	final protected NodeClientCore core;
 	final protected ObjectStreamReader reader;
@@ -67,6 +75,21 @@ implements LiveArchiver<T, SimpleProgress> {
 	final protected String default_mime;
 	final protected int expected_bytes;
 	private static File cacheDir;
+	/** If true, we will insert data semi-asynchronously. That is, we will start the
+	 * insert, with ForceEncode enabled, and return the URI as soon as possible. The
+	 * inserts will continue in the background, and before inserting the final USK,
+	 * the caller should call waitForAsyncInserts(). 
+	 * 
+	 * FIXME SECURITY: This should be relatively safe, because it's all CHKs, as 
+	 * long as the content isn't easily predictable. 
+	 * 
+	 * The main purpose of this mechanism is to minimise memory usage: Normally the
+	 * data being pushed remains in RAM while we do the insert, which can take a very
+	 * long time. */
+	static final boolean SEMI_ASYNC_PUSH = true;
+	
+	private final ArrayList<ClientPutter> semiAsyncPushes = new ArrayList<ClientPutter>();
+	private final ArrayList<InsertException> pushesFailed = new ArrayList<InsertException>();
 	
 	public static void setCacheDir(File dir) {
 		cacheDir = dir;
@@ -197,6 +220,7 @@ implements LiveArchiver<T, SimpleProgress> {
 		Bucket tempB = null; OutputStream os = null;
 
 		try {
+			ClientPutter putter = null;
 			try {
 				tempB = core.tempBucketFactory.makeBucket(expected_bytes, 2);
 				os = tempB.getOutputStream();
@@ -227,7 +251,26 @@ implements LiveArchiver<T, SimpleProgress> {
 				// bookkeeping. detects bugs in the SplitfileProgressEvent handler
 				if (progress != null) {
 					ProgressParts prog_old = progress.getParts();
-					uri = hlsc.insert(ib, false, null);
+					
+					if(!SEMI_ASYNC_PUSH) {
+						uri = hlsc.insert(ib, false, null);
+					} else {
+						InsertContext ctx = hlsc.getInsertContext(false);
+						PushCallback cb = new PushCallback();
+						putter = new ClientPutter(cb, ib.getData(), FreenetURI.EMPTY_CHK_URI, ib.clientMetadata,
+								ctx, RequestStarter.INTERACTIVE_PRIORITY_CLASS,
+								false, false, this, null, null, false);
+						cb.setPutter(putter);
+						try {
+							// Early encode is normally a security risk.
+							// Hopefully it isn't here.
+							core.clientContext.start(putter, true);
+						} catch (DatabaseDisabledException e) {
+							// Impossible
+						}
+						uri = cb.waitForURI();
+					}
+					
 					ProgressParts prog_new = progress.getParts();
 					if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
 						Logger.error(this, "Inconsistency when tracking split file progress (pushing): "+prog_old.known+" of "+prog_old.done+" -> "+prog_new.known+" of "+prog_new.done);
@@ -251,6 +294,11 @@ implements LiveArchiver<T, SimpleProgress> {
 
 
 			} catch (InsertException e) {
+				if(putter != null) {
+					synchronized(this) {
+						semiAsyncPushes.remove(putter);
+					}
+				}
 				throw new TaskAbortException("Failed to insert content", e, true);
 
 			} catch (IOException e) {
@@ -269,6 +317,67 @@ implements LiveArchiver<T, SimpleProgress> {
 			Closer.close(tempB);
 		}
 	}
+	
+	public class PushCallback implements ClientPutCallback {
+
+		private ClientPutter putter;
+		private FreenetURI generatedURI;
+		private InsertException failed;
+		
+		public synchronized void setPutter(ClientPutter put) {
+			putter = put;
+			synchronized(FreenetArchiver.this) {
+				semiAsyncPushes.add(put);
+			}
+		}
+
+		public synchronized FreenetURI waitForURI() throws InsertException {
+			while(generatedURI == null && failed == null) {
+				try {
+					wait();
+				} catch (InterruptedException e) {
+					// Ignore
+				}
+			}
+			if(failed == null) throw failed;
+			return generatedURI;
+		}
+
+		public void onFailure(InsertException e, BaseClientPutter state, ObjectContainer container) {
+			synchronized(this) {
+				failed = e;
+				notifyAll();
+			}
+			synchronized(FreenetArchiver.this) {
+				semiAsyncPushes.remove(putter);
+				pushesFailed.add(e);
+				FreenetArchiver.this.notifyAll();
+			}
+		}
+
+		public void onFetchable(BaseClientPutter state, ObjectContainer container) {
+			// Ignore
+		}
+
+		public synchronized void onGeneratedURI(FreenetURI uri, BaseClientPutter state, ObjectContainer container) {
+			generatedURI = uri;
+			notifyAll();
+		}
+
+		public void onSuccess(BaseClientPutter state, ObjectContainer container) {
+			synchronized(FreenetArchiver.this) {
+				semiAsyncPushes.remove(putter);
+				FreenetArchiver.this.notifyAll();
+			}
+		}
+
+		public void onMajorProgress(ObjectContainer container) {
+			// Ignore
+		}
+
+	}
+
+
 
 	/*@Override**/ public void pull(PullTask<T> task) throws TaskAbortException {
 		pullLive(task, null);
@@ -323,6 +432,35 @@ implements LiveArchiver<T, SimpleProgress> {
 				splitfile_blocks[1] = new_total;
 			}
 		}
+	}
+
+	public void waitForAsyncInserts() throws TaskAbortException {
+		synchronized(this) {
+			while(true) {
+				if(!pushesFailed.isEmpty()) {
+					throw new TaskAbortException("Failed to insert content", pushesFailed.remove(0), true);
+				}
+				if(semiAsyncPushes.isEmpty()) {
+					System.out.println("Asynchronous inserts completed.");
+					return; // Completed all pushes.
+				}
+				System.out.println("Waiting for "+semiAsyncPushes.size()+" asynchronous inserts...");
+				try {
+					wait();
+				} catch (InterruptedException e) {
+					// Ignore
+				}
+			}
+		}
+	}
+	
+
+	public boolean persistent() {
+		return false;
+	}
+
+	public void removeFrom(ObjectContainer container) {
+		throw new UnsupportedOperationException();
 	}
 
 }

@@ -541,6 +541,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			assert(idx.ttab.isBare());
 			PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
 			srl.push(task4);
+			
+			FreenetArchiver arch = (FreenetArchiver) srl.getChildSerialiser();
+			arch.waitForAsyncInserts();
+			
 			long mergeEndTime = System.currentTimeMillis();
 			System.out.print(entriesAdded + " entries merged in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta + ", ");
 			FreenetURI uri = (FreenetURI)task4.meta;
