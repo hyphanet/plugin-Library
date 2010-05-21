@@ -116,7 +116,7 @@ public class TermPageEntry extends TermEntry {
 		if(frags != null) {
 			boolean allNulls = true;
 			for(String i : frags.values()) {
-				if(i != null) {
+				if(i != null && !i.equals("")) {
 					allNulls = false;
 					break;
 				}
