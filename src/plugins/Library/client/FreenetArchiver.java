@@ -50,6 +50,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
@@ -88,7 +89,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	 * long time. */
 	static final boolean SEMI_ASYNC_PUSH = true;
 	
-	private final ArrayList<ClientPutter> semiAsyncPushes = new ArrayList<ClientPutter>();
+	private final HashMap<ClientPutter,InsertBlock> semiAsyncPushes = new HashMap<ClientPutter,InsertBlock>();
 	private final ArrayList<InsertException> pushesFailed = new ArrayList<InsertException>();
 	
 	public static void setCacheDir(File dir) {
@@ -260,7 +261,8 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 						putter = new ClientPutter(cb, ib.getData(), FreenetURI.EMPTY_CHK_URI, ib.clientMetadata,
 								ctx, RequestStarter.INTERACTIVE_PRIORITY_CLASS,
 								false, false, this, null, null, false);
-						cb.setPutter(putter);
+						cb.setPutter(putter, ib);
+						System.out.println("Starting asynchronous insert");
 						try {
 							// Early encode is normally a security risk.
 							// Hopefully it isn't here.
@@ -269,6 +271,8 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 							// Impossible
 						}
 						uri = cb.waitForURI();
+						System.out.println("Got URI for asynchronous insert: "+uri);
+						tempB = null;
 					}
 					
 					ProgressParts prog_new = progress.getParts();
@@ -324,10 +328,10 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		private FreenetURI generatedURI;
 		private InsertException failed;
 		
-		public synchronized void setPutter(ClientPutter put) {
+		public synchronized void setPutter(ClientPutter put, InsertBlock data) {
 			putter = put;
 			synchronized(FreenetArchiver.this) {
-				semiAsyncPushes.add(put);
+				semiAsyncPushes.put(put, data);
 			}
 		}
 
@@ -344,15 +348,19 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		}
 
 		public void onFailure(InsertException e, BaseClientPutter state, ObjectContainer container) {
+			System.out.println("Failed background insert ("+generatedURI+"), now running: "+semiAsyncPushes.size()+".");
 			synchronized(this) {
 				failed = e;
 				notifyAll();
 			}
+			InsertBlock block;
 			synchronized(FreenetArchiver.this) {
-				semiAsyncPushes.remove(putter);
+				block = semiAsyncPushes.remove(putter);
 				pushesFailed.add(e);
 				FreenetArchiver.this.notifyAll();
 			}
+			if(block != null)
+				block.free(null);
 		}
 
 		public void onFetchable(BaseClientPutter state, ObjectContainer container) {
@@ -365,10 +373,14 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		}
 
 		public void onSuccess(BaseClientPutter state, ObjectContainer container) {
+			InsertBlock block;
 			synchronized(FreenetArchiver.this) {
-				semiAsyncPushes.remove(putter);
+				block = semiAsyncPushes.remove(putter);
+				System.out.println("Completed background insert ("+generatedURI+"), now running: "+semiAsyncPushes.size()+".");
 				FreenetArchiver.this.notifyAll();
 			}
+			if(block != null)
+				block.free(null);
 		}
 
 		public void onMajorProgress(ObjectContainer container) {
