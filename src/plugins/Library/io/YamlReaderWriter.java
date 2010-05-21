@@ -58,39 +58,12 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	final public static String MIME_TYPE = "text/yaml";
 	final public static String FILE_EXTENSION = ".yml";
 
-	/**
-	** The default {@link Yaml} processor. This one does not wrap long lines
-	** and always uses block-level elements.
-	*/
-	final protected static ThreadLocal<Yaml> DEFAULT_YAML = new ThreadLocal<Yaml>() {
-		@Override protected synchronized Yaml initialValue() {
-			DumperOptions opt = new DumperOptions();
-			opt.setWidth(Integer.MAX_VALUE);
-			opt.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-			return new Yaml(new Loader(new ExtendedConstructor()),
-							new Dumper(new ExtendedRepresenter(), opt));
-		}
-	};
-
-	/**
-	** Thread local {@link Yaml} processor. ({@code Yaml} is not thread-safe.)
-	**
-	** @see ThreadLocal
-	** @see Yaml
-	*/
-	final private ThreadLocal<Yaml> yaml;
-
 	public YamlReaderWriter() {
-		yaml = DEFAULT_YAML;
-	}
-
-	public YamlReaderWriter(ThreadLocal<Yaml> y) {
-		yaml = y;
 	}
 
 	/*@Override**/ public Object readObject(InputStream is) throws IOException {
 		try {
-			return yaml.get().load(new InputStreamReader(is));
+			return makeYAML().load(new InputStreamReader(is));
 		} catch (YAMLException e) {
 			throw new DataFormatException("Yaml could not process the stream: " + is, e, is, null, null);
 		}
@@ -98,10 +71,21 @@ implements ObjectStreamReader, ObjectStreamWriter {
 
 	/*@Override**/ public void writeObject(Object o, OutputStream os) throws IOException {
 		try {
-			yaml.get().dump(o, new OutputStreamWriter(os));
+			makeYAML().dump(o, new OutputStreamWriter(os));
 		} catch (YAMLException e) {
 			throw new DataFormatException("Yaml could not process the object", e, o, null, null);
 		}
+	}
+
+	/** We do NOT keep this thread-local, because the Composer is only cleared after
+	 * the next call to load(), so it can persist with a lot of useless data if we 
+	 * then use a different thread. So lets just construct them as needed. */
+	private Yaml makeYAML() {
+		DumperOptions opt = new DumperOptions();
+		opt.setWidth(Integer.MAX_VALUE);
+		opt.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+		return new Yaml(new Loader(new ExtendedConstructor()),
+						new Dumper(new ExtendedRepresenter(), opt));
 	}
 
 	final public static ObjectBlueprint<TermTermEntry> tebp_term;
