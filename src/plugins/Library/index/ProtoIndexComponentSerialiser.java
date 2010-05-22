@@ -57,7 +57,7 @@ public class ProtoIndexComponentSerialiser {
 	final protected static int FMT_FREENET_SIMPLE = 0x2db3c940;
 	final protected static int FMT_FILE_LOCAL = 0xd439e29a;
 
-	final protected static int FMT_DEFAULT = FMT_FREENET_SIMPLE;
+	public final static int FMT_DEFAULT = FMT_FREENET_SIMPLE;
 
 	/**
 	** Converts between a low-level object and a byte stream.
@@ -135,11 +135,12 @@ public class ProtoIndexComponentSerialiser {
 	** @throws IllegalStateException if the requirements for creating the
 	**         instance (eg. existence of a freenet node) are not met.
 	*/
-	public synchronized static ProtoIndexComponentSerialiser get(int fmtid) {
+	public synchronized static ProtoIndexComponentSerialiser get(int fmtid, LiveArchiver<Map<String, Object>, SimpleProgress> archiver) {
 		ProtoIndexComponentSerialiser srl = srl_fmt.get(fmtid);
-		if (srl == null) {
-			srl = new ProtoIndexComponentSerialiser(fmtid);
-			srl_fmt.put(fmtid, srl);
+		if (srl == null || srl.leaf_arx != null && srl.leaf_arx != archiver) {
+			srl = new ProtoIndexComponentSerialiser(fmtid, archiver);
+			if(archiver == null)
+				srl_fmt.put(fmtid, srl);
 		}
 		return srl;
 	}
@@ -151,7 +152,7 @@ public class ProtoIndexComponentSerialiser {
 	**         instance (eg. existence of a freenet node) are not met.
 	*/
 	public static ProtoIndexComponentSerialiser get() {
-		return get(FMT_DEFAULT);
+		return get(FMT_DEFAULT, null);
 	}
 
 	/**
@@ -185,21 +186,26 @@ public class ProtoIndexComponentSerialiser {
 
 	/**
 	** Constructs a new instance using the given format.
+	 * @param archiver 
 	**
 	** @throws UnsupportedOperationException if the format ID is unrecognised
 	** @throws IllegalStateException if the requirements for creating the
 	**         instance (eg. existence of a freenet node) are not met.
 	*/
-	protected ProtoIndexComponentSerialiser(int fmtid) {
-		switch (fmtid) {
-		case FMT_FREENET_SIMPLE:
-			leaf_arx = Library.makeArchiver(yamlrw, ProtoIndex.MIME_TYPE, 0x180 * ProtoIndex.BTREE_NODE_MIN);
-			break;
-		case FMT_FILE_LOCAL:
-			leaf_arx = new FileArchiver<Map<String, Object>>(yamlrw, true, YamlReaderWriter.FILE_EXTENSION);
-			break;
-		default:
-			throw new UnsupportedOperationException("Unknown serial format id");
+	protected ProtoIndexComponentSerialiser(int fmtid, LiveArchiver<Map<String, Object>, SimpleProgress> archiver) {
+		if(archiver != null) {
+			leaf_arx = archiver;
+		} else {
+			switch (fmtid) {
+			case FMT_FREENET_SIMPLE:
+				leaf_arx = Library.makeArchiver(yamlrw, ProtoIndex.MIME_TYPE, 0x180 * ProtoIndex.BTREE_NODE_MIN);
+				break;
+			case FMT_FILE_LOCAL:
+				leaf_arx = new FileArchiver<Map<String, Object>>(yamlrw, true, YamlReaderWriter.FILE_EXTENSION);
+				break;
+			default:
+				throw new UnsupportedOperationException("Unknown serial format id");
+			}
 		}
 
 		serialFormatUID = fmtid;

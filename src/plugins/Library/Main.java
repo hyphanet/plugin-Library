@@ -30,6 +30,7 @@ import plugins.Library.ui.WebInterface;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.TaskAbortExceptionConvertor;
 import plugins.Library.util.concurrent.Executors;
+import plugins.Library.util.exec.SimpleProgress;
 import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.func.Closure;
 
@@ -61,6 +62,7 @@ import java.io.OutputStreamWriter;
 import java.security.MessageDigest;
 import plugins.Library.index.TermEntryReaderWriter;
 import plugins.Library.index.xml.LibrarianHandler;
+import plugins.Library.io.serial.LiveArchiver;
 import plugins.Library.io.serial.Serialiser.PushTask;
 
 /**
@@ -454,6 +456,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	
 	static final String INDEX_DOCNAME = "index.yml";
 	
+	private ProtoIndexComponentSerialiser leafsrl;
+	
 	protected void innerInnerHandle(Bucket data) {
 			
 			if(FreenetArchiver.getCacheDir() == null) {
@@ -470,7 +474,9 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				} catch (java.net.MalformedURLException e) {
 					throw new AssertionError(e);
 				}
-				ProtoIndexComponentSerialiser.get().setSerialiserFor(idx);
+				// FIXME more hacks: It's essential that we use the same FreenetArchiver instance here.
+				leafsrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_DEFAULT, (LiveArchiver<Map<String,Object>,SimpleProgress>)(srl.getChildSerialiser()));
+				leafsrl.setSerialiserFor(idx);
 			}
 			
 			FileWriter w = null;
@@ -523,7 +529,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
 					//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
 					if (tree == null) {
-						entry.setValue(tree = makeEntryTree());
+						entry.setValue(tree = makeEntryTree(leafsrl));
 					}
 					assert(tree.isBare());
 					tree.update(newtrees.get(key), null);
@@ -612,9 +618,9 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 	}
 
-	protected static SkeletonBTreeSet<TermEntry> makeEntryTree() {
+	protected static SkeletonBTreeSet<TermEntry> makeEntryTree(ProtoIndexComponentSerialiser leafsrl) {
 		SkeletonBTreeSet<TermEntry> tree = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
-		ProtoIndexComponentSerialiser.get().setSerialiserFor(tree);
+		leafsrl.setSerialiserFor(tree);
 		return tree;
 	}
 

@@ -58,7 +58,7 @@ public class BIndexTest extends TestCase {
 	}
 
 	ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex((File)null);
-	ProtoIndexComponentSerialiser csrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL);
+	ProtoIndexComponentSerialiser csrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, null);
 	ProtoIndex idx;
 
 	Set<String> randomWords = new HashSet<String>(Arrays.asList(
