@@ -262,7 +262,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 								ctx, RequestStarter.INTERACTIVE_PRIORITY_CLASS,
 								false, false, this, null, null, false);
 						cb.setPutter(putter, ib);
-						System.out.println("Starting asynchronous insert");
+						long tStart = System.currentTimeMillis();
 						try {
 							// Early encode is normally a security risk.
 							// Hopefully it isn't here.
@@ -271,8 +271,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 							// Impossible
 						}
 						uri = cb.waitForURI();
-						System.out.println("Got URI for asynchronous insert: "+uri);
-						tempB = null;
+						System.out.println("Got URI for asynchronous insert: "+uri+" size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
 					}
 					
 					ProgressParts prog_new = progress.getParts();
@@ -283,6 +282,8 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					progress.addPartKnown(0, true);
 				} else {
 					uri = hlsc.insert(ib, false, null);
+					long endTime = System.currentTimeMillis();
+					System.out.println("Inserted block for FreenetArchiver in "+(endTime-startTime)+"ms to "+uri);
 				}
 
 				task.meta = uri;
@@ -293,9 +294,8 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					BucketTools.copy(tempB, cachedBucket);
 				}
 				
-				long endTime = System.currentTimeMillis();
-				System.out.println("Inserted block for FreenetArchiver in "+(endTime-startTime)+"ms to "+uri);
-
+				if(SEMI_ASYNC_PUSH)
+					tempB = null; // Don't free it here.
 
 			} catch (InsertException e) {
 				if(putter != null) {
@@ -324,6 +324,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	
 	public class PushCallback implements ClientPutCallback {
 
+		public final long startTime = System.currentTimeMillis();
 		private ClientPutter putter;
 		private FreenetURI generatedURI;
 		private InsertException failed;
@@ -376,7 +377,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			InsertBlock block;
 			synchronized(FreenetArchiver.this) {
 				block = semiAsyncPushes.remove(putter);
-				System.out.println("Completed background insert ("+generatedURI+"), now running: "+semiAsyncPushes.size()+".");
+				System.out.println("Completed background insert ("+generatedURI+") in "+(System.currentTimeMillis()-startTime)+"ms, now running: "+semiAsyncPushes.size()+".");
 				FreenetArchiver.this.notifyAll();
 			}
 			if(block != null)
