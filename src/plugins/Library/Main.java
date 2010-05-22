@@ -316,6 +316,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		while(true) {
 		final Bucket data;
 		synchronized(handlingSync) {
+			if(pushBroken) {
+				Logger.error(this, "Pushing broken");
+				return;
+			}
 			if(first && runningHandler) {
 				Logger.error(this, "Already running a handler!");
 				return;
