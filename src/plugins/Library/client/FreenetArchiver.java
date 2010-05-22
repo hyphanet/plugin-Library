@@ -343,7 +343,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					// Ignore
 				}
 			}
-			if(failed == null) throw failed;
+			if(failed != null) throw failed;
 			return generatedURI;
 		}
 
