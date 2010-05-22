@@ -29,4 +29,17 @@ public interface IterableSerialiser<T> extends Archiver<T> {
 	*/
 	public void push(Iterable<PushTask<T>> tasks) throws TaskAbortException;
 
+	// FIXME PERFORMANCE
+	// Split up push() into startPush and endPush. startPush will return as soon
+	// as there are valid .meta values for each task. endPush will wait for the 
+	// actual insert (or whatever) to finish, and then clear the .data.
+	// Currently we have a dirty hack (for FreenetArchiver), which achieves a 
+	// similar outcome:
+	// FreenetArchiver returns as soon as it has a URI and pretends it's finished.
+	// The high level caller using FreenetArchiver must call an explicit 
+	// waitForAsyncInserts() method on it before finishing.
+	// Packer.push() is more or less unchanged as a result.
+	// Ultimately this is all necessary because inserts can take a long time and 
+	// we need to limit memory usage.
+	
 }

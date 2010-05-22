@@ -85,6 +85,9 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	 * FIXME SECURITY: This should be relatively safe, because it's all CHKs, as 
 	 * long as the content isn't easily predictable.
 	 * 
+	 * FIXME PERFORMANCE: This dirty hack is unnecessary if we split up 
+	 * IterableSerialiser.push into a start phase and a stop phase.
+	 * 
 	 * The main purpose of this mechanism is to minimise memory usage: Normally the
 	 * data being pushed remains in RAM while we do the insert, which can take a very
 	 * long time. */
@@ -236,10 +239,6 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				System.out.println("Inserting block for FreenetArchiver...");
 				long startTime = System.currentTimeMillis();
 				
-				if (progress != null) {
-					hlsc.addEventHook(new SimpleProgressUpdater(progress));
-				}
-
 				// code for async insert - maybe be useful elsewhere
 				//ClientContext cctx = core.clientContext;
 				//InsertContext ictx = hlsc.getInsertContext(true);
@@ -255,9 +254,17 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					ProgressParts prog_old = progress.getParts();
 					
 					if(!SEMI_ASYNC_PUSH) {
+						// Actually report progress.
+						if (progress != null) {
+							hlsc.addEventHook(new SimpleProgressUpdater(progress));
+						}
 						uri = hlsc.insert(ib, false, null);
 						progress.addPartKnown(0, true);
 					} else {
+						// Do NOT report progress. Pretend we are done as soon as
+						// we have the URI. This allows us to minimise memory usage
+						// without yet splitting up IterableSerialiser.push() and
+						// doing it properly. FIXME
 						InsertContext ctx = hlsc.getInsertContext(false);
 						PushCallback cb = new PushCallback(progress, ib);
 						putter = new ClientPutter(cb, ib.getData(), FreenetURI.EMPTY_CHK_URI, ib.clientMetadata,
@@ -274,6 +281,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 						}
 						uri = cb.waitForURI();
 						System.out.println("Got URI for asynchronous insert: "+uri+" size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
+						progress.addPartKnown(0, true);
 					}
 					
 					ProgressParts prog_new = progress.getParts();
@@ -330,11 +338,13 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		private ClientPutter putter;
 		private FreenetURI generatedURI;
 		private InsertException failed;
-		private final SimpleProgress progress;
+		// See FIXME's in push(), IterableSerialiser.
+		// We don't do real progress, we pretend we're done when push() returns.
+//		private final SimpleProgress progress;
 		private final InsertBlock ib;
 		
 		public PushCallback(SimpleProgress progress, InsertBlock ib) {
-			this.progress = progress;
+//			this.progress = progress;
 			this.ib = ib;
 		}
 
@@ -389,7 +399,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			}
 			if(ib != null)
 				ib.free(null);
-			progress.addPartKnown(0, true);
+//			progress.addPartKnown(0, true);
 
 		}
 

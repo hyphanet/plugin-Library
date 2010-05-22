@@ -604,6 +604,11 @@ implements MapSerialiser<K, T>,
 				}
 			}
 
+			// FIXME PERFORMANCE:
+			// Split up IterableSerialiser, call the start phase, which generates
+			// metadata. Fill in the final metadata based on this and clear the
+			// tasks.get(k).data. Then wait for the finish.
+			
 		} catch (RuntimeException e) {
 			throw new TaskAbortException("Could not complete the push operation", e);
 		}
