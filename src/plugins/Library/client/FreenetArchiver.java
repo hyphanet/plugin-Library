@@ -51,6 +51,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
@@ -82,14 +83,14 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	 * the caller should call waitForAsyncInserts(). 
 	 * 
 	 * FIXME SECURITY: This should be relatively safe, because it's all CHKs, as 
-	 * long as the content isn't easily predictable. 
+	 * long as the content isn't easily predictable.
 	 * 
 	 * The main purpose of this mechanism is to minimise memory usage: Normally the
 	 * data being pushed remains in RAM while we do the insert, which can take a very
 	 * long time. */
 	static final boolean SEMI_ASYNC_PUSH = true;
 	
-	private final HashMap<ClientPutter,InsertBlock> semiAsyncPushes = new HashMap<ClientPutter,InsertBlock>();
+	private final HashSet<PushCallback> semiAsyncPushes = new HashSet<PushCallback>();
 	private final ArrayList<InsertException> pushesFailed = new ArrayList<InsertException>();
 	
 	public static void setCacheDir(File dir) {
@@ -255,13 +256,14 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					
 					if(!SEMI_ASYNC_PUSH) {
 						uri = hlsc.insert(ib, false, null);
+						progress.addPartKnown(0, true);
 					} else {
 						InsertContext ctx = hlsc.getInsertContext(false);
-						PushCallback cb = new PushCallback();
+						PushCallback cb = new PushCallback(progress, ib);
 						putter = new ClientPutter(cb, ib.getData(), FreenetURI.EMPTY_CHK_URI, ib.clientMetadata,
 								ctx, RequestStarter.INTERACTIVE_PRIORITY_CLASS,
 								false, false, this, null, null, false);
-						cb.setPutter(putter, ib);
+						cb.setPutter(putter);
 						long tStart = System.currentTimeMillis();
 						try {
 							// Early encode is normally a security risk.
@@ -279,7 +281,6 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 						Logger.error(this, "Inconsistency when tracking split file progress (pushing): "+prog_old.known+" of "+prog_old.done+" -> "+prog_new.known+" of "+prog_new.done);
 						System.err.println("Inconsistency when tracking split file progress (pushing): "+prog_old.known+" of "+prog_old.done+" -> "+prog_new.known+" of "+prog_new.done);
 					}
-					progress.addPartKnown(0, true);
 				} else {
 					uri = hlsc.insert(ib, false, null);
 					long endTime = System.currentTimeMillis();
@@ -328,11 +329,18 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		private ClientPutter putter;
 		private FreenetURI generatedURI;
 		private InsertException failed;
+		private final SimpleProgress progress;
+		private final InsertBlock ib;
 		
-		public synchronized void setPutter(ClientPutter put, InsertBlock data) {
+		public PushCallback(SimpleProgress progress, InsertBlock ib) {
+			this.progress = progress;
+			this.ib = ib;
+		}
+
+		public synchronized void setPutter(ClientPutter put) {
 			putter = put;
 			synchronized(FreenetArchiver.this) {
-				semiAsyncPushes.put(put, data);
+				semiAsyncPushes.add(this);
 			}
 		}
 
@@ -354,14 +362,13 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				failed = e;
 				notifyAll();
 			}
-			InsertBlock block;
 			synchronized(FreenetArchiver.this) {
-				block = semiAsyncPushes.remove(putter);
+				semiAsyncPushes.remove(this);
 				pushesFailed.add(e);
 				FreenetArchiver.this.notifyAll();
 			}
-			if(block != null)
-				block.free(null);
+			if(ib != null)
+				ib.free(null);
 		}
 
 		public void onFetchable(BaseClientPutter state, ObjectContainer container) {
@@ -374,14 +381,15 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		}
 
 		public void onSuccess(BaseClientPutter state, ObjectContainer container) {
-			InsertBlock block;
 			synchronized(FreenetArchiver.this) {
-				block = semiAsyncPushes.remove(putter);
+				semiAsyncPushes.remove(this);
 				System.out.println("Completed background insert ("+generatedURI+") in "+(System.currentTimeMillis()-startTime)+"ms, now running: "+semiAsyncPushes.size()+".");
 				FreenetArchiver.this.notifyAll();
 			}
-			if(block != null)
-				block.free(null);
+			if(ib != null)
+				ib.free(null);
+			progress.addPartKnown(0, true);
+
 		}
 
 		public void onMajorProgress(ObjectContainer container) {
