@@ -288,6 +288,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				}
 
 				task.meta = uri;
+				task.data = null;
 				
 				if(cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
 					File cached = new File(cacheDir, uri.toASCIIString());
