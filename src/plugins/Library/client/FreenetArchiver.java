@@ -123,6 +123,12 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	** {@inheritDoc}
 	**
 	** This implementation expects metdata of type {@link FreenetURI}.
+	*
+	* FIXME MEMORY: Two-phase pull: First pull to a bucket, then construct the data.
+	* The reason for this is memory usage: We can limit the number in the second
+	* phase according to downstream demand (e.g. blocking queues in ObjectProcessor's),
+	* so that the amount of stuff kept in memory is limited, while still allowing an
+	* (almost?) unlimited number in the fetching data phase.
 	*/
 	/*@Override**/ public void pullLive(PullTask<T> task, final SimpleProgress progress) throws TaskAbortException {
 		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
