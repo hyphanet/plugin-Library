@@ -20,6 +20,7 @@ import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.concurrent.Executors;
 
 import freenet.keys.FreenetURI;
+import freenet.support.Logger;
 
 import java.util.AbstractSet;
 import java.util.Collection;
@@ -224,6 +225,10 @@ final public class ProtoIndex implements Index {
 					long total = totalPages; // Number of pages total
 					long specific = root.size(); // Number of pages in this entry
 					multiplier = Math.log(((double)total) / ((double)specific));
+					if(multiplier < 0) {
+						Logger.error(this, "Negative multiplier!: "+multiplier+" total = "+total+" specific = "+root.size());
+						multiplier = 1.0;
+					}
 				}
 				Set<TermEntry> entries = wrapper(root, multiplier);
 				
