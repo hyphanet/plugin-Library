@@ -267,6 +267,8 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					// we have the URI. This allows us to minimise memory usage
 					// without yet splitting up IterableSerialiser.push() and
 					// doing it properly. FIXME
+					if(progress != null)
+						progress.addPartKnown(1, true);
 					InsertContext ctx = hlsc.getInsertContext(false);
 					PushCallback cb = new PushCallback(progress, ib);
 					putter = new ClientPutter(cb, ib.getData(), FreenetURI.EMPTY_CHK_URI, ib.clientMetadata,
@@ -284,7 +286,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					uri = cb.waitForURI();
 					System.out.println("Got URI for asynchronous insert: "+uri+" size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
 					if(progress != null)
-						progress.addPartKnown(0, true);
+						progress.addPartDone();
 				}
 					
 				if(progress != null) {
