@@ -21,6 +21,14 @@ public interface IterableSerialiser<T> extends Archiver<T> {
 	*/
 	public void pull(Iterable<PullTask<T>> tasks) throws TaskAbortException;
 
+	// FIXME MEMORY
+	// Split up pull() into startPull and endPull. startPull would do the actual
+	// fetch, probably to a Bucket, and endPull would do the YAML parsing.
+	// This will allow us to run many slow startPull's at once, while limiting the 
+	// number of memory-consuming endPull's so that we don't end up with a backlog
+	// of lots of parsed data that we don't yet need.
+	// See comments in FreenetArchiver.pull, ParallelSerialiser.createPullJob.
+	
 	/**
 	** Execute everything in a group of {@link PushTask}s, returning only when
 	** they are all done.
