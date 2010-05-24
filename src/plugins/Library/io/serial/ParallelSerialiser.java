@@ -106,7 +106,7 @@ implements IterableSerialiser<T>,
 					catch (RuntimeException e) { ex = new TaskAbortException("failed", e); }
 					catch (TaskAbortException e) { ex = e; }
 					if (post != null) { post.invoke(X2(task, ex)); }
-					// FIXME MEMORY Two-phase pull (see FreenetArchiver.pull comments):
+					// FIXME OPT NORM Two-phase pull (see FreenetArchiver.pull comments):
 					// All we'd need to do is:
 					// Bucket = pullFirst(task, prog)
 					// Take semaphore (purpose is to limit the number of decoded stuff in memory which is not yet wanted)

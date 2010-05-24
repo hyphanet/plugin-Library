@@ -220,7 +220,7 @@ final public class ProtoIndex implements Index {
 
 				// Post-process relevance.
 				double multiplier = 1.0;
-				if(totalPages >= 0) {
+				if(totalPages > 0) {
 					long total = totalPages; // Number of pages total
 					long specific = root.size(); // Number of pages in this entry
 					multiplier = Math.log(((double)total) / ((double)specific));
