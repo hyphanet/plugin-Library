@@ -250,49 +250,49 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				FreenetURI uri;
 
 				// bookkeeping. detects bugs in the SplitfileProgressEvent handler
-				if (progress != null) {
-					ProgressParts prog_old = progress.getParts();
+				ProgressParts prog_old = null;
+				if(progress != null)
+					prog_old = progress.getParts();
 					
-					if(!SEMI_ASYNC_PUSH) {
-						// Actually report progress.
-						if (progress != null) {
-							hlsc.addEventHook(new SimpleProgressUpdater(progress));
-						}
-						uri = hlsc.insert(ib, false, null);
-						progress.addPartKnown(0, true);
-					} else {
-						// Do NOT report progress. Pretend we are done as soon as
-						// we have the URI. This allows us to minimise memory usage
-						// without yet splitting up IterableSerialiser.push() and
-						// doing it properly. FIXME
-						InsertContext ctx = hlsc.getInsertContext(false);
-						PushCallback cb = new PushCallback(progress, ib);
-						putter = new ClientPutter(cb, ib.getData(), FreenetURI.EMPTY_CHK_URI, ib.clientMetadata,
-								ctx, RequestStarter.INTERACTIVE_PRIORITY_CLASS,
-								false, false, this, null, null, false);
-						cb.setPutter(putter);
-						long tStart = System.currentTimeMillis();
-						try {
-							// Early encode is normally a security risk.
-							// Hopefully it isn't here.
-							core.clientContext.start(putter, true);
-						} catch (DatabaseDisabledException e) {
-							// Impossible
-						}
-						uri = cb.waitForURI();
-						System.out.println("Got URI for asynchronous insert: "+uri+" size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
-						progress.addPartKnown(0, true);
+				if(!SEMI_ASYNC_PUSH) {
+					// Actually report progress.
+					if (progress != null) {
+						hlsc.addEventHook(new SimpleProgressUpdater(progress));
 					}
+					uri = hlsc.insert(ib, false, null);
+					if (progress != null)
+						progress.addPartKnown(0, true);
+				} else {
+					// Do NOT report progress. Pretend we are done as soon as
+					// we have the URI. This allows us to minimise memory usage
+					// without yet splitting up IterableSerialiser.push() and
+					// doing it properly. FIXME
+					InsertContext ctx = hlsc.getInsertContext(false);
+					PushCallback cb = new PushCallback(progress, ib);
+					putter = new ClientPutter(cb, ib.getData(), FreenetURI.EMPTY_CHK_URI, ib.clientMetadata,
+							ctx, RequestStarter.INTERACTIVE_PRIORITY_CLASS,
+							false, false, this, null, null, false);
+					cb.setPutter(putter);
+					long tStart = System.currentTimeMillis();
+					try {
+						// Early encode is normally a security risk.
+						// Hopefully it isn't here.
+						core.clientContext.start(putter, true);
+					} catch (DatabaseDisabledException e) {
+						// Impossible
+					}
+					uri = cb.waitForURI();
+					System.out.println("Got URI for asynchronous insert: "+uri+" size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
+					if(progress != null)
+						progress.addPartKnown(0, true);
+				}
 					
+				if(progress != null) {
 					ProgressParts prog_new = progress.getParts();
 					if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
 						Logger.error(this, "Inconsistency when tracking split file progress (pushing): "+prog_old.known+" of "+prog_old.done+" -> "+prog_new.known+" of "+prog_new.done);
 						System.err.println("Inconsistency when tracking split file progress (pushing): "+prog_old.known+" of "+prog_old.done+" -> "+prog_new.known+" of "+prog_new.done);
 					}
-				} else {
-					uri = hlsc.insert(ib, false, null);
-					long endTime = System.currentTimeMillis();
-					System.out.println("Inserted block for FreenetArchiver in "+(endTime-startTime)+"ms to "+uri);
 				}
 
 				task.meta = uri;
@@ -399,7 +399,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			}
 			if(ib != null)
 				ib.free(null);
-//			progress.addPartKnown(0, true);
+//			if(progress != null) progress.addPartKnown(0, true);
 
 		}
 
