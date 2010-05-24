@@ -601,6 +601,7 @@ implements MapSerialiser<K, T>,
 			for (PushTask<Map<K, T>> bintask: bintasks) {
 				for (K k: bintask.data.keySet()) {
 					tasks.get(k).meta = scale.makeMeta(scale.readBinMetaID(bintask.meta), inv.getWeight(k));
+					tasks.get(k).data = null;
 				}
 			}
 
