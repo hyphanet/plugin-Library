@@ -832,7 +832,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final ObjectProcessor<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> proc_pull
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pullSchedule(
 			new PriorityBlockingQueue<PullTask<SkeletonNode>>(0x10, CMP_PULL),
-			new LinkedBlockingQueue<X2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
+			new LinkedBlockingQueue<X2<PullTask<SkeletonNode>, TaskAbortException>>(8),
 			new HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>()
 		);
 
