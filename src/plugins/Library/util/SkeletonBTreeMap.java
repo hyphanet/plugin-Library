@@ -921,7 +921,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		final ObjectProcessor<DeflateNode, SkeletonNode, TaskAbortException> proc_deflate =
 			new ObjectProcessor<DeflateNode, SkeletonNode, TaskAbortException>(
-					new PriorityBlockingQueue<DeflateNode>(0x10, CMP_DEFLATE),
+					new PriorityBlockingQueue<DeflateNode>(4, CMP_DEFLATE),
 					new LinkedBlockingQueue<X2<DeflateNode, TaskAbortException>>(),
 					new HashMap<DeflateNode, SkeletonNode>(),
 					new Closure<DeflateNode, TaskAbortException>() {
@@ -932,8 +932,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						
 					}, DEFLATE_EXECUTOR, new TaskAbortExceptionConvertor()).autostart();
 		
-		// Limit it to 16 at once. The actual inserts are parallel anyway.
-		proc_deflate.setMaxConc(16);
+		// Limit it to 2 at once to minimise memory usage. 
+		// The actual inserts will occur in parallel anyway.
+		proc_deflate.setMaxConc(2);
 
 		// Dummy constant for SplitNode
 		final SortedMap<K, V> EMPTY_SORTEDMAP = new TreeMap<K, V>(comparator);
