@@ -931,6 +931,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						}
 						
 					}, DEFLATE_EXECUTOR, new TaskAbortExceptionConvertor()).autostart();
+		
+		// Limit it to 16 at once. The actual inserts are parallel anyway.
+		proc_deflate.setMaxConc(16);
 
 		// Dummy constant for SplitNode
 		final SortedMap<K, V> EMPTY_SORTEDMAP = new TreeMap<K, V>(comparator);

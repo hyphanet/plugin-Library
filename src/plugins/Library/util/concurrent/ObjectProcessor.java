@@ -50,7 +50,8 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	private final WeakReference<ObjectProcessor> myRef = new WeakReference<ObjectProcessor>(this);
 
 	// TODO NORM make a more intelligent way of adjusting this
-	final public static int maxconc = 0x28;
+	final public static int default_maxconc = 0x28;
+	int maxconc = default_maxconc;
 
 	final protected SafeClosure<X2<T, X>> postProcess = new SafeClosure<X2<T, X>>() {
 		/*@Override**/ public void invoke(X2<T, X> res) {
@@ -94,6 +95,10 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		convertor = conv;
 	}
 
+	public synchronized void setMaxConc(int x) {
+		maxconc = x;
+	}
+	
 	/**
 	** Safely submits the given item and deposit to the given processer. Only
 	** use this when the input queue's {@link BlockingQueue#put(Object)} method
