@@ -269,13 +269,21 @@ final public class Library implements URLUpdateHook {
 				final ClientGetter gu = hlsc.fetch(uri, 0x10000, (RequestClient)hlsc, fw, fctx);
 				gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
 				
-				final String[] mime = new String[1];
+				final Class<?>[] c = new Class[0];
 				hlsc.addEventHook(new ClientEventListener() {
 					/*@Override**/ public void onRemoveEventProducer(ObjectContainer container){ }
 					/*@Override**/ public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
 						if (!(ce instanceof ExpectedMIMEEvent)) { return; }
-						mime[0] = ((ExpectedMIMEEvent)ce).expectedMIMEType;
-						gu.cancel(maybeContainer, context);
+						synchronized(c) {
+							String type = ((ExpectedMIMEEvent)ce).expectedMIMEType;
+							System.out.println("Expected type in index: "+type);
+							try {
+								c[0] = getIndexTypeFromMIME(type);
+								gu.cancel(null, context);
+							} catch (UnsupportedOperationException e) {
+								// Ignore
+							}
+						}
 					}
 				});
 				
@@ -285,7 +293,12 @@ final public class Library implements URLUpdateHook {
 					
 				} catch (FetchException e) {
 					if (e.getMode() == FetchException.CANCELLED) {
-						return getIndexTypeFromMIME(mime[0]);
+						synchronized(c) {
+							if(c[0] != null)
+								return c[0];
+							else
+								throw new UnsupportedOperationException("Unable to get mime type or got an invalid mime type for index");
+						}
 					} else if(e.newURI != null) {
 						uri = e.newURI;
 						continue;
@@ -305,7 +318,7 @@ final public class Library implements URLUpdateHook {
 			//return "XML index";
 			return XMLIndex.class;
 		} else {
-			throw new UnsupportedOperationException("Unknown mime-type for index");
+			throw new UnsupportedOperationException("Unknown mime-type for index: "+mime);
 		}
 	}
 
@@ -663,7 +676,7 @@ final public class Library implements URLUpdateHook {
 			return index;
 
 		} catch (FetchException e) {
-			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
+			throw new TaskAbortException("Failed to fetch index " + indexuri+" : "+e, e, true); // can retry
 /* KEYEXPLORER
 		} catch (IOException e) {
 			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
@@ -678,10 +691,10 @@ final public class Library implements URLUpdateHook {
 			throw new TaskAbortException("Failed to parse index  " + indexuri, e);
 */
 		} catch (UnsupportedOperationException e) {
-			throw new TaskAbortException("Failed to parse index  " + indexuri, e);
+			throw new TaskAbortException("Failed to parse index  " + indexuri+" : "+e, e);
 
 		} catch (RuntimeException e) {
-			throw new TaskAbortException("Failed to load index  " + indexuri, e);
+			throw new TaskAbortException("Failed to load index  " + indexuri+" : "+e, e);
 
 		}
 	}
