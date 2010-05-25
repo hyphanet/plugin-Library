@@ -527,6 +527,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					String key = entry.getKey();
 					SkeletonBTreeSet<TermEntry> tree = entry.getValue();
 					if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
+					if(tree != null)
+						System.out.println("Merging data in term "+key);
 					//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
 					if (tree == null) {
 						entry.setValue(tree = makeEntryTree(leafsrl));
