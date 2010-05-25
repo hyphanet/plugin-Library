@@ -429,7 +429,7 @@ class MainPage {
 	 */
 	public static void addError(HTMLNode node, Throwable error, StringBuilder messages){
 		if(messages != null &&
-				(error instanceof InvalidSearchException || error instanceof TaskAbortException)){	// Print description
+				(error instanceof InvalidSearchException || error instanceof TaskAbortException) && !logMINOR){	// Print description
 			messages.append(error.getMessage()+"\n");
 			// TODO if there is a cause there should be some way to view this if needed for debugging
 		}else{	// Else print stack trace
