@@ -1254,6 +1254,16 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				Thread.sleep(0x400);
 
+				while(proc_deflate.hasCompleted()) {
+					X3<DeflateNode, SkeletonNode, TaskAbortException> res = proc_deflate.accept();
+					DeflateNode sw = res._0;
+					TaskAbortException ex = res._2;
+					if(ex != null)
+						// FIXME HIGH
+						throw ex;
+					sw.run();
+				}
+
 				while (proc_val != null && proc_val.hasCompleted()) {
 					X3<Map.Entry<K, V>, DeflateNode, X> res = proc_val.accept();
 					Map.Entry<K, V> en = res._0;
@@ -1271,16 +1281,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					}
 				}
 				
-				while(proc_deflate.hasCompleted()) {
-					X3<DeflateNode, SkeletonNode, TaskAbortException> res = proc_deflate.accept();
-					DeflateNode sw = res._0;
-					TaskAbortException ex = res._2;
-					if(ex != null)
-						// FIXME HIGH
-						throw ex;
-					sw.run();
-				}
-
 				while (proc_pull.hasCompleted()) {
 					X3<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> res = proc_pull.accept();
 					PullTask<SkeletonNode> task = res._0;
