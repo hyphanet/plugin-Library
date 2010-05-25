@@ -907,7 +907,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final ObjectProcessor<Map.Entry<K, V>, DeflateNode, X> proc_val = (value_handler == null)? null
 		: new ObjectProcessor<Map.Entry<K, V>, DeflateNode, X>(
 			new BoundedPriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
-			new LinkedBlockingQueue<X2<Map.Entry<K, V>, X>>(),
+			new LinkedBlockingQueue<X2<Map.Entry<K, V>, X>>(8),
 			new HashMap<Map.Entry<K, V>, DeflateNode>(),
 			value_handler, VALUE_EXECUTOR, conv // These can block so pool them separately.
 		).autostart();
