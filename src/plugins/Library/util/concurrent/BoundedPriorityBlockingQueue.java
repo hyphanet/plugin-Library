@@ -33,6 +33,29 @@ public class BoundedPriorityBlockingQueue<E> extends PriorityBlockingQueue<E> {
 	// put() calls offer()
 	
 	@Override
+	public void put(E o) {
+		synchronized(fullLock) {
+			if(super.size() < maxSize) {
+				super.offer(o);
+				return;
+			}
+			// We have to wait.
+			while(true) {
+				try {
+					fullLock.wait();
+				} catch (InterruptedException e) {
+					// Ignore.
+					// PriorityBlockingQueue.offer doesn't throw it so we can't throw it.
+				}
+				if(super.size() < maxSize) {
+					super.offer(o);
+					return;
+				}
+			}
+		}
+	}
+	
+	@Override
 	public boolean offer(E o, long timeout, TimeUnit unit) {
 		synchronized(fullLock) {
 			if(super.size() < maxSize) {
