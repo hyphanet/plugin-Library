@@ -469,19 +469,26 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			
 			if(srl == null) {
 				srl = ProtoIndexSerialiser.forIndex(lastUploadURI);
-				
+				LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
+					(LiveArchiver<Map<String,Object>,SimpleProgress>)(srl.getChildSerialiser());
+				leafsrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_DEFAULT, archiver);
 				if(lastUploadURI == null) {
 					try {
 						idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0L);
 					} catch (java.net.MalformedURLException e) {
 						throw new AssertionError(e);
 					}
+					// FIXME more hacks: It's essential that we use the same FreenetArchiver instance here.
+					leafsrl.setSerialiserFor(idx);
 				} else {
 					try {
 						PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(lastUploadURI);
-						srl.pull(pull);
-						idx = pull.data;
 						System.out.println("Pulling previous index "+lastUploadURI+" so can update it.");
+						srl.pull(pull);
+						System.out.println("Pulled previous index "+lastUploadURI+" - updating...");
+						idx = pull.data;
+						if(!(idx.getSerialiser() == leafsrl))
+							throw new IllegalStateException("Different serialiser: "+idx.getSerialiser()+" should be "+leafsrl);
 					} catch (TaskAbortException e) {
 						Logger.error(this, "Failed to download previous index for spider update: "+e, e);
 						System.err.println("Failed to download previous index for spider update: "+e);
@@ -492,9 +499,6 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						return;
 					}
 				}
-				// FIXME more hacks: It's essential that we use the same FreenetArchiver instance here.
-				leafsrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_DEFAULT, (LiveArchiver<Map<String,Object>,SimpleProgress>)(srl.getChildSerialiser()));
-				leafsrl.setSerialiserFor(idx);
 			}
 			
 			FileWriter w = null;
