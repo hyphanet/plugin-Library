@@ -1262,7 +1262,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				//System.out.println(System.identityHashCode(this) + " " + proc_push + " " + ((proc_val == null)? "": proc_val+ " ") + proc_pull);
 
-				while(proc_deflate.hasCompleted()) {
+				if(proc_deflate.hasCompleted()) {
 					X3<DeflateNode, SkeletonNode, TaskAbortException> res = proc_deflate.accept();
 					DeflateNode sw = res._0;
 					TaskAbortException ex = res._2;
@@ -1270,11 +1270,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						// FIXME HIGH
 						throw ex;
 					sw.run();
-					loop = true;
+					continue;
 				}
 				if(loop) continue;
 
-				while (proc_val != null && proc_val.hasCompleted()) {
+				if (proc_val != null && proc_val.hasCompleted()) {
 					X3<Map.Entry<K, V>, DeflateNode, X> res = proc_val.accept();
 					Map.Entry<K, V> en = res._0;
 					DeflateNode sw = res._1;
@@ -1289,11 +1289,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					if (sw.isCleared()) {
 						proc_deflate.submit(sw, sw.node);
 					}
-					loop = true;
+					continue;
 				}
-				if(loop) continue;
 				
-				while (proc_pull.hasCompleted()) {
+				if (proc_pull.hasCompleted()) {
 					X3<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> res = proc_pull.accept();
 					PullTask<SkeletonNode> task = res._0;
 					SafeClosure<SkeletonNode> clo = res._1;
@@ -1305,9 +1304,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					SkeletonNode node = postPullTask(task, ((InflateChildNodes)clo).parent);
 					clo.invoke(node);
-					loop = true;
+					continue;
 				}
-				if(loop) continue;
 
 			} while (proc_pull.hasPending() || proc_push.hasPending() || (proc_val != null && proc_val.hasPending()) || proc_deflate.hasPending());
 
