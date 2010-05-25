@@ -1235,6 +1235,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 				//System.out.println(System.identityHashCode(this) + " " + proc_pull + " " + proc_push + " " + ((proc_val == null)? "": proc_val));
 
+				System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push+ " "+proc_deflate);
+
+				Thread.sleep(0x400);
+
+				boolean loop = false;
 				while (proc_push.hasCompleted()) {
 					X3<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> res = proc_push.accept();
 					PushTask<SkeletonNode> task = res._0;
@@ -1248,11 +1253,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					postPushTask(task, ((SplitNode)sw).node);
 					sw.release(task.data);
 					if (sw.isCleared()) { ((Runnable)sw).run(); }
+					loop = true;
 				}
+				if(loop) continue;
 
 				//System.out.println(System.identityHashCode(this) + " " + proc_push + " " + ((proc_val == null)? "": proc_val+ " ") + proc_pull);
-
-				Thread.sleep(0x400);
 
 				while(proc_deflate.hasCompleted()) {
 					X3<DeflateNode, SkeletonNode, TaskAbortException> res = proc_deflate.accept();
@@ -1262,7 +1267,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						// FIXME HIGH
 						throw ex;
 					sw.run();
+					loop = true;
 				}
+				if(loop) continue;
 
 				while (proc_val != null && proc_val.hasCompleted()) {
 					X3<Map.Entry<K, V>, DeflateNode, X> res = proc_val.accept();
@@ -1279,7 +1286,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					if (sw.isCleared()) {
 						proc_deflate.submit(sw, sw.node);
 					}
+					loop = true;
 				}
+				if(loop) continue;
 				
 				while (proc_pull.hasCompleted()) {
 					X3<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> res = proc_pull.accept();
@@ -1293,9 +1302,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					SkeletonNode node = postPullTask(task, ((InflateChildNodes)clo).parent);
 					clo.invoke(node);
+					loop = true;
 				}
-
-				System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push+ " "+proc_deflate);
+				if(loop) continue;
 
 			} while (proc_pull.hasPending() || proc_push.hasPending() || (proc_val != null && proc_val.hasPending()) || proc_deflate.hasPending());
 
