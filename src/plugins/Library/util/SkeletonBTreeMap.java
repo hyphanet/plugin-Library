@@ -1234,14 +1234,19 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			// operation fails
 			int olds = size;
 
+			boolean progress = false;
+			
 			do {
 
 				//System.out.println(System.identityHashCode(this) + " " + proc_pull + " " + proc_push + " " + ((proc_val == null)? "": proc_val));
 
-				System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push+ " "+proc_deflate);
-
-				Thread.sleep(0x400);
-
+				// Only sleep if we run out of jobs.
+				if(!progress) {
+					System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push+ " "+proc_deflate);
+					Thread.sleep(0x400);
+				}
+				progress = false;
+				
 				boolean loop = false;
 				while (proc_push.hasCompleted()) {
 					X3<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> res = proc_push.accept();
@@ -1257,6 +1262,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					sw.release(task.data);
 					if (sw.isCleared()) { ((Runnable)sw).run(); }
 					loop = true;
+					progress = true;
 				}
 				if(loop) continue;
 
@@ -1270,6 +1276,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						// FIXME HIGH
 						throw ex;
 					sw.run();
+					progress = true;
 					continue;
 				}
 				if(loop) continue;
@@ -1289,6 +1296,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					if (sw.isCleared()) {
 						proc_deflate.submit(sw, sw.node);
 					}
+					progress = true;
 					continue;
 				}
 				
@@ -1304,6 +1312,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					SkeletonNode node = postPullTask(task, ((InflateChildNodes)clo).parent);
 					clo.invoke(node);
+					progress = true;
 					continue;
 				}
 
