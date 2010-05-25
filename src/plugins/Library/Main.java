@@ -63,6 +63,7 @@ import java.security.MessageDigest;
 import plugins.Library.index.TermEntryReaderWriter;
 import plugins.Library.index.xml.LibrarianHandler;
 import plugins.Library.io.serial.LiveArchiver;
+import plugins.Library.io.serial.Serialiser.PullTask;
 import plugins.Library.io.serial.Serialiser.PushTask;
 
 /**
@@ -469,10 +470,28 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			if(srl == null) {
 				srl = ProtoIndexSerialiser.forIndex(lastUploadURI);
 				
-				try {
-					idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0L);
-				} catch (java.net.MalformedURLException e) {
-					throw new AssertionError(e);
+				if(lastUploadURI == null) {
+					try {
+						idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0L);
+					} catch (java.net.MalformedURLException e) {
+						throw new AssertionError(e);
+					}
+				} else {
+					try {
+						idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0L);
+						PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(idx);
+						System.out.println("Pulling previous index "+lastUploadURI+" so can update it.");
+						srl.pull(pull);
+					} catch (java.net.MalformedURLException e) {
+						throw new AssertionError(e);
+					} catch (TaskAbortException e) {
+						Logger.error(this, "Failed to download previous index for spider update: "+e, e);
+						System.err.println("Failed to download previous index for spider update: "+e);
+						e.printStackTrace();
+						synchronized(handlingSync) {
+							pushBroken = true;
+						}
+					}
 				}
 				// FIXME more hacks: It's essential that we use the same FreenetArchiver instance here.
 				leafsrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_DEFAULT, (LiveArchiver<Map<String,Object>,SimpleProgress>)(srl.getChildSerialiser()));
