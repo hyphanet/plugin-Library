@@ -478,12 +478,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					}
 				} else {
 					try {
-						idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0L);
-						PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(idx);
-						System.out.println("Pulling previous index "+lastUploadURI+" so can update it.");
+						PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(lastUploadURI);
 						srl.pull(pull);
-					} catch (java.net.MalformedURLException e) {
-						throw new AssertionError(e);
+						idx = pull.data;
+						System.out.println("Pulling previous index "+lastUploadURI+" so can update it.");
 					} catch (TaskAbortException e) {
 						Logger.error(this, "Failed to download previous index for spider update: "+e, e);
 						System.err.println("Failed to download previous index for spider update: "+e);
