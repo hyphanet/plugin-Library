@@ -228,7 +228,8 @@ final public class ProtoIndex implements Index {
 					if(multiplier < 0) {
 						Logger.error(this, "Negative multiplier!: "+multiplier+" total = "+total+" specific = "+root.size());
 						multiplier = 1.0;
-					}
+					} else
+						Logger.normal(this, "Correcting results: "+multiplier);
 				}
 				Set<TermEntry> entries = wrapper(root, multiplier);
 				
