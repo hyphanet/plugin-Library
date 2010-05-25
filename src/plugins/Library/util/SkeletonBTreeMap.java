@@ -1233,20 +1233,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			do {
 
-				while (proc_pull.hasCompleted()) {
-					X3<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> res = proc_pull.accept();
-					PullTask<SkeletonNode> task = res._0;
-					SafeClosure<SkeletonNode> clo = res._1;
-					TaskAbortException ex = res._2;
-					if (ex != null) {
-						// FIXME HIGH
-						throw new UnsupportedOperationException("SkeletonBTreeMap.update(): PullTask aborted; handler not implemented yet", ex);
-					}
-
-					SkeletonNode node = postPullTask(task, ((InflateChildNodes)clo).parent);
-					clo.invoke(node);
-				}
-
 				//System.out.println(System.identityHashCode(this) + " " + proc_pull + " " + proc_push + " " + ((proc_val == null)? "": proc_val));
 
 				while (proc_push.hasCompleted()) {
@@ -1293,6 +1279,20 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						// FIXME HIGH
 						throw ex;
 					sw.run();
+				}
+
+				while (proc_pull.hasCompleted()) {
+					X3<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> res = proc_pull.accept();
+					PullTask<SkeletonNode> task = res._0;
+					SafeClosure<SkeletonNode> clo = res._1;
+					TaskAbortException ex = res._2;
+					if (ex != null) {
+						// FIXME HIGH
+						throw new UnsupportedOperationException("SkeletonBTreeMap.update(): PullTask aborted; handler not implemented yet", ex);
+					}
+
+					SkeletonNode node = postPullTask(task, ((InflateChildNodes)clo).parent);
+					clo.invoke(node);
 				}
 
 				System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push+ " "+proc_deflate);
