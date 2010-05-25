@@ -269,7 +269,7 @@ final public class Library implements URLUpdateHook {
 				final ClientGetter gu = hlsc.fetch(uri, 0x10000, (RequestClient)hlsc, fw, fctx);
 				gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
 				
-				final Class<?>[] c = new Class[0];
+				final Class<?>[] c = new Class[1];
 				hlsc.addEventHook(new ClientEventListener() {
 					/*@Override**/ public void onRemoveEventProducer(ObjectContainer container){ }
 					/*@Override**/ public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
