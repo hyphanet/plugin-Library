@@ -36,7 +36,7 @@ public class BoundedPriorityBlockingQueue<E> extends PriorityBlockingQueue<E> {
 	public boolean offer(E o, long timeout, TimeUnit unit) {
 		synchronized(fullLock) {
 			if(super.size() < maxSize) {
-				super.put(o);
+				super.offer(o);
 				return true;
 			}
 			long waitTime = unit.toMillis(timeout);
@@ -65,7 +65,7 @@ public class BoundedPriorityBlockingQueue<E> extends PriorityBlockingQueue<E> {
 	public boolean offer(E o) {
 		synchronized(fullLock) {
 			if(super.size() < maxSize) {
-				super.put(o);
+				super.offer(o);
 				return true;
 			} else return false;
 		}
