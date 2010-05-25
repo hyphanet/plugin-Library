@@ -491,6 +491,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						synchronized(handlingSync) {
 							pushBroken = true;
 						}
+						return;
 					}
 				}
 				// FIXME more hacks: It's essential that we use the same FreenetArchiver instance here.
