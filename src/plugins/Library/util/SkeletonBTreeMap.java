@@ -50,6 +50,7 @@ import java.util.HashMap;
 
 import freenet.support.Logger;
 import plugins.Library.util.Sorted;
+import plugins.Library.util.concurrent.BoundedPriorityBlockingQueue;
 import plugins.Library.util.concurrent.ExceptionConvertor;
 import plugins.Library.util.concurrent.ObjectProcessor;
 import plugins.Library.util.concurrent.Executors;
@@ -905,8 +906,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// must be located after DeflateNode's class definition
 		final ObjectProcessor<Map.Entry<K, V>, DeflateNode, X> proc_val = (value_handler == null)? null
 		: new ObjectProcessor<Map.Entry<K, V>, DeflateNode, X>(
-			new PriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
-			new LinkedBlockingQueue<X2<Map.Entry<K, V>, X>>(),
+			new BoundedPriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
+			new LinkedBlockingQueue<X2<Map.Entry<K, V>, X>>(8),
 			new HashMap<Map.Entry<K, V>, DeflateNode>(),
 			value_handler, VALUE_EXECUTOR, conv // These can block so pool them separately.
 		).autostart();
@@ -921,7 +922,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		final ObjectProcessor<DeflateNode, SkeletonNode, TaskAbortException> proc_deflate =
 			new ObjectProcessor<DeflateNode, SkeletonNode, TaskAbortException>(
-					new PriorityBlockingQueue<DeflateNode>(4, CMP_DEFLATE),
+					new BoundedPriorityBlockingQueue<DeflateNode>(0x10, CMP_DEFLATE),
 					new LinkedBlockingQueue<X2<DeflateNode, TaskAbortException>>(),
 					new HashMap<DeflateNode, SkeletonNode>(),
 					new Closure<DeflateNode, TaskAbortException>() {
