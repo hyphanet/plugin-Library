@@ -120,13 +120,18 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	**         #close() closed}
 	** @throws IllegalArgumentException if the item is already being held
 	*/
-	public synchronized void submit(T item, E deposit) throws InterruptedException {
-		if (!open) { throw new IllegalStateException("ObjectProcessor: not open"); }
-		if (dep.containsKey(item)) {
-			throw new IllegalArgumentException("ObjectProcessor: object " + item + " already submitted");
+	public void submit(T item, E deposit) throws InterruptedException {
+		synchronized(this) {
+			if (!open) { throw new IllegalStateException("ObjectProcessor: not open"); }
+			if (dep.containsKey(item)) {
+				throw new IllegalArgumentException("ObjectProcessor: object " + item + " already submitted");
+			}
+			
+			dep.put(item, deposit);
 		}
-
-		dep.put(item, deposit);
+		// in.put() can block. Don't hold the outer lock during pushing.
+		// Note that this can result in more stuff being in dep than is in in. This is okay, assuming that
+		// we don't have an infinite number of calling threads.
 		in.put(item);
 	}
 
@@ -150,9 +155,12 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** Retrieved a processed item, along with its deposit and any exception
 	** that caused processing to abort.
 	*/
-	public synchronized X3<T, E, X> accept() throws InterruptedException {
+	public X3<T, E, X> accept() throws InterruptedException {
 		X2<T, X> item = out.take();
-		return X3(item._0, dep.remove(item._0), item._1);
+		// DO NOT hold the lock while blocking on out.
+		synchronized(this) {
+			return X3(item._0, dep.remove(item._0), item._1);
+		}
 	}
 
 	/**
@@ -207,13 +215,18 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	**
 	** @return Whether a task was retrieved and executed
 	*/
-	public synchronized boolean dispatchPoll() {
-		if (dispatched - completed >= maxconc) { return false; }
+	public boolean dispatchPoll() {
+		synchronized(this) {
+			if (dispatched - completed >= maxconc) { return false; }
+		}
+		// DO NOT hold the lock while blocking on in.
 		T item = in.poll();
-		if (item == null) { return false; }
-		exec.execute(createJobFor(item));
-		++dispatched;
-		return true;
+		synchronized(this) {
+			if (item == null) { return false; }
+			exec.execute(createJobFor(item));
+			++dispatched;
+			return true;
+		}
 	}
 
 	/**
