@@ -52,7 +52,7 @@ public class BoundedPriorityBlockingQueue<E> extends PriorityBlockingQueue<E> {
 					// PriorityBlockingQueue.offer doesn't throw it so we can't throw it.
 				}
 				if(super.size() < maxSize) {
-					super.put(o);
+					super.offer(o);
 					return true;
 				}
 				now = System.currentTimeMillis();
