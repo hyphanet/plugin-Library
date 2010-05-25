@@ -487,7 +487,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						srl.pull(pull);
 						System.out.println("Pulled previous index "+lastUploadURI+" - updating...");
 						idx = pull.data;
-						if(!(idx.getSerialiser() == leafsrl))
+						if(idx.getSerialiser().getLeafSerialiser() != archiver)
 							throw new IllegalStateException("Different serialiser: "+idx.getSerialiser()+" should be "+leafsrl);
 					} catch (TaskAbortException e) {
 						Logger.error(this, "Failed to download previous index for spider update: "+e, e);

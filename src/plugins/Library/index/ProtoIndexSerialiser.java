@@ -9,6 +9,7 @@ import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.io.serial.LiveArchiver;
 import plugins.Library.io.serial.Serialiser;
 import plugins.Library.io.serial.Translator;
 import plugins.Library.io.serial.Archiver;
@@ -46,14 +47,15 @@ implements Archiver<ProtoIndex>,
 	final public static String MIME_TYPE = YamlReaderWriter.MIME_TYPE;
 	final public static String FILE_EXTENSION = YamlReaderWriter.FILE_EXTENSION;
 
-	final protected static Translator<ProtoIndex, Map<String, Object>>
-	trans = new IndexTranslator();
+	final protected Translator<ProtoIndex, Map<String, Object>>
+	trans;
 
 	final protected Archiver<Map<String, Object>>
 	subsrl;
 
 	public ProtoIndexSerialiser(Archiver<Map<String, Object>> s) {
 		subsrl = s;
+		trans = new IndexTranslator(subsrl);
 	}
 
 	/* FIXME HIGH: Parallelism in fetching multiple words for the same query.
@@ -146,6 +148,12 @@ implements Archiver<ProtoIndex>,
 		SkeletonBTreeMap.TreeTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null, new
 		ProtoIndexComponentSerialiser.TreeMapTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null));
 
+		private Archiver<Map<String, Object>> subsrl;
+		
+		public IndexTranslator(Archiver<Map<String, Object>> subsrl) {
+			this.subsrl = subsrl;
+		}
+
 		/**
 		** {@inheritDoc}
 		**
@@ -182,7 +190,8 @@ implements Archiver<ProtoIndex>,
 
 			if (magic == ProtoIndex.serialVersionUID) {
 				try {
-					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"), null);
+					// FIXME yet more hacks related to the lack of proper asynchronous FreenetArchiver...
+					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"), subsrl instanceof LiveArchiver ? ((LiveArchiver)subsrl) : null);
 					FreenetURI reqID = (FreenetURI)map.get("reqID");
 					String name = (String)map.get("name");
 					String ownerName = (String)map.get("ownerName");

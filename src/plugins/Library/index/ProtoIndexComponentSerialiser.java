@@ -165,6 +165,10 @@ public class ProtoIndexComponentSerialiser {
 	*/
 	final protected LiveArchiver<Map<String, Object>, SimpleProgress>
 	leaf_arx;
+	
+	public LiveArchiver<Map<String, Object>, SimpleProgress> getLeafSerialiser() {
+		return leaf_arx;
+	}
 
 	/**
 	** Serialiser for the ''targets'' of the values stored in a node of the
