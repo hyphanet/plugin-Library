@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.LinkedHashMap;
+import java.util.concurrent.Semaphore;
 import java.io.File;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -57,23 +58,33 @@ implements ObjectStreamReader, ObjectStreamWriter {
 
 	final public static String MIME_TYPE = "text/yaml";
 	final public static String FILE_EXTENSION = ".yml";
+	
+	final static int MAX_PARALLEL = 4; // Limited by memory mainly. If memory is no object it could be limited by threads.
+	// Each Yaml instance uses a *significant* amount of memory...
+	static final Semaphore parallelLimiter = new Semaphore(MAX_PARALLEL);
 
 	public YamlReaderWriter() {
 	}
 
 	/*@Override**/ public Object readObject(InputStream is) throws IOException {
+		parallelLimiter.acquireUninterruptibly();
 		try {
 			return makeYAML().load(new InputStreamReader(is));
 		} catch (YAMLException e) {
 			throw new DataFormatException("Yaml could not process the stream: " + is, e, is, null, null);
+		} finally {
+			parallelLimiter.release();
 		}
 	}
 
 	/*@Override**/ public void writeObject(Object o, OutputStream os) throws IOException {
+		parallelLimiter.acquireUninterruptibly();
 		try {
 			makeYAML().dump(o, new OutputStreamWriter(os));
 		} catch (YAMLException e) {
 			throw new DataFormatException("Yaml could not process the object", e, o, null, null);
+		} finally {
+			parallelLimiter.release();
 		}
 	}
 
