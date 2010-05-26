@@ -3,22 +3,22 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util.concurrent;
 
-import plugins.Library.util.func.Closure;
-import plugins.Library.util.func.SafeClosure;
-import static plugins.Library.util.func.Tuples.X2; // also imports the class
-import static plugins.Library.util.func.Tuples.X3; // also imports the class
+import static plugins.Library.util.func.Tuples.X2;
+import static plugins.Library.util.func.Tuples.X3;
 
 import java.lang.ref.WeakReference;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
+import plugins.Library.util.func.Closure;
+import plugins.Library.util.func.SafeClosure;
+import plugins.Library.util.func.Tuples.X2;
+import plugins.Library.util.func.Tuples.X3;
 import freenet.support.Logger;
 
 /**
@@ -45,6 +45,14 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	protected int dispatched = 0;
 	protected int completed = 0;
 	protected int started = 0;
+	
+	private static volatile boolean logMINOR;
+	private static volatile boolean logDEBUG;
+
+	static {
+		Logger.registerClass(ObjectProcessor.class);
+	}
+
 	// Most ObjectProcessor's are likely to be autostart()'ed, and this way we can
 	// still use ConcurrentMap for pending while having garbage collection.
 	private final WeakReference<ObjectProcessor> myRef = new WeakReference<ObjectProcessor>(this);
@@ -56,7 +64,9 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	final protected SafeClosure<X2<T, X>> postProcess = new SafeClosure<X2<T, X>>() {
 		/*@Override**/ public void invoke(X2<T, X> res) {
 			try {
+				if(logDEBUG) Logger.debug(this, "Post-process for "+name+" out size = "+out.size());
 				out.put(res);
+				if(logDEBUG) Logger.debug(this, "Post-processed for "+name);
 				synchronized(ObjectProcessor.this) { ++completed; }
 			} catch (InterruptedException e) {
 				throw new UnsupportedOperationException();
