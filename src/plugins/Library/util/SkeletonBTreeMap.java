@@ -1234,7 +1234,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			// operation fails
 			int olds = size;
 
-			boolean progress = false;
+			boolean progress = true;
 			boolean first = true;
 			
 			do {
