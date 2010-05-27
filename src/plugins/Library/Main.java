@@ -137,7 +137,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		webinterface = new WebInterface(library, pr);
 		webinterface.load();
 		final String[] oldToMerge;
-		synchronized(handlingSync) {
+		synchronized(freenetMergeSync) {
 			oldToMerge = new File(".").list(new FilenameFilter() {
 				
 				public boolean accept(File arg0, String arg1) {
@@ -157,7 +157,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			Runnable r = new Runnable() {
 
 				public void run() {
-					synchronized(handlingSync) {
+					synchronized(freenetMergeSync) {
 						for(String filename : oldToMerge) {
 							File f = new File(filename);
 							toHandle.add(new FileBucket(f, true, false, false, false, true));
@@ -208,8 +208,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		}
 	}
 
-	private Object handlingSync = new Object();
-	private boolean runningHandler = false;
+	private Object freenetMergeSync = new Object();
+	private boolean freenetMergeRunning = false;
 	
 	private final ArrayList<Bucket> toHandle = new ArrayList<Bucket>();
 	static final int MAX_HANDLING_COUNT = 5; 
@@ -278,13 +278,13 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				output = data;
 			}
 			
-			synchronized(handlingSync) {
+			synchronized(freenetMergeSync) {
 				boolean waited = false;
 				while(toHandle.size() > MAX_HANDLING_COUNT && !pushBroken) {
 					Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish. Ahead of us in the queue: "+toHandle.size());
 					try {
 						waited = true;
-						handlingSync.wait();
+						freenetMergeSync.wait();
 					} catch (InterruptedException e) {
 						// Ignore
 					}
@@ -300,7 +300,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						// FIXME: Use an error return or a throwable to shut down XMLSpider.
 						while(true) {
 							try {
-								handlingSync.wait();
+								freenetMergeSync.wait();
 							} catch (InterruptedException e) {
 								// Ignore
 							}
@@ -310,7 +310,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				}
 				if(waited)
 					Logger.error(this, "Waited for previous handler to go away, moving on...");
-				if(runningHandler) return; // Already running, no need to restart it.
+				if(freenetMergeRunning) return; // Already running, no need to restart it.
 			}
 			Runnable r = new Runnable() {
 				
@@ -331,28 +331,28 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		boolean first = true;
 		while(true) {
 		final Bucket data;
-		synchronized(handlingSync) {
+		synchronized(freenetMergeSync) {
 			if(pushBroken) {
 				Logger.error(this, "Pushing broken");
 				return;
 			}
-			if(first && runningHandler) {
+			if(first && freenetMergeRunning) {
 				Logger.error(this, "Already running a handler!");
 				return;
-			} else if((!first) && (!runningHandler)) {
+			} else if((!first) && (!freenetMergeRunning)) {
 				Logger.error(this, "Already running yet runningHandler is false?!");
 				return;
 			}
 			first = false;
 			if(toHandle.size() == 0) {
 				if(logMINOR) Logger.minor(this, "Nothing to handle");
-				runningHandler = false;
-				handlingSync.notifyAll();
+				freenetMergeRunning = false;
+				freenetMergeSync.notifyAll();
 				return;
 			}
 			data = toHandle.remove(0);
-			handlingSync.notifyAll();
-			runningHandler = true;
+			freenetMergeSync.notifyAll();
+			freenetMergeRunning = true;
 		}
 		try {
 		// FIXME symlink issues with writing straight to files?
@@ -449,10 +449,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		innerInnerHandle(data);
 		} catch (Throwable t) {
 			// Failed.
-			synchronized(handlingSync) {
-				runningHandler = false;
+			synchronized(freenetMergeSync) {
+				freenetMergeRunning = false;
 				pushBroken = true;
-				handlingSync.notifyAll();
+				freenetMergeSync.notifyAll();
 			}
 			if(t instanceof RuntimeException)
 				throw (RuntimeException)t;
@@ -506,7 +506,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						Logger.error(this, "Failed to download previous index for spider update: "+e, e);
 						System.err.println("Failed to download previous index for spider update: "+e);
 						e.printStackTrace();
-						synchronized(handlingSync) {
+						synchronized(freenetMergeSync) {
 							pushBroken = true;
 						}
 						return;
@@ -643,7 +643,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				Logger.error(this, "Failed to upload index for spider: "+e, e);
 				System.err.println("Failed to upload index for spider: "+e);
 				e.printStackTrace();
-				synchronized(handlingSync) {
+				synchronized(freenetMergeSync) {
 					pushBroken = true;
 				}
 			}
