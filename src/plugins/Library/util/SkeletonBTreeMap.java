@@ -1244,7 +1244,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// Only sleep if we run out of jobs.
 				if((!progress) && (!first)) {
 					System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push+ " "+proc_deflate);
-					Thread.sleep(0x400);
+					Thread.sleep(0x100);
 				}
 				first = false;
 				progress = false;

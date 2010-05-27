@@ -9,6 +9,7 @@ import freenet.support.api.Bucket;
 import freenet.support.io.BucketTools;
 import freenet.support.io.Closer;
 import freenet.support.io.FileBucket;
+import freenet.support.io.FileUtil;
 import freenet.support.io.LineReadingInputStream;
 import freenet.support.io.NativeThread;
 
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.logging.Level;
 
@@ -25,8 +27,10 @@ import plugins.Library.index.ProtoIndex;
 import plugins.Library.index.ProtoIndexComponentSerialiser;
 import plugins.Library.index.ProtoIndexSerialiser;
 import plugins.Library.index.TermEntry;
+import plugins.Library.index.TermPageEntry;
 import plugins.Library.search.Search;
 import plugins.Library.ui.WebInterface;
+import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.TaskAbortExceptionConvertor;
 import plugins.Library.util.concurrent.Executors;
@@ -152,6 +156,20 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				
 			});
 		}
+		final String[] dirsToMerge;
+		synchronized(freenetMergeSync) {
+			dirsToMerge = new File(".").list(new FilenameFilter() {
+				
+				public boolean accept(File arg0, String arg1) {
+					if(!(arg1.toLowerCase().startsWith(DISK_DIR_PREFIX))) return false;
+					File f = new File(arg0, arg1);
+					String s = f.getName().substring(DISK_DIR_PREFIX.length());
+					dirNumber = Math.max(dirNumber, Integer.parseInt(s)+1);
+					return true;
+				}
+				
+			});
+		}
 		if(oldToMerge != null && oldToMerge.length > 0) {
 			System.out.println("Found "+oldToMerge.length+" buckets of old index data to merge...");
 			Runnable r = new Runnable() {
@@ -163,12 +181,27 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							toMergeToDisk.add(new FileBucket(f, true, false, false, false, true));
 						}
 					}
-					wrapMergeToFreenet();
+					wrapMergeToDisk();
 				}
 				
 			};
 			pr.getNode().executor.execute(r, "Library: handle index data from previous run");
 		}
+		if(dirsToMerge != null && dirsToMerge.length > 0) {
+			System.out.println("Found "+dirsToMerge.length+" disk trees of old index data to merge...");
+			Runnable r = new Runnable() {
+
+				public void run() {
+					for(String filename : dirsToMerge) {
+						File f = new File(filename);
+						mergeToFreenet(f);
+					}
+				}
+				
+			};
+			pr.getNode().executor.execute(r, "Library: handle index data from previous run");
+		}
+		
 	}
 
 	public void terminate() {
@@ -210,6 +243,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 
 	private Object freenetMergeSync = new Object();
 	private boolean freenetMergeRunning = false;
+	private boolean diskMergeRunning = false;
 	
 	private final ArrayList<Bucket> toMergeToDisk = new ArrayList<Bucket>();
 	static final int MAX_HANDLING_COUNT = 5; 
@@ -225,14 +259,21 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	/** idxDisk gets merged into idxFreenet this long after the last merge completed. */
 	static final long MAX_TIME = 24*60*60*1000L;
 	/** idxDisk gets merged into idxFreenet after this many incoming updates from Spider. */
-	static final int MAX_UPDATES = 10;
+	static final int MAX_UPDATES = 1;
 	/** idxDisk gets merged into idxFreenet after it has grown to this many terms.
 	 * Note that the entire main tree of terms (not the sub-trees with the positions and urls in) must
 	 * fit into memory during the merge process. */
 	static final int MAX_TERMS = 100*1000;
+	/** Like pushNumber, the number of the current disk dir, used to create idxDiskDir. */
+	private int dirNumber;
+	static final String DISK_DIR_PREFIX = "library-temp-index-";
+	/** Directory the current idxDisk is saved in. */
+	File idxDiskDir;
+	private int mergedToDisk;
 	
 	ProtoIndexSerialiser srl = null;
 	FreenetURI lastUploadURI = null;
+	String lastDiskIndexName;
 	/** The uploaded index on Freenet. This never changes, it just gets updated. */
 	ProtoIndex idxFreenet;
 	FreenetURI privURI;
@@ -243,6 +284,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	static final String PRIV_URI_FILENAME = "library.index.privkey";
 	static final String PUB_URI_FILENAME = "library.index.pubkey";
 	static final String EDITION_FILENAME = "library.index.next-edition";
+	
+	static final String LAST_DISK_FILENAME = "library.index.lastpushed.disk";
 	
 	static final String BASE_FILENAME_PUSH_DATA = "library.index.data.";
 	
@@ -310,12 +353,14 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				}
 				if(waited)
 					Logger.error(this, "Waited for previous handler to go away, moving on...");
-				if(freenetMergeRunning) return; // Already running, no need to restart it.
+				//if(freenetMergeRunning) return; // Already running, no need to restart it.
+				if(diskMergeRunning) return; // Already running, no need to restart it.
 			}
 			Runnable r = new Runnable() {
 				
 				public void run() {
-					wrapMergeToFreenet();
+//					wrapMergeToFreenet();
+					wrapMergeToDisk();
 				}
 				
 			};
@@ -327,7 +372,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 
 	}
 	
-	public void wrapMergeToFreenet() {
+	/** Merge from the Bucket chain to the on-disk idxDisk. */
+	protected void wrapMergeToDisk() {
 		boolean first = true;
 		while(true) {
 		final Bucket data;
@@ -336,27 +382,323 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				Logger.error(this, "Pushing broken");
 				return;
 			}
-			if(first && freenetMergeRunning) {
+			if(first && diskMergeRunning) {
 				Logger.error(this, "Already running a handler!");
 				return;
-			} else if((!first) && (!freenetMergeRunning)) {
+			} else if((!first) && (!diskMergeRunning)) {
 				Logger.error(this, "Already running yet runningHandler is false?!");
 				return;
 			}
 			first = false;
 			if(toMergeToDisk.size() == 0) {
 				if(logMINOR) Logger.minor(this, "Nothing to handle");
-				freenetMergeRunning = false;
+				diskMergeRunning = false;
 				freenetMergeSync.notifyAll();
 				return;
 			}
 			data = toMergeToDisk.remove(0);
 			freenetMergeSync.notifyAll();
-			freenetMergeRunning = true;
+			diskMergeRunning = true;
 		}
 		try {
-		// FIXME symlink issues with writing straight to files?
-		// FIXME backup issues with writing straight to files? Factor out and do it properly.
+			mergeToDisk(data);
+		} catch (Throwable t) {
+			// Failed.
+			synchronized(freenetMergeSync) {
+				diskMergeRunning = false;
+				pushBroken = true;
+				freenetMergeSync.notifyAll();
+			}
+			if(t instanceof RuntimeException)
+				throw (RuntimeException)t;
+			if(t instanceof Error)
+				throw (Error)t;
+		}
+		}
+	}
+
+	// This is a member variable because it is huge, and having huge stuff in local variables seems to upset the default garbage collector.
+	// It doesn't need to be synchronized because it's always used from innerInnerHandle, which never runs in parallel.
+	private Map<String, SortedSet<TermEntry>> newtrees;
+	// Ditto
+	private SortedSet<String> terms;
+	
+	ProtoIndexSerialiser srlDisk = null;
+	private ProtoIndexComponentSerialiser leafsrlDisk;
+	
+	private long lastMergedToFreenet = -1;
+	
+	private void mergeToDisk(Bucket data) {
+		if(idxDiskDir == null) {
+			dirNumber++;
+			idxDiskDir = new File(DISK_DIR_PREFIX + Integer.toString(dirNumber));
+			if(!(idxDiskDir.mkdir() || idxDiskDir.isDirectory())) {
+				Logger.error(this, "Unable to create new disk dir: "+idxDiskDir);
+				synchronized(this) {
+					pushBroken = true;
+					return;
+				}
+			}
+		}
+		if(srlDisk == null) {
+			srlDisk = ProtoIndexSerialiser.forIndex(idxDiskDir);
+			LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
+				(LiveArchiver<Map<String,Object>,SimpleProgress>)(srlDisk.getChildSerialiser());
+			leafsrlDisk = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, archiver);
+			if(lastDiskIndexName == null) {
+				try {
+					idxDisk = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0L);
+				} catch (java.net.MalformedURLException e) {
+					throw new AssertionError(e);
+				}
+				// FIXME more hacks: It's essential that we use the same FileArchiver instance here.
+				leafsrlDisk.setSerialiserFor(idxDisk);
+			} else {
+				try {
+					PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(lastDiskIndexName);
+					System.out.println("Pulling previous index "+lastDiskIndexName+" from disk so can update it.");
+					srlDisk.pull(pull);
+					System.out.println("Pulled previous index "+lastDiskIndexName+" from disk - updating...");
+					idxDisk = pull.data;
+					if(idxDisk.getSerialiser().getLeafSerialiser() != archiver)
+						throw new IllegalStateException("Different serialiser: "+idxFreenet.getSerialiser()+" should be "+leafsrl);
+				} catch (TaskAbortException e) {
+					Logger.error(this, "Failed to download previous index for spider update: "+e, e);
+					System.err.println("Failed to download previous index for spider update: "+e);
+					e.printStackTrace();
+					synchronized(freenetMergeSync) {
+						pushBroken = true;
+					}
+					return;
+				}
+			}
+		}
+		
+		// Read data into newtrees and trees.
+		
+		FileWriter w = null;
+		newtrees = new HashMap<String, SortedSet<TermEntry>>();
+		terms = new TreeSet<String>();
+		int entriesAdded = 0;
+		try {
+			Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes, saved to file : buffer");
+			File f = new File("buffer");
+			f.createNewFile();
+			w = new FileWriter(f);
+			InputStream is = data.getInputStream();
+			SimpleFieldSet fs = new SimpleFieldSet(new LineReadingInputStream(is), 1024, 512, true, true, true);
+			idxDisk.setName(fs.get("index.title"));
+			idxDisk.setOwnerEmail(fs.get("index.owner.email"));
+			idxDisk.setOwner(fs.get("index.owner.name"));
+			idxDisk.setTotalPages(fs.getLong("totalPages", -1));
+			try{
+				while(true){	// Keep going til an EOFExcepiton is thrown
+					TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
+					SortedSet<TermEntry> set = newtrees.get(readObject.subj);
+					if(set == null)
+						newtrees.put(readObject.subj, set = new TreeSet<TermEntry>());
+					set.add(readObject);
+					terms.add(readObject.subj);
+					w.write(readObject.toString()+"\n");
+					entriesAdded++;
+				}
+			}catch(EOFException e){
+				// EOF, do nothing
+			}
+			w.close();
+			w = null;
+		} catch (IOException ex) {
+			java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+		} finally {
+			Closer.close(w);
+		}
+		
+		// Do the upload
+		
+		// async merge
+		Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo = new
+		Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
+			/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
+				String key = entry.getKey();
+				SkeletonBTreeSet<TermEntry> tree = entry.getValue();
+				if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
+				if(tree != null)
+					System.out.println("Merging data (on disk) in term "+key);
+				else
+					System.out.println("Adding new term to disk index:  "+key);
+				//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
+				if (tree == null) {
+					entry.setValue(tree = makeEntryTree(leafsrlDisk));
+				}
+				assert(tree.isBare());
+				tree.update(newtrees.get(key), null);
+				newtrees.remove(key);
+				assert(tree.isBare());
+				if(logMINOR) Logger.minor(this, "Updated: "+key+" : "+tree);
+				//System.out.println("handled " + key);
+			}
+		};
+		try {
+		long mergeStartTime = System.currentTimeMillis();
+		assert(idxDisk.ttab.isBare());
+		idxDisk.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
+		// Synchronize anyway so garbage collector knows about it.
+		synchronized(this) {
+			newtrees = null;
+			terms = null;
+		}
+		assert(idxDisk.ttab.isBare());
+		PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idxDisk);
+		srlDisk.push(task4);
+		
+		long mergeEndTime = System.currentTimeMillis();
+		System.out.print(entriesAdded + " entries merged to disk in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta + ", ");
+		// FileArchiver produces a String, which is a filename not including the prefix or suffix.
+		String uri = (String)task4.meta;
+		lastDiskIndexName = uri;
+		System.out.println("Pushed new index to file "+uri);
+		FileOutputStream fos = null;
+		try {
+			fos = new FileOutputStream(LAST_DISK_FILENAME);
+			OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+			osw.write(uri.toString());
+			osw.close();
+			fos = null;
+			data.free();
+		} catch (IOException e) {
+			Logger.error(this, "Failed to write filename of uploaded index: "+uri, e);
+			System.out.println("Failed to write filename of uploaded index: "+uri+" : "+e);
+		} finally {
+			Closer.close(fos);
+		}
+		try {
+			fos = new FileOutputStream(new File(idxDiskDir, LAST_DISK_FILENAME));
+			OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+			osw.write(uri.toString());
+			osw.close();
+			fos = null;
+			data.free();
+		} catch (IOException e) {
+			Logger.error(this, "Failed to write filename of uploaded index: "+uri, e);
+			System.out.println("Failed to write filename of uploaded index: "+uri+" : "+e);
+		} finally {
+			Closer.close(fos);
+		}
+		
+		// Maybe chain to mergeToFreenet ???
+		
+		mergedToDisk++;
+		if(idxDisk.ttab.size() > MAX_TERMS || mergedToDisk > MAX_UPDATES || 
+				(lastMergedToFreenet > 0 && (System.currentTimeMillis() - lastMergedToFreenet) > MAX_TIME)) {
+			
+			final ProtoIndex diskToMerge = idxDisk;
+			final File dir = idxDiskDir;
+			System.out.println("Exceeded threshold, starting new disk index and starting merge from disk to Freenet...");
+			mergedToDisk = 0;
+			lastMergedToFreenet = -1;
+			idxDisk = null;
+			srlDisk = null;
+			leafsrlDisk = null;
+			idxDiskDir = null;
+			
+			synchronized(freenetMergeSync) {
+				while(freenetMergeRunning) {
+					if(pushBroken) return;
+					System.err.println("Need to merge to Freenet, but last merge not finished yet. Waiting...");
+					try {
+						freenetMergeSync.wait();
+					} catch (InterruptedException e) {
+						// Ignore
+					}
+				}
+				if(pushBroken) return;
+				freenetMergeRunning = true;
+			}
+			
+			Runnable r = new Runnable() {
+				
+				public void run() {
+					try {
+						mergeToFreenet(diskToMerge, dir);
+					} catch (Throwable t) {
+						Logger.error(this, "Merge to Freenet failed: "+t, t);
+						System.err.println("Merge to Freenet failed: "+t);
+						t.printStackTrace();
+						synchronized(freenetMergeSync) {
+							pushBroken = true;
+						}
+					} finally {
+						synchronized(freenetMergeSync) {
+							freenetMergeRunning = false;
+							if(!pushBroken)
+								lastMergedToFreenet = System.currentTimeMillis();
+							freenetMergeSync.notifyAll();
+						}
+					}
+				}
+				
+			};
+			pr.getNode().executor.execute(r, "Library: Merge data from disk to Freenet");
+		}
+		} catch (TaskAbortException e) {
+			Logger.error(this, "Failed to upload index for spider: "+e, e);
+			System.err.println("Failed to upload index for spider: "+e);
+			e.printStackTrace();
+			synchronized(freenetMergeSync) {
+				pushBroken = true;
+			}
+		}
+	}
+
+	static final String INDEX_DOCNAME = "index.yml";
+	
+	private ProtoIndexComponentSerialiser leafsrl;
+	
+	protected void mergeToFreenet(File diskDir) {
+		ProtoIndexSerialiser s = ProtoIndexSerialiser.forIndex(diskDir);
+		LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
+			(LiveArchiver<Map<String,Object>,SimpleProgress>)(s.getChildSerialiser());
+		ProtoIndexComponentSerialiser leaf = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, null);
+		String f = null;
+		FileInputStream fis = null;
+		try {
+			fis = new FileInputStream(new File(diskDir, LAST_DISK_FILENAME));
+			BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
+			f = br.readLine();
+			System.out.println("Continuing old bucket: "+f);
+			fis.close();
+			fis = null;
+		} catch (IOException e) {
+			// Ignore
+			System.err.println("Unable to merge old data "+diskDir+" : "+e);
+			e.printStackTrace();
+			Logger.error(this, "Unable to merge old data "+diskDir+" : "+e, e);
+		} finally {
+			Closer.close(fis);
+		}
+
+		ProtoIndex idxDisk = null;
+		try {
+			PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(f);
+			System.out.println("Pulling previous index "+f+" from disk so can update it.");
+			s.pull(pull);
+			System.out.println("Pulled previous index "+f+" from disk - updating...");
+			idxDisk = pull.data;
+			if(idxDisk.getSerialiser().getLeafSerialiser() != archiver)
+				throw new IllegalStateException("Different serialiser: "+idxFreenet.getSerialiser()+" should be "+leafsrl);
+		} catch (TaskAbortException e) {
+			Logger.error(this, "Failed to download previous index for spider update: "+e, e);
+			System.err.println("Failed to download previous index for spider update: "+e);
+			e.printStackTrace();
+			synchronized(freenetMergeSync) {
+				pushBroken = true;
+			}
+			return;
+		}
+		mergeToFreenet(idxDisk, diskDir);
+	}
+	
+	protected void mergeToFreenet(ProtoIndex diskToMerge, File diskDir) {
 		if(lastUploadURI == null) {
 			File f = new File(LAST_URL_FILENAME);
 			FileInputStream fis = null;
@@ -446,34 +788,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 		}
-		mergeToFreenet(data);
-		} catch (Throwable t) {
-			// Failed.
-			synchronized(freenetMergeSync) {
-				freenetMergeRunning = false;
-				pushBroken = true;
-				freenetMergeSync.notifyAll();
-			}
-			if(t instanceof RuntimeException)
-				throw (RuntimeException)t;
-			if(t instanceof Error)
-				throw (Error)t;
-		}
-		}
-	}
-	
-	// This is a member variable because it is huge, and having huge stuff in local variables seems to upset the default garbage collector.
-	// It doesn't need to be synchronized because it's always used from innerInnerHandle, which never runs in parallel.
-	private Map<String, SortedSet<TermEntry>> newtrees;
-	// Ditto
-	private SortedSet<String> terms;
-	
-	static final String INDEX_DOCNAME = "index.yml";
-	
-	private ProtoIndexComponentSerialiser leafsrl;
-	
-	protected void mergeToFreenet(Bucket data) {
-			
+		
 			if(FreenetArchiver.getCacheDir() == null) {
 				File dir = new File("library-spider-pushed-data-cache");
 				dir.mkdir();
@@ -514,43 +829,17 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				}
 			}
 			
-			FileWriter w = null;
-			// FIXME do a disk-tree-to-disk-tree merge??? Would allow much bigger data ...
-			newtrees = new HashMap<String, SortedSet<TermEntry>>();
-			terms = new TreeSet<String>();
+			final SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> newtrees = diskToMerge.ttab;
 			try {
-			int entriesAdded = 0;
-			try {
-				Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes, not implemented yet, saved to file : buffer");
-				File f = new File("buffer");
-				f.createNewFile();
-				w = new FileWriter(f);
-				InputStream is = data.getInputStream();
-				SimpleFieldSet fs = new SimpleFieldSet(new LineReadingInputStream(is), 1024, 512, true, true, true);
-				idxFreenet.setName(fs.get("index.title"));
-				idxFreenet.setOwnerEmail(fs.get("index.owner.email"));
-				idxFreenet.setOwner(fs.get("index.owner.name"));
-				idxFreenet.setTotalPages(fs.getLong("totalPages", -1));
-				try{
-					while(true){	// Keep going til an EOFExcepiton is thrown
-						TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
-						SortedSet<TermEntry> set = newtrees.get(readObject.subj);
-						if(set == null)
-							newtrees.put(readObject.subj, set = new TreeSet<TermEntry>());
-						set.add(readObject);
-						terms.add(readObject.subj);
-						w.write(readObject.toString()+"\n");
-						entriesAdded++;
-					}
-				}catch(EOFException e){
-					// EOF, do nothing
+				// This will only load the root for the values, so it should still fit in RAM.
+				newtrees.inflate();
+			} catch (TaskAbortException e1) {
+				Logger.error(this, "Unable to inflate disk temporary index "+diskDir+" : "+e1, e1);
+				System.err.println("Unable to inflate disk temporary index "+diskDir+" : "+e1);
+				synchronized(freenetMergeSync) {
+					pushBroken = true;
 				}
-				w.close();
-				w = null;
-			} catch (IOException ex) {
-				java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-			} finally {
-				Closer.close(w);
+				return;
 			}
 			
 			// Do the upload
@@ -563,14 +852,17 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					SkeletonBTreeSet<TermEntry> tree = entry.getValue();
 					if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
 					if(tree != null)
-						System.out.println("Merging data in term "+key);
+						System.out.println("Merging data to Freenet in term "+key);
 					//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
 					if (tree == null) {
 						entry.setValue(tree = makeEntryTree(leafsrl));
 					}
 					assert(tree.isBare());
-					tree.update(newtrees.get(key), null);
-					newtrees.remove(key);
+					SkeletonBTreeSet<TermEntry> entries = newtrees.get(key);
+					entries.inflate();
+					tree.update(entries, null);
+					entries.deflate();
+					assert(entries.isBare());
 					assert(tree.isBare());
 					if(logMINOR) Logger.minor(this, "Updated: "+key+" : "+tree);
 					//System.out.println("handled " + key);
@@ -579,13 +871,12 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			try {
 			long mergeStartTime = System.currentTimeMillis();
 			assert(idxFreenet.ttab.isBare());
+			TreeSet<String> terms = new TreeSet<String>();
+			terms.addAll(newtrees.keySet());
+			long entriesAdded = terms.size();
 			idxFreenet.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
-			// Synchronize anyway so garbage collector knows about it.
-			synchronized(this) {
-				newtrees = null;
-				terms = null;
-			}
 			assert(idxFreenet.ttab.isBare());
+			
 			PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idxFreenet);
 			srl.push(task4);
 			
@@ -604,7 +895,11 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				osw.write(uri.toASCIIString());
 				osw.close();
 				fos = null;
-				data.free();
+				newtrees.deflate();
+				diskToMerge = null;
+				terms = null;
+				System.out.println("Finished with disk index "+diskDir);
+				FileUtil.removeAll(diskDir);
 			} catch (IOException e) {
 				Logger.error(this, "Failed to write URL of uploaded index: "+uri, e);
 				System.out.println("Failed to write URL of uploaded index: "+uri+" : "+e);
@@ -645,12 +940,6 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				e.printStackTrace();
 				synchronized(freenetMergeSync) {
 					pushBroken = true;
-				}
-			}
-			} finally {
-				synchronized(this) {
-					newtrees = null;
-					terms = null;
 				}
 			}
 	}

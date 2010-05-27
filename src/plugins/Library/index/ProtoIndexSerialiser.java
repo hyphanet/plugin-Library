@@ -91,7 +91,7 @@ implements Archiver<ProtoIndex>,
 		return new ProtoIndexSerialiser(arx);
 	}
 
-	public static ProtoIndexSerialiser forIndex(File f) {
+	public static ProtoIndexSerialiser forIndex(File prefix) {
 //		ProtoIndexSerialiser srl = srl_cls.get(File.class);
 //		if (srl == null) {
 //			srl_cls.put(File.class, srl = new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION)));
@@ -99,7 +99,7 @@ implements Archiver<ProtoIndex>,
 //		return srl;
 		
 		// One serialiser per application. See comments above re srl_cls.
-		return new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION));
+		return new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION, prefix == null ? "" : prefix.getName()+File.separator, ""));
 	}
 
 	/*@Override**/ public Archiver<Map<String, Object>> getChildSerialiser() {

@@ -76,8 +76,8 @@ implements Archiver<T>, LiveArchiver<T, SimpleProgress> {
 		this(rw, rw, pre, suf, ext);
 	}
 
-	public <S extends ObjectStreamWriter & ObjectStreamReader> FileArchiver(S rw, boolean rnd, String ext) {
-		this(rw, rw, rnd, ext);
+	public <S extends ObjectStreamWriter & ObjectStreamReader> FileArchiver(S rw, boolean rnd, String ext, String prefix, String suffix) {
+		this(rw, rw, rnd, ext, prefix, suffix);
 	}
 
 	public FileArchiver(ObjectStreamReader r, ObjectStreamWriter w, String pre, String suf, String ext) {
@@ -89,10 +89,11 @@ implements Archiver<T>, LiveArchiver<T, SimpleProgress> {
 		random = false;
 	}
 
-	public FileArchiver(ObjectStreamReader r, ObjectStreamWriter w, boolean rnd, String ext) {
+	public FileArchiver(ObjectStreamReader r, ObjectStreamWriter w, boolean rnd, String ext, String prefix, String suffix) {
 		reader = r;
 		writer = w;
-		suffix = prefix = "";
+		this.suffix = suffix;
+		this.prefix = prefix;
 		extension = (ext == null)? "": ext;
 		random = rnd;
 	}
