@@ -160,7 +160,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					synchronized(freenetMergeSync) {
 						for(String filename : oldToMerge) {
 							File f = new File(filename);
-							toHandle.add(new FileBucket(f, true, false, false, false, true));
+							toMergeToDisk.add(new FileBucket(f, true, false, false, false, true));
 						}
 					}
 					innerHandle();
@@ -211,7 +211,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	private Object freenetMergeSync = new Object();
 	private boolean freenetMergeRunning = false;
 	
-	private final ArrayList<Bucket> toHandle = new ArrayList<Bucket>();
+	private final ArrayList<Bucket> toMergeToDisk = new ArrayList<Bucket>();
 	static final int MAX_HANDLING_COUNT = 5; 
 	// When pushing is broken, allow max handling to reach this level before stalling forever to prevent running out of disk space.
 	private int PUSH_BROKEN_MAX_HANDLING_COUNT = 10;
@@ -280,8 +280,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			
 			synchronized(freenetMergeSync) {
 				boolean waited = false;
-				while(toHandle.size() > MAX_HANDLING_COUNT && !pushBroken) {
-					Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish. Ahead of us in the queue: "+toHandle.size());
+				while(toMergeToDisk.size() > MAX_HANDLING_COUNT && !pushBroken) {
+					Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish. Ahead of us in the queue: "+toMergeToDisk.size());
 					try {
 						waited = true;
 						freenetMergeSync.wait();
@@ -289,9 +289,9 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						// Ignore
 					}
 				}
-				toHandle.add(output);
+				toMergeToDisk.add(output);
 				if(pushBroken) {
-					if(toHandle.size() < PUSH_BROKEN_MAX_HANDLING_COUNT)
+					if(toMergeToDisk.size() < PUSH_BROKEN_MAX_HANDLING_COUNT)
 						// We have written the data, it will be recovered after restart.
 						Logger.error(this, "Pushing is broken, failing");
 					else {
@@ -344,13 +344,13 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				return;
 			}
 			first = false;
-			if(toHandle.size() == 0) {
+			if(toMergeToDisk.size() == 0) {
 				if(logMINOR) Logger.minor(this, "Nothing to handle");
 				freenetMergeRunning = false;
 				freenetMergeSync.notifyAll();
 				return;
 			}
-			data = toHandle.remove(0);
+			data = toMergeToDisk.remove(0);
 			freenetMergeSync.notifyAll();
 			freenetMergeRunning = true;
 		}
