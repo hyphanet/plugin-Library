@@ -1235,16 +1235,18 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			int olds = size;
 
 			boolean progress = false;
+			boolean first = true;
 			
 			do {
 
 				//System.out.println(System.identityHashCode(this) + " " + proc_pull + " " + proc_push + " " + ((proc_val == null)? "": proc_val));
 
 				// Only sleep if we run out of jobs.
-				if(!progress) {
+				if((!progress) && (!first)) {
 					System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push+ " "+proc_deflate);
 					Thread.sleep(0x400);
 				}
+				first = false;
 				progress = false;
 				
 				boolean loop = false;
