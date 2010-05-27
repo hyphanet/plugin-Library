@@ -219,6 +219,18 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	
 	private boolean pushBroken;
 	
+	/** The temporary on-disk index. We merge stuff into this until it exceeds a threshold size, then
+	 * we create a new diskIdx and merge the old one into the idxFreenet. */
+	ProtoIndex idxDisk;
+	/** idxDisk gets merged into idxFreenet this long after the last merge completed. */
+	static final long MAX_TIME = 24*60*60*1000L;
+	/** idxDisk gets merged into idxFreenet after this many incoming updates from Spider. */
+	static final int MAX_UPDATES = 10;
+	/** idxDisk gets merged into idxFreenet after it has grown to this many terms.
+	 * Note that the entire main tree of terms (not the sub-trees with the positions and urls in) must
+	 * fit into memory during the merge process. */
+	static final int MAX_TERMS = 100*1000;
+	
 	ProtoIndexSerialiser srl = null;
 	FreenetURI lastUploadURI = null;
 	/** The uploaded index on Freenet. This never changes, it just gets updated. */
