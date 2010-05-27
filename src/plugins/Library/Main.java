@@ -221,7 +221,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	
 	ProtoIndexSerialiser srl = null;
 	FreenetURI lastUploadURI = null;
-	ProtoIndex idx;
+	/** The uploaded index on Freenet. This never changes, it just gets updated. */
+	ProtoIndex idxFreenet;
 	FreenetURI privURI;
 	FreenetURI pubURI;
 	long edition;
@@ -474,21 +475,21 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				leafsrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_DEFAULT, archiver);
 				if(lastUploadURI == null) {
 					try {
-						idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0L);
+						idxFreenet = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0L);
 					} catch (java.net.MalformedURLException e) {
 						throw new AssertionError(e);
 					}
 					// FIXME more hacks: It's essential that we use the same FreenetArchiver instance here.
-					leafsrl.setSerialiserFor(idx);
+					leafsrl.setSerialiserFor(idxFreenet);
 				} else {
 					try {
 						PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(lastUploadURI);
 						System.out.println("Pulling previous index "+lastUploadURI+" so can update it.");
 						srl.pull(pull);
 						System.out.println("Pulled previous index "+lastUploadURI+" - updating...");
-						idx = pull.data;
-						if(idx.getSerialiser().getLeafSerialiser() != archiver)
-							throw new IllegalStateException("Different serialiser: "+idx.getSerialiser()+" should be "+leafsrl);
+						idxFreenet = pull.data;
+						if(idxFreenet.getSerialiser().getLeafSerialiser() != archiver)
+							throw new IllegalStateException("Different serialiser: "+idxFreenet.getSerialiser()+" should be "+leafsrl);
 					} catch (TaskAbortException e) {
 						Logger.error(this, "Failed to download previous index for spider update: "+e, e);
 						System.err.println("Failed to download previous index for spider update: "+e);
@@ -514,10 +515,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				w = new FileWriter(f);
 				InputStream is = data.getInputStream();
 				SimpleFieldSet fs = new SimpleFieldSet(new LineReadingInputStream(is), 1024, 512, true, true, true);
-				idx.setName(fs.get("index.title"));
-				idx.setOwnerEmail(fs.get("index.owner.email"));
-				idx.setOwner(fs.get("index.owner.name"));
-				idx.setTotalPages(fs.getLong("totalPages", -1));
+				idxFreenet.setName(fs.get("index.title"));
+				idxFreenet.setOwnerEmail(fs.get("index.owner.email"));
+				idxFreenet.setOwner(fs.get("index.owner.name"));
+				idxFreenet.setTotalPages(fs.getLong("totalPages", -1));
 				try{
 					while(true){	// Keep going til an EOFExcepiton is thrown
 						TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
@@ -565,15 +566,15 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			};
 			try {
 			long mergeStartTime = System.currentTimeMillis();
-			assert(idx.ttab.isBare());
-			idx.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
+			assert(idxFreenet.ttab.isBare());
+			idxFreenet.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
 			// Synchronize anyway so garbage collector knows about it.
 			synchronized(this) {
 				newtrees = null;
 				terms = null;
 			}
-			assert(idx.ttab.isBare());
-			PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idx);
+			assert(idxFreenet.ttab.isBare());
+			PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idxFreenet);
 			srl.push(task4);
 			
 			FreenetArchiver arch = (FreenetArchiver) srl.getChildSerialiser();
