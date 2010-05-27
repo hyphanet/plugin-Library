@@ -163,7 +163,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							toMergeToDisk.add(new FileBucket(f, true, false, false, false, true));
 						}
 					}
-					innerHandle();
+					wrapMergeToFreenet();
 				}
 				
 			};
@@ -315,7 +315,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			Runnable r = new Runnable() {
 				
 				public void run() {
-					innerHandle();
+					wrapMergeToFreenet();
 				}
 				
 			};
@@ -327,7 +327,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 
 	}
 	
-	public void innerHandle() {
+	public void wrapMergeToFreenet() {
 		boolean first = true;
 		while(true) {
 		final Bucket data;
@@ -446,7 +446,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 		}
-		innerInnerHandle(data);
+		mergeToFreenet(data);
 		} catch (Throwable t) {
 			// Failed.
 			synchronized(freenetMergeSync) {
@@ -472,7 +472,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	
 	private ProtoIndexComponentSerialiser leafsrl;
 	
-	protected void innerInnerHandle(Bucket data) {
+	protected void mergeToFreenet(Bucket data) {
 			
 			if(FreenetArchiver.getCacheDir() == null) {
 				File dir = new File("library-spider-pushed-data-cache");
