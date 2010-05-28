@@ -528,7 +528,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				// FIXME throw in update() if it will deadlock.
 				for(String key : terms) {
 					SkeletonBTreeSet<TermEntry> tree = makeEntryTree(leafsrlDisk);
-					tree.update(newtrees.get(key), null);
+					tree.addAll(newtrees.get(key));
 					tree.deflate();
 					assert(tree.isBare());
 					idxDisk.ttab.put(key, tree);
