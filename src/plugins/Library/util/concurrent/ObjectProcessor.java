@@ -73,6 +73,10 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 			}
 		}
 	};
+	
+	public int outputCapacity() {
+		return out.remainingCapacity();
+	}
 
 	final private static ConcurrentMap<WeakReference<ObjectProcessor>, Boolean> pending = new ConcurrentHashMap<WeakReference<ObjectProcessor>, Boolean>();
 	// This must only be modified in a static synchronized block

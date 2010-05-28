@@ -1144,6 +1144,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				if (node.isLeaf()) {
 					// add all keys into the node, since there are no children.
 
+					if(putkey.size() > proc_val.outputCapacity())
+						// FIXME check this earlier
+						throw new RuntimeException("Adding too many values to a single node, would deadlock");
+					
 					if (proc_val == null) {
 						// OPT: could use a splice-merge here. for TreeMap, there is not an
 						// easy way of doing this, nor will it likely make a lot of a difference.
