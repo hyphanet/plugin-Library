@@ -695,6 +695,19 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			return;
 		}
+		synchronized(freenetMergeSync) {
+			while(freenetMergeRunning) {
+				if(pushBroken) return;
+				System.err.println("Need to merge to Freenet, but last merge not finished yet. Waiting...");
+				try {
+					freenetMergeSync.wait();
+				} catch (InterruptedException e) {
+					// Ignore
+				}
+			}
+			if(pushBroken) return;
+			freenetMergeRunning = true;
+		}
 		mergeToFreenet(idxDisk, diskDir);
 	}
 	
