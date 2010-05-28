@@ -1155,7 +1155,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					} else {
 						if(putkey.size() > proc_val.outputCapacity())
 							// FIXME check this earlier
-							throw new RuntimeException("Adding too many values to a single node, would deadlock");
+							throw new RuntimeException("Adding too many values to a single node, would deadlock: adding "+putkey.size()+" values, remaining capacity is "+proc_val.outputCapacity()+" used is "+proc_val.outputSize());
 						
 						for (K key: putkey) { handleLocalPut(node, key, vClo); }
 					}
