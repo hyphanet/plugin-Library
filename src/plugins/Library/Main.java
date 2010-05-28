@@ -518,6 +518,15 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			Closer.close(w);
 		}
 		
+		if(terms.size() == 0) {
+			System.out.println("Nothing to merge");
+			synchronized(this) {
+				newtrees = null;
+				terms = null;
+			}
+			return;
+		}
+		
 		// Do the upload
 		
 		try {
@@ -620,6 +629,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				srlDisk = null;
 				leafsrlDisk = null;
 				idxDiskDir = null;
+				lastDiskIndexName = null;
 				
 				// FIXME OOM
 			
