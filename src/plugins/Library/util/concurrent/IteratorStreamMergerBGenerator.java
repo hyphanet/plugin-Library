@@ -2,9 +2,8 @@ package plugins.Library.util.concurrent;
 
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.Executor;
 
-public class IteratorStreamMergerBGenerator<K, B> implements StreamMergerBGenerator<K, B> {
+public class IteratorStreamMergerBGenerator<K, B, X extends Exception> implements StreamMergerBGenerator<K, B, X> {
 
 	final Iterable<Map.Entry<K, B>> iterable;
 	
@@ -12,15 +11,9 @@ public class IteratorStreamMergerBGenerator<K, B> implements StreamMergerBGenera
 		this.iterable = it;
 	}
 	
-	public void start(final StreamMerge<K, ?, B> merge, Executor exec) {
-		exec.execute(new Runnable() {
-
-			public void run() {
-				for(Map.Entry<K,B> entry : iterable)
-					merge.submitB(entry.getKey(), entry.getValue());
-			}
-			
-		});
+	public void generate(final StreamMerge<K, ?, B> merge) {
+		for(Map.Entry<K,B> entry : iterable)
+			merge.submitB(entry.getKey(), entry.getValue());
 	}
 
 }

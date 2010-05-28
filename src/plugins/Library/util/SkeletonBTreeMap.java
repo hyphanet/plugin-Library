@@ -54,6 +54,7 @@ import plugins.Library.util.concurrent.BoundedPriorityBlockingQueue;
 import plugins.Library.util.concurrent.ExceptionConvertor;
 import plugins.Library.util.concurrent.ObjectProcessor;
 import plugins.Library.util.concurrent.Executors;
+import plugins.Library.util.concurrent.StreamMerge;
 import plugins.Library.util.event.TrackingSweeper;
 import plugins.Library.util.event.CountingSweeper;
 import plugins.Library.util.func.Closure;
@@ -395,6 +396,38 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 		}
 
+		/** Depth-first self-activating self-deactivation iteration in order. 
+		 * @throws TaskAbortException */
+		public void generate(StreamMerge<K, ?, V> merge) throws TaskAbortException {
+			if(((SkeletonTreeMap<K, V>)entries).isBare()) {
+				((SkeletonTreeMap<K, V>)entries).inflate();
+				if(isLeaf()) {
+					for(Map.Entry<K, V> entry : entries.entrySet()) {
+						merge.submitB(entry.getKey(), entry.getValue());
+					}
+				} else {
+					// Process sub-nodes too.
+					K lastkey = lkey;
+					Iterator<Map.Entry<K, V>> e = entries.entrySet().iterator();
+					while(true) {
+						// Neither lkey nor rkey actually has an entry.
+						// However, we start with a node, not an entry.
+						Node n = rnodes.get(lastkey);
+						if(n.isGhost()) {
+							inflate(lastkey, false);
+							n = rnodes.get(lastkey);
+						}
+						((SkeletonNode)n).generate(merge);
+						deflate(lastkey);
+						if(!e.hasNext()) break; // Last node.
+						Map.Entry<K, V> entry = e.next();
+						merge.submitB(entry.getKey(), entry.getValue());
+					}
+				}
+				((SkeletonTreeMap<K, V>)entries).deflate();
+			}
+		}
+		
 	}
 
 	public class GhostNode extends Node {
