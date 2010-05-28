@@ -1,7 +1,9 @@
 package plugins.Library.util.concurrent;
 
-public interface Merger<V, X extends Exception> {
+public interface Merger<A, B, V, C, X extends Exception> {
 	
-	public V merge(V a, V b) throws X;
+	/** Combine two objects in some way to produce a third, given context data, and 
+	 * possibly throwing an Exception. */
+	public V merge(A a, B b, C context) throws X;
 
 }
