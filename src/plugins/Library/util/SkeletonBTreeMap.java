@@ -808,7 +808,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		
 		while(true) {
 			
-		SortedSet<K> rejected;
+		final SortedSet<K> rejected;
 		
 		if (value_handler == null) {
 			// synchronous value callback - null, remkey, putmap, null
@@ -1404,7 +1404,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		if(rejected == null || rejected.isEmpty()) return;
 		System.err.println("Rejected keys: "+rejected.size()+" - re-running merge with rejected keys.");
 		putkey = rejected;
-		rejected = new TreeSet<K>();
+		rejected.clear();
 		
 		}
 	}
