@@ -198,6 +198,20 @@ public class BIndexTest extends TestCase {
 		srl.push(task4);
 		System.out.print(entriesadded + " entries merged in " + timeDiff() + " ms, root at " + task4.meta + ", ");
 
+		// Iterate it.
+		Iterator<String> keys = idx.ttab.keySet().iterator();
+		long count = 0;
+		String prev = null;
+		while(keys.hasNext()) {
+			count++;
+			String x = keys.next();
+			assertFalse("Inconsistent iteration: Previous was "+prev+" this is "+x, prev != null && x.compareTo(prev) <= 0);
+			prev = x;
+		}
+		assertTrue(count == idx.ttab.size());
+		System.out.println("Iterated keys, total is "+count+" size is "+idx.ttab.size());
+		assertTrue(idx.ttab.isBare());
+		
 		// full inflate (2)
 		PullTask<ProtoIndex> task5 = new PullTask<ProtoIndex>(task4.meta);
 		srl.pull(task5);
