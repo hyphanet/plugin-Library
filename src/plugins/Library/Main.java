@@ -188,21 +188,20 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			};
 			pr.getNode().executor.execute(r, "Library: handle index data from previous run");
 		}
-		// FIXME OOM
-//		if(dirsToMerge != null && dirsToMerge.length > 0) {
-//			System.out.println("Found "+dirsToMerge.length+" disk trees of old index data to merge...");
-//			Runnable r = new Runnable() {
-//
-//				public void run() {
-//					for(String filename : dirsToMerge) {
-//						File f = new File(filename);
-//						mergeToFreenet(f);
-//					}
-//				}
-//				
-//			};
-//			pr.getNode().executor.execute(r, "Library: handle trees from previous run");
-//		}
+		if(dirsToMerge != null && dirsToMerge.length > 0) {
+			System.out.println("Found "+dirsToMerge.length+" disk trees of old index data to merge...");
+			Runnable r = new Runnable() {
+
+				public void run() {
+					for(String filename : dirsToMerge) {
+						File f = new File(filename);
+						mergeToFreenet(f);
+					}
+				}
+				
+			};
+			pr.getNode().executor.execute(r, "Library: handle trees from previous run");
+		}
 		
 	}
 
@@ -432,6 +431,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	
 	private void mergeToDisk(Bucket data) {
 		
+		if(true) return; // FIXME OOM
+		
 		boolean newIndex = false;
 		
 		if(idxDiskDir == null) {
@@ -611,7 +612,6 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				osw.write(uri.toString());
 				osw.close();
 				fos = null;
-				data.free();
 			} catch (IOException e) {
 				Logger.error(this, "Failed to write filename of uploaded index: "+uri, e);
 				System.out.println("Failed to write filename of uploaded index: "+uri+" : "+e);
@@ -636,46 +636,44 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				idxDiskDir = null;
 				lastDiskIndexName = null;
 				
-				// FIXME OOM
+			synchronized(freenetMergeSync) {
+				while(freenetMergeRunning) {
+					if(pushBroken) return;
+					System.err.println("Need to merge to Freenet, but last merge not finished yet. Waiting...");
+					try {
+						freenetMergeSync.wait();
+					} catch (InterruptedException e) {
+						// Ignore
+					}
+				}
+				if(pushBroken) return;
+				freenetMergeRunning = true;
+			}
 			
-//			synchronized(freenetMergeSync) {
-//				while(freenetMergeRunning) {
-//					if(pushBroken) return;
-//					System.err.println("Need to merge to Freenet, but last merge not finished yet. Waiting...");
-//					try {
-//						freenetMergeSync.wait();
-//					} catch (InterruptedException e) {
-//						// Ignore
-//					}
-//				}
-//				if(pushBroken) return;
-//				freenetMergeRunning = true;
-//			}
-//			
-//			Runnable r = new Runnable() {
-//				
-//				public void run() {
-//					try {
-//						mergeToFreenet(diskToMerge, dir);
-//					} catch (Throwable t) {
-//						Logger.error(this, "Merge to Freenet failed: "+t, t);
-//						System.err.println("Merge to Freenet failed: "+t);
-//						t.printStackTrace();
-//						synchronized(freenetMergeSync) {
-//							pushBroken = true;
-//						}
-//					} finally {
-//						synchronized(freenetMergeSync) {
-//							freenetMergeRunning = false;
-//							if(!pushBroken)
-//								lastMergedToFreenet = System.currentTimeMillis();
-//							freenetMergeSync.notifyAll();
-//						}
-//					}
-//				}
-//				
-//			};
-//			pr.getNode().executor.execute(r, "Library: Merge data from disk to Freenet");
+			Runnable r = new Runnable() {
+				
+				public void run() {
+					try {
+						mergeToFreenet(diskToMerge, dir);
+					} catch (Throwable t) {
+						Logger.error(this, "Merge to Freenet failed: "+t, t);
+						System.err.println("Merge to Freenet failed: "+t);
+						t.printStackTrace();
+						synchronized(freenetMergeSync) {
+							pushBroken = true;
+						}
+					} finally {
+						synchronized(freenetMergeSync) {
+							freenetMergeRunning = false;
+							if(!pushBroken)
+								lastMergedToFreenet = System.currentTimeMillis();
+							freenetMergeSync.notifyAll();
+						}
+					}
+				}
+				
+			};
+			pr.getNode().executor.execute(r, "Library: Merge data from disk to Freenet");
 			}
 		} catch (TaskAbortException e) {
 			Logger.error(this, "Failed to upload index for spider: "+e, e);
@@ -894,9 +892,13 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
 					if(tree != null)
 						System.out.println("Merging data to Freenet in term "+key);
+					else
+						System.out.println("Adding data to Freenet for term "+key);
 					//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
+					boolean newTree = false;
 					if (tree == null) {
 						entry.setValue(tree = makeEntryTree(leafsrl));
+						newTree = true;
 					}
 					assert(tree.isBare());
 					SkeletonBTreeSet<TermEntry> entries;
@@ -906,7 +908,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						entries = newtrees.get(key);
 					}
 					entries.inflate();
-					tree.update(entries, null);
+					if(newTree)
+						tree.addAll(entries);
+					else
+						tree.update(entries, null);
 					entries.deflate();
 					assert(entries.isBare());
 					assert(tree.isBare());
@@ -921,9 +926,11 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			// each node when it is done with it, and everything when finished, so that isBare() is true
 			// both before and after.
 			Iterator<String> it =
-				idxFreenet.ttab.keySet().iterator();
+				diskToMerge.ttab.keySetAutoDeflate().iterator();
 			TreeSet<String> terms = new TreeSet<String>();
 			while(it.hasNext()) terms.add(it.next());
+			System.out.println("Merging "+terms.size()+" terms from disk to Freenet...");
+			assert(terms.size() == idxFreenet.ttab.size());
 			assert(idxFreenet.ttab.isBare());
 			long entriesAdded = terms.size();
 			idxFreenet.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());

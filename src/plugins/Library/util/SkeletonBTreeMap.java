@@ -1577,9 +1577,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	/**
 	 * FIXME implement entrySet() along similar lines - auto-activation and auto-deactivation.
 	 * keySet() achieves a slightly different purpose. It never activates values.
+	 * 
+	 * NOTE: This is not called keySet() because some callers may not want us to auto-deflate.
 	 */
 	private Set<K> keySet = null;
-	@Override public Set<K> keySet() {
+	public Set<K> keySetAutoDeflate() {
 		if (keySet == null) {
 			keySet = new AbstractSet<K>() {
 

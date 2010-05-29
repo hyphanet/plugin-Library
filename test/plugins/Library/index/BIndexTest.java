@@ -199,7 +199,7 @@ public class BIndexTest extends TestCase {
 		System.out.print(entriesadded + " entries merged in " + timeDiff() + " ms, root at " + task4.meta + ", ");
 
 		// Iterate it.
-		Iterator<String> keys = idx.ttab.keySet().iterator();
+		Iterator<String> keys = idx.ttab.keySetAutoDeflate().iterator();
 		long count = 0;
 		String prev = null;
 		while(keys.hasNext()) {
