@@ -14,6 +14,7 @@ import plugins.Library.util.exec.TaskCompleteException;
 import plugins.Library.util.func.Tuples.X2;
 import plugins.Library.util.func.Tuples.X3;
 
+import java.util.AbstractSet;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Collection;
@@ -21,6 +22,9 @@ import java.util.Map;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.Stack;
 
 // TODO NORM tidy this
 import java.util.Queue;
@@ -1567,5 +1571,162 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// We don't want that here, especially as they may not be loaded.
 		return getClass().getName() + "@" + System.identityHashCode(this)+":size="+size;
 	}
+	
+	/**
+	 * FIXME implement entrySet() along similar lines - auto-activation and auto-deactivation.
+	 * keySet() achieves a slightly different purpose. It never activates values.
+	 */
+	private Set<K> keySet = null;
+	@Override public Set<K> keySet() {
+		if (keySet == null) {
+			keySet = new AbstractSet<K>() {
+
+				@Override public int size() { return SkeletonBTreeMap.this.size(); }
+
+				@Override public Iterator<K> iterator() {
+					// FIXME LOW - this does NOT yet throw ConcurrentModificationException
+					// use a modCount counter
+					return new Iterator<K>() {
+
+						Stack<SkeletonNode> nodestack = new Stack<SkeletonNode>();
+						Stack<Iterator<Map.Entry<K, V>>> itstack = new Stack<Iterator<Map.Entry<K, V>>>();
+
+						SkeletonNode cnode = (SkeletonNode)(SkeletonBTreeMap.this.root);
+						Iterator<Map.Entry<K, V>> centit = cnode.entries.entrySet().iterator();
+
+						K lastkey = null;
+						boolean removeok = false;
+						
+						
+						// DEBUG ONLY, remove when unneeded
+						/*public String toString() {
+							StringBuilder s = new StringBuilder();
+							for (Node n: nodestack) {
+								s.append(n.getRange()).append(", ");
+							}
+							return "nodestack: [" + s + "]; cnode: " + cnode.getRange() + "; lastkey: " + lastkey;
+						}*/
+
+						/*@Override**/ public boolean hasNext() {
+							// TODO LOW ideally iterate in the reverse order
+							for (Iterator<Map.Entry<K, V>> it: itstack) {
+								if (it.hasNext()) { return true; }
+							}
+							if (centit.hasNext()) { return true; }
+							if (!cnode.isLeaf()) { return true; }
+							return false;
+						}
+
+						/*@Override**/ public K next() {
+							if (cnode.isLeaf()) {
+								while (!centit.hasNext()) {
+									if (nodestack.empty()) {
+										assert(itstack.empty());
+										throw new NoSuchElementException();
+									}
+									try {
+										cnode.deflate();
+									} catch (TaskAbortException e) {
+										throw new RuntimeException(e);
+									}
+									cnode = nodestack.pop();
+									centit = itstack.pop();
+								}
+							} else {
+								while (!cnode.isLeaf()) {
+									// NULLNOTICE lastkey initialised to null, so this will get the right node
+									// even at the smaller edge of the map
+									Node testnode = cnode.rnodes.get(lastkey);
+									if(testnode.isGhost()) {
+										try {
+											cnode.inflate(testnode.lkey, false);
+										} catch (TaskAbortException e) {
+											throw new RuntimeException(e);
+										}
+										testnode = cnode.rnodes.get(lastkey);
+										assert(testnode instanceof SkeletonBTreeMap.SkeletonNode);
+									}
+									assert(!testnode.isGhost());
+									SkeletonNode n = (SkeletonNode) testnode;
+									// node OK, proceed
+									nodestack.push(cnode);
+									itstack.push(centit);
+									cnode = n;
+									centit = cnode.entries.entrySet().iterator();
+								}
+							}
+							K next = centit.next().getKey(); lastkey = next;
+							removeok = true;
+							return next;
+						}
+
+						/*@Override**/ public void remove() {
+							throw new UnsupportedOperationException();
+							// FIXME
+//							if (!removeok) {
+//								throw new IllegalStateException("Iteration has not yet begun, or the element has already been removed.");
+//							}
+//							// OPT LOW this could probably be a *lot* more efficient...
+//							BTreeMap.this.remove(lastkey);
+//
+//							// we need to find our position in the tree again, since there may have
+//							// been structural modifications to it.
+//							// OPT LOW have a "structual modifications counter" that is incremented by
+//							// split, merge, rotateL, rotateR, and do the below only if it changes
+//							nodestack.clear();
+//							itstack.clear();
+//							cnode = BTreeMap.this.root;
+//							centit = cnode.entries.entrySet().iterator();
+//
+//							K stopkey = null;
+//							while(!cnode.isLeaf()) {
+//								stopkey = findstopkey(stopkey);
+//								nodestack.push(cnode);
+//								itstack.push(centit);
+//								// NULLNOTICE stopkey initialised to null, so this will get the right node
+//								// even at the smaller edge of the map
+//								cnode = cnode.rnodes.get(stopkey);
+//								centit = cnode.entries.entrySet().iterator();
+//							}
+//
+//							lastkey = findstopkey(stopkey);
+//							removeok = false;
+						}
+
+						private K findstopkey(K stopkey) {
+							SortedMap<K, V> headmap = cnode.entries.headMap(lastkey);
+							if (!headmap.isEmpty()) {
+								stopkey = headmap.lastKey();
+								while (compare(centit.next().getKey(), stopkey) < 0);
+							}
+							return stopkey;
+						}
+
+					};
+				}
+
+				@Override public void clear() {
+					SkeletonBTreeMap.this.clear();
+				}
+
+				@Override public boolean contains(Object o) {
+					Object value = SkeletonBTreeMap.this.get(o);
+					return value != null;
+				}
+
+				@Override public boolean remove(Object o) {
+					if (contains(o)) {
+						SkeletonBTreeMap.this.remove(o);
+						return true;
+					}
+					return false;
+				}
+
+			};
+		}
+		return keySet;
+	}
+
+
 	
 }
