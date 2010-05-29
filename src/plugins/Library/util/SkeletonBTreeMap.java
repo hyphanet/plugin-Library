@@ -39,6 +39,7 @@ import plugins.Library.util.exec.BaseCompositeProgress;
 import plugins.Library.io.serial.Serialiser;
 import plugins.Library.io.serial.ProgressTracker;
 import plugins.Library.util.exec.TaskCompleteException;
+import plugins.Library.util.BTreeMap.Node;
 import plugins.Library.util.concurrent.Scheduler;
 
 import java.util.Collections;
@@ -658,6 +659,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	}
 
 	/*@Override**/ public void inflate(K key) throws TaskAbortException {
+		inflate(key);
+	}
+	
+	/*@Override**/ public void inflate(K key, boolean deflateRest) throws TaskAbortException {
 		// TODO NORM tidy up
 		// OPT LOW could write a more efficient version by keeping track of
 		// the already-inflated nodes so get() doesn't keep traversing down the
@@ -665,11 +670,49 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// not that big a priority
 		for (;;) {
 			try {
-				get(key);
+				if(deflateRest)
+					getDeflateRest(key);
+				else
+					get(key);
 				break;
 			} catch (DataNotLoadedException e) {
 				e.getParent().inflate(e.getKey());
 			}
+		}
+	}
+	
+	/**
+	** {@inheritDoc}
+	**
+	** This implementation just descends the tree, returning the value for the
+	** given key if it can be found.
+	 * @throws TaskAbortException 
+	**
+	** @throws ClassCastException key cannot be compared with the keys
+	**         currently in the map
+	** @throws NullPointerException key is {@code null} and this map uses
+	**         natural order, or its comparator does not tolerate {@code null}
+	**         keys
+	*/
+	public V getDeflateRest(Object k) throws TaskAbortException {
+		K key = (K) k;
+		Node node = root;
+
+		for (;;) {
+			if (node.isLeaf()) {
+				return node.entries.get(key);
+			}
+
+			Node nextnode = node.selectNode(key);
+			if (nextnode == null) {
+				for(Node sub : node.iterNodes()) {
+					if(sub != nextnode && sub instanceof SkeletonBTreeMap.SkeletonNode)
+						((SkeletonNode)sub).deflate();
+				}
+				return node.entries.get(key);
+			}
+
+			node = nextnode;
 		}
 	}
 
