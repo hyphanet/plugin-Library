@@ -1204,7 +1204,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 							node.entries.put(key, putmap.get(key)); 
 						}
 					} else {
-						if(putkey.size() > proc_val.outputCapacity()) {
+						if(putkey.size() < proc_val.outputCapacity()) {
+							for (K key: putkey) { handleLocalPut(node, key, vClo); }
+						} else {
 							// Add as many as we can, then put the rest into rejected.
 							TreeSet<K> accepted = new TreeSet<K>(Sorted.select(putkey, proc_val.outputCapacity()/2));
 							List<SortedSet<K>> notAccepted = Sorted.split(putkey, accepted, new TreeSet<K>()); // FIXME NullSet ???
@@ -1216,8 +1218,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 								}
 							}
 						}
-						
-						for (K key: putkey) { handleLocalPut(node, key, vClo); }
 					}
 
 				} else {
