@@ -805,14 +805,22 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final SortedMap<K, V> putmap, Closure<Map.Entry<K, V>, X> value_handler,
 		ExceptionConvertor<X> conv
 	) throws TaskAbortException {
-
+		
+		while(true) {
+			
+		/** Keys that don't fit due to trying to push too many keys into a single node. 
+		 * Only needed if we have proc_val, because the proc_val queue is the limiting factor. */
+		final SortedSet<K> rejected;
+		
 		if (value_handler == null) {
 			// synchronous value callback - null, remkey, putmap, null
 			assert(putkey == null);
 			putkey = Sorted.keySet(putmap);
+			rejected = null;
 		} else {
 			// asynchronous value callback - putkey, remkey, null, closure
 			assert(putmap == null);
+			rejected = new TreeSet<K>();
 		}
 
 		if (remkey != null && !remkey.isEmpty()) {
@@ -1196,9 +1204,18 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 							node.entries.put(key, putmap.get(key)); 
 						}
 					} else {
-						if(putkey.size() > proc_val.outputCapacity())
-							// FIXME check this earlier
-							throw new RuntimeException("Adding too many values to a single node, would deadlock: adding "+putkey.size()+" values, remaining capacity is "+proc_val.outputCapacity()+" used is "+proc_val.outputSize());
+						if(putkey.size() > proc_val.outputCapacity()) {
+							// Add as many as we can, then put the rest into rejected.
+							TreeSet<K> accepted = new TreeSet<K>(Sorted.select(putkey, proc_val.outputCapacity()/2));
+							List<SortedSet<K>> notAccepted = Sorted.split(putkey, accepted, new TreeSet<K>()); // FIXME NullSet ???
+							System.err.println("Too many keys to add to a single node: We can add "+proc_val.outputCapacity()+" but are being asked to add "+putkey.size()+" - adding "+accepted.size()+" and rejecting the rest.");
+							for (K key: accepted) { handleLocalPut(node, key, vClo); }
+							synchronized(rejected) {
+								for(SortedSet<K> set : notAccepted) {
+									rejected.addAll(set);
+								}
+							}
+						}
 						
 						for (K key: putkey) { handleLocalPut(node, key, vClo); }
 					}
@@ -1384,6 +1401,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			proc_push.close();
 			if (proc_val != null) { proc_val.close(); }
 			proc_deflate.close();
+		}
+		
+		if(rejected == null || rejected.isEmpty()) return;
+		System.err.println("Rejected keys: "+rejected.size()+" - re-running merge with rejected keys.");
+		putkey = rejected;
+		
 		}
 	}
 
