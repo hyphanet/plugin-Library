@@ -808,9 +808,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		
 		while(true) {
 			
-		/** Keys that don't fit due to trying to push too many keys into a single node. 
-		 * Only needed if we have proc_val, because the proc_val queue is the limiting factor. */
-		final SortedSet<K> rejected;
+		SortedSet<K> rejected;
 		
 		if (value_handler == null) {
 			// synchronous value callback - null, remkey, putmap, null
@@ -1406,6 +1404,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		if(rejected == null || rejected.isEmpty()) return;
 		System.err.println("Rejected keys: "+rejected.size()+" - re-running merge with rejected keys.");
 		putkey = rejected;
+		rejected = new TreeSet<K>();
 		
 		}
 	}
