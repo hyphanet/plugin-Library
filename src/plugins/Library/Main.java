@@ -914,6 +914,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						tree.update(entries, null);
 					entries.deflate();
 					assert(entries.isBare());
+					tree.deflate();
 					assert(tree.isBare());
 					if(logMINOR) Logger.minor(this, "Updated: "+key+" : "+tree);
 					//System.out.println("handled " + key);
