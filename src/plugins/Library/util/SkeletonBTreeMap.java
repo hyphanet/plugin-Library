@@ -1614,6 +1614,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 							}
 							if (centit.hasNext()) { return true; }
 							if (!cnode.isLeaf()) { return true; }
+							try {
+								deflate();
+							} catch (TaskAbortException e) {
+								throw new RuntimeException(e);
+							}
 							return false;
 						}
 
@@ -1654,6 +1659,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 									cnode = n;
 									centit = cnode.entries.entrySet().iterator();
 								}
+							}
+							if(!centit.hasNext()) {
+								try {
+									deflate();
+								} catch (TaskAbortException e) {
+									throw new RuntimeException(e);
+								}
+								// We will throw but we may as well clean up in case anyone decides to be clever.
 							}
 							K next = centit.next().getKey(); lastkey = next;
 							removeok = true;
