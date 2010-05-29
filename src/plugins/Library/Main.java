@@ -16,6 +16,7 @@ import freenet.support.io.NativeThread;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -437,6 +438,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			newIndex = true;
 			dirNumber++;
 			idxDiskDir = new File(DISK_DIR_PREFIX + Integer.toString(dirNumber));
+			System.out.println("Created new disk dir for merging: "+idxDiskDir);
 			if(!(idxDiskDir.mkdir() || idxDiskDir.isDirectory())) {
 				Logger.error(this, "Unable to create new disk dir: "+idxDiskDir);
 				synchronized(this) {
@@ -527,6 +529,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			return;
 		}
 		
+		
+		
 		// Do the upload
 		
 		try {
@@ -568,6 +572,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					}
 				};
 				assert(idxDisk.ttab.isBare());
+				System.out.println("Merging "+terms.size()+" terms, tree.size = "+idxDisk.ttab.size()+"...");
 				idxDisk.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
 			
 			}		
@@ -903,6 +908,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						entry.setValue(tree = makeEntryTree(leafsrl));
 					}
 					assert(tree.isBare());
+					newtrees.inflate(key, true);
 					SkeletonBTreeSet<TermEntry> entries = newtrees.get(key);
 					entries.inflate();
 					tree.update(entries, null);
@@ -916,11 +922,18 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			try {
 			long mergeStartTime = System.currentTimeMillis();
 			assert(idxFreenet.ttab.isBare());
+			// FIXME IMPLEMENT SkeletonBTreeMap.entrySet(). It must auto-inflate, and it must auto-deflate
+			// each node when it is done with it, and everything when finished, so that isBare() is true
+			// both before and after.
+			Iterator<Map.Entry<String, SkeletonBTreeSet<TermEntry>>> it =
+				idxFreenet.ttab.entrySet().iterator();
 			TreeSet<String> terms = new TreeSet<String>();
-			terms.addAll(newtrees.keySet());
+			while(it.hasNext()) terms.add(it.next().getKey());
+			assert(idxFreenet.ttab.isBare());
 			long entriesAdded = terms.size();
 			idxFreenet.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
 			assert(idxFreenet.ttab.isBare());
+			newtrees.deflate();
 			
 			PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idxFreenet);
 			srl.push(task4);
