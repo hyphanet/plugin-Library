@@ -711,7 +711,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			if (nextnode == null) {
 				for(Node sub : node.iterNodes()) {
 					if(sub != nextnode && sub instanceof SkeletonBTreeMap.SkeletonNode)
-						((SkeletonNode)sub).deflate();
+						((SkeletonNode)node).deflate(sub.lkey);
 				}
 				return node.entries.get(key);
 			}
@@ -1629,12 +1629,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 										assert(itstack.empty());
 										throw new NoSuchElementException();
 									}
+									SkeletonNode parent = nodestack.pop();
 									try {
-										cnode.deflate();
+										parent.deflate(cnode.lkey);
 									} catch (TaskAbortException e) {
 										throw new RuntimeException(e);
 									}
-									cnode = nodestack.pop();
+									cnode = parent;
 									centit = itstack.pop();
 								}
 							} else {
