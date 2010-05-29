@@ -747,6 +747,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		}
 		mergeToFreenet(idxDisk, diskDir);
 	}
+
+	private final Object inflateSync = new Object();
 	
 	protected void mergeToFreenet(ProtoIndex diskToMerge, File diskDir) {
 		if(lastUploadURI == null) {
@@ -908,8 +910,12 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						entry.setValue(tree = makeEntryTree(leafsrl));
 					}
 					assert(tree.isBare());
-					newtrees.inflate(key, true);
-					SkeletonBTreeSet<TermEntry> entries = newtrees.get(key);
+					SkeletonBTreeSet<TermEntry> entries;
+					// Can't be run in parallel.
+					synchronized(inflateSync) {
+						newtrees.inflate(key, true);
+						entries = newtrees.get(key);
+					}
 					entries.inflate();
 					tree.update(entries, null);
 					entries.deflate();
