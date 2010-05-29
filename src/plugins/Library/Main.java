@@ -882,17 +882,6 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 			final SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> newtrees = diskToMerge.ttab;
-			try {
-				// This will only load the root for the values, so it should still fit in RAM.
-				newtrees.inflate();
-			} catch (TaskAbortException e1) {
-				Logger.error(this, "Unable to inflate disk temporary index "+diskDir+" : "+e1, e1);
-				System.err.println("Unable to inflate disk temporary index "+diskDir+" : "+e1);
-				synchronized(freenetMergeSync) {
-					pushBroken = true;
-				}
-				return;
-			}
 			
 			// Do the upload
 			
@@ -931,10 +920,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			// FIXME IMPLEMENT SkeletonBTreeMap.entrySet(). It must auto-inflate, and it must auto-deflate
 			// each node when it is done with it, and everything when finished, so that isBare() is true
 			// both before and after.
-			Iterator<Map.Entry<String, SkeletonBTreeSet<TermEntry>>> it =
-				idxFreenet.ttab.entrySet().iterator();
+			Iterator<String> it =
+				idxFreenet.ttab.keySet().iterator();
 			TreeSet<String> terms = new TreeSet<String>();
-			while(it.hasNext()) terms.add(it.next().getKey());
+			while(it.hasNext()) terms.add(it.next());
 			assert(idxFreenet.ttab.isBare());
 			long entriesAdded = terms.size();
 			idxFreenet.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
