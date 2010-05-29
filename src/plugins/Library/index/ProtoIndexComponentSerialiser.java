@@ -504,7 +504,7 @@ public class ProtoIndexComponentSerialiser {
 		/*@Override**/ public void pushLive(PushTask<Map<K, V>> task, SimpleProgress p) throws TaskAbortException {
 			p.enteredSerialiser();
 			try {
-				p.setSubject("Pushing root container for keys " + task.data.keySet());
+				p.setSubject("Pushing root container for keys " + task.data);
 				Map<String, Object> conv = new HashMap<String, Object>();
 				for (Map.Entry<K, V> mp: task.data.entrySet()) {
 					conv.put((ktr == null)? (String)mp.getKey(): ktr.app(mp.getKey()), btr.app(mp.getValue()));
