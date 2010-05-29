@@ -663,7 +663,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	}
 
 	/*@Override**/ public void inflate(K key) throws TaskAbortException {
-		inflate(key);
+		inflate(key, false);
 	}
 	
 	/*@Override**/ public void inflate(K key, boolean deflateRest) throws TaskAbortException {
@@ -710,8 +710,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			Node nextnode = node.selectNode(key);
 			if (nextnode == null) {
 				for(Node sub : node.iterNodes()) {
-					if(sub != nextnode && sub instanceof SkeletonBTreeMap.SkeletonNode)
+					if(sub != nextnode && sub instanceof SkeletonBTreeMap.SkeletonNode) {
+						((SkeletonNode)node).deflate();
 						((SkeletonNode)node).deflate(sub.lkey);
+					}
 				}
 				return node.entries.get(key);
 			}
@@ -1631,6 +1633,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 									}
 									SkeletonNode parent = nodestack.pop();
 									try {
+										cnode.deflate();
 										parent.deflate(cnode.lkey);
 									} catch (TaskAbortException e) {
 										throw new RuntimeException(e);
