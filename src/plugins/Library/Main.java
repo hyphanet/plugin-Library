@@ -922,20 +922,19 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			try {
 			long mergeStartTime = System.currentTimeMillis();
 			assert(idxFreenet.ttab.isBare());
-			// FIXME IMPLEMENT SkeletonBTreeMap.entrySet(). It must auto-inflate, and it must auto-deflate
-			// each node when it is done with it, and everything when finished, so that isBare() is true
-			// both before and after.
 			Iterator<String> it =
 				diskToMerge.ttab.keySetAutoDeflate().iterator();
 			TreeSet<String> terms = new TreeSet<String>();
 			while(it.hasNext()) terms.add(it.next());
 			System.out.println("Merging "+terms.size()+" terms from disk to Freenet...");
-			assert(terms.size() == idxFreenet.ttab.size());
+			assert(terms.size() == diskToMerge.ttab.size());
 			assert(idxFreenet.ttab.isBare());
+			assert(diskToMerge.ttab.isBare());
 			long entriesAdded = terms.size();
 			idxFreenet.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
 			assert(idxFreenet.ttab.isBare());
 			newtrees.deflate();
+			assert(diskToMerge.ttab.isBare());
 			
 			PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idxFreenet);
 			srl.push(task4);
