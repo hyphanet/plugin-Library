@@ -57,6 +57,7 @@ import freenet.support.Logger;
 import plugins.Library.util.Sorted;
 import plugins.Library.util.concurrent.BoundedPriorityBlockingQueue;
 import plugins.Library.util.concurrent.ExceptionConvertor;
+import plugins.Library.util.concurrent.Notifier;
 import plugins.Library.util.concurrent.ObjectProcessor;
 import plugins.Library.util.concurrent.Executors;
 import plugins.Library.util.event.TrackingSweeper;
@@ -812,6 +813,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		ExceptionConvertor<X> conv
 	) throws TaskAbortException {
 		
+		// Avoid polling.
+		final Notifier notifier = new Notifier();
+		
 		while(true) {
 			
 		final SortedSet<K> rejected;
@@ -891,6 +895,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			new LinkedBlockingQueue<X2<PullTask<SkeletonNode>, TaskAbortException>>(8),
 			new HashMap<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>>()
 		);
+		proc_pull.setNotifier(notifier);
 
 		final ObjectProcessor<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> proc_push
 		= ((ScheduledSerialiser<SkeletonNode>)nsrl).pushSchedule(
@@ -898,6 +903,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			new LinkedBlockingQueue<X2<PushTask<SkeletonNode>, TaskAbortException>>(0x10),
 			new HashMap<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>>()
 		);
+		proc_push.setNotifier(notifier);
 
 		/**
 		** Deposit for a value-retrieval operation
@@ -967,7 +973,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			new BoundedPriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
 			new LinkedBlockingQueue<X2<Map.Entry<K, V>, X>>(ENT_MAX*3),
 			new HashMap<Map.Entry<K, V>, DeflateNode>(),
-			value_handler, VALUE_EXECUTOR, conv // These can block so pool them separately.
+			value_handler, VALUE_EXECUTOR, conv, notifier // These can block so pool them separately.
 		).autostart();
 		
 		final Comparator<DeflateNode> CMP_DEFLATE = new Comparator<DeflateNode>() {
@@ -989,7 +995,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 							param.deflate();
 						}
 						
-					}, DEFLATE_EXECUTOR, new TaskAbortExceptionConvertor()).autostart();
+					}, DEFLATE_EXECUTOR, new TaskAbortExceptionConvertor(), notifier).autostart();
 		
 		// Limit it to 2 at once to minimise memory usage. 
 		// The actual inserts will occur in parallel anyway.
@@ -1313,11 +1319,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// Only sleep if we run out of jobs.
 				if((!progress) && (count++ > 10)) {
 					count = 0;
-					if(ccount++ > 10) {
+//					if(ccount++ > 10) {
 						System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push+ " "+proc_deflate);
-						ccount = 0;
-					}
-					Thread.sleep(0x100);
+//						ccount = 0;
+//					}
+					notifier.waitUpdate(1000);
 				}
 				progress = false;
 				

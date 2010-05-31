@@ -40,6 +40,8 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	final protected Closure<T, X> clo;
 	final protected Executor exec;
 	final protected ExceptionConvertor<X> convertor;
+	// Allows a group of ObjectProcessor's to all notify the same object so that the caller doesn't have to poll.
+	protected Notifier notifier;
 
 	protected volatile boolean open = true;
 	protected int dispatched = 0;
@@ -66,6 +68,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 			try {
 				if(logDEBUG) Logger.debug(this, "Post-process for "+name+" out size = "+out.size());
 				out.put(res);
+				if(notifier != null) notifier.notifyUpdate();
 				if(logDEBUG) Logger.debug(this, "Post-processed for "+name);
 				synchronized(ObjectProcessor.this) { ++completed; }
 			} catch (InterruptedException e) {
@@ -100,10 +103,11 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** @param closure Closure to call on each item
 	** @param executor Executor to run each closure call
 	** @param autostart Whether to start an {@link #auto()} autohandler
+	** @param notifier A Notifier to tell whenever something has happened - e.g. results are ready.
 	*/
 	public ObjectProcessor(
 		BlockingQueue<T> input, BlockingQueue<X2<T, X>> output, Map<T, E> deposit,
-		Closure<T, X> closure, Executor executor, ExceptionConvertor<X> conv
+		Closure<T, X> closure, Executor executor, ExceptionConvertor<X> conv, Notifier n
 	) {
 		in = input;
 		out = output;
@@ -111,8 +115,21 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		clo = closure;
 		exec = executor;
 		convertor = conv;
+		notifier = n;
 	}
 
+	public ObjectProcessor(
+			BlockingQueue<T> input, BlockingQueue<X2<T, X>> output, Map<T, E> deposit,
+			Closure<T, X> closure, Executor executor, ExceptionConvertor<X> conv
+		) {
+		this(input, output, deposit, closure, executor, conv, null);
+	}
+
+	// FIXME should notifier be volatile? If we set it before starting, maybe that's not necessary?
+	public void setNotifier(Notifier n) {
+		this.notifier = n;
+	}
+	
 	public synchronized void setMaxConc(int x) {
 		maxconc = x;
 	}
