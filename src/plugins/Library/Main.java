@@ -901,19 +901,25 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						newTree = true;
 					}
 					assert(tree.isBare());
-					SkeletonBTreeSet<TermEntry> entries;
+					SortedSet<TermEntry> data;
 					// Can't be run in parallel.
 					synchronized(inflateSync) {
 						newtrees.inflate(key, true);
+						SkeletonBTreeSet<TermEntry> entries;
 						entries = newtrees.get(key);
+						// CONCURRENCY: Because the lower-level trees are packed by the top tree, the bottom
+						// trees (SkeletonBTreeSet's) are not independant of each other. When the newtrees 
+						// inflate above runs, it can deflate a tree that is still in use by another instance
+						// of this callback. Therefore we must COPY IT AND DEFLATE IT INSIDE THE LOCK.
+						entries.inflate();
+						data = new TreeSet<TermEntry>(entries);
+						entries.deflate();
+						assert(entries.isBare());
 					}
-					entries.inflate();
 					if(newTree)
-						tree.addAll(entries);
+						tree.addAll(data);
 					else
-						tree.update(entries, null);
-					entries.deflate();
-					assert(entries.isBare());
+						tree.update(data, null);
 					tree.deflate();
 					assert(tree.isBare());
 					if(logMINOR) Logger.minor(this, "Updated: "+key+" : "+tree);
