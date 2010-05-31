@@ -4,6 +4,7 @@
 package plugins.Library;
 
 import freenet.pluginmanager.PluginReplySender;
+import freenet.support.MutableBoolean;
 import freenet.support.SimpleFieldSet;
 import freenet.support.api.Bucket;
 import freenet.support.io.BucketTools;
@@ -265,6 +266,11 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	 * Note that the entire main tree of terms (not the sub-trees with the positions and urls in) must
 	 * fit into memory during the merge process. */
 	static final int MAX_TERMS = 100*1000;
+	/** Maximum size of a single entry, in TermPageEntry count, on disk. If we exceed this we force an
+	 * insert-to-freenet and move on to a new disk index. The problem is that the merge to Freenet has 
+	 * to keep the whole of each entry in RAM. This is only true for the data being merged in - the 
+	 * on-disk index - and not for the data on Freenet, which is pulled on demand. SCALABILITY */
+	static final int MAX_DISK_ENTRY_SIZE = 10000;
 	/** Like pushNumber, the number of the current disk dir, used to create idxDiskDir. */
 	private int dirNumber;
 	static final String DISK_DIR_PREFIX = "library-temp-index-";
@@ -535,6 +541,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		// Do the upload
 		
 		try {
+			final MutableBoolean maxDiskEntrySizeExceeded = new MutableBoolean();
+			maxDiskEntrySizeExceeded.value = false;
 			long mergeStartTime = System.currentTimeMillis();
 			if(newIndex) {
 				// created a new index, fill it with data.
@@ -542,7 +550,11 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				// FIXME throw in update() if it will deadlock.
 				for(String key : terms) {
 					SkeletonBTreeSet<TermEntry> tree = makeEntryTree(leafsrlDisk);
-					tree.addAll(newtrees.get(key));
+					SortedSet<TermEntry> toMerge = newtrees.get(key);
+					tree.addAll(toMerge);
+					if(toMerge.size() > MAX_DISK_ENTRY_SIZE)
+						maxDiskEntrySizeExceeded.value = true;
+					toMerge = null;
 					tree.deflate();
 					assert(tree.isBare());
 					idxDisk.ttab.put(key, tree);
@@ -565,7 +577,13 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 							entry.setValue(tree = makeEntryTree(leafsrlDisk));
 						}
 						assert(tree.isBare());
-						tree.update(newtrees.get(key), null);
+						SortedSet<TermEntry> toMerge = newtrees.get(key);
+						tree.update(toMerge, null);
+						if(toMerge.size() > MAX_DISK_ENTRY_SIZE)
+							synchronized(maxDiskEntrySizeExceeded) {
+								maxDiskEntrySizeExceeded.value = true;
+							}
+						toMerge = null;
 						newtrees.remove(key);
 						assert(tree.isBare());
 						if(logMINOR) Logger.minor(this, "Updated: "+key+" : "+tree);
@@ -621,8 +639,13 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			
 			// Maybe chain to mergeToFreenet ???
 			
+			boolean termTooBig = false;
+			synchronized(maxDiskEntrySizeExceeded) {
+				termTooBig = maxDiskEntrySizeExceeded.value;
+			}
+			
 			mergedToDisk++;
-			if(idxDisk.ttab.size() > MAX_TERMS || mergedToDisk > MAX_UPDATES || 
+			if(idxDisk.ttab.size() > MAX_TERMS || mergedToDisk > MAX_UPDATES || termTooBig || 
 					(lastMergedToFreenet > 0 && (System.currentTimeMillis() - lastMergedToFreenet) > MAX_TIME)) {
 				
 				final ProtoIndex diskToMerge = idxDisk;
@@ -890,10 +913,6 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					String key = entry.getKey();
 					SkeletonBTreeSet<TermEntry> tree = entry.getValue();
 					if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
-					if(tree != null)
-						System.out.println("Merging data to Freenet in term "+key);
-					else
-						System.out.println("Adding data to Freenet for term "+key);
 					//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
 					boolean newTree = false;
 					if (tree == null) {
@@ -911,16 +930,24 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						// trees (SkeletonBTreeSet's) are not independant of each other. When the newtrees 
 						// inflate above runs, it can deflate a tree that is still in use by another instance
 						// of this callback. Therefore we must COPY IT AND DEFLATE IT INSIDE THE LOCK.
-						// FIXME SCALABILITY: One day we will need to support the case where the whole subtree doesn't fit in RAM ...
 						entries.inflate();
 						data = new TreeSet<TermEntry>(entries);
 						entries.deflate();
 						assert(entries.isBare());
 					}
-					if(newTree)
+					if(tree != null)
+						
+					if(newTree) {
 						tree.addAll(data);
-					else
+						assert(tree.size() == data.size());
+						System.out.println("Added data to Freenet for term "+key+" : "+data.size());
+					} else {
+						int oldSize = tree.size();
 						tree.update(data, null);
+						// Note that it is possible for data.size() + oldSize != tree.size(), because we might be merging data we've already merged.
+						// But most of the time it will add up.
+						System.out.println("Merged data to Freenet in term "+key+" : "+data.size()+" + "+oldSize+" -> "+tree.size());
+					}
 					tree.deflate();
 					assert(tree.isBare());
 					if(logMINOR) Logger.minor(this, "Updated: "+key+" : "+tree);
