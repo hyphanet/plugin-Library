@@ -3,58 +3,46 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.client;
 
-import static freenet.support.Logger.error;
-import plugins.Library.util.exec.SimpleProgress;
-import plugins.Library.util.exec.ProgressParts;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.io.serial.LiveArchiver;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.HashSet;
+
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
+import plugins.Library.io.serial.LiveArchiver;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.SimpleProgress;
+import plugins.Library.util.exec.TaskAbortException;
 
 import com.db4o.ObjectContainer;
 
-import freenet.client.HighLevelSimpleClient;
 import freenet.client.ClientMetadata;
-import freenet.client.InsertContext;
-import freenet.client.InsertException;
-//import freenet.client.FetchContext;
 import freenet.client.FetchException;
 import freenet.client.FetchResult;
-//import freenet.client.FetchWaiter;
+import freenet.client.HighLevelSimpleClient;
 import freenet.client.InsertBlock;
-//import freenet.client.InsertContext;
+import freenet.client.InsertContext;
 import freenet.client.InsertException;
-//import freenet.client.PutWaiter;
-//import freenet.client.async.ClientGetter;
-//import freenet.client.async.ClientPutter;
 import freenet.client.async.BaseClientPutter;
 import freenet.client.async.ClientContext;
 import freenet.client.async.ClientPutCallback;
 import freenet.client.async.ClientPutter;
 import freenet.client.async.DatabaseDisabledException;
-import freenet.client.events.ClientEventListener;
 import freenet.client.events.ClientEvent;
+import freenet.client.events.ClientEventListener;
 import freenet.client.events.SplitfileProgressEvent;
 import freenet.keys.FreenetURI;
+import freenet.node.NodeClientCore;
 import freenet.node.RequestClient;
 import freenet.node.RequestStarter;
-import freenet.node.NodeClientCore;
 import freenet.support.Logger;
-import freenet.support.MutableBoolean;
 import freenet.support.api.Bucket;
 import freenet.support.io.BucketTools;
 import freenet.support.io.Closer;
 import freenet.support.io.FileBucket;
-
-import java.io.File;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.List;
-import java.util.ArrayList;
 
 /**
 ** Converts between a map of {@link String} to {@link Object}, and a freenet
