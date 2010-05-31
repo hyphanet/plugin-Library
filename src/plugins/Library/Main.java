@@ -911,6 +911,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 						// trees (SkeletonBTreeSet's) are not independant of each other. When the newtrees 
 						// inflate above runs, it can deflate a tree that is still in use by another instance
 						// of this callback. Therefore we must COPY IT AND DEFLATE IT INSIDE THE LOCK.
+						// FIXME SCALABILITY: One day we will need to support the case where the whole subtree doesn't fit in RAM ...
 						entries.inflate();
 						data = new TreeSet<TermEntry>(entries);
 						entries.deflate();
