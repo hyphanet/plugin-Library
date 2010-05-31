@@ -711,7 +711,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			if (nextnode == null) {
 				for(Node sub : node.iterNodes()) {
 					if(sub != nextnode && sub instanceof SkeletonBTreeMap.SkeletonNode) {
-						((SkeletonNode)node).deflate();
+						((SkeletonNode)sub).deflate();
 						((SkeletonNode)node).deflate(sub.lkey);
 					}
 				}
