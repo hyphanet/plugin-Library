@@ -39,6 +39,7 @@ import freenet.node.NodeClientCore;
 import freenet.node.RequestClient;
 import freenet.node.RequestStarter;
 import freenet.support.Logger;
+import freenet.support.SizeUtil;
 import freenet.support.api.Bucket;
 import freenet.support.io.BucketTools;
 import freenet.support.io.Closer;
@@ -83,6 +84,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	
 	private final HashSet<PushCallback> semiAsyncPushes = new HashSet<PushCallback>();
 	private final ArrayList<InsertException> pushesFailed = new ArrayList<InsertException>();
+	private long totalBytesPushing;
 	
 	public static void setCacheDir(File dir) {
 		cacheDir = dir;
@@ -307,7 +309,8 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			} catch (InsertException e) {
 				if(cb != null) {
 					synchronized(this) {
-						semiAsyncPushes.remove(cb);
+						if(semiAsyncPushes.remove(cb))
+							totalBytesPushing -= cb.size();
 					}
 				}
 				throw new TaskAbortException("Failed to insert content", e, true);
@@ -338,17 +341,24 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		// See FIXME's in push(), IterableSerialiser.
 		// We don't do real progress, we pretend we're done when push() returns.
 //		private final SimpleProgress progress;
+		private final long size;
 		private final InsertBlock ib;
 		
 		public PushCallback(SimpleProgress progress, InsertBlock ib) {
 //			this.progress = progress;
 			this.ib = ib;
+			size = ib.getData().size();
+		}
+
+		public long size() {
+			return size;
 		}
 
 		public synchronized void setPutter(ClientPutter put) {
 			putter = put;
 			synchronized(FreenetArchiver.this) {
-				semiAsyncPushes.add(this);
+				if(semiAsyncPushes.add(this))
+					totalBytesPushing += size;
 			}
 		}
 
@@ -365,13 +375,14 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		}
 
 		public void onFailure(InsertException e, BaseClientPutter state, ObjectContainer container) {
-			System.out.println("Failed background insert ("+generatedURI+"), now running: "+semiAsyncPushes.size()+".");
+			System.out.println("Failed background insert ("+generatedURI+"), now running: "+semiAsyncPushes.size()+" ("+SizeUtil.formatSize(totalBytesPushing)+").");
 			synchronized(this) {
 				failed = e;
 				notifyAll();
 			}
 			synchronized(FreenetArchiver.this) {
-				semiAsyncPushes.remove(this);
+				if(semiAsyncPushes.remove(this))
+					totalBytesPushing -= size;
 				pushesFailed.add(e);
 				FreenetArchiver.this.notifyAll();
 			}
@@ -390,8 +401,9 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 
 		public void onSuccess(BaseClientPutter state, ObjectContainer container) {
 			synchronized(FreenetArchiver.this) {
-				semiAsyncPushes.remove(this);
-				System.out.println("Completed background insert ("+generatedURI+") in "+(System.currentTimeMillis()-startTime)+"ms, now running: "+semiAsyncPushes.size()+".");
+				if(semiAsyncPushes.remove(this))
+					totalBytesPushing -= size;
+				System.out.println("Completed background insert ("+generatedURI+") in "+(System.currentTimeMillis()-startTime)+"ms, now running: "+semiAsyncPushes.size()+" ("+SizeUtil.formatSize(totalBytesPushing)+").");
 				FreenetArchiver.this.notifyAll();
 			}
 			if(ib != null)
@@ -473,7 +485,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					System.out.println("Asynchronous inserts completed.");
 					return; // Completed all pushes.
 				}
-				System.out.println("Waiting for "+semiAsyncPushes.size()+" asynchronous inserts...");
+				System.out.println("Waiting for "+semiAsyncPushes.size()+" asynchronous inserts ("+SizeUtil.formatSize(totalBytesPushing)+")...");
 				try {
 					wait();
 				} catch (InterruptedException e) {
