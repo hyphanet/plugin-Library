@@ -220,6 +220,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 
 		try {
 			ClientPutter putter = null;
+			PushCallback cb = null;
 			try {
 				tempB = core.tempBucketFactory.makeBucket(expected_bytes, 2);
 				os = tempB.getOutputStream();
@@ -264,7 +265,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					if(progress != null)
 						progress.addPartKnown(1, true);
 					InsertContext ctx = hlsc.getInsertContext(false);
-					PushCallback cb = new PushCallback(progress, ib);
+					cb = new PushCallback(progress, ib);
 					putter = new ClientPutter(cb, ib.getData(), FreenetURI.EMPTY_CHK_URI, ib.clientMetadata,
 							ctx, RequestStarter.INTERACTIVE_PRIORITY_CLASS,
 							false, false, this, null, null, false);
@@ -304,9 +305,9 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					tempB = null; // Don't free it here.
 
 			} catch (InsertException e) {
-				if(putter != null) {
+				if(cb != null) {
 					synchronized(this) {
-						semiAsyncPushes.remove(putter);
+						semiAsyncPushes.remove(cb);
 					}
 				}
 				throw new TaskAbortException("Failed to insert content", e, true);
