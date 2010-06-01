@@ -902,6 +902,12 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				}
 			}
 			
+			idxFreenet.setName(diskToMerge.getName());
+			idxFreenet.setOwnerEmail(diskToMerge.getOwnerEmail());
+			idxDisk.setOwner(diskToMerge.getOwner());
+			// This is roughly accurate, it might not be exactly so if we process a bit out of order.
+			idxDisk.setTotalPages(diskToMerge.getTotalPages());
+			
 			final SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> newtrees = diskToMerge.ttab;
 			
 			// Do the upload

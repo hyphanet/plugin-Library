@@ -329,6 +329,22 @@ final public class ProtoIndex implements Index {
 		this.indexOwnerEmail = address;
 	}
 
+	public String getName() {
+		return name;
+	}
+
+	public String getOwnerEmail() {
+		return indexOwnerEmail;
+	}
+
+	public String getOwner() {
+		return indexOwnerName;
+	}
+
+	public long getTotalPages() {
+		return totalPages;
+	}
+
 
 
 }
