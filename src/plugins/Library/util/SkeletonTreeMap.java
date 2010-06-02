@@ -893,7 +893,7 @@ final class SkeletonValue<V> implements Cloneable {
 		}
 	}
 
-	public V data() {
+	public final V data() {
 		return data;
 	}
 
