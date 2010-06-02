@@ -226,9 +226,9 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 				else if(skel.meta == null)
 					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded = false, data = null, meta = null for "+en.getKey(), new NullPointerException());
 				else {
-					// Should be safe to process it anyway
-					Logger.error(this, "Skeleton value in "+this+" : isLoaded = false, data = null, meta = "+skel.meta, new Exception("error"));
-					continue;
+					// MapSerialiser understands PushTask's where data == null and metadata != null
+					// So just let it through.
+					// It will be fine after push() has completed.
 				}
 			}
 			tasks.put(en.getKey(), new PushTask<V>(skel.data, skel.meta));
