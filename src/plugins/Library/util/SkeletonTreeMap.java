@@ -222,6 +222,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			SkeletonValue<V> skel = en.getValue();
 			if(skel.data == null) {
 				if(skel.isLoaded)
+					// FIXME is a null loaded value legal? Should it be? Disallowing nulls is not an unreasonable policy IMHO...
 					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded = true, data = null, meta = "+skel.meta+" for "+en.getKey(), new NullPointerException());
 				else if(skel.meta == null)
 					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded = false, data = null, meta = null for "+en.getKey(), new NullPointerException());
