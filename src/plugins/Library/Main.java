@@ -194,10 +194,33 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			Runnable r = new Runnable() {
 
 				public void run() {
-					for(String filename : dirsToMerge) {
-						File f = new File(filename);
-						mergeToFreenet(f);
+					synchronized(freenetMergeSync) {
+						while(freenetMergeRunning) {
+							if(pushBroken) return;
+							System.err.println("Need to merge to Freenet, but last merge not finished yet. Waiting...");
+							try {
+								freenetMergeSync.wait();
+							} catch (InterruptedException e) {
+								// Ignore
+							}
+						}
+						if(pushBroken) return;
+						freenetMergeRunning = true;
 					}
+					try {
+						for(String filename : dirsToMerge) {
+							File f = new File(filename);
+							mergeToFreenet(f);
+						}
+					} finally {
+						synchronized(freenetMergeSync) {
+							freenetMergeRunning = false;
+							if(!pushBroken)
+								lastMergedToFreenet = System.currentTimeMillis();
+							freenetMergeSync.notifyAll();
+						}
+					}
+
 				}
 				
 			};
@@ -751,29 +774,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			return;
 		}
-		synchronized(freenetMergeSync) {
-			while(freenetMergeRunning) {
-				if(pushBroken) return;
-				System.err.println("Need to merge to Freenet, but last merge not finished yet. Waiting...");
-				try {
-					freenetMergeSync.wait();
-				} catch (InterruptedException e) {
-					// Ignore
-				}
-			}
-			if(pushBroken) return;
-			freenetMergeRunning = true;
-		}
-		try {
-			mergeToFreenet(idxDisk, diskDir);
-		} finally {
-			synchronized(freenetMergeSync) {
-				freenetMergeRunning = false;
-				if(!pushBroken)
-					lastMergedToFreenet = System.currentTimeMillis();
-				freenetMergeSync.notifyAll();
-			}
-		}
+		mergeToFreenet(idxDisk, diskDir);
 	}
 
 	private final Object inflateSync = new Object();
