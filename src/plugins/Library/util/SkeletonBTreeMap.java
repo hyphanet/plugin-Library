@@ -803,6 +803,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** Currently, this method assumes that the root.isBare(). TODO NORM enforce
 	** this..
 	**
+	** This is a wrapper method to deal with the occasional key rejection due to
+	** trying to add too many keys to a single node. It also checks parameters.
+	**
 	** Note: {@code remkey} is not implemented yet.
 	**
 	** @throws UnsupportedOperationException if {@code remkey} is not empty
@@ -813,8 +816,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		ExceptionConvertor<X> conv
 	) throws TaskAbortException {
 		
-		// Avoid polling.
-		final Notifier notifier = new Notifier();
+		// Check parameters.
 		
 		if (value_handler == null) {
 			// synchronous value callback - null, remkey, putmap, null
@@ -829,14 +831,33 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			throw new UnsupportedOperationException("SkeletonBTreeMap: update() currently only supports merge operations");
 		}
 
+		// Handle keys rejected due to node too small for the number of keys we are adding to it.
+		
 		while(true) {
 		
-		final SortedSet<K> rejected;
-		if(value_handler == null)
-			rejected = null;
-		else
-			rejected = new TreeSet<K>();
+			final SortedSet<K> rejected;
+			if(value_handler == null)
+				rejected = null;
+			else
+				rejected = new TreeSet<K>();
 			
+			update(putkey, putmap, value_handler, conv, rejected);
+			
+			if(rejected == null || rejected.isEmpty()) return;
+			System.err.println("Rejected keys: "+rejected.size()+" - re-running merge with rejected keys.");
+			putkey = rejected;
+		}
+	}
+
+	protected <X extends Exception> void update(
+			SortedSet<K> putkey, 
+			final SortedMap<K, V> putmap, Closure<Map.Entry<K, V>, X> value_handler,
+			ExceptionConvertor<X> conv, final SortedSet<K> rejected
+		) throws TaskAbortException {
+			
+		// Avoid polling.
+		final Notifier notifier = new Notifier();
+		
 		/*
 		** The code below might seem confusing at first, because the action of
 		** the algorithm on a single node is split up into several asynchronous
@@ -1415,11 +1436,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			proc_deflate.close();
 		}
 		
-		if(rejected == null || rejected.isEmpty()) return;
-		System.err.println("Rejected keys: "+rejected.size()+" - re-running merge with rejected keys.");
-		putkey = rejected;
-		
-		}
 	}
 
 
