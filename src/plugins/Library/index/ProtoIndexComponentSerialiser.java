@@ -561,13 +561,15 @@ public class ProtoIndexComponentSerialiser {
 
 		public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) {
 			for (PullTask<T> task: tasks.values()) {
-				task.data = (T)task.meta;
+				if(task.meta != null)
+					task.data = (T)task.meta;
 			}
 		}
 
 		public void push(Map<K, PushTask<T>> tasks, Object mapmeta) {
 			for (PushTask<T> task: tasks.values()) {
-				task.meta = task.data;
+				if(task.data != null)
+					task.meta = task.data;
 			}
 		}
 
