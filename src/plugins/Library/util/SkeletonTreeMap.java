@@ -94,7 +94,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 		SkeletonValue<V> sk = skmap.get(key);
 		if (sk == null) { 
-			skmap.put(key, sk = new SkeletonValue<V>(null, o));
+			skmap.put(key, sk = new SkeletonValue<V>(null, o, false));
 			++ghosts; // One new ghost
 			return null;
 		} else {
@@ -390,7 +390,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		if(key == null) throw new NullPointerException();
 		SkeletonValue<V> sk = skmap.get(key);
 		if (sk == null) { 
-			skmap.put(key, sk = new SkeletonValue<V>(value, null));
+			skmap.put(key, sk = new SkeletonValue<V>(value, null, true));
 			// ghosts is unchanged.
 			return null;
 		} else {
@@ -883,12 +883,15 @@ final class SkeletonValue<V> implements Cloneable {
 	
 	private boolean isLoaded;
 
-	public SkeletonValue(V d, Object o) {
-		assert((d == null) ^ (o == null));
-		if(d != null) {
+	public SkeletonValue(V d, Object o, boolean loaded) {
+		if(loaded) {
+			assert(o == null);
+			// Null data is allowed as we use it in SkeletonBTreeMap.update() as a placeholder.
 			isLoaded = true;
 			data = d;
 		} else {
+			assert(d == null);
+			assert(o != null); // null metadata is invalid, right?
 			isLoaded = false;
 			meta = o;
 		}
