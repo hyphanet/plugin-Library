@@ -101,6 +101,17 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		*/
 		protected boolean isLoaded = true;
 
+		public SkeletonValue(V d, Object o) {
+			assert((d == null) ^ (o == null));
+			if(d != null) {
+				isLoaded = true;
+				data = d;
+			} else {
+				isLoaded = false;
+				meta = o;
+			}
+		}
+
 		/**
 		** Set the data and mark the value as loaded.
 		*/
@@ -147,9 +158,14 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			throw new IllegalArgumentException("Cannot put a null dummy into the map. Use put(K, V) to mark an object as loaded.");
 		}
 		SkeletonValue<V> sk = skmap.get(key);
-		if (sk == null) { skmap.put(key, sk = new SkeletonValue<V>()); }
-		if (sk.isLoaded) { ++ghosts; }
-		return sk.setGhost(o);
+		if (sk == null) { 
+			skmap.put(key, sk = new SkeletonValue<V>(null, o));
+			++ghosts; // One new ghost
+			return null;
+		} else {
+			if (sk.isLoaded) { ++ghosts; }
+			return sk.setGhost(o);
+		}
 	}
 
 	protected MapSerialiser<K, V> serialiser;
@@ -437,9 +453,14 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	@Override public V put(K key, V value) {
 		if(key == null) throw new NullPointerException();
 		SkeletonValue<V> sk = skmap.get(key);
-		if (sk == null) { skmap.put(key, sk = new SkeletonValue<V>()); }
-		if (!sk.isLoaded) { --ghosts; }
-		return sk.set(value);
+		if (sk == null) { 
+			skmap.put(key, sk = new SkeletonValue<V>(value, null));
+			// ghosts is unchanged.
+			return null;
+		} else {
+			if (!sk.isLoaded) { --ghosts; }
+			return sk.set(value);
+		}
 	}
 
 	@Override public void putAll(Map<? extends K,? extends V> map) {
