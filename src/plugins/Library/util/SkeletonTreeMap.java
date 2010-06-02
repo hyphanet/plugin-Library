@@ -870,11 +870,12 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 **
 ** meta and data are private with accessors to ensure proper encapsulation 
 ** i.e. the only way data can be != null is if isLoaded, and the only way
-** meta can be != null is if !isLoaded.
+** meta can be != null is if !isLoaded. Note that with the methods and the
+** class final, there should be no performance penalty. 
 **
 ** @author infinity0
 */
-class SkeletonValue<V> implements Cloneable {
+final class SkeletonValue<V> implements Cloneable {
 
 	private Object meta;
 	private V data;
