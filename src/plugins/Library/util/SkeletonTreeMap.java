@@ -879,11 +879,8 @@ final class SkeletonValue<V> implements Cloneable {
 
 	private Object meta;
 	private V data;
-	/**
-	** Thes is true by default, to make the {@link #putGhost(Object,
-	** Object)} and {@link #put(Object, Object)} methods simpler.
-	*/
-	protected boolean isLoaded = true;
+	
+	protected boolean isLoaded;
 
 	public SkeletonValue(V d, Object o) {
 		assert((d == null) ^ (o == null));
