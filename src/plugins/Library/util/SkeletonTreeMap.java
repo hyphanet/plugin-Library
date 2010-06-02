@@ -98,7 +98,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			++ghosts; // One new ghost
 			return null;
 		} else {
-			if (sk.isLoaded) { ++ghosts; }
+			if (sk.isLoaded()) { ++ghosts; }
 			return sk.setGhost(o);
 		}
 	}
@@ -115,7 +115,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		if (dst.containsKey(key)) { throw new IllegalArgumentException("SkeletonTreeMap.swapKey: key " + key + " already exists in target map"); }
 		if (!src.containsKey(key)) { throw new IllegalArgumentException("SkeletonTreeMap.swapKey: key " + key + " does not exist in source map"); }
 		SkeletonValue<V> sk = src.skmap.remove(key);
-		if (!sk.isLoaded) { --src.ghosts; ++dst.ghosts; }
+		if (!sk.isLoaded()) { --src.ghosts; ++dst.ghosts; }
 		dst.skmap.put(key, sk);
 	}
 
@@ -151,7 +151,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		// load only the tasks that need pulling
 		for (Map.Entry<K, SkeletonValue<V>> en: skmap.entrySet()) {
 			SkeletonValue<V> skel = en.getValue();
-			if (skel.isLoaded) { continue; }
+			if (skel.isLoaded()) { continue; }
 			tasks.put(en.getKey(), new PullTask<V>(skel.meta()));
 		}
 		serialiser.pull(tasks, mapmeta);
@@ -172,11 +172,11 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		for (Map.Entry<K, SkeletonValue<V>> en: skmap.entrySet()) {
 			SkeletonValue<V> skel = en.getValue();
 			if(skel.data() == null) {
-				if(skel.isLoaded)
+				if(skel.isLoaded())
 					// FIXME is a null loaded value legal? Should it be? Disallowing nulls is not an unreasonable policy IMHO...
-					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded = true, data = null, meta = "+skel.meta()+" for "+en.getKey(), new NullPointerException());
+					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded() = true, data = null, meta = "+skel.meta()+" for "+en.getKey(), new NullPointerException());
 				else if(skel.meta() == null)
-					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded = false, data = null, meta = null for "+en.getKey(), new NullPointerException());
+					throw new TaskAbortException("Skeleton value in "+this+" : isLoaded() = false, data = null, meta = null for "+en.getKey(), new NullPointerException());
 				else {
 					// MapSerialiser understands PushTask's where data == null and metadata != null
 					// So just let it through.
@@ -202,7 +202,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		SkeletonValue<V> skel = skmap.get(key);
 		if (skel == null) {
 			throw new IllegalArgumentException("Key " + key + " does not belong to the map");
-		} else if (skel.isLoaded) {
+		} else if (skel.isLoaded()) {
 			return;
 		}
 
@@ -225,7 +225,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 				SkeletonValue<V> sk = skmap.get(en.getKey());
 				if (sk == null) { throw new DataFormatException("SkeletonTreeMap got unexpected extra data from the serialiser.", null, sk, tasks, en.getKey()); }
 				if (sk.meta().equals(t.meta)) {
-					if (!sk.isLoaded) { --ghosts; }
+					if (!sk.isLoaded()) { --ghosts; }
 					sk.set(t.data);
 				}
 				// if they don't match, then the data was only partially inflated
@@ -235,7 +235,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			}
 
 		} catch (TaskCompleteException e) {
-			assert(skmap.get(key).isLoaded);
+			assert(skmap.get(key).isLoaded());
 		} catch (DataFormatException e) {
 			throw new TaskAbortException("Could not complete inflate operation", e);
 		}
@@ -245,7 +245,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		if (serialiser == null) { throw new IllegalStateException("No serialiser set for this structure."); }
 
 		SkeletonValue<V> skel = skmap.get(key);
-		if (skel == null || !skel.isLoaded) { return; }
+		if (skel == null || !skel.isLoaded()) { return; }
 
 		Map<K, PushTask<V>> tasks = new HashMap<K, PushTask<V>>(size()<<1);
 		// add the data we want to deflate, plus all already-deflated data
@@ -254,7 +254,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		tasks.put(key, new PushTask<V>(skel.data(), skel.meta()));
 		for (Map.Entry<K, SkeletonValue<V>> en: skmap.entrySet()) {
 			skel = en.getValue();
-			if (skel.isLoaded) { continue; }
+			if (skel.isLoaded()) { continue; }
 			assert(skel.data() == null);
 			tasks.put(en.getKey(), new PushTask<V>(null, skel.meta()));
 		}
@@ -370,7 +370,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	@Override public V get(Object key) {
 		SkeletonValue<V> sk = skmap.get(key);
 		if (sk == null) { return null; }
-		if (!sk.isLoaded) { throw new DataNotLoadedException("Data not loaded for key " + key + ": " + sk.meta(), this, key, sk.meta()); }
+		if (!sk.isLoaded()) { throw new DataNotLoadedException("Data not loaded for key " + key + ": " + sk.meta(), this, key, sk.meta()); }
 		return sk.data();
 	}
 
@@ -393,7 +393,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			// ghosts is unchanged.
 			return null;
 		} else {
-			if (!sk.isLoaded) { --ghosts; }
+			if (!sk.isLoaded()) { --ghosts; }
 			return sk.set(value);
 		}
 	}
@@ -415,12 +415,12 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			SkeletonValue<V> sk = en.getValue();
 			SkeletonValue<V> old = skmap.put(en.getKey(), sk);
 			if (old == null) {
-				if (!sk.isLoaded) { ++g; }
+				if (!sk.isLoaded()) { ++g; }
 			} else {
-				if (old.isLoaded) {
-					if (!sk.isLoaded) { ++g; }
+				if (old.isLoaded()) {
+					if (!sk.isLoaded()) { ++g; }
 				} else {
-					if (sk.isLoaded) { --g; }
+					if (sk.isLoaded()) { --g; }
 				}
 			}
 		}
@@ -441,7 +441,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	@Override public V remove(Object key) {
 		SkeletonValue<V> sk = skmap.remove(key);
 		if (sk == null) { return null; }
-		if (!sk.isLoaded) { --ghosts; }
+		if (!sk.isLoaded()) { --ghosts; }
 		return sk.data();
 	}
 
@@ -643,7 +643,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			case VALUE:
 				if (last == null || gotvalue) { last = iter.next(); }
 				SkeletonValue<V> skel = last.getValue();
-				if (!(gotvalue = skel.isLoaded)) {
+				if (!(gotvalue = skel.isLoaded())) {
 					throw new DataNotLoadedException("SkeletonTreeMap: Data not loaded for key " + last.getKey() + ": " + skel.meta(), SkeletonTreeMap.this, last.getKey(), skel.meta());
 				}
 				return (T)skel.data();
@@ -657,7 +657,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		public void remove() {
 			if (issub) { throw new UnsupportedOperationException("not implemented"); }
 			if (last == null) { throw new IllegalStateException("Iteration has not yet begun, or the element has already been removed."); }
-			if (!last.getValue().isLoaded) { --ghosts; }
+			if (!last.getValue().isLoaded()) { --ghosts; }
 			iter.remove();
 			last = null;
 		}
@@ -681,7 +681,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			}
 
 			protected void verifyLoaded() {
-				if (!skel.isLoaded) {
+				if (!skel.isLoaded()) {
 					throw new DataNotLoadedException("SkeletonTreeMap: Data not loaded for key " + key + ": " + skel.meta(), SkeletonTreeMap.this, key, skel.meta());
 				}
 			}
@@ -699,7 +699,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			** See also note for {@link SkeletonTreeMap#put(Object, Object)}.
 			*/
 			public V setValue(V value) {
-				if (!skel.isLoaded) { --ghosts; }
+				if (!skel.isLoaded()) { --ghosts; }
 				return skel.set(value);
 			}
 
@@ -838,7 +838,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			// return SkeletonTreeMap.this.get(e.getKey()).equals(e.getValue());
 			SkeletonValue<V> sk = bkmap.get(key);
 			if (sk == null) { return false; }
-			if (!sk.isLoaded) { throw new DataNotLoadedException("Data not loaded for key " + key + ": " + sk.meta(), SkeletonTreeMap.this, key, sk.meta()); }
+			if (!sk.isLoaded()) { throw new DataNotLoadedException("Data not loaded for key " + key + ": " + sk.meta(), SkeletonTreeMap.this, key, sk.meta()); }
 			return sk.data() == null && val == null || sk.data().equals(val);
 		}
 
@@ -869,8 +869,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 ** status.
 **
 ** meta and data are private with accessors to ensure proper encapsulation 
-** i.e. the only way data can be != null is if isLoaded, and the only way
-** meta can be != null is if !isLoaded. Note that with the methods and the
+** i.e. the only way data can be != null is if isLoaded(), and the only way
+** meta can be != null is if !isLoaded(). Note that with the methods and the
 ** class final, there should be no performance penalty. 
 **
 ** @author infinity0
@@ -880,7 +880,7 @@ final class SkeletonValue<V> implements Cloneable {
 	private Object meta;
 	private V data;
 	
-	protected boolean isLoaded;
+	private boolean isLoaded;
 
 	public SkeletonValue(V d, Object o) {
 		assert((d == null) ^ (o == null));
@@ -899,6 +899,10 @@ final class SkeletonValue<V> implements Cloneable {
 
 	public final Object meta() {
 		return meta;
+	}
+	
+	public final boolean isLoaded() {
+		return isLoaded;
 	}
 
 	/**
