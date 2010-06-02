@@ -894,6 +894,13 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 
 	}
+	
+	public String toString() {
+		if(this.isLive())
+			return getClass().getName() + "@" + System.identityHashCode(this) +":" + super.toString();
+		else
+			return getClass().getName() + "@" + System.identityHashCode(this);
+	}
 
 
 
