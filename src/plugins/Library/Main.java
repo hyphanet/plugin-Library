@@ -437,8 +437,6 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	
 	private void mergeToDisk(Bucket data) {
 		
-		if(true) return; // FIXME OOM
-		
 		boolean newIndex = false;
 		
 		if(idxDiskDir == null) {
@@ -766,7 +764,16 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			if(pushBroken) return;
 			freenetMergeRunning = true;
 		}
-		mergeToFreenet(idxDisk, diskDir);
+		try {
+			mergeToFreenet(idxDisk, diskDir);
+		} finally {
+			synchronized(freenetMergeSync) {
+				freenetMergeRunning = false;
+				if(!pushBroken)
+					lastMergedToFreenet = System.currentTimeMillis();
+				freenetMergeSync.notifyAll();
+			}
+		}
 	}
 
 	private final Object inflateSync = new Object();
