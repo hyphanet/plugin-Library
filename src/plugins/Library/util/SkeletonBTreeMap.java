@@ -816,25 +816,27 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// Avoid polling.
 		final Notifier notifier = new Notifier();
 		
-		while(true) {
-			
-		final SortedSet<K> rejected;
-		
 		if (value_handler == null) {
 			// synchronous value callback - null, remkey, putmap, null
 			assert(putkey == null);
 			putkey = Sorted.keySet(putmap);
-			rejected = null;
 		} else {
 			// asynchronous value callback - putkey, remkey, null, closure
 			assert(putmap == null);
-			rejected = new TreeSet<K>();
 		}
 
 		if (remkey != null && !remkey.isEmpty()) {
 			throw new UnsupportedOperationException("SkeletonBTreeMap: update() currently only supports merge operations");
 		}
 
+		while(true) {
+		
+		final SortedSet<K> rejected;
+		if(value_handler == null)
+			rejected = null;
+		else
+			rejected = new TreeSet<K>();
+			
 		/*
 		** The code below might seem confusing at first, because the action of
 		** the algorithm on a single node is split up into several asynchronous
