@@ -284,7 +284,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	/** idxDisk gets merged into idxFreenet this long after the last merge completed. */
 	static final long MAX_TIME = 24*60*60*1000L;
 	/** idxDisk gets merged into idxFreenet after this many incoming updates from Spider. */
-	static final int MAX_UPDATES = 1;
+	static final int MAX_UPDATES = 32;
 	/** idxDisk gets merged into idxFreenet after it has grown to this many terms.
 	 * Note that the entire main tree of terms (not the sub-trees with the positions and urls in) must
 	 * fit into memory during the merge process. */
