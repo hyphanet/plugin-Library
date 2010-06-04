@@ -232,7 +232,12 @@ implements MapSerialiser<K, T>,
 		}
 
 		for (Map.Entry<Object, Set<K>> en: binincubator.entrySet()) {
-			bins.add(new Bin<K>(BIN_CAP, inv, gen.registerID(en.getKey()), en.getValue()));
+			Set<K> keys = en.getValue();
+			Bin<K> bin = new Bin<K>(BIN_CAP, inv, gen.registerID(en.getKey()), keys);
+			// Put the data into the bin so we don't repack it unless we need to.
+			// And so that the assertions in the next method work, which assume that the data is packed already (e.g. if we have 2 bins, they contain something).
+			for(K k : keys) bin.add(k);
+			bins.add(bin);
 		}
 
 		return bins;
