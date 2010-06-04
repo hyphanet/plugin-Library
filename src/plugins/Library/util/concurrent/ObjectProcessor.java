@@ -66,10 +66,8 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	final protected SafeClosure<X2<T, X>> postProcess = new SafeClosure<X2<T, X>>() {
 		/*@Override**/ public void invoke(X2<T, X> res) {
 			try {
-				if(logDEBUG) Logger.debug(this, "Post-process for "+name+" out size = "+out.size());
 				out.put(res);
 				if(notifier != null) notifier.notifyUpdate();
-				if(logDEBUG) Logger.debug(this, "Post-processed for "+name);
 				synchronized(ObjectProcessor.this) { ++completed; }
 			} catch (InterruptedException e) {
 				throw new UnsupportedOperationException();
