@@ -251,10 +251,12 @@ implements MapSerialiser<K, T>,
 			bins.add(bin);
 		}
 		
-		if(overflow != null)
+		if(overflow != null) {
 			// Pull the data so that it can be re-packed into a different bin.
 			// Otherwise, data will be null, so it won't be packed by packBestFitDecreasing.
+			System.err.println("Repacking: data has grown, "+overflow.size()+" items don't fit, pulling data to repack");
 			pullUnloaded(overflow, mapmeta);
+		}
 		
 		// If the data can shrink, we can have multiple bins smaller than BIN_CAPHF
 		// FIXME: TEST THIS: In current usage, the data can't shrink, so we're okay.
