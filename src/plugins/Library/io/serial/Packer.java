@@ -209,8 +209,9 @@ implements MapSerialiser<K, T>,
 	/**
 	** Looks through {@code elems} for {@link PushTask}s with null data and
 	** reads its metadata to determine which bin to add it to.
+	 * @throws TaskAbortException 
 	*/
-	protected SortedSet<Bin<K>> initialiseBinSet(SortedSet<Bin<K>> bins, Map<K, PushTask<T>> elems, Inventory<K, T> inv, IDGenerator gen) {
+	protected SortedSet<Bin<K>> initialiseBinSet(SortedSet<Bin<K>> bins, Map<K, PushTask<T>> elems, Inventory<K, T> inv, IDGenerator gen, Object mapmeta) throws TaskAbortException {
 
 		Map<Object, Set<K>> binincubator = new HashMap<Object, Set<K>>();
 
@@ -231,6 +232,7 @@ implements MapSerialiser<K, T>,
 			}
 		}
 
+		HashMap<K, PushTask<T>> overflow = null;
 		for (Map.Entry<Object, Set<K>> en: binincubator.entrySet()) {
 			Set<K> keys = en.getValue();
 			Bin<K> bin = new Bin<K>(BIN_CAP, inv, gen.registerID(en.getKey()), keys);
@@ -241,13 +243,18 @@ implements MapSerialiser<K, T>,
 					if(bin.weight > BIN_CAP) {
 						// Overflow. Let packBestFitDecreasing fit it in somewhere else.
 						bin.remove(k);
-						PushTask<T> task = elems.get(k);
-						task.meta = null;
+						if(overflow == null) overflow = new HashMap<K, PushTask<T>>();
+						overflow.put(k, elems.get(k));
 					}
 				}
 			}
 			bins.add(bin);
 		}
+		
+		if(overflow != null)
+			// Pull the data so that it can be re-packed into a different bin.
+			// Otherwise, data will be null, so it won't be packed by packBestFitDecreasing.
+			pullUnloaded(overflow, mapmeta);
 		
 		// If the data can shrink, we can have multiple bins smaller than BIN_CAPHF
 		// FIXME: TEST THIS: In current usage, the data can't shrink, so we're okay.
@@ -613,7 +620,7 @@ implements MapSerialiser<K, T>,
 				}
 			} else if (agg <= 2) {
 				// initialise already-allocated bins from tasks with null data
-				initialiseBinSet(bins, tasks, inv, gen);
+				initialiseBinSet(bins, tasks, inv, gen, mapmeta);
 			} else {
 				// pull all tasks with null data
 				pullUnloaded(tasks, mapmeta);
