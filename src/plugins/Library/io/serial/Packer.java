@@ -236,10 +236,34 @@ implements MapSerialiser<K, T>,
 			Bin<K> bin = new Bin<K>(BIN_CAP, inv, gen.registerID(en.getKey()), keys);
 			// Put the data into the bin so we don't repack it unless we need to.
 			// And so that the assertions in the next method work, which assume that the data is packed already (e.g. if we have 2 bins, they contain something).
-			for(K k : keys) bin.add(k);
+			for(K k : keys) {
+				if(bin.add(k)) {
+					if(bin.weight > BIN_CAP) {
+						// Overflow. Let packBestFitDecreasing fit it in somewhere else.
+						bin.remove(k);
+						PushTask<T> task = elems.get(k);
+						task.meta = null;
+					}
+				}
+			}
 			bins.add(bin);
 		}
-
+		
+		// If the data can shrink, we can have multiple bins smaller than BIN_CAPHF
+		// FIXME: TEST THIS: In current usage, the data can't shrink, so we're okay.
+		
+		Bin<K> second;
+		Bin<K> lightest;
+		while(bins.size() > 1 && (second = bins.headSet(lightest = bins.last()).last()).filled() < BIN_CAPHF) {
+			System.err.println("Merging bins: Data has shrunk!");
+			bins.remove(lightest);
+			bins.remove(second);
+			for (K k: lightest) {
+				second.add(k);
+			}
+			bins.add(second);
+		}
+		
 		return bins;
 	}
 
@@ -282,7 +306,12 @@ implements MapSerialiser<K, T>,
 		}
 
 		// heaviest bin is <= BIN_CAP
-		assert(bins.isEmpty() || bins.first().filled() <= BIN_CAP);
+		if(!(bins.isEmpty() || bins.first().filled() <= BIN_CAP)) {
+			System.err.println("Bins:");
+			for(Bin<K> bin : bins)
+				System.err.println("Bin: "+bin.filled());
+			assert(false);
+		}
 		// 2nd-lightest bin is >= BIN_CAP / 2
 		if(bins.size() >= 2) {
 			if(!(bins.headSet(bins.last()).last().filled() >= BIN_CAPHF)) {
