@@ -59,7 +59,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	final public static String MIME_TYPE = "text/yaml";
 	final public static String FILE_EXTENSION = ".yml";
 	
-	final static int MAX_PARALLEL = 4; // Limited by memory mainly. If memory is no object it could be limited by threads.
+	final static int MAX_PARALLEL = 1; // Limited by memory mainly. If memory is no object it could be limited by threads.
 	// Each Yaml instance uses a *significant* amount of memory...
 	static final Semaphore parallelLimiter = new Semaphore(MAX_PARALLEL);
 
