@@ -269,7 +269,14 @@ implements MapSerialiser<K, T>,
 		// heaviest bin is <= BIN_CAP
 		assert(bins.isEmpty() || bins.first().filled() <= BIN_CAP);
 		// 2nd-lightest bin is >= BIN_CAP / 2
-		assert(bins.size() < 2 || bins.headSet(bins.last()).last().filled() >= BIN_CAPHF);
+		if(bins.size() >= 2) {
+			if(!(bins.headSet(bins.last()).last().filled() >= BIN_CAPHF)) {
+				System.err.println("Last but one bin should be at least "+BIN_CAPHF);
+				for(Bin<K> bin : bins)
+					System.err.println("Bin: "+bin.filled());
+				assert(false);
+			}
+		}
 
 		// sort keys in descending weight order of their elements
 		SortedSet<K> sorted = new TreeSet<K>(Collections.reverseOrder(inv));
