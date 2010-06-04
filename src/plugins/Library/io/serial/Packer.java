@@ -305,14 +305,14 @@ implements MapSerialiser<K, T>,
 			}
 		}
 
-		// heaviest bin is <= BIN_CAP
+		// heaviest bin is <= BIN_CAP // FIXME convert back to assertion when happy with this
 		if(!(bins.isEmpty() || bins.first().filled() <= BIN_CAP)) {
 			System.err.println("Bins:");
 			for(Bin<K> bin : bins)
 				System.err.println("Bin: "+bin.filled());
 			assert(false);
 		}
-		// 2nd-lightest bin is >= BIN_CAP / 2
+		// 2nd-lightest bin is >= BIN_CAP / 2 // FIXME convert back to assertion when happy with this
 		if(bins.size() >= 2) {
 			if(!(bins.headSet(bins.last()).last().filled() >= BIN_CAPHF)) {
 				System.err.println("Last but one bin should be at least "+BIN_CAPHF);
