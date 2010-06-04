@@ -48,8 +48,14 @@ final public class ProtoIndex implements Index {
 	final public static String MIME_TYPE = ProtoIndexSerialiser.MIME_TYPE;
 	final public static String DEFAULT_FILE = "index" + ProtoIndexSerialiser.FILE_EXTENSION;
 
+	/** FIXME DEFAULT FAN-OUT:
+	 * Yaml has quite high overheads which are dependant on the size of the document being processed.
+	 * This is potentially a problem on the client side as well as here. In the long term our fan-out 
+	 * will be on the order of hundreds anyway because we will include the metadata in the layer above.
+	 * For now, a relatively low fan-out (1024 not 4096) will give reasonable performance without 
+	 * causing such problems. Note that this also determines the size of bins for Packer. */
 	// DEBUG make final again later
-	/*final*/ public static int BTREE_NODE_MIN = 0x1000;
+	/*final*/ public static int BTREE_NODE_MIN = 0x400;
 	final public static int BTREE_ENT_MAX = (BTREE_NODE_MIN<<1) - 1;
 
 	protected static Executor exec = Executors.DEFAULT_EXECUTOR;
