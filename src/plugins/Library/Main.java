@@ -612,7 +612,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					}
 				};
 				assert(idxDisk.ttab.isBare());
-				System.out.println("Merging "+terms.size()+" terms, tree.size = "+idxDisk.ttab.size()+"...");
+				System.out.println("Merging "+terms.size()+" terms, tree.size = "+idxDisk.ttab.size()+" from "+data+"...");
 				idxDisk.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
 			
 			}		
