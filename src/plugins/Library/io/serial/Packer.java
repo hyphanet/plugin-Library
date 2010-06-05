@@ -221,6 +221,8 @@ implements MapSerialiser<K, T>,
 			}
 		}
 
+		// FIXME NOW need to detect tiny/giant bins here
+
 		for (Map.Entry<Object, Set<K>> en: binincubator.entrySet()) {
 			bins.add(new Bin<K>(BIN_CAP, inv, gen.registerID(en.getKey()), en.getValue()));
 		}
@@ -254,7 +256,7 @@ implements MapSerialiser<K, T>,
 			//
 			Bin<K> heaviest = bins.first();
 			if (heaviest.filled() > BIN_CAP) {
-				Bin<K> second = new Bin<K>(BIN_CAP, inv, gen.nextID(), null);
+				Bin<K> second = new Bin<K>(BIN_CAP, inv, gen.nextID());
 				bins.remove(heaviest);
 				while (second.filled() < BIN_CAPHF) {
 					K key = heaviest.last();
@@ -288,7 +290,7 @@ implements MapSerialiser<K, T>,
 
 			if (subbins.isEmpty()) {
 				// if no bin can fit it, then start a new bin
-				Bin<K> bin = new Bin<K>(BIN_CAP, inv, gen.nextID(), null);
+				Bin<K> bin = new Bin<K>(BIN_CAP, inv, gen.nextID());
 				bin.add(key);
 				bins.add(bin);
 
@@ -559,12 +561,9 @@ implements MapSerialiser<K, T>,
 						it.remove();
 					}
 				}
-			} else if (agg <= 2) {
+			} else {
 				// initialise already-allocated bins from tasks with null data
 				initialiseBinSet(bins, tasks, inv, gen);
-			} else {
-				// pull all tasks with null data
-				pullUnloaded(tasks, mapmeta);
 			}
 
 			// pack elements into bins
@@ -579,9 +578,10 @@ implements MapSerialiser<K, T>,
 			if (agg <= 2) {
 				// discard all bins not affected by the redistribution operation
 				discardUnchangedBins(bins, tasks);
-				// pull all data that is as yet unloaded
-				pullUnloaded(tasks, mapmeta);
 			}
+
+			// pull all data that is as yet unloaded
+			pullUnloaded(tasks, mapmeta);
 
 			// form the list of bin-tasks for each bin, using data from the map-tasks
 			List<PushTask<Map<K, T>>> bintasks = new ArrayList<PushTask<Map<K, T>>>(bins.size());
@@ -630,12 +630,32 @@ implements MapSerialiser<K, T>,
 
 		int weight = 0;
 
-		public Bin(int c, Inventory<K, ?> v, Object i, Set<K> o) {
-			super(v);
-			inv = v;
-			capacity = c;
-			id = i;
-			orig = o;
+		/**
+		** Creates a fresh new bin.
+		*/
+		public Bin(int cap, Inventory<K, ?> inv, Object id) {
+			this(cap, inv, id, null);
+		}
+
+		/**
+		** Instantiate an already-packed bin from the given keys.
+		**
+		** It is '''assumed''' that the keys are all already in the inventory,
+		** and that their total weight do not overfill this bin; it is up to
+		** the caller to ensure that this holds.
+		**
+		** @param orig The keys already packed in the bin
+		*/
+		public Bin(int cap, Inventory<K, ?> inv, Object id, Set<K> orig) {
+			super(inv);
+			this.inv = inv;
+			this.capacity = cap;
+			this.id = id;
+			this.orig = orig;
+			if (orig != null) {
+				for (K key: orig) { add(key); }
+				if (weight > cap) { throw new IllegalArgumentException("bin overflow: " + weight + "/" + cap + " from " + orig); }
+			}
 		}
 
 		public boolean unchanged() {
