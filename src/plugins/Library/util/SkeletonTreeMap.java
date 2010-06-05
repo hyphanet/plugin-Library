@@ -93,7 +93,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			throw new IllegalArgumentException("Cannot put a null dummy into the map. Use put(K, V) to mark an object as loaded.");
 		}
 		SkeletonValue<V> sk = skmap.get(key);
-		if (sk == null) { 
+		if (sk == null) {
 			skmap.put(key, sk = new SkeletonValue<V>(null, o, false));
 			++ghosts; // One new ghost
 			return null;
@@ -389,7 +389,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	@Override public V put(K key, V value) {
 		if(key == null) throw new NullPointerException();
 		SkeletonValue<V> sk = skmap.get(key);
-		if (sk == null) { 
+		if (sk == null) {
 			skmap.put(key, sk = new SkeletonValue<V>(value, null, true));
 			// ghosts is unchanged.
 			return null;
@@ -852,7 +852,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 
 	}
-	
+
 	public String toString() {
 		if(this.isLive())
 			return getClass().getName() + "@" + System.identityHashCode(this) +":" + super.toString();
@@ -869,10 +869,10 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 ** key in a {@link SkeletonTreeMap}, along with metadata and its loaded
 ** status.
 **
-** meta and data are private with accessors to ensure proper encapsulation 
+** meta and data are private with accessors to ensure proper encapsulation
 ** i.e. the only way data can be != null is if isLoaded(), and the only way
 ** meta can be != null is if !isLoaded(). Note that with the methods and the
-** class final, there should be no performance penalty. 
+** class final, there should be no performance penalty.
 **
 ** @author infinity0
 */
@@ -880,7 +880,7 @@ final class SkeletonValue<V> implements Cloneable {
 
 	private Object meta;
 	private V data;
-	
+
 	private boolean isLoaded;
 
 	public SkeletonValue(V d, Object o, boolean loaded) {
@@ -904,7 +904,7 @@ final class SkeletonValue<V> implements Cloneable {
 	public final Object meta() {
 		return meta;
 	}
-	
+
 	public final boolean isLoaded() {
 		return isLoaded;
 	}

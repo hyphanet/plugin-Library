@@ -118,7 +118,7 @@
 		<tstamp/>
 
 		<javac srcdir="src/" destdir="${build}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
-			<!--<compilerarg value="-Xlint"/>-->
+			<compilerarg value="-Xlint"/>
 			<sourcepath>
 				<pathelement path="${build}"/>
 			</sourcepath>

@@ -239,6 +239,7 @@ implements MapSerialiser<K, T>,
 			for(K k : keys) {
 				if(bin.add(k)) {
 					if(bin.weight > BIN_CAP) {
+						//System.err.println("bin overflow");
 						// Overflow. Let packBestFitDecreasing fit it in somewhere else.
 						bin.remove(k);
 						PushTask<T> task = elems.get(k);
@@ -248,10 +249,10 @@ implements MapSerialiser<K, T>,
 			}
 			bins.add(bin);
 		}
-		
+
 		// If the data can shrink, we can have multiple bins smaller than BIN_CAPHF
 		// FIXME: TEST THIS: In current usage, the data can't shrink, so we're okay.
-		
+
 		Bin<K> second;
 		Bin<K> lightest;
 		while(bins.size() > 1 && (second = bins.headSet(lightest = bins.last()).last()).filled() < BIN_CAPHF) {
@@ -263,7 +264,7 @@ implements MapSerialiser<K, T>,
 			}
 			bins.add(second);
 		}
-		
+
 		return bins;
 	}
 
@@ -661,7 +662,7 @@ implements MapSerialiser<K, T>,
 			// Split up IterableSerialiser, call the start phase, which generates
 			// metadata. Fill in the final metadata based on this and clear the
 			// tasks.get(k).data. Then wait for the finish.
-			
+
 		} catch (RuntimeException e) {
 			throw new TaskAbortException("Could not complete the push operation", e);
 		}

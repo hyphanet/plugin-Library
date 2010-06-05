@@ -149,11 +149,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	static volatile boolean logMINOR;
 	static volatile boolean logDEBUG;
-	
+
 	static {
 		Logger.registerClass(SkeletonBTreeMap.class);
 	}
-	
+
 	final public Comparator<PullTask<SkeletonNode>> CMP_PULL = new Comparator<PullTask<SkeletonNode>>() {
 		/*@Override**/ public int compare(PullTask<SkeletonNode> t1, PullTask<SkeletonNode> t2) {
 			return ((GhostNode)t1.meta).compareTo((GhostNode)t2.meta);
@@ -171,7 +171,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return SkeletonBTreeMap.this.compare(t1.getKey(), t2.getKey());
 		}
 	};
-	
+
 	public class SkeletonNode extends Node implements Skeleton<K, IterableSerialiser<SkeletonNode>> {
 
 		protected int ghosts = 0;
@@ -666,7 +666,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	/*@Override**/ public void inflate(K key) throws TaskAbortException {
 		inflate(key, false);
 	}
-	
+
 	/*@Override**/ public void inflate(K key, boolean deflateRest) throws TaskAbortException {
 		// TODO NORM tidy up
 		// OPT LOW could write a more efficient version by keeping track of
@@ -685,13 +685,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			}
 		}
 	}
-	
+
 	/**
 	** {@inheritDoc}
 	**
 	** This implementation just descends the tree, returning the value for the
 	** given key if it can be found.
-	 * @throws TaskAbortException 
+	 * @throws TaskAbortException
 	**
 	** @throws ClassCastException key cannot be compared with the keys
 	**         currently in the map
@@ -749,7 +749,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	/**
 	 * Separate executor for value handlers. Value handlers can themselves call
-	 * update() and end up polling, so we need to keep them separate from the 
+	 * update() and end up polling, so we need to keep them separate from the
 	 * threads that do the actual work! */
 	final public static Executor VALUE_EXECUTOR = new Executor() {
 		/*@Override**/ public void execute(Runnable r) {
@@ -815,9 +815,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		final SortedMap<K, V> putmap, Closure<Map.Entry<K, V>, X> value_handler,
 		ExceptionConvertor<X> conv
 	) throws TaskAbortException {
-		
+
 		// Check parameters.
-		
+
 		if (value_handler == null) {
 			// synchronous value callback - null, remkey, putmap, null
 			assert(putkey == null);
@@ -832,17 +832,17 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 
 		// Handle keys rejected due to node too small for the number of keys we are adding to it.
-		
+
 		while(true) {
-		
+
 			final SortedSet<K> rejected;
 			if(value_handler == null)
 				rejected = null;
 			else
 				rejected = new TreeSet<K>();
-			
+
 			update(putkey, putmap, value_handler, conv, rejected);
-			
+
 			if(rejected == null || rejected.isEmpty()) return;
 			System.err.println("Rejected keys: "+rejected.size()+" - re-running merge with rejected keys.");
 			putkey = rejected;
@@ -850,14 +850,14 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	}
 
 	protected <X extends Exception> void update(
-			SortedSet<K> putkey, 
+			SortedSet<K> putkey,
 			final SortedMap<K, V> putmap, Closure<Map.Entry<K, V>, X> value_handler,
 			ExceptionConvertor<X> conv, final SortedSet<K> rejected
 		) throws TaskAbortException {
-			
+
 		// Avoid polling.
 		final Notifier notifier = new Notifier();
-		
+
 		/*
 		** The code below might seem confusing at first, because the action of
 		** the algorithm on a single node is split up into several asynchronous
@@ -998,13 +998,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			new HashMap<Map.Entry<K, V>, DeflateNode>(),
 			value_handler, VALUE_EXECUTOR, conv, notifier // These can block so pool them separately.
 		).autostart();
-		
+
 		final Comparator<DeflateNode> CMP_DEFLATE = new Comparator<DeflateNode>() {
 
 			public int compare(DeflateNode arg0, DeflateNode arg1) {
 				return arg0.node.compareTo(arg1.node);
 			}
-			
+
 		};
 
 		final ObjectProcessor<DeflateNode, SkeletonNode, TaskAbortException> proc_deflate =
@@ -1017,10 +1017,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						public void invoke(DeflateNode param) throws TaskAbortException {
 							param.deflate();
 						}
-						
+
 					}, DEFLATE_EXECUTOR, new TaskAbortExceptionConvertor(), notifier).autostart();
-		
-		// Limit it to 2 at once to minimise memory usage. 
+
+		// Limit it to 2 at once to minimise memory usage.
 		// The actual inserts will occur in parallel anyway.
 		proc_deflate.setMaxConc(2);
 
@@ -1122,12 +1122,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					// reassign appropriate keys to the split-node's sweeper
 					SortedSet<K> subheld = subSet(held, n.lkey, n.rkey);
-					//try {
 					assert(subheld.isEmpty() || compareL(n.lkey, subheld.first()) < 0 && compareR(subheld.last(), n.rkey) < 0);
-					//} catch (AssertionError e) {
-					//	System.out.println(n.lkey + " " + subheld.first() + " " + subheld.last() + " " + n.rkey);
-					//	throw e;
-					//}
 					for (K key: subheld) {
 						reassignKeyToSweeper(key, vClo);
 					}
@@ -1140,7 +1135,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 							// Impossible ?
 							throw new RuntimeException(e);
 						}
-					} 
+					}
 
 					parNClo.acquire(n);
 				}
@@ -1167,8 +1162,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				clo.acquire(key);
 				//assert(((UpdateValue)value_closures.get(key)).node == node);
 				proc_val.update($K(key, (V)null), clo);
-				// FIXME what if it has already run???
-				if(logMINOR) Logger.minor(this, "Reassigning key "+key+" to "+clo+" on "+this+" parent="+parent+" parent split node "+parNClo+" parent deflate node "+parVClo);
 				// nodeVClo.release(key);
 				// this is unnecessary since nodeVClo() will only be used if we did not
 				// split its node (and never called this method)
@@ -1234,7 +1227,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						// however, if we re-implement SkeletonNode, this might become relevant.
 						for (K key: putkey) {
 							if(putmap.get(key) == null) throw new NullPointerException();
-							node.entries.put(key, putmap.get(key)); 
+							node.entries.put(key, putmap.get(key));
 						}
 					} else {
 						if(putkey.size() < proc_val.outputCapacity()) {
@@ -1261,7 +1254,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					Iterable<SortedSet<K>> range = Sorted.split(putkey, Sorted.keySet(node.entries), fkey);
 
 					if (proc_val == null) {
-						for (K key: fkey) { 
+						for (K key: fkey) {
 							if(putmap.get(key) == null) throw new NullPointerException();
 							node.entries.put(key, putmap.get(key));
 						}
@@ -1280,7 +1273,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 							continue;
 						}
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(n);
-						
+
 						// possibly re-design CountingSweeper to not care about types, or have acquire() instead
 						nClo.acquire((SkeletonNode)null); // dirty hack. FIXME LOW
 						// WORKAROUND unnecessary cast here - bug in SunJDK6; works fine on OpenJDK6
@@ -1334,7 +1327,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			boolean progress = true;
 			int count = 0;
 			int ccount = 0;
-			
+
 			do {
 
 				//System.out.println(System.identityHashCode(this) + " " + proc_pull + " " + proc_push + " " + ((proc_val == null)? "": proc_val));
@@ -1343,13 +1336,13 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				if((!progress) && (count++ > 10)) {
 					count = 0;
 //					if(ccount++ > 10) {
-						System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push+ " "+proc_deflate);
+						//System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push+ " "+proc_deflate);
 //						ccount = 0;
 //					}
 					notifier.waitUpdate(1000);
 				}
 				progress = false;
-				
+
 				boolean loop = false;
 				while (proc_push.hasCompleted()) {
 					X3<PushTask<SkeletonNode>, CountingSweeper<SkeletonNode>, TaskAbortException> res = proc_push.accept();
@@ -1402,7 +1395,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					progress = true;
 					continue;
 				}
-				
+
 				if (proc_pull.hasCompleted()) {
 					X3<PullTask<SkeletonNode>, SafeClosure<SkeletonNode>, TaskAbortException> res = proc_pull.accept();
 					PullTask<SkeletonNode> task = res._0;
@@ -1435,7 +1428,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			if (proc_val != null) { proc_val.close(); }
 			proc_deflate.close();
 		}
-		
+
 	}
 
 
@@ -1591,16 +1584,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	}
 
-	public String toString() {
-		// Default toString for an AbstractCollection dumps everything underneath it.
-		// We don't want that here, especially as they may not be loaded.
-		return getClass().getName() + "@" + System.identityHashCode(this)+":size="+size;
-	}
-	
 	/**
 	 * FIXME implement entrySet() along similar lines - auto-activation and auto-deactivation.
 	 * keySet() achieves a slightly different purpose. It never activates values.
-	 * 
+	 *
 	 * NOTE: This is not called keySet() because some callers may not want us to auto-deflate.
 	 */
 	private Set<K> keySet = null;
@@ -1623,16 +1610,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 						K lastkey = null;
 						boolean removeok = false;
-						
-						
-						// DEBUG ONLY, remove when unneeded
-						/*public String toString() {
-							StringBuilder s = new StringBuilder();
-							for (Node n: nodestack) {
-								s.append(n.getRange()).append(", ");
-							}
-							return "nodestack: [" + s + "]; cnode: " + cnode.getRange() + "; lastkey: " + lastkey;
-						}*/
 
 						/*@Override**/ public boolean hasNext() {
 							// TODO LOW ideally iterate in the reverse order
@@ -1770,5 +1747,5 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	}
 
 
-	
+
 }

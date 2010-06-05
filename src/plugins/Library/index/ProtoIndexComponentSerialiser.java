@@ -5,6 +5,7 @@ package plugins.Library.index;
 
 import plugins.Library.Library;
 import plugins.Library.client.FreenetArchiver;
+import plugins.Library.util.Objects;
 import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
@@ -165,7 +166,7 @@ public class ProtoIndexComponentSerialiser {
 	*/
 	final protected LiveArchiver<Map<String, Object>, SimpleProgress>
 	leaf_arx;
-	
+
 	public LiveArchiver<Map<String, Object>, SimpleProgress> getLeafSerialiser() {
 		return leaf_arx;
 	}
@@ -190,7 +191,7 @@ public class ProtoIndexComponentSerialiser {
 
 	/**
 	** Constructs a new instance using the given format.
-	 * @param archiver 
+	 * @param archiver
 	**
 	** @throws UnsupportedOperationException if the format ID is unrecognised
 	** @throws IllegalStateException if the requirements for creating the
@@ -504,7 +505,7 @@ public class ProtoIndexComponentSerialiser {
 		/*@Override**/ public void pushLive(PushTask<Map<K, V>> task, SimpleProgress p) throws TaskAbortException {
 			p.enteredSerialiser();
 			try {
-				p.setSubject("Pushing root container for keys " + task.data);
+				p.setSubject("Pushing root container for keys " + Objects.idString(task.data));
 				Map<String, Object> conv = new HashMap<String, Object>();
 				for (Map.Entry<K, V> mp: task.data.entrySet()) {
 					conv.put((ktr == null)? (String)mp.getKey(): ktr.app(mp.getKey()), btr.app(mp.getValue()));

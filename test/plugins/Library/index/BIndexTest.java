@@ -36,7 +36,7 @@ public class BIndexTest extends TestCase {
 
 	final public boolean extensive = Boolean.getBoolean("extensiveTesting");
 
-	final public static int it_full = 4;
+	final public static int it_full = 1;
 	final public static int it_partial = 2;
 	final public static boolean fuller = false;
 
@@ -211,7 +211,7 @@ public class BIndexTest extends TestCase {
 		assertTrue(count == idx.ttab.size());
 		System.out.println("Iterated keys, total is "+count+" size is "+idx.ttab.size());
 		assertTrue(idx.ttab.isBare());
-		
+
 		// full inflate (2)
 		PullTask<ProtoIndex> task5 = new PullTask<ProtoIndex>(task4.meta);
 		srl.pull(task5);

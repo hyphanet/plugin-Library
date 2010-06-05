@@ -168,10 +168,4 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 
 	}
 
-	public String toString() {
-		// Default toString for an AbstractCollection dumps everything underneath it.
-		// We don't want that here, especially as they may not be loaded.
-		return getClass().getName() + "@" + System.identityHashCode(this);
-	}
-	
 }
