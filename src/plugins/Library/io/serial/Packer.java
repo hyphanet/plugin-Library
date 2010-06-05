@@ -5,7 +5,6 @@ package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.IdentityComparator;
-import plugins.Library.util.concurrent.ObjectProcessor;
 import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.exec.TaskCompleteException;
 
@@ -21,8 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeSet;
-
-import freenet.support.Logger;
 
 /**
 ** {@link MapSerialiser} that packs a map of weighable elements (eg. objects
@@ -67,13 +64,6 @@ import freenet.support.Logger;
 public class Packer<K, T>
 implements MapSerialiser<K, T>,
            Serialiser.Composite<IterableSerialiser<Map<K, T>>> {
-
-	private static volatile boolean logMINOR;
-	private static volatile boolean logDEBUG;
-
-	static {
-		Logger.registerClass(Packer.class);
-	}
 
 	/**
 	** Maximum weight of a bin (except one; see {@link #push(Map, Object)} for
@@ -232,37 +222,7 @@ implements MapSerialiser<K, T>,
 		}
 
 		for (Map.Entry<Object, Set<K>> en: binincubator.entrySet()) {
-			Set<K> keys = en.getValue();
-			Bin<K> bin = new Bin<K>(BIN_CAP, inv, gen.registerID(en.getKey()), keys);
-			// Put the data into the bin so we don't repack it unless we need to.
-			// And so that the assertions in the next method work, which assume that the data is packed already (e.g. if we have 2 bins, they contain something).
-			for(K k : keys) {
-				if(bin.add(k)) {
-					if(bin.weight > BIN_CAP) {
-						//System.err.println("bin overflow");
-						// Overflow. Let packBestFitDecreasing fit it in somewhere else.
-						bin.remove(k);
-						PushTask<T> task = elems.get(k);
-						task.meta = null;
-					}
-				}
-			}
-			bins.add(bin);
-		}
-
-		// If the data can shrink, we can have multiple bins smaller than BIN_CAPHF
-		// FIXME: TEST THIS: In current usage, the data can't shrink, so we're okay.
-
-		Bin<K> second;
-		Bin<K> lightest;
-		while(bins.size() > 1 && (second = bins.headSet(lightest = bins.last()).last()).filled() < BIN_CAPHF) {
-			System.err.println("Merging bins: Data has shrunk!");
-			bins.remove(lightest);
-			bins.remove(second);
-			for (K k: lightest) {
-				second.add(k);
-			}
-			bins.add(second);
+			bins.add(new Bin<K>(BIN_CAP, inv, gen.registerID(en.getKey()), en.getValue()));
 		}
 
 		return bins;
@@ -306,22 +266,10 @@ implements MapSerialiser<K, T>,
 			}
 		}
 
-		// heaviest bin is <= BIN_CAP // FIXME convert back to assertion when happy with this
-		if(!(bins.isEmpty() || bins.first().filled() <= BIN_CAP)) {
-			System.err.println("Bins:");
-			for(Bin<K> bin : bins)
-				System.err.println("Bin: "+bin.filled());
-			assert(false);
-		}
-		// 2nd-lightest bin is >= BIN_CAP / 2 // FIXME convert back to assertion when happy with this
-		if(bins.size() >= 2) {
-			if(!(bins.headSet(bins.last()).last().filled() >= BIN_CAPHF)) {
-				System.err.println("Last but one bin should be at least "+BIN_CAPHF);
-				for(Bin<K> bin : bins)
-					System.err.println("Bin: "+bin.filled());
-				assert(false);
-			}
-		}
+		// heaviest bin is <= BIN_CAP
+		assert(bins.isEmpty() || bins.first().filled() <= BIN_CAP);
+		// 2nd-lightest bin is >= BIN_CAP / 2
+		assert(bins.size() < 2 || bins.headSet(bins.last()).last().filled() >= BIN_CAPHF);
 
 		// sort keys in descending weight order of their elements
 		SortedSet<K> sorted = new TreeSet<K>(Collections.reverseOrder(inv));
@@ -596,7 +544,6 @@ implements MapSerialiser<K, T>,
 		try {
 			// read local copy of aggression
 			int agg = getAggression();
-			if(logDEBUG) Logger.debug(this, "Aggression = "+agg+" tasks size = "+tasks.size());
 
 			IDGenerator gen = generator();
 			Inventory<K, T> inv = new Inventory<K, T>(this, tasks);
@@ -654,14 +601,8 @@ implements MapSerialiser<K, T>,
 			for (PushTask<Map<K, T>> bintask: bintasks) {
 				for (K k: bintask.data.keySet()) {
 					tasks.get(k).meta = scale.makeMeta(scale.readBinMetaID(bintask.meta), inv.getWeight(k));
-					tasks.get(k).data = null;
 				}
 			}
-
-			// FIXME PERFORMANCE:
-			// Split up IterableSerialiser, call the start phase, which generates
-			// metadata. Fill in the final metadata based on this and clear the
-			// tasks.get(k).data. Then wait for the finish.
 
 		} catch (RuntimeException e) {
 			throw new TaskAbortException("Could not complete the push operation", e);
