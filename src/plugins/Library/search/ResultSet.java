@@ -70,7 +70,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 
 
 		this.subject = subject;
-		internal = new HashMap();
+		internal = new HashMap<TermEntry, TermEntry>();
 		this.resultOperation = resultOperation;
 
 		// Make sure any TaskAbortExceptions are found here and not when it's run
@@ -116,7 +116,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 */
 	private ResultSet(String subject, Collection<? extends TermEntry> copy) {
 		this.subject = subject;
-		internal = new HashMap();
+		internal = new HashMap<TermEntry, TermEntry>();
 		addAllToEmptyInternal(copy);
 	}
 
@@ -304,7 +304,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 			TermPageEntry termPageEntry = (TermPageEntry)termEntry;
 			if(!termPageEntry.hasPositions())
 				continue;
-			Map<Integer, String> positions = new HashMap(termPageEntry.positionsMap());
+			Map<Integer, String> positions = new HashMap<Integer, String>(termPageEntry.positionsMap());
 
 			int i;	// Iterate over the other collections, checking for following
 			for (i = 1; positions != null && i < collections.length && positions.size() > 0; i++) {
@@ -394,11 +394,11 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 			TermPageEntry pageentry1 = (TermPageEntry)entry1;
 			TermPageEntry pageentry2 = (TermPageEntry)entry2;
 			// Merge positions
-			Map newPos = null;
+			Map<Integer, String> newPos = null;
 			if((!pageentry1.hasPositions()) && pageentry2.hasPositions())
-				newPos = new HashMap(pageentry2.positionsMap());
+				newPos = new HashMap<Integer, String>(pageentry2.positionsMap());
 			else if(pageentry1.hasPositions()){
-				newPos = new HashMap(pageentry1.positionsMap());
+				newPos = new HashMap<Integer, String>(pageentry1.positionsMap());
 				if(pageentry2.hasPositions())
 					newPos.putAll(pageentry2.positionsMap());
 			}
@@ -427,7 +427,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 * @throws {@link TaskAbortException} from subRequests' {@link Execution#getResult()}
 	 */
 	private Set<TermEntry>[] getResultSets(List<Execution<Set<TermEntry>>> subRequests) throws TaskAbortException{
-		Set<TermEntry>[] sets = new Set[subRequests.size()];
+		@SuppressWarnings("unchecked") Set<TermEntry>[] sets = new Set[subRequests.size()];
 		for (int i = 0; i < subRequests.size(); i++) {
 			if(subRequests.get(i) == null){
 				if(resultOperation == ResultOperation.PHRASE)

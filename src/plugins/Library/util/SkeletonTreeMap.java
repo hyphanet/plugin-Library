@@ -350,6 +350,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** @param map The data structue to populate with metadata
 		** @param ktr A translator between key and {@link String}
 		*/
+		@SuppressWarnings("unchecked")
 		public static <K, V> SkeletonTreeMap<K, V> rev(Map<String, Object> intm, SkeletonTreeMap<K, V> map, Translator<K, String> ktr) throws DataFormatException {
 			if (ktr == null) {
 				try {
@@ -430,8 +431,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		} else if (map instanceof SkeletonTreeMap.UnwrappingSortedSubMap) {
 			putmap = ((UnwrappingSortedSubMap)map).bkmap;
 		} else {
-			for (Map.Entry en: map.entrySet()) {
-				put((K)en.getKey(), (V)en.getValue());
+			for (Map.Entry<? extends K, ? extends V> en: map.entrySet()) {
+				put(en.getKey(), en.getValue());
 			}
 			return;
 		}

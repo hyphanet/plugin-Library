@@ -824,21 +824,8 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		return root.toTreeString("");
 	}
 
-	/**
-	** Compares two keys using the comparator for this tree, or the keys'
-	** {@link Comparable natural} ordering if no comparator was given.
-	**
-	** @throws ClassCastException if the keys cannot be compared by the given
-	**         comparator, or if they cannot be compared naturally (ie. they
-	**         don't implement {@link Comparable})
-	** @throws NullPointerException if either of the keys are {@code null}.
-	*/
-	final public static <K> int compare(K key1, K key2, Comparator<? super K> comparator) {
-		return (comparator != null)? comparator.compare(key1, key2): ((Comparable<K>)key1).compareTo(key2);
-	}
-
 	protected int compare(K key1, K key2) {
-		return compare(key1, key2, comparator);
+		return Sorted.compare(key1, key2, comparator);
 	}
 
 	/**
@@ -851,6 +838,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         comparator, or if they cannot be compared naturally (ie. they
 	**         don't implement {@link Comparable})
 	*/
+	@SuppressWarnings("unchecked")
 	final public static <K> boolean compare0(K key1, K key2, Comparator<? super K> comparator) {
 		return key1 == null? key2 == null: key2 == null? false:
 			   ((comparator != null)? comparator.compare(key1, key2): ((Comparable<K>)key1).compareTo(key2)) == 0;
@@ -871,7 +859,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	*/
 	protected int compareL(K lkey1, K lkey2) {
 		return (lkey1 == null)? ((lkey2 == null)? 0: -1):
-		                        ((lkey2 == null)? 1: compare(lkey1, lkey2, comparator));
+		                        ((lkey2 == null)? 1: Sorted.compare(lkey1, lkey2, comparator));
 	}
 
 	/**
@@ -885,7 +873,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	*/
 	protected int compareR(K rkey1, K rkey2) {
 		return (rkey2 == null)? ((rkey1 == null)? 0: -1):
-		                        ((rkey1 == null)? 1: compare(rkey1, rkey2, comparator));
+		                        ((rkey1 == null)? 1: Sorted.compare(rkey1, rkey2, comparator));
 	}
 
 	/**
@@ -1409,7 +1397,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         keys
 	*/
 	@Override public boolean containsKey(Object k) {
-		K key = (K) k;
+		@SuppressWarnings("unchecked") K key = (K) k;
 		Node node = root;
 
 		for (;;) {
@@ -1444,7 +1432,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         keys
 	*/
 	@Override public V get(Object k) {
-		K key = (K) k;
+		@SuppressWarnings("unchecked") K key = (K) k;
 		Node node = root;
 
 		for (;;) {
@@ -1570,7 +1558,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**         keys
 	*/
 	@Override public V remove(Object k) {
-		K key = (K) k;
+		@SuppressWarnings("unchecked") K key = (K) k;
 		Node node = root, parent = null;
 
 		for (;;) {
@@ -1657,7 +1645,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		if (t.isEmpty()) {
 			return;
 		} else if (t == this || isEmpty() && t instanceof SortedMap) {
-			SortedMap<K, V> map = (SortedMap<K, V>)t, nextmap;
+			@SuppressWarnings("unchecked") SortedMap<K, V> map = (SortedMap<K, V>)t, nextmap;
 			Map<K, Node> lnodes = null, nextlnodes;
 
 			if (!(comparator == null && map.comparator() == null || comparator.equals(map.comparator()))) {

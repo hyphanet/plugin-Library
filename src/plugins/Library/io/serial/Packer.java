@@ -4,6 +4,7 @@
 package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.Objects;
 import plugins.Library.util.IdentityComparator;
 import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.util.exec.TaskCompleteException;
@@ -678,7 +679,7 @@ implements MapSerialiser<K, T>,
 		}
 
 		@Override public boolean remove(Object c) {
-			if (super.remove(c)) { weight -= inv.getWeight((K)c); return true; }
+			if (super.remove(c)) { weight -= inv.getWeight(Objects.<K>castA(c)); return true; }
 			return false;
 		}
 
@@ -691,7 +692,7 @@ implements MapSerialiser<K, T>,
 			if (this == bin) { return 0; }
 			int f1 = filled(), f2 = bin.filled();
 			if (f1 != f2) { return (f2 > f1)? 1: -1; }
-			return (bin instanceof DummyBin)? -1: IdentityComparator.comparator.compare(this, bin);
+			return (bin instanceof DummyBin)? -1: IdentityComparator.cmp(this, bin);
 		}
 
 	}
@@ -727,7 +728,7 @@ implements MapSerialiser<K, T>,
 			if (this == bin) { return 0; }
 			int f1 = filled(), f2 = bin.filled();
 			if (f1 != f2) { return (f2 > f1)? 1: -1; }
-			return (bin instanceof DummyBin)? IdentityComparator.comparator.compare(this, bin): 1;
+			return (bin instanceof DummyBin)? IdentityComparator.cmp(this, bin): 1;
 		}
 	}
 

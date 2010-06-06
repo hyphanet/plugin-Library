@@ -101,7 +101,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 
 	static volatile boolean logMINOR;
 	static volatile boolean logDEBUG;
-	
+
 	static {
 		Logger.registerClass(XMLIndex.class);
 	}
@@ -480,7 +480,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 					r.setError(e);
 			}
 		}
-		
+
 		public void parseSubIndex() throws TaskAbortException {
 			synchronized(parsingSubindex){
 				// Transfer all requests waiting on this subindex to the parsing list
@@ -491,14 +491,14 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				// Set status of all those about to be parsed to PARSE
 				for(FindRequest r : parsingSubindex)
 					r.setStage(FindRequest.Stages.PARSE);
-				
+
 				// Multi-stage parse to minimise memory usage.
-				
+
 				// Stage 1: Extract the declaration (first tag), copy everything before "<files " to one bucket, plus everything after "</files>".
 				// Copy the declaration, plus everything between the two (inclusive) to another bucket.
-				
+
 				Bucket mainBucket, filesBucket;
-				
+
 				try {
 				InputStream is = bucket.getInputStream();
 				mainBucket = pr.getNode().clientCore.tempBucketFactory.makeBucket(-1);
@@ -507,7 +507,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				OutputStream filesOS = new BufferedOutputStream(filesBucket.getOutputStream());
 				//OutputStream mainOS = new BufferedOutputStream(new FileOutputStream("main.tmp"));
 				//OutputStream filesOS = new BufferedOutputStream(new FileOutputStream("files.tmp"));
-				
+
 				BufferedInputStream bis = new BufferedInputStream(is);
 
 				byte greaterThan = ">".getBytes("UTF-8")[0];
@@ -515,7 +515,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				byte[] filesPrefixAlt = "<files>".getBytes("UTF-8");
 				assert(filesPrefix.length == filesPrefixAlt.length);
 				byte[] filesEnd = "</files>".getBytes("UTF-8");
-				
+
 				final int MODE_SEEKING_DECLARATION = 1;
 				final int MODE_SEEKING_FILES = 2;
 				final int MODE_COPYING_FILES = 3;
@@ -571,40 +571,40 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 						mainOS.write(b);
 					}
 				}
-				
+
 				if(mode != MODE_COPYING_REST)
 					throw new TaskAbortException("Could not split up XML: Last mode was "+mode, null);
-				
+
 				mainOS.close();
 				filesOS.close();
 				} catch (IOException e) {
 					throw new TaskAbortException("Could not split XML: ", e);
 				}
-				
+
 				if(logMINOR) Logger.minor(this, "Finished splitting XML");
-				
+
 				try {
-				
+
 					SAXParserFactory factory = SAXParserFactory.newInstance();
 					factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
 					SAXParser saxParser = factory.newSAXParser();
-					
+
 					// Stage 2: Parse the first bucket, find the keyword we want, find the file id's.
-					
+
 					InputStream is = mainBucket.getInputStream();
 					StageTwoHandler stageTwoHandler = new StageTwoHandler();
 					saxParser.parse(is, stageTwoHandler);
 					if(logMINOR) Logger.minor(this, "Finished stage two XML parse");
 					is.close();
-				
+
 					// Stage 3: Parse the second bucket, extract the <file>'s for the specific ID's.
-					
+
 					is = filesBucket.getInputStream();
 					StageThreeHandler stageThreeHandler = new StageThreeHandler();
 					saxParser.parse(is, stageThreeHandler);
 					if(logMINOR) Logger.minor(this, "Finished stage three XML parse");
 					is.close();
-					
+
 					Logger.minor(this, "parsing finished "+ parsingSubindex.toString());
 					for (FindRequest findRequest : parsingSubindex) {
 						findRequest.setFinished();
@@ -616,7 +616,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				}
 			}
 		}
-		
+
 		class WordMatch {
 			public WordMatch(ArrayList<FindRequest> searches, int inWordFileCount) {
 				this.searches = searches;
@@ -625,7 +625,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			final List<FindRequest> searches;
 			int inWordFileCount;
 		}
-		
+
 		class FileMatch {
 			public FileMatch(String id2, HashMap<Integer, String> termpositions2, WordMatch thisWordMatch) {
 				id = id2;
@@ -636,41 +636,41 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			final HashMap<Integer, String> termpositions;
 			final WordMatch word;
 		}
-		
+
 		Map<String, ArrayList<FileMatch>> idToFileMatches = new HashMap<String, ArrayList<FileMatch>>();
-		
+
 		int totalFileCount = -1;
-		
+
 		// Parse the main XML file, including the keywords list.
 		// We do not see the files list.
 		class StageTwoHandler extends DefaultHandler {
-			
+
 			private boolean processingWord;
-			
+
 			// Requests and matches being made
 			private List<FindRequest> requests;
 			private List<FindRequest> wordMatches;
 
 			private int inWordFileCount;
-			
+
 			// About the file tag being processed
 			private StringBuilder characters;
-			
+
 			private String match;
-			
+
 			private ArrayList<FileMatch> fileMatches = new ArrayList<FileMatch>();
-			
+
 			private String id;
-			
+
 			private WordMatch thisWordMatch;
 
 			StageTwoHandler() {
-				this.requests = new ArrayList(parsingSubindex);
+				this.requests = new ArrayList<FindRequest>(parsingSubindex);
 				for (FindRequest r : parsingSubindex){
 					r.setResult(new HashSet<TermPageEntry>());
 				}
 			}
-			
+
 			@Override public void setDocumentLocator(Locator value) {
 
 			}
@@ -681,7 +681,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			@Override public void startDocument() throws SAXException {
 				// Do nothing
 			}
-			
+
 			@Override public void startElement(String nameSpaceURI, String localName, String rawName, Attributes attrs)
 	        throws SAXException {
 				if(requests.size()==0&&(wordMatches == null || wordMatches.size()==0))
@@ -693,7 +693,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 
 				if (elt_name.equals("keywords"))
 					processingWord = true;
-				
+
 				/*
 				 * looks for the word in the given subindex file if the word is found then the parser
 				 * fetches the corresponding fileElements
@@ -704,7 +704,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 						wordMatches = null;
 						match = attrs.getValue("v");
 						if (requests!=null){
-							
+
 							for (Iterator<FindRequest> it = requests.iterator(); it.hasNext();) {
 								FindRequest r = it.next();
 								if (match.equals(r.getSubject())){
@@ -739,13 +739,13 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 					}
 				}
 			}
-			
+
 			@Override public void characters(char[] ch, int start, int length) {
 				if(processingWord && wordMatches!= null && characters!=null){
 					characters.append(ch, start, length);
 				}
 			}
-			
+
 			@Override
 			public void endElement(String namespaceURI, String localName, String qName) {
 				if(processingWord && wordMatches != null && qName.equals("file")){
@@ -762,9 +762,9 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 						}
 						characters = null;
 					}
-					
+
 					FileMatch thisFile = new FileMatch(id, termpositions, thisWordMatch);
-					
+
 					ArrayList<FileMatch> matchList = idToFileMatches.get(id);
 					if(matchList == null) {
 						matchList = new ArrayList<FileMatch>();
@@ -773,13 +773,13 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 					if(logMINOR) Logger.minor(this, "Match: id="+id+" for word "+match);
 					matchList.add(thisFile);
 				}
-				
+
 			}
-			
+
 		}
-		
+
 		class StageThreeHandler extends DefaultHandler {
-			
+
 			@Override public void setDocumentLocator(Locator value) {
 
 			}
@@ -789,7 +789,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 
 			@Override public void startElement(String nameSpaceURI, String localName, String rawName, Attributes attrs)
 	        throws SAXException {
-				
+
 				if(idToFileMatches.isEmpty())
 					return;
 				if (rawName == null) {
@@ -807,13 +807,13 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				if (elt_name.equals("file")) {
 					try {
 						String id = attrs.getValue("id");
-						
+
 						ArrayList<FileMatch> matches = idToFileMatches.get(id);
-						
+
 						if(matches != null) {
-							
+
 							for(FileMatch match : matches) {
-								
+
 								String key = attrs.getValue("key");
 								int l = attrs.getLength();
 								String title = null;
@@ -833,28 +833,28 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 										//Logger.minor(this, "No wordcount found " + e.toString(), e);
 									}
 								}
-								
+
 								for(FindRequest req : match.word.searches) {
-									
+
 									Set<TermPageEntry> result = req.getUnfinishedResult();
 									float relevance = 0;
-									
+
 									if(logDEBUG) Logger.debug(this, "termcount "+(match.termpositions == null ? 0 : match.termpositions.size())+" filewordcount = "+wordCount);
 									if(match.termpositions!=null && match.termpositions.size()>0 && wordCount>0 ){
-										relevance = (float)(match.termpositions.size()/(float)wordCount);
+										relevance = match.termpositions.size()/(float)wordCount;
 										if( totalFileCount > 0 && match.word.inWordFileCount > 0)
 											relevance *=  Math.log( (float)totalFileCount/(float)match.word.inWordFileCount);
 										if(logDEBUG) Logger.debug(this, "Set relevance of "+title+" to "+relevance+" - "+key);
 									}
-									
+
 									TermPageEntry pageEntry = new TermPageEntry(req.getSubject(), relevance, new FreenetURI(key), title, match.termpositions);
 									result.add(pageEntry);
 									//Logger.minor(this, "added "+inFileURI+ " to "+ match);
 								}
-								
+
 							}
 						}
-						
+
 					}
 					catch (Exception e) {
 						Logger.error(this, "File id and key could not be retrieved. May be due to format clash", e);
@@ -863,7 +863,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			}
 
 		}
-		
+
 	}
 
 }

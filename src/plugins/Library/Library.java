@@ -15,6 +15,7 @@ import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
 import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.Objects;
 import plugins.Library.search.InvalidSearchException;
 
 /* KEYEXPLORER
@@ -152,7 +153,7 @@ final public class Library implements URLUpdateHook {
 		if(persistentFile.canRead()){
 			try {
 				ObjectInputStream is = new ObjectInputStream(new FileInputStream(persistentFile));	// These are annoying but it's better than nothing
-				bookmarks = (Map<String, String>)is.readObject();
+				bookmarks = Objects.<Map<String, String>>castT(is.readObject());
 				is.close();
 				FileUtil.secureDelete(persistentFile, pr.getNode().fastWeakRandom);
 				Logger.error(this, "Moved LibraryPersistent contents into database and securely deleted old file.");
@@ -214,11 +215,11 @@ final public class Library implements URLUpdateHook {
 			// Not much we can do...
 		}
 	}
-	
+
 	/* FIXME
 	 * Parallel fetch from the same index is not currently supported. This means that the only reliable way to
-	 * do e.g. an intersection search is to run two completely separate fetches. Otherwise we get assertion 
-	 * errors in e.g. BTreePacker.preprocessPullBins from TaskInProgressException's we can't handle from 
+	 * do e.g. an intersection search is to run two completely separate fetches. Otherwise we get assertion
+	 * errors in e.g. BTreePacker.preprocessPullBins from TaskInProgressException's we can't handle from
 	 * ProgressTracker.addPullProgress, when the terms are in the same bucket. We should make it possible to
 	 * search for multiple terms in the same btree, but for now, turning off caching is the only viable option.
 	 */
@@ -268,7 +269,7 @@ final public class Library implements URLUpdateHook {
 				FetchWaiter fw = new FetchWaiter();
 				final ClientGetter gu = hlsc.fetch(uri, 0x10000, (RequestClient)hlsc, fw, fctx);
 				gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
-				
+
 				final Class<?>[] c = new Class[1];
 				hlsc.addEventHook(new ClientEventListener() {
 					/*@Override**/ public void onRemoveEventProducer(ObjectContainer container){ }
@@ -286,11 +287,11 @@ final public class Library implements URLUpdateHook {
 						}
 					}
 				});
-				
+
 				try {
 					FetchResult res = fw.waitForCompletion();
 					return getIndexTypeFromMIME(res.getMimeType());
-					
+
 				} catch (FetchException e) {
 					if (e.getMode() == FetchException.CANCELLED) {
 						synchronized(c) {

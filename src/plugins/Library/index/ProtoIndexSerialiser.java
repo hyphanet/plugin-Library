@@ -5,6 +5,7 @@ package plugins.Library.index;
 
 import plugins.Library.Library;
 import plugins.Library.client.FreenetArchiver;
+import plugins.Library.util.Objects;
 import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.exec.TaskAbortException;
@@ -62,7 +63,7 @@ implements Archiver<ProtoIndex>,
 	 * A single serialiser means when we fetch two words for the same query, and they both end up in the same
 	 * bucket, we get an AssertionError when we fetch the bucket twice in ProgressTracker.addPullProgress.
 	 * So the solution, for the time being, is simply to use two separate serialisers. */
-	
+
 //	final protected static HashMap<Class<?>, ProtoIndexSerialiser>
 //	srl_cls = new HashMap<Class<?>, ProtoIndexSerialiser>();
 
@@ -84,7 +85,7 @@ implements Archiver<ProtoIndex>,
 //			srl_cls.put(FreenetURI.class, srl = new ProtoIndexSerialiser(arx));
 //		}
 //		return srl;
-		
+
 		// One serialiser per application. See comments above re srl_cls.
 		// java's type-inference isn't that smart, see
 		FreenetArchiver<Map<String, Object>> arx = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN);
@@ -97,7 +98,7 @@ implements Archiver<ProtoIndex>,
 //			srl_cls.put(File.class, srl = new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION)));
 //		}
 //		return srl;
-		
+
 		// One serialiser per application. See comments above re srl_cls.
 		return new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION, prefix == null ? "" : prefix.getName()+File.separator, ""));
 	}
@@ -149,7 +150,7 @@ implements Archiver<ProtoIndex>,
 		ProtoIndexComponentSerialiser.TreeMapTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null));
 
 		private Archiver<Map<String, Object>> subsrl;
-		
+
 		public IndexTranslator(Archiver<Map<String, Object>> subsrl) {
 			this.subsrl = subsrl;
 		}
@@ -185,12 +186,14 @@ implements Archiver<ProtoIndex>,
 			return map;
 		}
 
+		@SuppressWarnings("unchecked")
 		/*@Override**/ public ProtoIndex rev(Map<String, Object> map) throws DataFormatException {
-			long magic = (Long)map.get("serialVersionUID");
+			long magic = Objects.<Long>castT(map.get("serialVersionUID"));
 
 			if (magic == ProtoIndex.serialVersionUID) {
 				try {
 					// FIXME yet more hacks related to the lack of proper asynchronous FreenetArchiver...
+					@SuppressWarnings("unchecked")
 					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"), subsrl instanceof LiveArchiver ? ((LiveArchiver)subsrl) : null);
 					FreenetURI reqID = (FreenetURI)map.get("reqID");
 					String name = (String)map.get("name");

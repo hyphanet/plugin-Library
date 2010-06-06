@@ -64,6 +64,20 @@ final public class Sorted {
 	}
 
 	/**
+	** Compares two keys using the comparator for this tree, or the keys'
+	** {@link Comparable natural} ordering if no comparator was given.
+	**
+	** @throws ClassCastException if the keys cannot be compared by the given
+	**         comparator, or if they cannot be compared naturally (ie. they
+	**         don't implement {@link Comparable})
+	** @throws NullPointerException if either of the keys are {@code null}.
+	*/
+	@SuppressWarnings("unchecked")
+	final public static <K> int compare(K key1, K key2, Comparator<? super K> comparator) {
+		return (comparator != null)? comparator.compare(key1, key2): ((Comparable<K>)key1).compareTo(key2);
+	}
+
+	/**
 	** Returns the second element in an iterable, or {@code null} if there is
 	** no such element. The iterable is assumed to have at least one element.
 	*/
@@ -176,7 +190,7 @@ final public class Sorted {
 			}
 
 			nsep = (csep == null)? sep.first(): second(sep.tailSet(csep)); // JDK6 sep.higher(csep);
-			assert(nsep == null || ((Comparable<E>)csub).compareTo(nsep) < 0);
+			assert(nsep == null || compare(csub, nsep, subj.comparator()) < 0);
 
 			nsub = (nsep == null)? subj.last(): floor(subj, nsep); // JDK6 subj.floor(nsep);
 			assert(nsub != null);
@@ -185,7 +199,7 @@ final public class Sorted {
 				nsub = lower(subj, nsep); // JDK6 subj.lower(nsep);
 			}
 
-			assert(csub != null && ((Comparable<E>)csub).compareTo(nsub) <= 0);
+			assert(csub != null && compare(csub, nsub, subj.comparator()) <= 0);
 			assert(csep != null || nsep != null); // we already took care of sep.size() == 0
 			res.add(
 				(csep == null)? subj.headSet(nsep):

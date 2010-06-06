@@ -230,7 +230,7 @@ public class ObjectBlueprint<T> {
 	**      Pattern</a>
 	*/
 	public static <T> Builder<T> init(Class<T> cls) {
-		return new Builder(cls);
+		return new Builder<T>(cls);
 	}
 
 	public Class<T> getObjectClass() {
@@ -335,7 +335,7 @@ public class ObjectBlueprint<T> {
 
 		return new AbstractMap<String, Object>() {
 
-			final private Set<Map.Entry<String, Object>> entrySet = new AbstractSet() {
+			final private Set<Map.Entry<String, Object>> entrySet = new AbstractSet<Map.Entry<String, Object>>() {
 
 				@Override public int size() {
 					return properties.size();
@@ -509,9 +509,9 @@ public class ObjectBlueprint<T> {
 		*/
 		public ObjectBlueprint<T> build() throws NoSuchFieldException, NoSuchMethodException {
 			if (use_ctor) {
-				return new ObjectBlueprint(cls, props, constructor);
+				return new ObjectBlueprint<T>(cls, props, constructor);
 			} else {
-				return new ObjectBlueprint(cls, props, ctor_params);
+				return new ObjectBlueprint<T>(cls, props, ctor_params);
 			}
 		}
 

@@ -4,6 +4,7 @@
 package plugins.Library.io;
 
 import plugins.Library.io.DataFormatException;
+import plugins.Library.util.Objects;
 
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.YAMLException;
@@ -58,7 +59,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 
 	final public static String MIME_TYPE = "text/yaml";
 	final public static String FILE_EXTENSION = ".yml";
-	
+
 	final static int MAX_PARALLEL = 1; // Limited by memory mainly. If memory is no object it could be limited by threads.
 	// Each Yaml instance uses a *significant* amount of memory...
 	static final Semaphore parallelLimiter = new Semaphore(MAX_PARALLEL);
@@ -89,7 +90,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	}
 
 	/** We do NOT keep this thread-local, because the Composer is only cleared after
-	 * the next call to load(), so it can persist with a lot of useless data if we 
+	 * the next call to load(), so it can persist with a lot of useless data if we
 	 * then use a different thread. So lets just construct them as needed. */
 	private Yaml makeYAML() {
 		DumperOptions opt = new DumperOptions();
@@ -132,9 +133,9 @@ implements ObjectStreamReader, ObjectStreamWriter {
 					return representMapping("!BinInfo", map, true);
 				}
 			});
-			this.representers.put(TermTermEntry.class, new RepresentTermEntry(tebp_term));
-			this.representers.put(TermIndexEntry.class, new RepresentTermEntry(tebp_index));
-			this.representers.put(TermPageEntry.class, new RepresentTermEntry(tebp_page));
+			this.representers.put(TermTermEntry.class, new RepresentTermEntry<TermTermEntry>(tebp_term));
+			this.representers.put(TermIndexEntry.class, new RepresentTermEntry<TermIndexEntry>(tebp_index));
+			this.representers.put(TermPageEntry.class, new RepresentTermEntry<TermPageEntry>(tebp_page));
 		}
 
 		public class RepresentTermEntry<T extends TermEntry> implements Represent {
@@ -147,6 +148,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 				tag = "!" + bp.getObjectClass().getSimpleName();
 			}
 
+			@SuppressWarnings("unchecked")
 			/*@Override**/ public Node representData(Object data) {
 				return representMapping(tag, blueprint.objectAsMap((T)data), true);
 			}
@@ -183,9 +185,9 @@ implements ObjectStreamReader, ObjectStreamWriter {
 					throw new AssertionError();
 				}
 			});
-			this.yamlConstructors.put("!TermTermEntry", new ConstructTermEntry(tebp_term));
-			this.yamlConstructors.put("!TermIndexEntry", new ConstructTermEntry(tebp_index));
-			this.yamlConstructors.put("!TermPageEntry", new ConstructTermEntry(tebp_page));
+			this.yamlConstructors.put("!TermTermEntry", new ConstructTermEntry<TermTermEntry>(tebp_term));
+			this.yamlConstructors.put("!TermIndexEntry", new ConstructTermEntry<TermIndexEntry>(tebp_index));
+			this.yamlConstructors.put("!TermPageEntry", new ConstructTermEntry<TermPageEntry>(tebp_page));
 		}
 
 		public class ConstructTermEntry<T extends TermEntry> extends AbstractConstruct {
@@ -196,6 +198,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 				blueprint = bp;
 			}
 
+			@SuppressWarnings("unchecked")
 			/*@Override**/ public Object construct(Node node) {
 				Map map = (Map)constructMapping((MappingNode)node);
 				map.put("rel", new Float(((Double)map.get("rel")).floatValue()));

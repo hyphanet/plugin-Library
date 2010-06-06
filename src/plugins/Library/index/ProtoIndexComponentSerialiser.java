@@ -541,7 +541,7 @@ public class ProtoIndexComponentSerialiser {
 
 
 		public void pull(PullTask<T> task) {
-			task.data = (T)task.meta;
+			task.data = Objects.<T>castA(task.meta);
 		}
 
 		public void push(PushTask<T> task) {
@@ -550,7 +550,7 @@ public class ProtoIndexComponentSerialiser {
 
 		public void pull(Iterable<PullTask<T>> tasks) {
 			for (PullTask<T> task: tasks) {
-				task.data = (T)task.meta;
+				task.data = Objects.<T>castA(task.meta);
 			}
 		}
 
@@ -563,7 +563,7 @@ public class ProtoIndexComponentSerialiser {
 		public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) {
 			for (PullTask<T> task: tasks.values()) {
 				if(task.meta != null)
-					task.data = (T)task.meta;
+					task.data = Objects.<T>castA(task.meta);
 			}
 		}
 

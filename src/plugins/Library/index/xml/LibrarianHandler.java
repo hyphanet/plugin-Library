@@ -55,7 +55,7 @@ public class LibrarianHandler extends DefaultHandler {
 
 	static volatile boolean logMINOR;
 	static volatile boolean logDEBUG;
-	
+
 	static {
 		Logger.registerClass(LibrarianHandler.class);
 	}
@@ -66,7 +66,7 @@ public class LibrarianHandler extends DefaultHandler {
 	 * @throws java.lang.Exception
 	 */
 	public LibrarianHandler(List<FindRequest> requests) {
-		this.requests = new ArrayList(requests);
+		this.requests = new ArrayList<FindRequest>(requests);
 		for (FindRequest r : requests){
 			r.setResult(new HashSet<TermPageEntry>());
 		}
@@ -222,7 +222,7 @@ public class LibrarianHandler extends DefaultHandler {
 
 //					if(logMINOR) Logger.minor(this, "termcount "+termpositions.size()+" filewordcount = "+inFileWordCount);
 				if(termpositions!=null && termpositions.size()>0 && inFileWordCount>0 ){
-					relevance = (float)(termpositions.size()/(float)inFileWordCount);
+					relevance = termpositions.size()/(float)inFileWordCount;
 					if( totalFileCount > 0 && inWordFileCount > 0)
 						relevance *=  Math.log( (float)totalFileCount/(float)inWordFileCount);
 					//if(logMINOR) Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.rel+" - "+pageEntry.toString());

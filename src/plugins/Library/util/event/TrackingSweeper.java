@@ -63,6 +63,7 @@ public class TrackingSweeper<T, C extends Collection<T>> extends AbstractSweeper
 	** if the input is not a {@link SortedSet}, {@link Set}, or {@link List};
 	** this may or may not be what you want.
 	*/
+	@SuppressWarnings("unchecked")
 	public static <T, C extends Collection<T>> C inferImmutable(C coll) {
 		if (coll instanceof SortedSet) {
 			return (C)Collections.unmodifiableSortedSet((SortedSet<T>)coll);

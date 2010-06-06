@@ -52,7 +52,7 @@ public class MainPageToadlet extends Toadlet {
 			MainPage page = MainPage.processGetRequest(request);
 			if(page == null)
 				page = new MainPage(library, pr);
-			MultiValueTable<String, String> headers = new MultiValueTable();
+			MultiValueTable<String, String> headers = new MultiValueTable<String, String>();
 			page.writeContent(contentNode, headers);
 			// write reply
 			writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
@@ -64,7 +64,7 @@ public class MainPageToadlet extends Toadlet {
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 			MainPage errorpage = new MainPage(e, library, pr);
-			MultiValueTable<String, String> headers = new MultiValueTable();
+			MultiValueTable<String, String> headers = new MultiValueTable<String, String>();
 			errorpage.writeContent(contentNode, headers);
 			writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
 		} finally {
@@ -90,7 +90,7 @@ public class MainPageToadlet extends Toadlet {
 			if(page==null)
 				page = new MainPage(library,pr);
 			// Process the request
-			MultiValueTable<String, String> headers = new MultiValueTable();
+			MultiValueTable<String, String> headers = new MultiValueTable<String, String>();
 			// write reply
 			page.writeContent(contentNode, headers);
 			// write reply
@@ -104,7 +104,7 @@ public class MainPageToadlet extends Toadlet {
 			HTMLNode contentNode = p.content;
 			// makes a mainpage for showing errors
 			MainPage errorpage = new MainPage(e, library, pr);
-			MultiValueTable<String, String> headers = new MultiValueTable();
+			MultiValueTable<String, String> headers = new MultiValueTable<String, String>();
 			errorpage.writeContent(contentNode, headers);
 			writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
 		} finally {

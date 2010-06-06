@@ -279,7 +279,7 @@ public class ProgressParts {
 		if (num == unknown) {
 			t = ESTIMATE_UNKNOWN;
 		} else if (unknown > 0) {
-			t = (try_to_be_smart)? (int)Math.round(t * num / (float)(num-unknown)): ESTIMATE_UNKNOWN;
+			t = (try_to_be_smart)? Math.round(t * num / (float)(num-unknown)): ESTIMATE_UNKNOWN;
 		}
 		return new ProgressParts(d, s, k, (totalfinalized)? TOTAL_FINALIZED: t);
 	}

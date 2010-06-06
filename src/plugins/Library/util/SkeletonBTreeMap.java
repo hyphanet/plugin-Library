@@ -700,7 +700,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	**         keys
 	*/
 	public V getDeflateRest(Object k) throws TaskAbortException {
-		K key = (K) k;
+		@SuppressWarnings("unchecked") K key = (K) k;
 		Node node = root;
 
 		for (;;) {
@@ -1496,6 +1496,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			return map;
 		}
 
+		@SuppressWarnings("unchecked")
 		/*@Override**/ public SkeletonNode rev(Map<String, Object> map) throws DataFormatException {
 			try {
 				boolean notleaf = map.containsKey("subnodes");

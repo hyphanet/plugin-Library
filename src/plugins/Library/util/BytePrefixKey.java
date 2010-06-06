@@ -3,9 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.util.PrefixTree.PrefixKey;
-import plugins.Library.util.PrefixTree.AbstractPrefixKey;
-
 import java.util.Arrays;
 
 /**
@@ -13,7 +10,7 @@ import java.util.Arrays;
 **
 ** @author infinity0
 */
-abstract public class BytePrefixKey<K extends BytePrefixKey<K>> extends AbstractPrefixKey<K> implements PrefixKey<K> {
+abstract public class BytePrefixKey<K extends BytePrefixKey<K>> extends PrefixKey<K> {
 
 	/**
 	** Returns the string representation of a byte array.

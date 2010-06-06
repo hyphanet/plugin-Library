@@ -16,6 +16,7 @@ import plugins.Library.io.serial.LiveArchiver;
 import plugins.Library.util.exec.ProgressParts;
 import plugins.Library.util.exec.SimpleProgress;
 import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.Objects;
 
 import com.db4o.ObjectContainer;
 
@@ -69,27 +70,27 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	/** If true, we will insert data semi-asynchronously. That is, we will start the
 	 * insert, with ForceEncode enabled, and return the URI as soon as possible. The
 	 * inserts will continue in the background, and before inserting the final USK,
-	 * the caller should call waitForAsyncInserts(). 
-	 * 
-	 * FIXME SECURITY: This should be relatively safe, because it's all CHKs, as 
+	 * the caller should call waitForAsyncInserts().
+	 *
+	 * FIXME SECURITY: This should be relatively safe, because it's all CHKs, as
 	 * long as the content isn't easily predictable.
-	 * 
-	 * FIXME PERFORMANCE: This dirty hack is unnecessary if we split up 
+	 *
+	 * FIXME PERFORMANCE: This dirty hack is unnecessary if we split up
 	 * IterableSerialiser.push into a start phase and a stop phase.
-	 * 
+	 *
 	 * The main purpose of this mechanism is to minimise memory usage: Normally the
 	 * data being pushed remains in RAM while we do the insert, which can take a very
 	 * long time. */
 	static final boolean SEMI_ASYNC_PUSH = true;
-	
+
 	private final HashSet<PushCallback> semiAsyncPushes = new HashSet<PushCallback>();
 	private final ArrayList<InsertException> pushesFailed = new ArrayList<InsertException>();
 	private long totalBytesPushing;
-	
+
 	public static void setCacheDir(File dir) {
 		cacheDir = dir;
 	}
-	
+
 	public static File getCacheDir() {
 		return cacheDir;
 	}
@@ -104,7 +105,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		default_mime = mime;
 		expected_bytes = size;
 	}
-	
+
 	public <S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver(NodeClientCore c, S rw, String mime, int size) {
 		this(c, rw, rw, mime, size);
 	}
@@ -128,9 +129,9 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			try {
 
 				long startTime = System.currentTimeMillis();
-				
+
 				FreenetURI furi = (FreenetURI)task.meta;
-				
+
 				if(cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
 					File cached = new File(cacheDir, furi.toASCIIString());
 					if(cached.exists() && cached.length() != 0) {
@@ -138,15 +139,15 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 						System.out.println("Fetching block for FreenetArchiver from disk cache: "+furi);
 					}
 				}
-				
+
 				if(tempB == null) {
-					
+
 					System.out.println("Fetching block for FreenetArchiver from network: "+furi);
-					
+
 					if (progress != null) {
 						hlsc.addEventHook(new SimpleProgressUpdater(progress));
 					}
-					
+
 					// code for async fetch - maybe be useful elsewhere
 					//ClientContext cctx = core.clientContext;
 					//FetchContext fctx = hlsc.getFetchContext();
@@ -154,9 +155,9 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					//ClientGetter gu = hlsc.fetch(furi, false, null, false, fctx, fw);
 					//gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
 					//FetchResult res = fw.waitForCompletion();
-					
+
 					FetchResult res;
-					
+
 					// bookkeeping. detects bugs in the SplitfileProgressEvent handler
 					if (progress != null) {
 						ProgressParts prog_old = progress.getParts();
@@ -170,7 +171,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					} else {
 						res = hlsc.fetch(furi);
 					}
-					
+
 					tempB = res.asBucket();
 				} else {
 					// Make sure SimpleProgress.join() doesn't stall.
@@ -182,7 +183,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				long endTime = System.currentTimeMillis();
 				System.out.println("Fetched block for FreenetArchiver in "+(endTime-startTime)+"ms.");
 				is = tempB.getInputStream();
-				task.data = (T)reader.readObject(is);
+				task.data = Objects.<T>castT(reader.readObject(is));
 				is.close();
 
 			} catch (FetchException e) {
@@ -235,7 +236,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 
 				System.out.println("Inserting block for FreenetArchiver...");
 				long startTime = System.currentTimeMillis();
-				
+
 				// code for async insert - maybe be useful elsewhere
 				//ClientContext cctx = core.clientContext;
 				//InsertContext ictx = hlsc.getInsertContext(true);
@@ -250,7 +251,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				ProgressParts prog_old = null;
 				if(progress != null)
 					prog_old = progress.getParts();
-					
+
 				if(!SEMI_ASYNC_PUSH) {
 					// Actually report progress.
 					if (progress != null) {
@@ -285,7 +286,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					if(progress != null)
 						progress.addPartDone();
 				}
-					
+
 				if(progress != null) {
 					ProgressParts prog_new = progress.getParts();
 					if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
@@ -296,13 +297,13 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 
 				task.meta = uri;
 				task.data = null;
-				
+
 				if(cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
 					File cached = new File(cacheDir, uri.toASCIIString());
 					Bucket cachedBucket = new FileBucket(cached, false, false, false, false, false);
 					BucketTools.copy(tempB, cachedBucket);
 				}
-				
+
 				if(SEMI_ASYNC_PUSH)
 					tempB = null; // Don't free it here.
 
@@ -331,7 +332,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			Closer.close(tempB);
 		}
 	}
-	
+
 	public class PushCallback implements ClientPutCallback {
 
 		public final long startTime = System.currentTimeMillis();
@@ -343,7 +344,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 //		private final SimpleProgress progress;
 		private final long size;
 		private final InsertBlock ib;
-		
+
 		public PushCallback(SimpleProgress progress, InsertBlock ib) {
 //			this.progress = progress;
 			this.ib = ib;
@@ -494,7 +495,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			}
 		}
 	}
-	
+
 
 	public boolean persistent() {
 		return false;

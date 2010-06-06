@@ -69,10 +69,12 @@ implements Map<E, E>, SortedMap<E, E>/*, NavigableMap<E, E>, Cloneable, Serializ
 		return bkset.add(k)? null: v;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override public E get(Object o) {
 		return bkset.contains(o)? (E)o: null;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override public E remove(Object o) {
 		return bkset.remove(o)? (E)o: null;
 	}

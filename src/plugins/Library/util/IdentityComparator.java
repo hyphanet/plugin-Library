@@ -55,6 +55,11 @@ abstract public class IdentityComparator<T> implements Comparator<T> {
 	*/
 	final private static HashMap<Integer, Long> idcounter = new HashMap<Integer, Long>(4);
 
+	@SuppressWarnings("unchecked")
+	public static <T> int cmp(T o1, T o2) {
+		return IdentityComparator.comparator.compare(o1, o2);
+	}
+
 	/**
 	** Compare two objects by identity.
 	*/

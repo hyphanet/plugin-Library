@@ -9,6 +9,7 @@ import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
 import plugins.Library.util.exec.SimpleProgress;
 import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.Objects;
 
 import freenet.keys.FreenetURI;
 
@@ -136,7 +137,7 @@ implements Archiver<T>, LiveArchiver<T, SimpleProgress> {
 			try {
 				FileLock lock = is.getChannel().lock(0L, Long.MAX_VALUE, true); // shared lock for reading
 				try {
-					t.data = (T)reader.readObject(is);
+					t.data = Objects.<T>castT(reader.readObject(is));
 				} finally {
 					lock.release();
 				}

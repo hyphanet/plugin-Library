@@ -50,9 +50,9 @@ final public class ProtoIndex implements Index {
 
 	/** FIXME DEFAULT FAN-OUT:
 	 * Yaml has quite high overheads which are dependant on the size of the document being processed.
-	 * This is potentially a problem on the client side as well as here. In the long term our fan-out 
+	 * This is potentially a problem on the client side as well as here. In the long term our fan-out
 	 * will be on the order of hundreds anyway because we will include the metadata in the layer above.
-	 * For now, a relatively low fan-out (1024 not 4096) will give reasonable performance without 
+	 * For now, a relatively low fan-out (1024 not 4096) will give reasonable performance without
 	 * causing such problems. Note that this also determines the size of bins for Packer. */
 	// DEBUG make final again later
 	/*final*/ public static int BTREE_NODE_MIN = 0x400;
@@ -75,14 +75,14 @@ final public class ProtoIndex implements Index {
 	** Name for this index.
 	*/
 	protected String name;
-	
+
 	/** Name for index owner */
 	protected String indexOwnerName;
-	
+
 	/** Email (or more likely Freemail) address of index owner */
 	protected String indexOwnerEmail;
-	
-	/** Total number of indexed pages. Currently this is just passed in or set(), and used for rank calculations. 
+
+	/** Total number of indexed pages. Currently this is just passed in or set(), and used for rank calculations.
 	 * In future we might get it from utab. */
 	protected long totalPages;
 
@@ -238,7 +238,7 @@ final public class ProtoIndex implements Index {
 						Logger.normal(this, "Correcting results: "+multiplier);
 				}
 				Set<TermEntry> entries = wrapper(root, multiplier);
-				
+
 				setResult(entries);
 
 			} catch (TaskAbortException e) {
@@ -293,7 +293,7 @@ final public class ProtoIndex implements Index {
 						public void remove() {
 							throw new UnsupportedOperationException();
 						}
-							
+
 					};
 				}
 
@@ -322,15 +322,15 @@ final public class ProtoIndex implements Index {
 	public void setName(String indexName) {
 		this.name = indexName;
 	}
-	
+
 	public void setTotalPages(long total) {
 		totalPages = total;
 	}
-	
+
 	public void setOwner(String owner) {
 		this.indexOwnerName = owner;
 	}
-	
+
 	public void setOwnerEmail(String address) {
 		this.indexOwnerEmail = address;
 	}

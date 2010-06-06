@@ -93,6 +93,7 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	public static <E> Comparator<? super E> noDuplicateComparator(final Comparator<? super E> cmp) {
 		if (cmp == null) {
 			return new Comparator<E>() {
+				@SuppressWarnings("unchecked")
 				public int compare(E e1, E e2) {
 					int d = ((Comparable<E>)e1).compareTo(e2);
 					if (d == 0) { throw new IllegalArgumentException("A set cannot have two duplicate elements"); }
@@ -123,7 +124,8 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	}
 
 	@Override public boolean contains(Object o) {
-		return Fields.binarySearch(bkarr, li, ri, (E)o, comparator) > 0;
+		@SuppressWarnings("unchecked") E elem = (E)o;
+		return Fields.binarySearch(bkarr, li, ri, elem, comparator) > 0;
 	}
 
 	@Override public Iterator<E> iterator() {
