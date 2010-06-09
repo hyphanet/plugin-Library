@@ -121,6 +121,8 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	* (almost?) unlimited number in the fetching data phase. See comments in ParallelSerialiser.createPullJob.
 	*/
 	/*@Override**/ public void pullLive(PullTask<T> task, final SimpleProgress progress) throws TaskAbortException {
+		// FIXME make retry count configgable by client metadata somehow
+		// clearly a web UI fetch wants it limited; a merge might want it unlimited
 		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 		Bucket tempB = null; InputStream is = null;
 
@@ -251,12 +253,17 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				if(progress != null)
 					prog_old = progress.getParts();
 					
+				// FIXME make retry count configgable by client metadata somehow
+				// unlimited for push/merge
+				InsertContext ctx = hlsc.getInsertContext(false);
+				ctx.maxInsertRetries = -1;
+				
 				if(!SEMI_ASYNC_PUSH) {
 					// Actually report progress.
 					if (progress != null) {
 						hlsc.addEventHook(new SimpleProgressUpdater(progress));
 					}
-					uri = hlsc.insert(ib, false, null);
+					uri = hlsc.insert(ib, false, null, RequestStarter.INTERACTIVE_PRIORITY_CLASS, ctx);
 					if (progress != null)
 						progress.addPartKnown(0, true);
 				} else {
@@ -266,7 +273,6 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					// doing it properly. FIXME
 					if(progress != null)
 						progress.addPartKnown(1, true);
-					InsertContext ctx = hlsc.getInsertContext(false);
 					cb = new PushCallback(progress, ib);
 					putter = new ClientPutter(cb, ib.getData(), FreenetURI.EMPTY_CHK_URI, ib.clientMetadata,
 							ctx, RequestStarter.INTERACTIVE_PRIORITY_CLASS,
