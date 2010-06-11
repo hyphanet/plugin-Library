@@ -30,6 +30,7 @@ import plugins.Library.io.DataFormatException;
 import plugins.Library.io.YamlReaderWriter;
 
 import freenet.keys.FreenetURI;
+import freenet.node.RequestStarter;
 
 import java.util.Collection;
 import java.util.Set;
@@ -202,7 +203,10 @@ public class ProtoIndexComponentSerialiser {
 		} else {
 			switch (fmtid) {
 			case FMT_FREENET_SIMPLE:
-				leaf_arx = Library.makeArchiver(yamlrw, ProtoIndex.MIME_TYPE, 0x180 * ProtoIndex.BTREE_NODE_MIN);
+				short priorityClass = RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS;
+				if(archiver instanceof FreenetArchiver)
+					priorityClass = ((FreenetArchiver)archiver).priorityClass;
+				leaf_arx = Library.makeArchiver(yamlrw, ProtoIndex.MIME_TYPE, 0x180 * ProtoIndex.BTREE_NODE_MIN, priorityClass);
 				break;
 			case FMT_FILE_LOCAL:
 				leaf_arx = new FileArchiver<Map<String, Object>>(yamlrw, true, YamlReaderWriter.FILE_EXTENSION, "", "");

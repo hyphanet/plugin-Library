@@ -65,6 +65,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 
 	final protected String default_mime;
 	final protected int expected_bytes;
+	public final short priorityClass;
 	private static File cacheDir;
 	/** If true, we will insert data semi-asynchronously. That is, we will start the
 	 * insert, with ForceEncode enabled, and return the URI as soon as possible. The
@@ -94,10 +95,11 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		return cacheDir;
 	}
 
-	public FreenetArchiver(NodeClientCore c, ObjectStreamReader r, ObjectStreamWriter w, String mime, int size) {
+	public FreenetArchiver(NodeClientCore c, ObjectStreamReader r, ObjectStreamWriter w, String mime, int size, short priority) {
 		if (c == null) {
 			throw new IllegalArgumentException("Can't create a FreenetArchiver with a null NodeClientCore!");
 		}
+		this.priorityClass = priority;
 		core = c;
 		reader = r;
 		writer = w;
@@ -105,8 +107,8 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		expected_bytes = size;
 	}
 	
-	public <S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver(NodeClientCore c, S rw, String mime, int size) {
-		this(c, rw, rw, mime, size);
+	public <S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver(NodeClientCore c, S rw, String mime, int size, short priority) {
+		this(c, rw, rw, mime, size, priority);
 	}
 
 	/**
@@ -123,7 +125,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	/*@Override**/ public void pullLive(PullTask<T> task, final SimpleProgress progress) throws TaskAbortException {
 		// FIXME make retry count configgable by client metadata somehow
 		// clearly a web UI fetch wants it limited; a merge might want it unlimited
-		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+		HighLevelSimpleClient hlsc = core.makeClient(priorityClass);
 		Bucket tempB = null; InputStream is = null;
 
 		try {
@@ -219,7 +221,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	** incremented.
 	*/
 	/*@Override**/ public void pushLive(PushTask<T> task, final SimpleProgress progress) throws TaskAbortException {
-		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+		HighLevelSimpleClient hlsc = core.makeClient(priorityClass);
 		Bucket tempB = null; OutputStream os = null;
 
 		try {

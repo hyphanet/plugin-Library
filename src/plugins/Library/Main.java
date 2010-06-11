@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library;
 
+import freenet.node.RequestStarter;
 import freenet.pluginmanager.PluginReplySender;
 import freenet.support.MutableBoolean;
 import freenet.support.SimpleFieldSet;
@@ -869,7 +870,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 			
 			if(srl == null) {
-				srl = ProtoIndexSerialiser.forIndex(lastUploadURI);
+				srl = ProtoIndexSerialiser.forIndex(lastUploadURI, RequestStarter.BULK_SPLITFILE_PRIORITY_CLASS);
 				LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
 					(LiveArchiver<Map<String,Object>,SimpleProgress>)(srl.getChildSerialiser());
 				leafsrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_DEFAULT, archiver);

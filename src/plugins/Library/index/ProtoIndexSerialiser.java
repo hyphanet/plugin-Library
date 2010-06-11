@@ -66,9 +66,9 @@ implements Archiver<ProtoIndex>,
 //	final protected static HashMap<Class<?>, ProtoIndexSerialiser>
 //	srl_cls = new HashMap<Class<?>, ProtoIndexSerialiser>();
 
-	public static ProtoIndexSerialiser forIndex(Object o) {
+	public static ProtoIndexSerialiser forIndex(Object o, short priorityClass) {
 		if (o instanceof FreenetURI) {
-			return forIndex((FreenetURI)o);
+			return forIndex((FreenetURI)o, priorityClass);
 		} else if (o instanceof File) {
 			return forIndex((File)o);
 		} else {
@@ -76,7 +76,7 @@ implements Archiver<ProtoIndex>,
 		}
 	}
 
-	public static ProtoIndexSerialiser forIndex(FreenetURI uri) {
+	public static ProtoIndexSerialiser forIndex(FreenetURI uri, short priorityClass) {
 //		ProtoIndexSerialiser srl = srl_cls.get(FreenetURI.class);
 //		if (srl == null) {
 //			// java's type-inference isn't that smart, see
@@ -87,7 +87,7 @@ implements Archiver<ProtoIndex>,
 		
 		// One serialiser per application. See comments above re srl_cls.
 		// java's type-inference isn't that smart, see
-		FreenetArchiver<Map<String, Object>> arx = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN);
+		FreenetArchiver<Map<String, Object>> arx = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN, priorityClass);
 		return new ProtoIndexSerialiser(arx);
 	}
 

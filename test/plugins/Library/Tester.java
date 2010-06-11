@@ -14,6 +14,7 @@ import plugins.Library.util.*;
 import plugins.Library.*;
 
 import freenet.keys.FreenetURI;
+import freenet.node.RequestStarter;
 
 import java.util.*;
 import java.io.*;
@@ -75,7 +76,7 @@ public class Tester {
 		if (push_progress_thread == null) {
 			push_progress_thread = new Thread() {
 				YamlReaderWriter yamlrw = new YamlReaderWriter();
-				FreenetArchiver<Map<String, Integer>> arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000);
+				FreenetArchiver<Map<String, Integer>> arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000, RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 
 				@Override public void run() {
 					push_progress_start = new Date();
@@ -143,7 +144,7 @@ public class Tester {
 		if (push_index_thread == null) {
 			push_index_start = new Date();
 			push_index_thread = new Thread() {
-				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI);
+				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI, RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 				ProtoIndex idx;
 				Random rand = new Random();
 
@@ -227,7 +228,7 @@ public class Tester {
 			FreenetArchiver.setCacheDir(cacheDir);
 			
 			push_index_thread = new Thread() {
-				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI);
+				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI, RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 				ProtoIndex idx;
 				Random rand = new Random();
 

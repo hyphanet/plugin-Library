@@ -659,7 +659,7 @@ final public class Library implements URLUpdateHook {
 			if (indextype == ProtoIndex.class) {
 				// TODO HIGH this *must* be non-blocking as it fetches the whole index root
 				PullTask<ProtoIndex> task = new PullTask<ProtoIndex>(indexkey);
-				ProtoIndexSerialiser.forIndex(indexkey).pull(task);
+				ProtoIndexSerialiser.forIndex(indexkey, RequestStarter.INTERACTIVE_PRIORITY_CLASS).pull(task);
 				index = task.data;
 
 			} else if (indextype == XMLIndex.class) {
@@ -708,11 +708,11 @@ final public class Library implements URLUpdateHook {
 	**         or if it does not have a respirator.
 	*/
 	public static <T> FreenetArchiver<T>
-	makeArchiver(ObjectStreamReader r, ObjectStreamWriter w, String mime, int size) {
+	makeArchiver(ObjectStreamReader r, ObjectStreamWriter w, String mime, int size, short priorityClass) {
 		if (lib == null || lib.pr == null) {
 			throw new IllegalStateException("Cannot archive to freenet without a fully live Library plugin connected to a freenet node.");
 		} else {
-			return new FreenetArchiver<T>(lib.pr.getNode().clientCore, r, w, mime, size);
+			return new FreenetArchiver<T>(lib.pr.getNode().clientCore, r, w, mime, size, priorityClass);
 		}
 	}
 
@@ -724,8 +724,8 @@ final public class Library implements URLUpdateHook {
 	**         or if it does not have a respirator.
 	*/
 	public static <T, S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver<T>
-	makeArchiver(S rw, String mime, int size) {
-		return Library.<T>makeArchiver(rw, rw, mime, size);
+	makeArchiver(S rw, String mime, int size, short priorityClass) {
+		return Library.<T>makeArchiver(rw, rw, mime, size, priorityClass);
 	}
 
 	public static String convertToHex(byte[] data) {
