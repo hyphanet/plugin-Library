@@ -37,7 +37,6 @@ import freenet.client.events.SplitfileProgressEvent;
 import freenet.keys.FreenetURI;
 import freenet.node.NodeClientCore;
 import freenet.node.RequestClient;
-import freenet.node.RequestStarter;
 import freenet.support.Logger;
 import freenet.support.SizeUtil;
 import freenet.support.api.Bucket;
@@ -265,7 +264,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					if (progress != null) {
 						hlsc.addEventHook(new SimpleProgressUpdater(progress));
 					}
-					uri = hlsc.insert(ib, false, null, RequestStarter.INTERACTIVE_PRIORITY_CLASS, ctx);
+					uri = hlsc.insert(ib, false, null, priorityClass, ctx);
 					if (progress != null)
 						progress.addPartKnown(0, true);
 				} else {
@@ -277,7 +276,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 						progress.addPartKnown(1, true);
 					cb = new PushCallback(progress, ib);
 					putter = new ClientPutter(cb, ib.getData(), FreenetURI.EMPTY_CHK_URI, ib.clientMetadata,
-							ctx, RequestStarter.INTERACTIVE_PRIORITY_CLASS,
+							ctx, priorityClass,
 							false, false, this, null, null, false);
 					cb.setPutter(putter);
 					long tStart = System.currentTimeMillis();
