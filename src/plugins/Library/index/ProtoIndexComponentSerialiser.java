@@ -203,7 +203,7 @@ public class ProtoIndexComponentSerialiser {
 		} else {
 			switch (fmtid) {
 			case FMT_FREENET_SIMPLE:
-				short priorityClass = RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS;
+				short priorityClass = RequestStarter.INTERACTIVE_PRIORITY_CLASS;
 				if(archiver instanceof FreenetArchiver)
 					priorityClass = ((FreenetArchiver)archiver).priorityClass;
 				leaf_arx = Library.makeArchiver(yamlrw, ProtoIndex.MIME_TYPE, 0x180 * ProtoIndex.BTREE_NODE_MIN, priorityClass);
