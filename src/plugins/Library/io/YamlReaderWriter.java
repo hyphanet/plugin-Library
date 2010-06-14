@@ -69,7 +69,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	/*@Override**/ public Object readObject(InputStream is) throws IOException {
 		parallelLimiter.acquireUninterruptibly();
 		try {
-			return makeYAML().load(new InputStreamReader(is));
+			return makeYAML().load(new InputStreamReader(is, "UTF-8"));
 		} catch (YAMLException e) {
 			throw new DataFormatException("Yaml could not process the stream: " + is, e, is, null, null);
 		} finally {
@@ -80,7 +80,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	/*@Override**/ public void writeObject(Object o, OutputStream os) throws IOException {
 		parallelLimiter.acquireUninterruptibly();
 		try {
-			makeYAML().dump(o, new OutputStreamWriter(os));
+			makeYAML().dump(o, new OutputStreamWriter(os, "UTF-8"));
 		} catch (YAMLException e) {
 			throw new DataFormatException("Yaml could not process the object", e, o, null, null);
 		} finally {
