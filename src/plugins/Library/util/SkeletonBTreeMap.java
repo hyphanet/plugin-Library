@@ -756,7 +756,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			synchronized (Executors.class) {
 				if (value_exec == null) {
 					value_exec = new ThreadPoolExecutor(
-						0x40, 0x40, 1, TimeUnit.SECONDS,
+						0, 0x40, 1, TimeUnit.MINUTES,
 						new LinkedBlockingQueue<Runnable>(),
 						new ThreadPoolExecutor.CallerRunsPolicy()
 					);
@@ -779,7 +779,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			synchronized (Executors.class) {
 				if (deflate_exec == null) {
 					deflate_exec = new ThreadPoolExecutor(
-						0x40, 0x40, 1, TimeUnit.SECONDS,
+						0, 0x40, 1, TimeUnit.MINUTES,
 						new LinkedBlockingQueue<Runnable>(),
 						new ThreadPoolExecutor.CallerRunsPolicy()
 					);

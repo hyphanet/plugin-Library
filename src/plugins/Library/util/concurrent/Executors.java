@@ -49,7 +49,7 @@ public class Executors {
 			synchronized (Executors.class) {
 				if (default_exec == null) {
 					default_exec = new ThreadPoolExecutor(
-						0x40, 0x40, 1, TimeUnit.SECONDS,
+						1, 0x40, 1, TimeUnit.MINUTES,
 						new LinkedBlockingQueue<Runnable>(),
 						new ThreadPoolExecutor.CallerRunsPolicy()
 					);
