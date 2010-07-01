@@ -46,7 +46,7 @@ implements IterableSerialiser<T>,
            Serialiser.Trackable<T> {
 
 	final static protected ThreadPoolExecutor exec = new ThreadPoolExecutor(
-		0, 0x40, 1, TimeUnit.MINUTES,
+		0, 0x40, 60, TimeUnit.SECONDS,
 		new LinkedBlockingQueue<Runnable>(),
 		new ThreadPoolExecutor.CallerRunsPolicy() // easier than catching RejectedExecutionException, if it ever occurs
 	);
