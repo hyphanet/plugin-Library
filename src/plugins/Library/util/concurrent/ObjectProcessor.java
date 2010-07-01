@@ -17,8 +17,6 @@ import java.util.concurrent.RejectedExecutionException;
 
 import plugins.Library.util.func.Closure;
 import plugins.Library.util.func.SafeClosure;
-import plugins.Library.util.func.Tuples.X2;
-import plugins.Library.util.func.Tuples.X3;
 import freenet.support.Logger;
 
 /**
