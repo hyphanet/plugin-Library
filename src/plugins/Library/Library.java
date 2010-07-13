@@ -82,7 +82,7 @@ import java.util.Collections;
 final public class Library implements URLUpdateHook {
 
 	public static final String BOOKMARK_PREFIX = "bookmark:";
-	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "wanna.new";
+	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "wanna";
 	private static int version = 14;
 	public static final String plugName = "Library " + getVersion();
 
@@ -163,9 +163,14 @@ final public class Library implements URLUpdateHook {
 				Logger.normal(this, "Error trying to read Library persistent data.", ex);
 			}
 		}
+		boolean needNewWanna = false;
 		for(Map.Entry<String, String> entry : bookmarks.entrySet()) {
 			String name = entry.getKey();
 			String target = entry.getValue();
+			if(name.equals("wanna") && target.startsWith("USK@5hH~39FtjA7A9")) {
+				name = "wanna.old";
+				needNewWanna = true;
+			}
 			FreenetURI uri;
 			long edition = -1;
 			try {
@@ -190,15 +195,14 @@ final public class Library implements URLUpdateHook {
 				callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rc);
 			}
 		}
-		if(bookmarks.isEmpty() || (bookmarks.containsKey("wanna") && bookmarks.containsKey("freenetindex") && !bookmarks.containsKey("wanna.new"))) {
-			if(!bookmarks.containsKey("wanna"))
-				addBookmark("wanna", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/24/index.xml");
-			if(!bookmarks.containsKey("freenetindex"))
+		if(bookmarks.isEmpty() || needNewWanna) {
+			if(!bookmarks.containsKey("wanna.old"))
+				addBookmark("wanna.old", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/24/index.xml");
+			if(!needNewWanna)
 				addBookmark("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/5/index.xml");
-			if(!bookmarks.containsKey("gogo"))
+			if(!needNewWanna)
 				addBookmark("gogo", "USK@shmVvDhwivG1z1onSA5efRl3492Xyoov52hrC0tF6uI,wpMhseMpFHPLpXYbV8why1nfBXf2XdSQkzVaemFOEsA,AQACAAE/index.yml/19");
-			if(!bookmarks.containsKey("wanna.new"))
-				addBookmark("wanna.new", "USK@gxuHPaicqxlpPPagBKPVPraZ4bwLdMYBc5vipkWGh3E,08ExdmvZzB8Hfi6H6crbiuCd2~ikWDIpJ8dvr~tLp7k,AQACAAE/index.yml/39");
+			addBookmark("wanna", "USK@gxuHPaicqxlpPPagBKPVPraZ4bwLdMYBc5vipkWGh3E,08ExdmvZzB8Hfi6H6crbiuCd2~ikWDIpJ8dvr~tLp7k,AQACAAE/index.yml/39");
 			migrated = true;
 			Logger.normal(this, "Added default indexes");
 		}
