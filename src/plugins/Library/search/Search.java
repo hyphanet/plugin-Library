@@ -619,9 +619,11 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		// FIXME abort the subsearches.
 		// FIXME in fact this shouldn't be necessary, the TaskAbortException should be propagated upwards???
 		// FIXME really we'd want to convert it into a failed status so we could show that one failed, and still show partial results
-		for(Execution<Set<TermEntry>> sub : subsearches) {
-			if(sub instanceof Search)
-				((Search)sub).remove();
+		if(subsearches != null) {
+			for(Execution<Set<TermEntry>> sub : subsearches) {
+				if(sub instanceof Search)
+					((Search)sub).remove();
+			}
 		}
 		removeSearch(this);
 	}
