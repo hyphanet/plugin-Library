@@ -312,6 +312,8 @@ class MainPage {
 				}
 			}
 		}catch(TaskAbortException e) {
+			if(search != null)
+				search.remove();
 			exceptions.add(e);
 			search = null;
 			addError(errorDiv, e, messages);

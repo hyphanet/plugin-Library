@@ -615,4 +615,8 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		throw new UnsupportedOperationException("Not supported yet.");
 	}
 
+	public void remove() {
+		removeSearch(this);
+	}
+
 }
