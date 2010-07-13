@@ -20,6 +20,7 @@ import freenet.support.api.HTTPRequest;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collection;
 
 /**
  * Encapsulates the MainPage in a Toadlet
@@ -42,16 +43,22 @@ public class MainPageToadlet extends Toadlet {
 		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
 		Thread.currentThread().setContextClassLoader(Library.class.getClassLoader());
 		try {
-			PageNode p = ctx.getPageMaker().getPageNode(Library.plugName, ctx);
+			// process the request
+			String title = Library.plugName;
+			MainPage page = MainPage.processGetRequest(request);
+			if(page == null)
+				page = new MainPage(library, pr);
+			else {
+				String query = page.getQuery();
+				if(query != null && !query.isEmpty())
+					title = query + " - " + Library.plugName;
+			}
+			PageNode p = ctx.getPageMaker().getPageNode(title, ctx);
 			// Style
 			p.headNode.addChild("link", new String[]{"rel", "href", "type"} , new String[]{"stylesheet", path() + "static/style.css", "text/css"});
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 
-			// process the request
-			MainPage page = MainPage.processGetRequest(request);
-			if(page == null)
-				page = new MainPage(library, pr);
 			MultiValueTable<String, String> headers = new MultiValueTable();
 			page.writeContent(contentNode, headers);
 			// write reply

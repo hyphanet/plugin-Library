@@ -498,4 +498,8 @@ class MainPage {
 	public static String path() {
 		return "/library/";
 	}
+
+	public String getQuery() {
+		return query;
+	}
 }
