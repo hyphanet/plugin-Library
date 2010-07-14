@@ -568,8 +568,13 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 	 * @return Set of TermEntry
 	 */
 	@Override public Set<TermEntry> getResult() throws TaskAbortException {
-		if(!isDone())
-			return null;
+		try {
+			if(!isDone())
+				return null;
+		} catch (TaskAbortException e) {
+			removeSearch(this);
+			throw e;
+		}
 
 		removeSearch(this);
 		Set<TermEntry> rs = resultset;
