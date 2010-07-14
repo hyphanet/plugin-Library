@@ -50,7 +50,7 @@ public class MainPageToadlet extends Toadlet {
 				page = new MainPage(library, pr);
 			else {
 				String query = page.getQuery();
-				if(query != null && !query.isEmpty())
+				if(query != null && query.length() > 0)
 					title = query + " - " + Library.plugName;
 			}
 			PageNode p = ctx.getPageMaker().getPageNode(title, ctx);
