@@ -47,6 +47,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 
 	private HashMap<TermEntry, TermEntry> internal;
 	private final String subject;
+	private final boolean ignoreTAEs;
 
 	/**
 	 * @param subject The subject for each of the entries in the Set
@@ -56,7 +57,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 *
 	 * TODO reevaluate relevance for all combinations, and find a way to calculate relevance of phrases
 	 */
-	ResultSet(String subject, ResultOperation resultOperation, List<Execution<Set<TermEntry>>> subRequests) throws TaskAbortException {
+	ResultSet(String subject, ResultOperation resultOperation, List<Execution<Set<TermEntry>>> subRequests, boolean ignoreTAEs) throws TaskAbortException {
 		if(resultOperation==ResultOperation.SINGLE && subRequests.size()!=1)
 			throw new IllegalArgumentException(subRequests.size() + " requests supplied with SINGLE operation");
 		if(resultOperation==ResultOperation.REMOVE && subRequests.size()!=2)
@@ -74,7 +75,8 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 		this.resultOperation = resultOperation;
 
 		// Make sure any TaskAbortExceptions are found here and not when it's run
-		subresults = getResultSets(subRequests);
+		this.ignoreTAEs = ignoreTAEs;
+		subresults = getResultSets(subRequests, ignoreTAEs);
 	}
 
 	public synchronized void run() {
@@ -114,9 +116,10 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 * @param subject to change the subject of each entry
 	 * @param copy Collection to copy
 	 */
-	private ResultSet(String subject, Collection<? extends TermEntry> copy) {
+	private ResultSet(String subject, Collection<? extends TermEntry> copy, boolean ignoreTAEs) {
 		this.subject = subject;
 		internal = new HashMap();
+		this.ignoreTAEs = ignoreTAEs;
 		addAllToEmptyInternal(copy);
 	}
 
@@ -426,16 +429,27 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 	 * @return An array containing the stripped sets
 	 * @throws {@link TaskAbortException} from subRequests' {@link Execution#getResult()}
 	 */
-	private Set<TermEntry>[] getResultSets(List<Execution<Set<TermEntry>>> subRequests) throws TaskAbortException{
+	private Set<TermEntry>[] getResultSets(List<Execution<Set<TermEntry>>> subRequests, boolean ignoreTAEs) throws TaskAbortException{
 		Set<TermEntry>[] sets = new Set[subRequests.size()];
+		int x = 0;
 		for (int i = 0; i < subRequests.size(); i++) {
 			if(subRequests.get(i) == null){
 				if(resultOperation == ResultOperation.PHRASE)
-					sets[i] = null;
+					sets[x++] = null;
 				else
 					throw new NullPointerException("Nulls not allowed in subRequests for operations other than phrase.");
-			}else
-				sets[i] = subRequests.get(i).getResult();
+			} else {
+				try {
+					sets[x++] = subRequests.get(i).getResult();
+				} catch (TaskAbortException e) {
+					if(!ignoreTAEs) throw e;
+				}
+			}
+		}
+		if(x != subRequests.size()) {
+			Set<TermEntry>[] newSets = new Set[x];
+			System.arraycopy(sets, 0, newSets, 0, newSets.length);
+			sets = newSets;
 		}
 		return sets;
 	}

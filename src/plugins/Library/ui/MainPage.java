@@ -421,7 +421,7 @@ class MainPage {
 							.addChild("div", "id", "librarian-search-status")
 							.addChild("table", new String[]{"id", "class"}, new String[]{"progress-base", "progress-table"})
 							.addChild("tbody")
-							.addChild(progressBar(search));
+							.addChild(progressBar(search, true));
 		return progressDiv;
 	}
 
@@ -451,16 +451,31 @@ class MainPage {
 	 * @param progress The progress to represent
 	 * @return an {@link HTMLNode} representing a progress bar
 	 */
-	public static HTMLNode progressBar(Progress progress) throws TaskAbortException {
+	public static HTMLNode progressBar(Progress progress, boolean canFail) throws TaskAbortException {
 		synchronized (progress){
 			if( progress instanceof CompositeProgress && ((CompositeProgress) progress).getSubProgress()!=null && ((CompositeProgress) progress).getSubProgress().iterator().hasNext()){
 				// Put together progress bars for all the subProgress
 				HTMLNode block = new HTMLNode("#");
 				block.addChild("tr").addChild("td", "colspan", "6", progress.getSubject() + " : "+progress.getStatus());
+				TaskAbortException firstError = null;
+				boolean anySuccess = false;
+				if(canFail && progress instanceof Search) {
+					if(!(((Search)progress).innerCanFailAndStillComplete()))
+						canFail = false;
+				} else canFail = false;
 				if(((CompositeProgress) progress).getSubProgress() != null)
 					for (Progress progress1 : ((CompositeProgress) progress).getSubProgress()) {
-						block.addChild(progressBar(progress1));
+						try {
+							block.addChild(progressBar(progress1, canFail));
+							anySuccess = true;
+						} catch (TaskAbortException e) {
+							if(!canFail) throw e;
+							if(firstError == null) firstError = e;
+							block.addChild("tr").addChild("td", "colspan", "6", progress1.getSubject() + " : "+L10nString.getString("failed") + " : "+e.getMessage());
+						}
 					}
+				if(firstError != null && !anySuccess)
+					throw firstError;
 				return block;
 			} else {
 				// Draw progress bar for single or chained progress

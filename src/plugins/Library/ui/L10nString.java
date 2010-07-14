@@ -44,6 +44,12 @@ public class L10nString{
 				default:
 					return "Search status : ";
 				}
+		else if("failed".equals(key))
+			switch(lang){
+				case ENGLISH:
+				default:
+					return "Failed";
+				}
 		else
 			return key;
 	}

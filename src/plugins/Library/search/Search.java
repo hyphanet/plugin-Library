@@ -510,7 +510,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 				if(!isSubRequestsComplete())	// If combining first and subsearches still haven't completed, remain
 					return;
 				// If subrequests have completed start process to combine results
-				resultset = new ResultSet(subject, resultOperation, subsearches);
+				resultset = new ResultSet(subject, resultOperation, subsearches, innerCanFailAndStillComplete());
 				if(executor!=null)
 					executor.execute(resultset, "Library.Search : combining results");
 				else
@@ -550,9 +550,15 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 	 * @return true if all are Finished, false otherwise
 	 */
 	private boolean isSubRequestsComplete() throws TaskAbortException{
-		for(Execution<Set<TermEntry>> r : subsearches)
-			if(r != null && !r.isDone())
-				return false;
+		for(Execution<Set<TermEntry>> r : subsearches) {
+			try {
+				if(r != null && !r.isDone())
+					return false;
+			} catch (TaskAbortException e) {
+				if(innerCanFailAndStillComplete()) continue;
+				throw e;
+			}
+		}
 		return true;
 	}
 
@@ -626,6 +632,15 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 			}
 		}
 		removeSearch(this);
+	}
+
+	public boolean innerCanFailAndStillComplete() {
+		switch(resultOperation) {
+		case DIFFERENTINDEXES:
+		case UNION:
+			return true;
+		}
+		return false;
 	}
 
 }
