@@ -44,14 +44,14 @@ public class MainPageToadlet extends Toadlet {
 		Thread.currentThread().setContextClassLoader(Library.class.getClassLoader());
 		try {
 			// process the request
-			String title = Library.plugName;
+			String title = L10nString.getString("title") + " (" + Library.plugName + ")";
 			MainPage page = MainPage.processGetRequest(request);
 			if(page == null)
 				page = new MainPage(library, pr);
 			else {
 				String query = page.getQuery();
 				if(query != null && query.length() > 0)
-					title = query + " - " + Library.plugName;
+					title = query + " - " + L10nString.getString("title") + " (" + Library.plugName + ")";
 			}
 			PageNode p = ctx.getPageMaker().getPageNode(title, ctx);
 			// Style

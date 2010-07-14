@@ -50,6 +50,12 @@ public class L10nString{
 				default:
 					return "Failed";
 				}
+		else if("title".equals(key))
+			switch(lang){
+				case ENGLISH:
+				default:
+					return "Search Freenet";
+				}
 		else
 			return key;
 	}
