@@ -5,8 +5,10 @@ package plugins.Library.index.xml;
 
 import freenet.client.events.ClientEvent;
 import freenet.client.events.ExpectedFileSizeEvent;
+import freenet.client.events.ExpectedHashesEvent;
 import freenet.client.events.ExpectedMIMEEvent;
 import freenet.client.events.SendingToNetworkEvent;
+import freenet.client.events.SplitfileCompatibilityModeEvent;
 import freenet.client.events.SplitfileProgressEvent;
 import freenet.support.Logger;
 
@@ -205,7 +207,7 @@ public class FindRequest extends AbstractExecution<Set<TermEntry>> implements Co
 			if(ce instanceof SplitfileProgressEvent){
 				SplitfileProgressEvent spe = (SplitfileProgressEvent)ce;
 				parts = ProgressParts.normalise(spe.succeedBlocks, spe.minSuccessfulBlocks, spe.minSuccessfulBlocks, spe.finalizedTotal?ProgressParts.TOTAL_FINALIZED:ProgressParts.ESTIMATE_UNKNOWN);
-			}else if(ce instanceof SendingToNetworkEvent || ce instanceof ExpectedMIMEEvent || ce instanceof ExpectedFileSizeEvent) {
+			}else if(ce instanceof SendingToNetworkEvent || ce instanceof ExpectedMIMEEvent || ce instanceof ExpectedFileSizeEvent || ce instanceof SplitfileCompatibilityModeEvent || ce instanceof ExpectedHashesEvent) {
 				// Ignore.
 				return;
 			}else{
