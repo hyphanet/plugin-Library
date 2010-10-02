@@ -201,9 +201,9 @@ final public class Library implements URLUpdateHook {
 			if(!bookmarks.containsKey("freenetindex"))
 				addBookmark("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/5/index.xml");
 			if(!bookmarks.containsKey("gogo"))
-				addBookmark("gogo", "USK@shmVvDhwivG1z1onSA5efRl3492Xyoov52hrC0tF6uI,wpMhseMpFHPLpXYbV8why1nfBXf2XdSQkzVaemFOEsA,AQACAAE/index.yml/36");
+				addBookmark("gogo", "USK@shmVvDhwivG1z1onSA5efRl3492Xyoov52hrC0tF6uI,wpMhseMpFHPLpXYbV8why1nfBXf2XdSQkzVaemFOEsA,AQACAAE/index.yml/42");
 			if(!bookmarks.containsKey("wanna"))
-				addBookmark("wanna", "USK@gxuHPaicqxlpPPagBKPVPraZ4bwLdMYBc5vipkWGh3E,08ExdmvZzB8Hfi6H6crbiuCd2~ikWDIpJ8dvr~tLp7k,AQACAAE/index.yml/58");
+				addBookmark("wanna", "USK@gxuHPaicqxlpPPagBKPVPraZ4bwLdMYBc5vipkWGh3E,08ExdmvZzB8Hfi6H6crbiuCd2~ikWDIpJ8dvr~tLp7k,AQACAAE/index.yml/63");
 			migrated = true;
 			Logger.normal(this, "Added default indexes");
 		}
