@@ -127,13 +127,16 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		HighLevelSimpleClient hlsc = core.makeClient(priorityClass);
 		Bucket tempB = null; InputStream is = null;
 
+		long startTime = System.currentTimeMillis();
+		
+		FreenetURI furi = (FreenetURI)task.meta;
+		
+		for(int i=0;i<10;i++) {
+		// USK redirects should not happen really but can occasionally due to race conditions.
+		
 		try {
 			try {
 
-				long startTime = System.currentTimeMillis();
-				
-				FreenetURI furi = (FreenetURI)task.meta;
-				
 				if(cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
 					File cached = new File(cacheDir, furi.toASCIIString());
 					if(cached.exists() && cached.length() != 0) {
@@ -189,6 +192,10 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				is.close();
 
 			} catch (FetchException e) {
+				if(e.mode == FetchException.PERMANENT_REDIRECT && e.newURI != null) {
+					furi = e.newURI;
+					continue;
+				}
 				throw new TaskAbortException("Failed to fetch content", e, true);
 
 			} catch (IOException e) {
@@ -205,6 +212,8 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		} finally {
 			Closer.close(is);
 			Closer.close(tempB);
+		}
+		break;
 		}
 	}
 
