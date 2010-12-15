@@ -526,7 +526,6 @@ final public class Library implements URLUpdateHook {
 			// Ignore
 		}
 
-		@Override
 		public boolean realTimeFlag() {
 			return false;
 		}
