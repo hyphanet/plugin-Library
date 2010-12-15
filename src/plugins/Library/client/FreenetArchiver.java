@@ -37,6 +37,7 @@ import freenet.client.events.SplitfileProgressEvent;
 import freenet.keys.FreenetURI;
 import freenet.node.NodeClientCore;
 import freenet.node.RequestClient;
+import freenet.node.RequestStarter;
 import freenet.support.Logger;
 import freenet.support.SizeUtil;
 import freenet.support.api.Bucket;
@@ -65,6 +66,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	final protected String default_mime;
 	final protected int expected_bytes;
 	public final short priorityClass;
+	public final boolean realTimeFlag;
 	private static File cacheDir;
 	/** If true, we will insert data semi-asynchronously. That is, we will start the
 	 * insert, with ForceEncode enabled, and return the URI as soon as possible. The
@@ -99,6 +101,11 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			throw new IllegalArgumentException("Can't create a FreenetArchiver with a null NodeClientCore!");
 		}
 		this.priorityClass = priority;
+		// FIXME pass it in somehow
+		if(priorityClass <= RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS)
+			realTimeFlag = true;
+		else
+			realTimeFlag = false;
 		core = c;
 		reader = r;
 		writer = w;
@@ -518,6 +525,10 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 
 	public void removeFrom(ObjectContainer container) {
 		throw new UnsupportedOperationException();
+	}
+
+	public boolean realTimeFlag() {
+		return realTimeFlag;
 	}
 
 }

@@ -191,8 +191,8 @@ final public class Library implements URLUpdateHook {
 					Logger.error(this, "Invalid bookmark USK: "+target+" for "+name, e);
 					continue;
 				}
-				uskManager.subscribe(u, callback, false, rc);
-				callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rc);
+				uskManager.subscribe(u, callback, false, rcBulk);
+				callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rcBulk);
 			}
 		}
 		if(bookmarks.isEmpty() || needNewWanna) {
@@ -510,13 +510,13 @@ final public class Library implements URLUpdateHook {
 			}
 		}
 		if(!isSame) {
-			uskManager.subscribe(uskNew, callback, false, rc);
-			callback.ret = uskManager.subscribeContent(uskNew, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rc);
+			uskManager.subscribe(uskNew, callback, false, rcBulk);
+			callback.ret = uskManager.subscribeContent(uskNew, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rcBulk);
 		}
 		return name;
 	}
 
-	final RequestClient rc = new RequestClient() {
+	final RequestClient rcBulk = new RequestClient() {
 
 		public boolean persistent() {
 			return false;
@@ -524,6 +524,11 @@ final public class Library implements URLUpdateHook {
 
 		public void removeFrom(ObjectContainer container) {
 			// Ignore
+		}
+
+		@Override
+		public boolean realTimeFlag() {
+			return false;
 		}
 
 	};

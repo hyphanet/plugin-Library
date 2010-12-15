@@ -866,4 +866,8 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 		
 	}
 
+	public boolean realTimeFlag() {
+		return true;
+	}
+
 }
