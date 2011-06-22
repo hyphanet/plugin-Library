@@ -34,11 +34,15 @@ import freenet.client.async.DatabaseDisabledException;
 import freenet.client.events.ClientEvent;
 import freenet.client.events.ClientEventListener;
 import freenet.client.events.SplitfileProgressEvent;
+import freenet.crypt.SHA256;
+import freenet.keys.CHKBlock;
 import freenet.keys.FreenetURI;
 import freenet.node.NodeClientCore;
 import freenet.node.RequestClient;
 import freenet.node.RequestStarter;
+import freenet.support.Base64;
 import freenet.support.Logger;
+import freenet.support.SimpleReadOnlyArrayBucket;
 import freenet.support.SizeUtil;
 import freenet.support.api.Bucket;
 import freenet.support.io.BucketTools;
@@ -136,7 +140,19 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 
 		long startTime = System.currentTimeMillis();
 		
-		FreenetURI furi = (FreenetURI)task.meta;
+		FreenetURI u;
+		byte[] initialMetadata;
+		String cacheKey;
+		
+		if(task.meta instanceof FreenetURI) {
+			u = (FreenetURI) task.meta;
+			initialMetadata = null;
+			cacheKey = u.toASCIIString();
+		} else {
+			initialMetadata = (byte[]) task.meta;
+			u = FreenetURI.EMPTY_CHK_URI;
+			cacheKey = Base64.encode(SHA256.digest(initialMetadata));
+		}
 		
 		for(int i=0;i<10;i++) {
 		// USK redirects should not happen really but can occasionally due to race conditions.
@@ -145,16 +161,19 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			try {
 
 				if(cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
-					File cached = new File(cacheDir, furi.toASCIIString());
+					File cached = new File(cacheDir, cacheKey);
 					if(cached.exists() && cached.length() != 0) {
 						tempB = new FileBucket(cached, true, false, false, false, false);
-						System.out.println("Fetching block for FreenetArchiver from disk cache: "+furi);
+						System.out.println("Fetching block for FreenetArchiver from disk cache: "+cacheKey);
 					}
 				}
 				
 				if(tempB == null) {
 					
-					System.out.println("Fetching block for FreenetArchiver from network: "+furi);
+					if(initialMetadata != null)
+						System.out.println("Fetching block for FreenetArchiver from metadata ("+cacheKey+")");
+					else
+						System.out.println("Fetching block for FreenetArchiver from network: "+u);
 					
 					if (progress != null) {
 						hlsc.addEventHook(new SimpleProgressUpdater(progress));
@@ -173,7 +192,10 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					// bookkeeping. detects bugs in the SplitfileProgressEvent handler
 					if (progress != null) {
 						ProgressParts prog_old = progress.getParts();
-						res = hlsc.fetch(furi);
+						if(initialMetadata != null)
+							res = hlsc.fetchFromMetadata(new SimpleReadOnlyArrayBucket(initialMetadata));
+						else
+							res = hlsc.fetch(u);
 						ProgressParts prog_new = progress.getParts();
 						if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
 							Logger.error(this, "Inconsistency when tracking split file progress (pulling): "+prog_old.known+" of "+prog_old.done+" -> "+prog_new.known+" of "+prog_new.done);
@@ -181,7 +203,10 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 						}
 						progress.addPartKnown(0, true);
 					} else {
-						res = hlsc.fetch(furi);
+						if(initialMetadata != null)
+							res = hlsc.fetchFromMetadata(new SimpleReadOnlyArrayBucket(initialMetadata));
+						else
+							res = hlsc.fetch(u);
 					}
 					
 					tempB = res.asBucket();
@@ -200,7 +225,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 
 			} catch (FetchException e) {
 				if(e.mode == FetchException.PERMANENT_REDIRECT && e.newURI != null) {
-					furi = e.newURI;
+					u = e.newURI;
 					continue;
 				}
 				throw new TaskAbortException("Failed to fetch content", e, true);
@@ -239,6 +264,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		HighLevelSimpleClient hlsc = core.makeClient(priorityClass);
 		Bucket tempB = null; OutputStream os = null;
 
+		
 		try {
 			ClientPutter putter = null;
 			PushCallback cb = null;
@@ -249,7 +275,16 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				os.close(); os = null;
 				tempB.setReadOnly();
 
-				FreenetURI target = (task.meta instanceof FreenetURI)? (FreenetURI)task.meta: FreenetURI.EMPTY_CHK_URI;
+				boolean insertAsMetadata;
+				FreenetURI target;
+				
+				if(task.meta instanceof FreenetURI) {
+					insertAsMetadata = false;
+					target = (FreenetURI) task.meta;
+				} else {
+					insertAsMetadata = true;
+					target = FreenetURI.EMPTY_CHK_URI;
+				}
 				InsertBlock ib = new InsertBlock(tempB, new ClientMetadata(default_mime), target);
 
 				System.out.println("Inserting block for FreenetArchiver...");
@@ -263,8 +298,6 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				//pu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
 				//FreenetURI uri = pw.waitForCompletion();
 
-				FreenetURI uri;
-
 				// bookkeeping. detects bugs in the SplitfileProgressEvent handler
 				ProgressParts prog_old = null;
 				if(progress != null)
@@ -275,15 +308,17 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				InsertContext ctx = hlsc.getInsertContext(false);
 				ctx.maxInsertRetries = -1;
 				
-				if(!SEMI_ASYNC_PUSH) {
-					// Actually report progress.
-					if (progress != null) {
-						hlsc.addEventHook(new SimpleProgressUpdater(progress));
-					}
-					uri = hlsc.insert(ib, false, null, priorityClass, ctx);
-					if (progress != null)
-						progress.addPartKnown(0, true);
-				} else {
+				String cacheKey = null;
+				
+//				if(!SEMI_ASYNC_PUSH) {
+//					// Actually report progress.
+//					if (progress != null) {
+//						hlsc.addEventHook(new SimpleProgressUpdater(progress));
+//					}
+//					uri = hlsc.insert(ib, false, null, priorityClass, ctx);
+//					if (progress != null)
+//						progress.addPartKnown(0, true);
+//				} else {
 					// Do NOT report progress. Pretend we are done as soon as
 					// we have the URI. This allows us to minimise memory usage
 					// without yet splitting up IterableSerialiser.push() and
@@ -293,7 +328,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					cb = new PushCallback(progress, ib);
 					putter = new ClientPutter(cb, ib.getData(), FreenetURI.EMPTY_CHK_URI, ib.clientMetadata,
 							ctx, priorityClass,
-							false, false, this, null, false, core.clientContext, null);
+							false, false, this, null, false, core.clientContext, null, insertAsMetadata ? CHKBlock.DATA_LENGTH : -1);
 					cb.setPutter(putter);
 					long tStart = System.currentTimeMillis();
 					try {
@@ -303,11 +338,24 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					} catch (DatabaseDisabledException e) {
 						// Impossible
 					}
-					uri = cb.waitForURI();
-					System.out.println("Got URI for asynchronous insert: "+uri+" size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
+					WAIT_STATUS status = cb.waitFor();
+					if(status == WAIT_STATUS.FAILED) {
+						cb.throwError();
+					} else if(status == WAIT_STATUS.GENERATED_URI) {
+						FreenetURI uri = cb.getURI();
+						task.meta = uri;
+						cacheKey = uri.toASCIIString();
+						System.out.println("Got URI for asynchronous insert: "+uri+" size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
+					} else {
+						Bucket data = cb.getGeneratedMetadata();
+						byte[] buf = BucketTools.toByteArray(data);
+						task.meta = buf;
+						cacheKey = Base64.encode(SHA256.digest(buf));
+						System.out.println("Got generated metadata ("+buf.length+" bytes) for asynchronous insert size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
+					}
 					if(progress != null)
 						progress.addPartDone();
-				}
+//				}
 					
 				if(progress != null) {
 					ProgressParts prog_new = progress.getParts();
@@ -317,11 +365,10 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					}
 				}
 
-				task.meta = uri;
 				task.data = null;
 				
-				if(cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
-					File cached = new File(cacheDir, uri.toASCIIString());
+				if(cacheKey != null && cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
+					File cached = new File(cacheDir, cacheKey);
 					Bucket cachedBucket = new FileBucket(cached, false, false, false, false, false);
 					BucketTools.copy(tempB, cachedBucket);
 				}
@@ -355,11 +402,18 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		}
 	}
 	
+	enum WAIT_STATUS {
+		FAILED,
+		GENERATED_URI,
+		GENERATED_METADATA;
+	}
+	
 	public class PushCallback implements ClientPutCallback {
 
 		public final long startTime = System.currentTimeMillis();
 		private ClientPutter putter;
 		private FreenetURI generatedURI;
+		private Bucket generatedMetadata;
 		private InsertException failed;
 		// See FIXME's in push(), IterableSerialiser.
 		// We don't do real progress, we pretend we're done when push() returns.
@@ -382,19 +436,33 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			synchronized(FreenetArchiver.this) {
 				if(semiAsyncPushes.add(this))
 					totalBytesPushing += size;
+				System.out.println("Pushing "+totalBytesPushing+" bytes on "+semiAsyncPushes.size()+" inserters");
 			}
 		}
 
-		public synchronized FreenetURI waitForURI() throws InsertException {
-			while(generatedURI == null && failed == null) {
+		public synchronized WAIT_STATUS waitFor() {
+			while(generatedURI == null && generatedMetadata == null && failed == null) {
 				try {
 					wait();
 				} catch (InterruptedException e) {
 					// Ignore
 				}
 			}
+			if(failed != null) return WAIT_STATUS.FAILED;
+			if(generatedURI != null) return WAIT_STATUS.GENERATED_URI;
+			return WAIT_STATUS.GENERATED_METADATA;
+		}
+		
+		public synchronized void throwError() throws InsertException {
 			if(failed != null) throw failed;
+		}
+		
+		public synchronized FreenetURI getURI() {
 			return generatedURI;
+		}
+		
+		public synchronized Bucket getGeneratedMetadata() {
+			return generatedMetadata;
 		}
 
 		public void onFailure(InsertException e, BaseClientPutter state, ObjectContainer container) {
@@ -437,6 +505,13 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 
 		public void onMajorProgress(ObjectContainer container) {
 			// Ignore
+		}
+
+		@Override
+		public synchronized void onGeneratedMetadata(Bucket metadata,
+				BaseClientPutter state, ObjectContainer container) {
+			generatedMetadata = metadata;
+			notifyAll();
 		}
 
 	}

@@ -979,6 +979,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			assert(diskToMerge.ttab.isBare());
 			
 			PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idxFreenet);
+			task4.meta = FreenetURI.EMPTY_CHK_URI;
 			srl.push(task4);
 			
 			FreenetArchiver arch = (FreenetArchiver) srl.getChildSerialiser();
