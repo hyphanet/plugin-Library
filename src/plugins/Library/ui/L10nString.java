@@ -56,6 +56,12 @@ public class L10nString{
 				default:
 					return "Search Freenet";
 				}
+		else if("page-warning".equals(key))
+			switch(lang){
+			case ENGLISH:
+				default:
+					return "WARNING: This search, like the rest of Freenet, is not filtered, and could find offensive or illegal content. Be careful!";
+			}
 		else
 			return key;
 	}

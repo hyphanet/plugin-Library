@@ -269,6 +269,9 @@ class MainPage {
 
 
 
+			if(search == null)
+				contentNode.addChild("#",L10nString.getString("page-warning"));
+			
 			contentNode.addChild(searchBox());
 
 
