@@ -3,9 +3,9 @@
 
 <project name="plugins-Library" default="dist" basedir=".">
 	<property name="freenet-cvs-snapshot.location" location="../fred/dist/freenet.jar"/>
-	<property name="freenet-ext.location" location="../fred/lib/freenet-ext.jar"/>
-	<property name="source-version" value="1.5"/>
-	<property name="target-version" value="1.5"/>
+	<property name="freenet-ext.location" location="../fred/lib/freenet/freenet-ext.jar"/>
+	<property name="source-version" value="1.6"/>
+	<property name="target-version" value="1.6"/>
 	<property name="build" location="build/"/>
 	<property name="build-test" location="build-test/"/>
 	<property name="run-test" location="run-test/"/>
