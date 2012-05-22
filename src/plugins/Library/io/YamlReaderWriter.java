@@ -15,6 +15,7 @@ import org.yaml.snakeyaml.representer.Representer;
 import org.yaml.snakeyaml.representer.Represent;
 import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.nodes.ScalarNode;
+import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.nodes.MappingNode;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.constructor.AbstractConstruct;
@@ -58,7 +59,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 
 	final public static String MIME_TYPE = "text/yaml";
 	final public static String FILE_EXTENSION = ".yml";
-	
+
 	final static int MAX_PARALLEL = 1; // Limited by memory mainly. If memory is no object it could be limited by threads.
 	// Each Yaml instance uses a *significant* amount of memory...
 	static final Semaphore parallelLimiter = new Semaphore(MAX_PARALLEL);
@@ -89,7 +90,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	}
 
 	/** We do NOT keep this thread-local, because the Composer is only cleared after
-	 * the next call to load(), so it can persist with a lot of useless data if we 
+	 * the next call to load(), so it can persist with a lot of useless data if we
 	 * then use a different thread. So lets just construct them as needed. */
 	private Yaml makeYAML() {
 		DumperOptions opt = new DumperOptions();
@@ -122,14 +123,14 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		public ExtendedRepresenter() {
 			this.representers.put(FreenetURI.class, new Represent() {
 				/*@Override**/ public Node representData(Object data) {
-					return representScalar("!FreenetURI", ((FreenetURI) data).toString());
+					return representScalar(new Tag("!FreenetURI"), ((FreenetURI) data).toString());
 				}
 			});
 			this.representers.put(Packer.BinInfo.class, new Represent() {
 				/*@Override**/ public Node representData(Object data) {
 					Packer.BinInfo inf = (Packer.BinInfo)data;
 					Map<Object, Object> map = Collections.<Object, Object>singletonMap(inf.getID(), inf.getWeight());
-					return representMapping("!BinInfo", map, true);
+					return representMapping(new Tag("!BinInfo"), map, true);
 				}
 			});
 			this.representers.put(TermTermEntry.class, new RepresentTermEntry(tebp_term));
@@ -148,7 +149,14 @@ implements ObjectStreamReader, ObjectStreamWriter {
 			}
 
 			/*@Override**/ public Node representData(Object data) {
-				return representMapping(tag, blueprint.objectAsMap((T)data), true);
+/*                                Map<String, Object> tempMap = blueprint.objectAsMap((T)data);
+                                Map<String, String> stringMap;
+                                for(String key : tempMap.keySet()) {
+                                        Object tempObject = tempMap.get(key);
+                                        stringMap.put(key, tempObject.toString());
+                                }*/
+
+				return representMapping(new Tag(tag), blueprint.objectAsMap((T)data), true);
 			}
 
 		}
@@ -161,7 +169,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	*/
 	public static class ExtendedConstructor extends Constructor {
 		public ExtendedConstructor() {
-			this.yamlConstructors.put("!FreenetURI", new AbstractConstruct() {
+			this.yamlConstructors.put(new Tag("!FreenetURI"), new AbstractConstruct() {
 				/*@Override**/ public Object construct(Node node) {
 					String uri = (String) constructScalar((ScalarNode)node);
 					try {
@@ -171,7 +179,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 					}
 				}
 			});
-			this.yamlConstructors.put("!BinInfo", new AbstractConstruct() {
+			this.yamlConstructors.put(new Tag("!BinInfo"), new AbstractConstruct() {
 				/*@Override**/ public Object construct(Node node) {
 					Map<?, ?> map = (Map) constructMapping((MappingNode)node);
 					if (map.size() != 1) {
@@ -183,9 +191,9 @@ implements ObjectStreamReader, ObjectStreamWriter {
 					throw new AssertionError();
 				}
 			});
-			this.yamlConstructors.put("!TermTermEntry", new ConstructTermEntry(tebp_term));
-			this.yamlConstructors.put("!TermIndexEntry", new ConstructTermEntry(tebp_index));
-			this.yamlConstructors.put("!TermPageEntry", new ConstructTermEntry(tebp_page));
+			this.yamlConstructors.put(new Tag("!TermTermEntry"), new ConstructTermEntry(tebp_term));
+			this.yamlConstructors.put(new Tag("!TermIndexEntry"), new ConstructTermEntry(tebp_index));
+			this.yamlConstructors.put(new Tag("!TermPageEntry"), new ConstructTermEntry(tebp_page));
 		}
 
 		public class ConstructTermEntry<T extends TermEntry> extends AbstractConstruct {
