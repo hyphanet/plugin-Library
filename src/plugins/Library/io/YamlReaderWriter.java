@@ -149,13 +149,6 @@ implements ObjectStreamReader, ObjectStreamWriter {
 			}
 
 			/*@Override**/ public Node representData(Object data) {
-/*                                Map<String, Object> tempMap = blueprint.objectAsMap((T)data);
-                                Map<String, String> stringMap;
-                                for(String key : tempMap.keySet()) {
-                                        Object tempObject = tempMap.get(key);
-                                        stringMap.put(key, tempObject.toString());
-                                }*/
-
 				return representMapping(new Tag(tag), blueprint.objectAsMap((T)data), true);
 			}
 
