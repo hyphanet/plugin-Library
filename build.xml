@@ -80,7 +80,7 @@
 				</or>
 			</condition>
 		</fail>
-		<move file="${tmp}/snakeyaml-1.5.jar" todir="lib/" />
+		<move file="${tmp}/snakeyaml-1.10.jar" todir="lib/" />
 	</target>
 
 	<!--<property name="KeyExplorer.mirror" value="http://cloud.github.com/downloads/freenet/plugin-Library-staging/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" />
