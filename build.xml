@@ -65,13 +65,14 @@
 	</target>
 
 	<property name="SnakeYAML.mirror" value="http://repo2.maven.org/maven2/org/yaml/snakeyaml/1.10/snakeyaml-1.10.jar" />
-	<property name="SnakeYAML.md5" value="5f1bbedd96c3a745fda676e3d653efd5" />
+        <property name="SnakeYAML.name" value="snakeyaml-1.10.jar" />
+        <property name="SnakeYAML.md5" value="5f1bbedd96c3a745fda676e3d653efd5" />
 	<property name="SnakeYAML.sha" value="032634ca71ed45db1a7f6b0f9e24c648466b40f1" />
 	<available property="SnakeYAML.exist" classname="org.yaml.snakeyaml.Yaml" classpathref="lib.path"/>
 	<target name="SnakeYAML-get" unless="SnakeYAML.exist">
-		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/snakeyaml-1.10.jar" />
-		<checksum file="${tmp}/snakeyaml-1.10.jar" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
-		<checksum file="${tmp}/snakeyaml-1.10.jar" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
+            <get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/${SnakeYAML.name}" />
+            <checksum file="${tmp}/${SnakeYAML.name}" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
+            <checksum file="${tmp}/${SnakeYAML.name}" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
 		<fail message="SnakeYAML.jar checksum mismatch">
 			<condition>
 				<or>
@@ -80,7 +81,7 @@
 				</or>
 			</condition>
 		</fail>
-		<move file="${tmp}/snakeyaml-1.10.jar" todir="lib/" />
+                <move file="${tmp}/${SnakeYAML.name}" todir="lib/" />
 	</target>
 
 	<!--<property name="KeyExplorer.mirror" value="http://cloud.github.com/downloads/freenet/plugin-Library-staging/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" />
