@@ -246,7 +246,7 @@ final public class Library implements URLUpdateHook {
 			return ProtoIndex.class;
 
 		NodeClientCore core = pr.getNode().clientCore;
-		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+		HighLevelSimpleClient hlsc = core.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS, false, false);
 
 		List<FreenetURI> uris = Arrays.asList(indexuri,
 		indexuri.pushMetaString(""),
