@@ -135,7 +135,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	/*@Override**/ public void pullLive(PullTask<T> task, final SimpleProgress progress) throws TaskAbortException {
 		// FIXME make retry count configgable by client metadata somehow
 		// clearly a web UI fetch wants it limited; a merge might want it unlimited
-		HighLevelSimpleClient hlsc = core.makeClient(priorityClass);
+		HighLevelSimpleClient hlsc = core.makeClient(priorityClass, false, false);
 		Bucket tempB = null; InputStream is = null;
 
 		long startTime = System.currentTimeMillis();
@@ -261,7 +261,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	** incremented.
 	*/
 	/*@Override**/ public void pushLive(PushTask<T> task, final SimpleProgress progress) throws TaskAbortException {
-		HighLevelSimpleClient hlsc = core.makeClient(priorityClass);
+		HighLevelSimpleClient hlsc = core.makeClient(priorityClass, false, false);
 		Bucket tempB = null; OutputStream os = null;
 
 		
