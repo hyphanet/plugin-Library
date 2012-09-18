@@ -33,7 +33,7 @@ import java.util.Iterator;
  */
 class MainPage {
 	/** map of search hashes to pages on them */
-	private static final HashMap<Integer, MainPage> searchPages = new HashMap();
+	private static final HashMap<Integer, MainPage> searchPages = new HashMap<Integer, MainPage>();
 
 	private synchronized static void addpage(int hashCode, MainPage page) {
 		searchPages.put(hashCode, page);
@@ -56,16 +56,16 @@ class MainPage {
 	private final PluginRespirator pr;
 
 	private Search search = null;
-	private ArrayList<Exception> exceptions = new ArrayList();
+	private ArrayList<Exception> exceptions = new ArrayList<Exception>();
 	private boolean showold = false;
 	private boolean js = false;
 	private String query = "";
 	/** All of the indexes used in the request together seperated by spaces */
 	private String indexstring = Library.DEFAULT_INDEX_SITE;
 	/** Array of all the bookmark indexes used in this request */
-	private ArrayList<String> selectedBMIndexes = new ArrayList();
+	private ArrayList<String> selectedBMIndexes = new ArrayList<String>();
 	/** Any other indexes which are not bookmarks */
-	private ArrayList<String> selectedOtherIndexes = new ArrayList();
+	private ArrayList<String> selectedOtherIndexes = new ArrayList<String>();
 	/** Any other indexes which are not bookmarks seperated by spaces */
 	private boolean groupusk = false;
 	private StringBuilder messages = new StringBuilder();
@@ -134,12 +134,12 @@ class MainPage {
 		page.js = request.isPartSet("js");
 		page.showold = request.isPartSet("showold");
 		page.groupusk = request.isPartSet("groupusk");
-		String[] etcIndexes = request.getPartAsString("indexuris", 256).trim().split("[ ;]");
-		page.query = request.getPartAsString("search", 256);
+		String[] etcIndexes = request.getPartAsStringFailsafe("indexuris", 256).trim().split("[ ;]");
+		page.query = request.getPartAsStringFailsafe("search", 256);
 
 		if(userAccess){
-			page.addindexname = request.getPartAsString("addindexname", 32);
-			page.addindexuri = request.getPartAsString("addindexuri", 256);
+			page.addindexname = request.getPartAsStringFailsafe("addindexname", 32);
+			page.addindexuri = request.getPartAsStringFailsafe("addindexuri", 256);
 		}
 
 
@@ -158,7 +158,7 @@ class MainPage {
 		//Logger.normal(page, "extra indexes : "+request.getIntPart("extraindexcount", 0));
 		for (int i = 0; i < request.getIntPart("extraindexcount", 0); i++) {
 			if (request.isPartSet("index"+i)){
-				String otherindexuri = request.getPartAsString("index"+i, 256);
+				String otherindexuri = request.getPartAsStringFailsafe("index"+i, 256);
 				//Logger.normal(page, "Added index : "+otherindexuri);
 				page.indexstring += otherindexuri + " ";
 				page.selectedOtherIndexes.add(otherindexuri);
@@ -226,7 +226,7 @@ class MainPage {
 		}else{	// check if one of the other indexes is being added as a bookmark, this doesnt actually add it but moves it into the add box
 			for (int i = 0; i < request.getIntPart("extraindexcount", 0); i++) { // TODO make sure name is valid
 				if (request.isPartSet(Commands.addindex.toString()+i))
-					page.addindexuri = request.getPartAsString("index"+i, 256);
+					page.addindexuri = request.getPartAsStringFailsafe("index"+i, 256);
 			}
 			if(userAccess)
 				// check if one of the bookmarks is being removed

@@ -3,31 +3,28 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search;
 
-import plugins.Library.Library;
-import plugins.Library.index.TermEntry;
-import plugins.Library.index.xml.XMLIndex;
-import plugins.Library.util.exec.Execution;
-import plugins.Library.util.exec.AbstractExecution;
-import plugins.Library.util.exec.ProgressParts;
-import plugins.Library.util.exec.CompositeProgress;
-import plugins.Library.util.exec.Progress;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.ui.ResultNodeGenerator;
-import plugins.Library.search.ResultSet.ResultOperation;
-
-import freenet.support.Executor;
-import freenet.support.HTMLNode;
-import freenet.support.Logger;
-
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.ArrayList;
-import java.util.HashMap;
+
+import plugins.Library.Library;
+import plugins.Library.index.TermEntry;
+import plugins.Library.search.ResultSet.ResultOperation;
+import plugins.Library.ui.ResultNodeGenerator;
+import plugins.Library.util.exec.AbstractExecution;
+import plugins.Library.util.exec.CompositeProgress;
+import plugins.Library.util.exec.Execution;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.TaskAbortException;
+import freenet.support.Executor;
+import freenet.support.HTMLNode;
+import freenet.support.Logger;
 
 /**
  * Performs asynchronous searches over many index or with many terms and search logic
@@ -112,7 +109,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 			return newSearch;
 		}else{
 			// create search for multiple terms over multiple indices
-			ArrayList<Execution<Set<TermEntry>>> indexrequests = new ArrayList(indices.length);
+			ArrayList<Execution<Set<TermEntry>>> indexrequests = new ArrayList<Execution<Set<TermEntry>>>(indices.length);
 			for (String index : indices){
 				Search indexsearch = startSearch(search, index);
 				if(indexsearch==null)
@@ -181,7 +178,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		query = query.toLowerCase(Locale.US).trim();
 
 		// Create a temporary list of sub searches then make it unmodifiable
-		List<Execution<Set<TermEntry>>> tempsubsearches = new ArrayList();
+		List<Execution<Set<TermEntry>>> tempsubsearches = new ArrayList<Execution<Set<TermEntry>>>();
 		for (Execution<Set<TermEntry>> request : requests) {
 			if(request != null || resultOperation == ResultOperation.PHRASE)
 				tempsubsearches.add(request);
@@ -250,7 +247,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 
 		// Make phrase search
 		if(query.matches("\\A\"[^\"]*\"\\Z")){
-			ArrayList<Execution<Set<TermEntry>>> phrasesearches = new ArrayList();
+			ArrayList<Execution<Set<TermEntry>>> phrasesearches = new ArrayList<Execution<Set<TermEntry>>>();
 			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split("[^\\p{L}\\d]+");
 			if(logMINOR) Logger.minor(Search.class, "Phrase split"+query);
 			for (String subquery : phrase){
@@ -282,7 +279,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		if(logMINOR) Logger.minor(Search.class, "Splitting " + query);
 		String formattedquery="";
 		// Remove phrases, place them in arraylist and replace tem with references to the arraylist
-		ArrayList<String> phrases = new ArrayList();
+		ArrayList<String> phrases = new ArrayList<String>();
 		String[] phraseparts = query.split("\"");
 		if(phraseparts.length>1)
 			for (int i = 0; i < phraseparts.length; i++) {
@@ -329,7 +326,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 
 		// Make complement search
 		if (formattedquery.contains("^^(")){
-			ArrayList<Execution<Set<TermEntry>>> complementsearches = new ArrayList();
+			ArrayList<Execution<Set<TermEntry>>> complementsearches = new ArrayList<Execution<Set<TermEntry>>>();
 			String[] splitup = formattedquery.split("(\\^\\^\\(|\\))", 3);
 			Search add = startSearch(splitup[0]+splitup[2], indexuri);
 			Search subtract = startSearch(splitup[1], indexuri);
@@ -341,7 +338,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		}
 		// Split intersections
 		if (formattedquery.contains("&&")){
-			ArrayList<Search> intersectsearches = new ArrayList();
+			ArrayList<Search> intersectsearches = new ArrayList<Search>();
 			String[] intersects = formattedquery.split("&&");
 			for (String subquery : intersects){
 				Search subsearch = startSearch(subquery, indexuri);
@@ -359,7 +356,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		}
 		// Split Unions
 		if (formattedquery.contains("||")){
-			ArrayList<Execution<Set<TermEntry>>> unionsearches = new ArrayList();
+			ArrayList<Execution<Set<TermEntry>>> unionsearches = new ArrayList<Execution<Set<TermEntry>>>();
 			String[] unions = formattedquery.split("\\|\\|");
 			for (String subquery : unions){
 				Search add = startSearch(subquery, indexuri);
@@ -461,7 +458,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		if (resultOperation == ResultOperation.DIFFERENTINDEXES)
 			return subsearches;
 		// Everything else is split into leaves
-		List<Progress> subprogresses = new ArrayList();
+		List<Progress> subprogresses = new ArrayList<Progress>();
 		for (Execution<Set<TermEntry>> request : subsearches) {
 			if(request == null)
 				continue;

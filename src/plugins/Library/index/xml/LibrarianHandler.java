@@ -66,7 +66,7 @@ public class LibrarianHandler extends DefaultHandler {
 	 * @throws java.lang.Exception
 	 */
 	public LibrarianHandler(List<FindRequest> requests) {
-		this.requests = new ArrayList(requests);
+		this.requests = new ArrayList<FindRequest>(requests);
 		for (FindRequest r : requests){
 			r.setResult(new HashSet<TermPageEntry>());
 		}
