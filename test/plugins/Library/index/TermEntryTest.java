@@ -57,7 +57,7 @@ public class TermEntryTest extends TestCase {
 		l.add(z);
 		map.put("test", l);
 		try {
-			map.put("test2", new Packer.BinInfo(new FreenetURI("CHK@yeah"), 123));
+			map.put("test2", new Packer.BinInfo(new FreenetURI("http://127.0.0.1:8888/CHK@WtWIvOZXLVZkmDrY5929RxOZ-woRpRoMgE8rdZaQ0VU,rxH~D9VvOOuA7bCnVuzq~eux77i9RR3lsdwVHUgXoOY,AAIC--8/Library.jar"), 123));
 		} catch (java.net.MalformedURLException e) {
 			assert(false);
 		}
