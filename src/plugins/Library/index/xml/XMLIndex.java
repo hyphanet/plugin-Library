@@ -131,7 +131,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 
 
 		if(pr!=null){
-			hlsc = pr.getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+			hlsc = pr.getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS, false, false);
 			hlsc.addEventHook(mainIndexListener);
 		}
 	}
@@ -414,7 +414,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			this.filename = filename;
 
 			if(pr!=null){
-				hlsc = pr.getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+				hlsc = pr.getNode().clientCore.makeClient(RequestStarter.INTERACTIVE_PRIORITY_CLASS, false, false);
 				hlsc.addEventHook(subIndexListener);
 			}
 		}
