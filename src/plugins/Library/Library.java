@@ -3,9 +3,20 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import plugins.Library.Index;
-import plugins.Library.WriteableIndex;
+import java.io.ObjectInputStream;
+import java.net.MalformedURLException;
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import plugins.Library.client.FreenetArchiver;
 import plugins.Library.index.ProtoIndex;
 import plugins.Library.index.ProtoIndexSerialiser;
@@ -13,66 +24,37 @@ import plugins.Library.index.xml.URLUpdateHook;
 import plugins.Library.index.xml.XMLIndex;
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.io.serial.Serialiser.PullTask;
 import plugins.Library.search.InvalidSearchException;
-
-/* KEYEXPLORER
-import plugins.KeyExplorer.KeyExplorerUtils;
-import plugins.KeyExplorer.GetResult;
-
-import freenet.client.ArchiveManager.ARCHIVE_TYPE;
-import freenet.client.FetchException;
-import freenet.client.Metadata;
-import freenet.client.MetadataParseException;
-import freenet.client.async.KeyListenerConstructionException;
-import freenet.node.LowLevelGetException;
-import freenet.support.io.BucketTools;
-*/
-
-import freenet.keys.FreenetURI;
-import freenet.keys.USK;
-import freenet.pluginmanager.PluginRespirator;
-import freenet.pluginmanager.PluginStore;
-import freenet.support.Logger;
+import plugins.Library.util.exec.TaskAbortException;
 
 import com.db4o.ObjectContainer;
 
-import freenet.client.HighLevelSimpleClient;
 import freenet.client.FetchContext;
 import freenet.client.FetchException;
 import freenet.client.FetchResult;
 import freenet.client.FetchWaiter;
-import freenet.client.async.ClientGetter;
+import freenet.client.HighLevelSimpleClient;
 import freenet.client.async.ClientContext;
+import freenet.client.async.ClientGetter;
 import freenet.client.async.DatabaseDisabledException;
 import freenet.client.async.USKCallback;
 import freenet.client.async.USKManager;
 import freenet.client.async.USKRetriever;
 import freenet.client.async.USKRetrieverCallback;
-import freenet.client.events.ClientEventListener;
 import freenet.client.events.ClientEvent;
+import freenet.client.events.ClientEventListener;
 import freenet.client.events.ExpectedMIMEEvent;
-import freenet.node.RequestStarter;
-import freenet.node.RequestClient;
+import freenet.keys.FreenetURI;
+import freenet.keys.USK;
 import freenet.node.NodeClientCore;
+import freenet.node.RequestClient;
+import freenet.node.RequestStarter;
+import freenet.pluginmanager.PluginRespirator;
+import freenet.pluginmanager.PluginStore;
 import freenet.support.Executor;
+import freenet.support.Logger;
 import freenet.support.io.FileUtil;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.MalformedURLException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.security.MessageDigest;
-import java.util.Collections;
 
 
 /**
