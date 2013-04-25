@@ -237,7 +237,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 	 */
 	private static Search splitQuery(String query, String indexuri) throws InvalidSearchException, TaskAbortException{
 		query = query.trim();
-		if(query.matches("\\A[\\p{L}\\d]*\\Z") || query.matches("\\A[\\p{L}\\d][\\p{L}'\\d]*[\\p{L}\\d]\\Z")){
+		if(query.matches("\\A[\\S&&[^-\"]]*\\Z")){
 			// single search term
 			// return null if stopword
 			if(SearchUtil.isStopWord(query))
@@ -251,7 +251,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 		// Make phrase search (hyphen-separated words are also treated as phrases)
 		if(query.matches("\\A\"[^\"]*\"\\Z") || query.matches("\\A((?:[\\S&&[^-]]+-)+[\\S&&[^-]]+)\\Z")){
 			ArrayList<Execution<Set<TermEntry>>> phrasesearches = new ArrayList<Execution<Set<TermEntry>>>();
-			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split("[^\\p{L}\\d]+");
+			String[] phrase = query.replaceAll("\"(.*)\"", "$1").split("[\\s-]+");
 			if(logMINOR) Logger.minor(Search.class, "Phrase split: "+query);
 			for (String subquery : phrase){
 				Search term = startSearch(subquery, indexuri);
