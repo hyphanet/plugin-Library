@@ -792,79 +792,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 				Closer.close(fis);
 			}
 		}
-		if(privURI == null) {
-			File f = new File(PRIV_URI_FILENAME);
-			FileInputStream fis = null;
-			InsertableClientSSK privkey = null;
-			boolean newPrivKey = false;
-			try {
-				fis = new FileInputStream(f);
-				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
-				privURI = new FreenetURI(br.readLine()).setDocName("index.yml"); // Else InsertableClientSSK doesn't like it.
-				privkey = InsertableClientSSK.create(privURI);
-				System.out.println("Read old privkey");
-				this.pubURI = privkey.getURI();
-				System.out.println("Recovered URI from disk, pubkey is "+pubURI);
-				fis.close();
-				fis = null;
-			} catch (IOException e) {
-				// Ignore
-			} finally {
-				Closer.close(fis);
-			}
-			if(privURI == null) {
-				InsertableClientSSK key = InsertableClientSSK.createRandom(pr.getNode().random, "index.yml");
-				privURI = key.getInsertURI();
-				pubURI = key.getURI();
-				newPrivKey = true;
-				System.out.println("Created new keypair, pubkey is "+pubURI);
-			}
-			FileOutputStream fos = null;
-			if(newPrivKey) {
-				try {
-					fos = new FileOutputStream(new File(PRIV_URI_FILENAME));
-					OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-					osw.write(privURI.toASCIIString());
-					osw.close();
-					fos = null;
-				} catch (IOException e) {
-					Logger.error(this, "Failed to write new private key");
-					System.out.println("Failed to write new private key : "+e);
-				} finally {
-					Closer.close(fos);
-				}
-			}
-			try {
-				fos = new FileOutputStream(new File(PUB_URI_FILENAME));
-				OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-				osw.write(pubURI.toASCIIString());
-				osw.close();
-				fos = null;
-			} catch (IOException e) {
-				Logger.error(this, "Failed to write new pubkey", e);
-				System.out.println("Failed to write new pubkey: "+e);
-			} finally {
-				Closer.close(fos);
-			}
-			try {
-				fis = new FileInputStream(new File(EDITION_FILENAME));
-				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
-				try {
-					edition = Long.parseLong(br.readLine());
-				} catch (NumberFormatException e) {
-					edition = 1;
-				}
-				System.out.println("Edition: "+edition);
-				fis.close();
-				fis = null;
-			} catch (IOException e) {
-				// Ignore
-				edition = 1;
-			} finally {
-				Closer.close(fis);
-			}
-			
-		}
+		loadSSKURIs();
 		
 			if(FreenetArchiver.getCacheDir() == null) {
 				File dir = new File("library-spider-pushed-data-cache");
@@ -1047,6 +975,81 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 					pushBroken = true;
 				}
 			}
+	}
+
+	private void loadSSKURIs() {
+		if(privURI == null) {
+			File f = new File(PRIV_URI_FILENAME);
+			FileInputStream fis = null;
+			InsertableClientSSK privkey = null;
+			boolean newPrivKey = false;
+			try {
+				fis = new FileInputStream(f);
+				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
+				privURI = new FreenetURI(br.readLine()).setDocName("index.yml"); // Else InsertableClientSSK doesn't like it.
+				privkey = InsertableClientSSK.create(privURI);
+				System.out.println("Read old privkey");
+				this.pubURI = privkey.getURI();
+				System.out.println("Recovered URI from disk, pubkey is "+pubURI);
+				fis.close();
+				fis = null;
+			} catch (IOException e) {
+				// Ignore
+			} finally {
+				Closer.close(fis);
+			}
+			if(privURI == null) {
+				InsertableClientSSK key = InsertableClientSSK.createRandom(pr.getNode().random, "index.yml");
+				privURI = key.getInsertURI();
+				pubURI = key.getURI();
+				newPrivKey = true;
+				System.out.println("Created new keypair, pubkey is "+pubURI);
+			}
+			FileOutputStream fos = null;
+			if(newPrivKey) {
+				try {
+					fos = new FileOutputStream(new File(PRIV_URI_FILENAME));
+					OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+					osw.write(privURI.toASCIIString());
+					osw.close();
+					fos = null;
+				} catch (IOException e) {
+					Logger.error(this, "Failed to write new private key");
+					System.out.println("Failed to write new private key : "+e);
+				} finally {
+					Closer.close(fos);
+				}
+			}
+			try {
+				fos = new FileOutputStream(new File(PUB_URI_FILENAME));
+				OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+				osw.write(pubURI.toASCIIString());
+				osw.close();
+				fos = null;
+			} catch (IOException e) {
+				Logger.error(this, "Failed to write new pubkey", e);
+				System.out.println("Failed to write new pubkey: "+e);
+			} finally {
+				Closer.close(fos);
+			}
+			try {
+				fis = new FileInputStream(new File(EDITION_FILENAME));
+				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
+				try {
+					edition = Long.parseLong(br.readLine());
+				} catch (NumberFormatException e) {
+					edition = 1;
+				}
+				System.out.println("Edition: "+edition);
+				fis.close();
+				fis = null;
+			} catch (IOException e) {
+				// Ignore
+				edition = 1;
+			} finally {
+				Closer.close(fis);
+			}
+		}
 	}
 
 	protected static SkeletonBTreeSet<TermEntry> makeEntryTree(ProtoIndexComponentSerialiser leafsrl) {
