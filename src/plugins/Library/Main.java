@@ -483,7 +483,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			leafsrlDisk = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, archiver);
 			if(lastDiskIndexName == null) {
 				try {
-					idxDisk = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0L);
+					idxDisk = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0L);
 				} catch (java.net.MalformedURLException e) {
 					throw new AssertionError(e);
 				}
