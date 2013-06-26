@@ -942,14 +942,17 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			FreenetURI privUSK = getPrivateUSK();
 			try {
 				FreenetURI tmp = pr.getHLSimpleClient().insertRedirect(privUSK, uri);
-				edition = tmp.getEdition()+1;
+				long ed;
+				synchronized(freenetMergeSync) {
+					ed = edition = tmp.getEdition()+1;
+				}
 				System.out.println("Uploaded index as USK to "+tmp);
 				
 				fos = null;
 				try {
 					fos = new FileOutputStream(EDITION_FILENAME);
 					OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-					osw.write(Long.toString(edition));
+					osw.write(Long.toString(ed));
 					osw.close();
 					fos = null;
 				} catch (IOException e) {
