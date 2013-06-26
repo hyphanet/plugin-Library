@@ -497,6 +497,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	
 	/** Merge from the Bucket chain to the on-disk idxDisk. */
 	protected void wrapMergeToDisk() {
+		indexURIs.loadSSKURIs();
 		boolean first = true;
 		while(true) {
 		final Bucket data;
