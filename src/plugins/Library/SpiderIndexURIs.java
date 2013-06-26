@@ -90,14 +90,14 @@ class SpiderIndexURIs {
 				try {
 					edition = Long.parseLong(br.readLine());
 				} catch (NumberFormatException e) {
-					edition = 1;
+					edition = 0;
 				}
 				System.out.println("Edition: "+edition);
 				fis.close();
 				fis = null;
 			} catch (IOException e) {
 				// Ignore
-				edition = 1;
+				edition = 0;
 			} finally {
 				Closer.close(fis);
 			}
