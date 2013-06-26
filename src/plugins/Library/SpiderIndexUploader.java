@@ -868,7 +868,8 @@ public class SpiderIndexUploader {
 	public void handleGetSpiderURI(PluginReplySender replysender) {
 		FreenetURI uri = getPublicUSKURI();
 		SimpleFieldSet sfs = new SimpleFieldSet(true);
-		sfs.putSingle("USK", uri.toString(true, false));
+		sfs.putSingle("reply", "getSpiderURI");
+		sfs.putSingle("publicUSK", uri.toString(true, false));
 		try {
 			replysender.send(sfs);
 		} catch (PluginNotFoundException e) {
