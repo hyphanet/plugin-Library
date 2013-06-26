@@ -516,9 +516,10 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 		newtrees = new HashMap<String, SortedSet<TermEntry>>();
 		terms = new TreeSet<String>();
 		int entriesAdded = 0;
+		InputStream is = null;
 		try {
 			Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes");
-			InputStream is = data.getInputStream();
+			is = data.getInputStream();
 			SimpleFieldSet fs = new SimpleFieldSet(new LineReadingInputStream(is), 1024, 512, true, true, true);
 			idxDisk.setName(fs.get("index.title"));
 			idxDisk.setOwnerEmail(fs.get("index.owner.email"));
@@ -539,6 +540,8 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			}
 		} catch (IOException ex) {
 			java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+		} finally {
+			Closer.close(is);
 		}
 		
 		if(terms.size() == 0) {
