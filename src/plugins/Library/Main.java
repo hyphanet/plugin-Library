@@ -46,6 +46,7 @@ import freenet.pluginmanager.FredPluginL10n;
 import freenet.pluginmanager.FredPluginRealVersioned;
 import freenet.pluginmanager.FredPluginThreadless;
 import freenet.pluginmanager.FredPluginVersioned;
+import freenet.pluginmanager.PluginNotFoundException;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Executor;
 import freenet.client.InsertException;
@@ -188,12 +189,11 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	public void handle(PluginReplySender replysender, SimpleFieldSet params, final Bucket data, int accesstype) {
 		if("pushBuffer".equals(params.get("command"))){
 			uploader.handlePushBuffer(params, data);
+		} else if("getSpiderURI".equals(params.get("command"))) {
+			uploader.handleGetSpiderURI(replysender);
 		} else {
 			Logger.error(this, "Unknown command : \""+params.get("command"));
 		}
-
 	}
-	
-
 
 }

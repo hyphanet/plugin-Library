@@ -861,4 +861,21 @@ public class SpiderIndexUploader {
 		pr.getNode().executor.execute(r, "Library: Handle data from XMLSpider");
 	}
 
+	public FreenetURI getPublicUSKURI() {
+		return spiderIndexURIs.getPublicUSK();
+	}
+
+	public void handleGetSpiderURI(PluginReplySender replysender) {
+		FreenetURI uri = getPublicUSKURI();
+		SimpleFieldSet sfs = new SimpleFieldSet(true);
+		sfs.putSingle("USK", uri.toString(true, false));
+		try {
+			replysender.send(sfs);
+		} catch (PluginNotFoundException e) {
+			// Race condition, ignore.
+		}
+	}
+
+
+
 }
