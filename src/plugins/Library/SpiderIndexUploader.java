@@ -71,7 +71,7 @@ public class SpiderIndexUploader {
 	static final int MAX_HANDLING_COUNT = 5; 
 	// When pushing is broken, allow max handling to reach this level before stalling forever to prevent running out of disk space.
 	private int PUSH_BROKEN_MAX_HANDLING_COUNT = 10;
-	// Don't use too much disk space, take into account fact that XMLSpider slows down over time.
+	// Don't use too much disk space, take into account fact that Spider slows down over time.
 	
 	private boolean pushBroken;
 	
@@ -789,13 +789,13 @@ public class SpiderIndexUploader {
 
 		if(data.size() == 0) {
 			Logger.error(this, "Bucket of data ("+data+") to push is empty", new Exception("error"));
-			System.err.println("Bucket of data ("+data+")to push from XMLSpider is empty");
+			System.err.println("Bucket of data ("+data+")to push from Spider is empty");
 			data.free();
 			return;
 		}
 		
 		// Process data off-thread, but only one load at a time.
-		// Hence it won't stall XMLSpider unless we get behind.
+		// Hence it won't stall Spider unless we get behind.
 		
 		long pn;
 		synchronized(this) {
@@ -818,7 +818,7 @@ public class SpiderIndexUploader {
 		synchronized(freenetMergeSync) {
 			boolean waited = false;
 			while(toMergeToDisk.size() > MAX_HANDLING_COUNT && !pushBroken) {
-				Logger.error(this, "XMLSpider feeding us data too fast, waiting for background process to finish. Ahead of us in the queue: "+toMergeToDisk.size());
+				Logger.error(this, "Spider feeding us data too fast, waiting for background process to finish. Ahead of us in the queue: "+toMergeToDisk.size());
 				try {
 					waited = true;
 					freenetMergeSync.wait();
@@ -833,8 +833,8 @@ public class SpiderIndexUploader {
 					Logger.error(this, "Pushing is broken, failing");
 				else {
 					// Wait forever to prevent running out of disk space.
-					// XMLSpider is single threaded.
-					// FIXME: Use an error return or a throwable to shut down XMLSpider.
+					// Spider is single threaded.
+					// FIXME: Use an error return or a throwable to shut down Spider.
 					while(true) {
 						try {
 							freenetMergeSync.wait();
@@ -858,7 +858,7 @@ public class SpiderIndexUploader {
 			}
 			
 		};
-		pr.getNode().executor.execute(r, "Library: Handle data from XMLSpider");
+		pr.getNode().executor.execute(r, "Library: Handle data from Spider");
 	}
 
 	public FreenetURI getPublicUSKURI() {
