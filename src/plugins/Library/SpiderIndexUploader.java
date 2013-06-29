@@ -519,7 +519,7 @@ public class SpiderIndexUploader {
 				leafsrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_DEFAULT, archiver);
 				if(lastUploadURI == null) {
 					try {
-						idxFreenet = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0L);
+						idxFreenet = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0L);
 					} catch (java.net.MalformedURLException e) {
 						throw new AssertionError(e);
 					}
