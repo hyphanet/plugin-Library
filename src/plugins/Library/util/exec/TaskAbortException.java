@@ -65,7 +65,7 @@ public class TaskAbortException extends Exception {
 	** @param t The cause
 	*/
 	public TaskAbortException(String s, Throwable t) {
-		this(s, t, true, false);
+		this(s+" : "+t.getMessage(), t, true, false);
 	}
 
 	/**
