@@ -177,7 +177,9 @@ final public class Library implements URLUpdateHook {
 				callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rcBulk);
 			}
 		}
-		if(bookmarks.isEmpty() || needNewWanna) {
+		if(bookmarks.isEmpty() || needNewWanna || !bookmarks.containsKey("thingme")) {
+			if(!bookmarks.containsKey("thingme"))
+				addBookmark("thingme", "USK@2BYYFG4C1kJIRsiW9GhdlYMx52tQ06LXJuoC1TjX-EE,-fd9-wyD1WpfHPuNOMi4O8XhD9z78Dwu0uYO8TQy1FU,AQACAAE/index.yml/0");
 			if(!bookmarks.containsKey("wanna.old"))
 				addBookmark("wanna.old", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/25/index.xml");
 			if(!bookmarks.containsKey("freenetindex"))
