@@ -93,7 +93,7 @@ public class MainPageToadlet extends Toadlet {
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 
-			MainPage page = MainPage.processPostRequest(request, contentNode, hasFormPassword, library, pr);
+			MainPage page = MainPage.processPostRequest(request, contentNode, hasFormPassword, hasFormPassword && ctx.isAllowedFullAccess(), library, pr);
 			if(page==null)
 				page = new MainPage(library,pr);
 			// Process the request

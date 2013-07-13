@@ -123,11 +123,12 @@ class MainPage {
 
 	/**
 	 * Process a post request
+	 * @param userAccess 
 	 *
 	 * @see plugins.XMLSpider.WebPage#processPostRequest(freenet.support.api.HTTPRequest,
 	 * freenet.support.HTMLNode)
 	 */
-	public static MainPage processPostRequest(HTTPRequest request, HTMLNode contentNode, boolean userAccess, Library library, PluginRespirator pr ) {
+	public static MainPage processPostRequest(HTTPRequest request, HTMLNode contentNode, boolean noConfirmation, boolean userAccess, Library library, PluginRespirator pr ) {
 		cleanUpPages();
 		MainPage page = new MainPage(library, pr);
 
@@ -185,27 +186,28 @@ class MainPage {
 
 		// get search query
 		if (request.isPartSet(Commands.find.toString())){
-			// Start or continue a search
-			try {
-				if(logMINOR)
-					Logger.minor(MainPage.class, "starting search for "+page.query+" on "+page.indexstring);
-				page.search = Search.startSearch(page.query, page.indexstring);
-				if(page.search == null)
-					page.messages.append("Stopwords too prominent in search term, try removing words like 'the', 'and' and 'that' and any words less than 3 characters");
-				else{
-					page.search.setMakeResultNode(page.groupusk, page.showold, true);	// for the moment js will always be on for results, js detecting isnt being used
-
-					// at this point pages is in a state ready to be saved
-					addpage(page.search.hashCode(), page);
+			if(noConfirmation) {
+				// Start or continue a search
+				try {
+					if(logMINOR)
+						Logger.minor(MainPage.class, "starting search for "+page.query+" on "+page.indexstring);
+					page.search = Search.startSearch(page.query, page.indexstring);
+					if(page.search == null)
+						page.messages.append("Stopwords too prominent in search term, try removing words like 'the', 'and' and 'that' and any words less than 3 characters");
+					else{
+						page.search.setMakeResultNode(page.groupusk, page.showold, true);	// for the moment js will always be on for results, js detecting isnt being used
+						
+						// at this point pages is in a state ready to be saved
+						addpage(page.search.hashCode(), page);
+					}
+				} catch (InvalidSearchException ex) {
+					page.messages.append("Problem with search : "+ex.getLocalizedMessage()+"\n");
+				} catch (TaskAbortException ex) {
+					page.exceptions.add(ex);		// TODO handle these exceptions separately
+				} catch (RuntimeException ex){
+					page.exceptions.add(ex);
 				}
-			} catch (InvalidSearchException ex) {
-				page.messages.append("Problem with search : "+ex.getLocalizedMessage()+"\n");
-			} catch (TaskAbortException ex) {
-				page.exceptions.add(ex);		// TODO handle these exceptions separately
-			} catch (RuntimeException ex){
-				page.exceptions.add(ex);
 			}
-
 		}else if (request.isPartSet(Commands.addbookmark.toString())) {
 			try {
 				// adding an index
