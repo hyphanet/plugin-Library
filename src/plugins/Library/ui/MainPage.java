@@ -70,7 +70,7 @@ class MainPage {
 	private boolean groupusk = false;
 	private StringBuilder messages = new StringBuilder();
 
-	private String addindexname;
+	private String addindexname = "";
 	private String addindexuri = "";
 	
 	static volatile boolean logMINOR;
