@@ -83,7 +83,7 @@ public class MainPageToadlet extends Toadlet {
 		ClassLoader origClassLoader = Thread.currentThread().getContextClassLoader();
 		Thread.currentThread().setContextClassLoader(Library.class.getClassLoader());
 
-		String formPassword = request.getPartAsString("formPassword", 32);
+		boolean hasFormPassword = ctx.hasFormPassword(request);
 
 		try {
 			// Get the nodes of the page
@@ -93,7 +93,7 @@ public class MainPageToadlet extends Toadlet {
 			HTMLNode pageNode = p.outer;
 			HTMLNode contentNode = p.content;
 
-			MainPage page = MainPage.processPostRequest(request, contentNode, formPassword!=null && formPassword.equals(core.formPassword), library, pr);
+			MainPage page = MainPage.processPostRequest(request, contentNode, hasFormPassword, library, pr);
 			if(page==null)
 				page = new MainPage(library,pr);
 			// Process the request
