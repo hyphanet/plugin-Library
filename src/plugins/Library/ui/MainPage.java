@@ -128,7 +128,7 @@ class MainPage {
 	 * @see plugins.XMLSpider.WebPage#processPostRequest(freenet.support.api.HTTPRequest,
 	 * freenet.support.HTMLNode)
 	 */
-	public static MainPage processPostRequest(HTTPRequest request, HTMLNode contentNode, boolean noConfirmation, boolean userAccess, Library library, PluginRespirator pr ) {
+	public static MainPage processPostRequest(HTTPRequest request, HTMLNode contentNode, boolean hasFormPassword, boolean userAccess, Library library, PluginRespirator pr ) {
 		cleanUpPages();
 		MainPage page = new MainPage(library, pr);
 
@@ -138,12 +138,10 @@ class MainPage {
 		String[] etcIndexes = request.getPartAsStringFailsafe("indexuris", 256).trim().split("[ ;]");
 		page.query = request.getPartAsStringFailsafe("search", 256);
 
-		if(userAccess){
+		if(userAccess) {
 			page.addindexname = request.getPartAsStringFailsafe("addindexname", 32);
 			page.addindexuri = request.getPartAsStringFailsafe("addindexuri", 256);
 		}
-
-
 
 		// Get bookmarked index list
 		page.indexstring = "";
@@ -186,7 +184,7 @@ class MainPage {
 
 		// get search query
 		if (request.isPartSet(Commands.find.toString())){
-			if(noConfirmation) {
+			if(hasFormPassword) {
 				// Start or continue a search
 				try {
 					if(logMINOR)
@@ -212,7 +210,7 @@ class MainPage {
 			try {
 				// adding an index
 				// TODO make sure name is valid
-				if (userAccess && page.addindexname.length() > 0 && URLEncoder.encode(page.addindexname, "UTF-8").equals(page.addindexname)) {
+				if (userAccess && hasFormPassword && page.addindexname.length() > 0 && URLEncoder.encode(page.addindexname, "UTF-8").equals(page.addindexname)) {
 					// Use URLEncoder to have a simple constraint on names
 					library.addBookmark(page.addindexname, page.addindexuri);
 					if (page.selectedOtherIndexes.contains(page.addindexuri)) {
@@ -230,7 +228,7 @@ class MainPage {
 				if (request.isPartSet(Commands.addindex.toString()+i))
 					page.addindexuri = request.getPartAsStringFailsafe("index"+i, 256);
 			}
-			if(userAccess)
+			if(userAccess && hasFormPassword)
 				// check if one of the bookmarks is being removed
 				for (String bm : library.bookmarkKeys()) {
 					if (request.isPartSet(Commands.removebookmark+bm)){
