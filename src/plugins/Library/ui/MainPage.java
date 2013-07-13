@@ -384,7 +384,7 @@ class MainPage {
 					HTMLNode newIndexInput = optionsBox.addChild("div", new String[]{"class", "style"}, new String[]{"index", "display: inline-table;"}, "Add an index:");
 						newIndexInput.addChild("br");
 						newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "Name:");
-						newIndexInput.addChild("input", new String[]{"name", "type", "class", "title"}, new String[]{"addindexname", "text", "index", "Name of the bookmark, this will appear in the list to the left"});
+						newIndexInput.addChild("input", new String[]{"name", "type", "class", "title", "value"}, new String[]{"addindexname", "text", "index", "Name of the bookmark, this will appear in the list to the left", addindexname});
 						newIndexInput.addChild("br");
 						newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "URI:");
 						newIndexInput.addChild("input", new String[]{"name", "type", "class", "title", "value"}, new String[]{"addindexuri", "text", "index", "URI or path of index to add to bookmarks, including the main index filename at the end of a Freenet uri will help Library not to block in order to discover the index type.", addindexuri});
