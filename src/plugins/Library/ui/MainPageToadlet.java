@@ -37,6 +37,10 @@ public class MainPageToadlet extends Toadlet {
 		this.library = library;
 		this.pr = pr;
 	}
+	
+	public boolean allowPOSTWithoutPassword() {
+		return true;
+	}
 
 	public void handleMethodGET(URI uri, final HTTPRequest request, final ToadletContext ctx)
 	throws ToadletContextClosedException, IOException, RedirectException {
