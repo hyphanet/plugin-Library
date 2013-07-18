@@ -109,14 +109,16 @@ final public class Library implements URLUpdateHook {
 	 */
 	private Library(PluginRespirator pr){
 		this.pr = pr;
-		if(pr!=null)
-			this.exec = pr.getNode().executor;
-		else
-			this.exec = null;
 		PluginStore ps;
-		try {
-			ps = pr.getStore();
-		} catch (DatabaseDisabledException e) {
+		if(pr!=null) {
+			this.exec = pr.getNode().executor;
+			try {
+				ps = pr.getStore();
+			} catch (DatabaseDisabledException e) {
+				ps = null;
+			}
+		} else {
+			this.exec = null;
 			ps = null;
 		}
 		USKManager uskManager = pr.getNode().clientCore.clientContext.uskManager;
