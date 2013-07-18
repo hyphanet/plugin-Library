@@ -149,6 +149,8 @@
 		<javac srcdir="test/" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
 			<classpath>
 				<path refid="lib.path"/>
+				<!-- Uses some code that uses junit -->
+				<pathelement location="${junit.location}"/>
 			</classpath>
 			<include name="plugins/Library/Tester.java"/>
 		</javac>
