@@ -39,7 +39,7 @@ public class Tester {
 		} else if (test.equals("push_merge")) {
 			return testPushAndMergeIndex();
 		}
-		return "Add &runTest=<test name> to the URL to run a test.\n"+"Tests: push_index, push_progress, autodetect, push_merge";
+		return "Add &plugins.Library.Tester=<test name> to the URL to run a test.\n"+"Tests: push_index, push_progress, autodetect, push_merge";
 	}
 
 	final public static String PAGE_START = "<html><head><meta http-equiv=\"refresh\" content=\"1\">\n<body>\n";
