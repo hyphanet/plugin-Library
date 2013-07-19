@@ -37,11 +37,7 @@ final public class Generators {
 	}
 
 	public static TermPageEntry rndEntry(String key) {
-		try {
-			return new TermPageEntry(key, (float)Math.random(), new FreenetURI("CHK@" + rndStr().replace('-', 'Z')), null);
-		} catch (MalformedURLException e) {
-			throw new AssertionError("Bad URL generation code");
-		}
+		return new TermPageEntry(key, (float)Math.random(), FreenetURI.generateRandomCHK(rand), null);
 	}
 
 }
