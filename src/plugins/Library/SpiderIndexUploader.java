@@ -495,6 +495,7 @@ public class SpiderIndexUploader {
 	private final Object inflateSync = new Object();
 	
 	protected void mergeToFreenet(ProtoIndex diskToMerge, File diskDir) {
+	    System.out.println("Merging on-disk index to Freenet: "+diskDir);
 		if(lastUploadURI == null) {
 			File f = new File(LAST_URL_FILENAME);
 			FileInputStream fis = null;
