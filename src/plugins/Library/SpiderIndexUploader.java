@@ -458,6 +458,11 @@ public class SpiderIndexUploader {
 			fis.close();
 			fis = null;
 		} catch (IOException e) {
+		    if(diskDir.list().length == 0) {
+		        System.err.println("Directory "+diskDir+" is empty. Nothing to merge.");
+		        diskDir.delete();
+		        return;
+		    }
 			// Ignore
 			System.err.println("Unable to merge old data "+diskDir+" : "+e);
 			e.printStackTrace();
