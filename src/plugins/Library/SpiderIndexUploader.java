@@ -556,7 +556,7 @@ public class SpiderIndexUploader {
 			idxFreenet.setOwnerEmail(diskToMerge.getOwnerEmail());
 			idxFreenet.setOwner(diskToMerge.getOwner());
 			// This is roughly accurate, it might not be exactly so if we process a bit out of order.
-			idxFreenet.setTotalPages(diskToMerge.getTotalPages());
+			idxFreenet.setTotalPages(diskToMerge.getTotalPages() + Math.max(0,idxFreenet.getTotalPages()));
 			
 			final SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> newtrees = diskToMerge.ttab;
 			
