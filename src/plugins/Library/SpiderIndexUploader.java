@@ -447,7 +447,7 @@ public class SpiderIndexUploader {
 		ProtoIndexSerialiser s = ProtoIndexSerialiser.forIndex(diskDir);
 		LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
 			(LiveArchiver<Map<String,Object>,SimpleProgress>)(s.getChildSerialiser());
-		ProtoIndexComponentSerialiser leaf = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, null);
+		ProtoIndexComponentSerialiser leaf = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, archiver);
 		String f = null;
 		FileInputStream fis = null;
 		try {
