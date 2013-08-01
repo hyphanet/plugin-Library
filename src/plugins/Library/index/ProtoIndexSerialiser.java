@@ -103,7 +103,7 @@ implements Archiver<ProtoIndex>,
 		return new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION, "", "", prefix));
 	}
 
-	/*@Override**/ public Archiver<Map<String, Object>> getChildSerialiser() {
+	/*@Override**/ public LiveArchiver<Map<String, Object>, SimpleProgress> getChildSerialiser() {
 		return subsrl;
 	}
 
