@@ -3,21 +3,17 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.io.serial.Packer;
-import plugins.Library.io.ObjectStreamReader;
-import plugins.Library.io.ObjectStreamWriter;
-import plugins.Library.util.exec.SimpleProgress;
-import plugins.Library.util.exec.TaskAbortException;
-
-import freenet.keys.FreenetURI;
-
-import java.util.Map;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileLock;
+
+import plugins.Library.io.ObjectStreamReader;
+import plugins.Library.io.ObjectStreamWriter;
+import plugins.Library.io.serial.Serialiser.Task;
+import plugins.Library.util.exec.SimpleProgress;
+import plugins.Library.util.exec.TaskAbortException;
 
 /**
 ** Converts between a map of {@link String} to {@link Object}, and a file on
