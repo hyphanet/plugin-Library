@@ -100,7 +100,7 @@ implements Archiver<ProtoIndex>,
 //		return srl;
 		
 		// One serialiser per application. See comments above re srl_cls.
-		return new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION, prefix == null ? "" : prefix.getName()+File.separator, ""));
+		return new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION, "", "", prefix));
 	}
 
 	/*@Override**/ public Archiver<Map<String, Object>> getChildSerialiser() {

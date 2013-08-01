@@ -32,6 +32,7 @@ import plugins.Library.io.YamlReaderWriter;
 import freenet.keys.FreenetURI;
 import freenet.node.RequestStarter;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.Set;
 import java.util.Map;
@@ -132,6 +133,7 @@ public class ProtoIndexComponentSerialiser {
 	/**
 	** Get the instance responsible for the given format ID.
 	**
+	** @param archiver The LiveArchiver to use, can be null.
 	** @throws UnsupportedOperationException if the format ID is unrecognised
 	** @throws IllegalStateException if the requirements for creating the
 	**         instance (eg. existence of a freenet node) are not met.
@@ -191,7 +193,7 @@ public class ProtoIndexComponentSerialiser {
 
 	/**
 	** Constructs a new instance using the given format.
-	 * @param archiver 
+	 * @param archiver
 	**
 	** @throws UnsupportedOperationException if the format ID is unrecognised
 	** @throws IllegalStateException if the requirements for creating the
@@ -209,7 +211,7 @@ public class ProtoIndexComponentSerialiser {
 				leaf_arx = Library.makeArchiver(yamlrw, ProtoIndex.MIME_TYPE, 0x180 * ProtoIndex.BTREE_NODE_MIN, priorityClass);
 				break;
 			case FMT_FILE_LOCAL:
-				leaf_arx = new FileArchiver<Map<String, Object>>(yamlrw, true, YamlReaderWriter.FILE_EXTENSION, "", "");
+				leaf_arx = new FileArchiver<Map<String, Object>>(yamlrw, true, YamlReaderWriter.FILE_EXTENSION, "", "", null);
 				break;
 			default:
 				throw new UnsupportedOperationException("Unknown serial format id");

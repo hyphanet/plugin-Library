@@ -64,34 +64,41 @@ implements Archiver<T>, LiveArchiver<T, SimpleProgress> {
 	** Extension of filename (no leading dot).
 	*/
 	final protected String extension;
+	
+	/**
+	 * Folder to put files in.
+	 */
+	final protected File parentDir;
 
 	final protected ObjectStreamReader reader;
 	final protected ObjectStreamWriter writer;
 
-	public <S extends ObjectStreamWriter & ObjectStreamReader> FileArchiver(S rw, String pre, String suf, String ext) {
-		this(rw, rw, pre, suf, ext);
+	public <S extends ObjectStreamWriter & ObjectStreamReader> FileArchiver(S rw, String pre, String suf, String ext, File parent) {
+		this(rw, rw, pre, suf, ext, parent);
 	}
 
-	public <S extends ObjectStreamWriter & ObjectStreamReader> FileArchiver(S rw, boolean rnd, String ext, String prefix, String suffix) {
-		this(rw, rw, rnd, ext, prefix, suffix);
+	public <S extends ObjectStreamWriter & ObjectStreamReader> FileArchiver(S rw, boolean rnd, String ext, String prefix, String suffix, File parent) {
+		this(rw, rw, rnd, ext, prefix, suffix, parent);
 	}
 
-	public FileArchiver(ObjectStreamReader r, ObjectStreamWriter w, String pre, String suf, String ext) {
+	public FileArchiver(ObjectStreamReader r, ObjectStreamWriter w, String pre, String suf, String ext, File parent) {
 		reader = r;
 		writer = w;
 		prefix = (pre == null)? "": pre;
 		suffix = (suf == null)? "": suf;
 		extension = (ext == null)? "": ext;
 		random = false;
+		parentDir = parent;
 	}
 
-	public FileArchiver(ObjectStreamReader r, ObjectStreamWriter w, boolean rnd, String ext, String prefix, String suffix) {
+	public FileArchiver(ObjectStreamReader r, ObjectStreamWriter w, boolean rnd, String ext, String prefix, String suffix, File parent) {
 		reader = r;
 		writer = w;
 		this.suffix = suffix;
 		this.prefix = prefix;
 		extension = (ext == null)? "": ext;
 		random = rnd;
+		parentDir = parent;
 	}
 
 	protected File getFile(Object meta) {
@@ -118,7 +125,7 @@ implements Archiver<T>, LiveArchiver<T, SimpleProgress> {
 			throw new IllegalArgumentException("FileArchiver does not support such metadata: " + meta);
 		}
 
-		return new File(prefix + main + suffix + part + extension);
+		return new File(parentDir, prefix + main + suffix + part + extension);
 	}
 
 	/*========================================================================
