@@ -43,6 +43,7 @@ import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Logger;
 import freenet.support.MutableBoolean;
 import freenet.support.SimpleFieldSet;
+import freenet.support.TimeUtil;
 import freenet.support.api.Bucket;
 import freenet.support.io.BucketTools;
 import freenet.support.io.Closer;
@@ -428,6 +429,8 @@ public class SpiderIndexUploader {
 				
 			};
 			pr.getNode().executor.execute(r, "Library: Merge data from disk to Freenet");
+			} else {
+			    System.out.println("Not merging to Freenet yet: "+idxDisk.ttab.size()+" terms in index, "+mergedToDisk+" merges, "+(lastMergedToFreenet <= 0 ? "never merged to Freenet" : ("last merged to Freenet "+TimeUtil.formatTime(System.currentTimeMillis() - lastMergedToFreenet))+"ago"));
 			}
 		} catch (TaskAbortException e) {
 			Logger.error(this, "Failed to upload index for spider: "+e, e);
