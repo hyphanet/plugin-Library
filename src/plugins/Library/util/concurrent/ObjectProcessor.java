@@ -324,7 +324,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 					    // FIXME for small jobs, such as merging to disk in SpiderIndexUploader, this can 
 					    // dominate the execution time!
 					    // FIXME the executors are perfectly capable of limiting the number of threads running...
-						Thread.sleep(1000);
+						Thread.sleep(100);
 					} catch (InterruptedException e) {
 						// TODO LOW log this somewhere
 					}
