@@ -541,7 +541,7 @@ implements MapSerialiser<K, T>,
 					// task was marked as redundant by child serialiser
 					tasks.remove(en.getKey());
 				} else if (bintask.data == null || (task.data = bintask.data.remove(en.getKey())) == null) {
-					throw new TaskAbortException("Packer did not find the element (" + en.getKey() + ") in the expected bin (" + scale.readMetaID(task.meta) + "). Either the data is corrupt, or the child serialiser is buggy.", null);
+					throw new TaskAbortException("Packer did not find the element (" + en.getKey() + ") in the expected bin (" + scale.readMetaID(task.meta) + "). Either the data is corrupt, or the child serialiser is buggy.", new Exception("internal error"));
 				}
 			}
 
@@ -551,7 +551,7 @@ implements MapSerialiser<K, T>,
 				PullTask<Map<K, T>> bintask = en.getValue();
 				for (Map.Entry<K, T> el: bintask.data.entrySet()) {
 					if (tasks.containsKey(el.getKey())) {
-						throw new TaskAbortException("Packer found an extra unexpected element (" + el.getKey() + ") inside a bin (" + en.getKey() + "). Either the data is corrupt, or the child serialiser is buggy.", null);
+						throw new TaskAbortException("Packer found an extra unexpected element (" + el.getKey() + ") inside a bin (" + en.getKey() + "). Either the data is corrupt, or the child serialiser is buggy.", new Exception("internal error"));
 					}
 					PullTask<T> task = new PullTask<T>(scale.makeMeta(en.getKey(), scale.weigh(el.getValue())));
 					task.data = el.getValue();
