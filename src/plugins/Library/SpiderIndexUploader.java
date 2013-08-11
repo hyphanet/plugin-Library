@@ -43,6 +43,7 @@ import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Logger;
 import freenet.support.MutableBoolean;
 import freenet.support.SimpleFieldSet;
+import freenet.support.TimeUtil;
 import freenet.support.api.Bucket;
 import freenet.support.io.BucketTools;
 import freenet.support.io.Closer;
@@ -81,11 +82,15 @@ public class SpiderIndexUploader {
 	/** idxDisk gets merged into idxFreenet this long after the last merge completed. */
 	static final long MAX_TIME = 24*60*60*1000L;
 	/** idxDisk gets merged into idxFreenet after this many incoming updates from Spider. */
-	static final int MAX_UPDATES = 32;
+	static final int MAX_UPDATES = 16;
 	/** idxDisk gets merged into idxFreenet after it has grown to this many terms.
 	 * Note that the entire main tree of terms (not the sub-trees with the positions and urls in) must
 	 * fit into memory during the merge process. */
 	static final int MAX_TERMS = 100*1000;
+    /** idxDisk gets merged into idxFreenet after it has grown to this many terms.
+     * Note that the entire main tree of terms (not the sub-trees with the positions and urls in) must
+     * fit into memory during the merge process. */
+    static final int MAX_TERMS_NOT_UPLOADED = 10*1000;
 	/** Maximum size of a single entry, in TermPageEntry count, on disk. If we exceed this we force an
 	 * insert-to-freenet and move on to a new disk index. The problem is that the merge to Freenet has 
 	 * to keep the whole of each entry in RAM. This is only true for the data being merged in - the 
@@ -376,7 +381,9 @@ public class SpiderIndexUploader {
 			}
 			
 			mergedToDisk++;
-			if(idxDisk.ttab.size() > MAX_TERMS || mergedToDisk > MAX_UPDATES || termTooBig || 
+			if((lastMergedToFreenet > 0 && idxDisk.ttab.size() > MAX_TERMS) || 
+			        (idxDisk.ttab.size() > MAX_TERMS_NOT_UPLOADED)
+			        || (mergedToDisk > MAX_UPDATES) || termTooBig || 
 					(lastMergedToFreenet > 0 && (System.currentTimeMillis() - lastMergedToFreenet) > MAX_TIME)) {
 				
 				final ProtoIndex diskToMerge = idxDisk;
@@ -428,6 +435,8 @@ public class SpiderIndexUploader {
 				
 			};
 			pr.getNode().executor.execute(r, "Library: Merge data from disk to Freenet");
+			} else {
+			    System.out.println("Not merging to Freenet yet: "+idxDisk.ttab.size()+" terms in index, "+mergedToDisk+" merges, "+(lastMergedToFreenet <= 0 ? "never merged to Freenet" : ("last merged to Freenet "+TimeUtil.formatTime(System.currentTimeMillis() - lastMergedToFreenet))+"ago"));
 			}
 		} catch (TaskAbortException e) {
 			Logger.error(this, "Failed to upload index for spider: "+e, e);
@@ -447,7 +456,7 @@ public class SpiderIndexUploader {
 		ProtoIndexSerialiser s = ProtoIndexSerialiser.forIndex(diskDir);
 		LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
 			(LiveArchiver<Map<String,Object>,SimpleProgress>)(s.getChildSerialiser());
-		ProtoIndexComponentSerialiser leaf = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, null);
+		ProtoIndexComponentSerialiser leaf = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, archiver);
 		String f = null;
 		FileInputStream fis = null;
 		try {

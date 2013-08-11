@@ -45,7 +45,9 @@ public class TermEntryTest extends TestCase {
 	final static TermTermEntry y  = new TermTermEntry("test", 0.8f, "lol2");
 
 	public void testBasic() throws TaskAbortException {
-		FileArchiver<Map<String, Object>> ym = new FileArchiver<Map<String, Object>>(new YamlReaderWriter(), "test", null, ".yml");
+	    File f = new File("TermEntryTest");
+	    f.mkdir();
+		FileArchiver<Map<String, Object>> ym = new FileArchiver<Map<String, Object>>(new YamlReaderWriter(), "test", null, ".yml", f);
 
 		Map<String, Object> map = new HashMap<String, Object>();
 

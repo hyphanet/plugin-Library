@@ -56,10 +56,18 @@ public class BIndexTest extends TestCase {
 		time = System.currentTimeMillis();
 		return time - oldtime;
 	}
-
-	ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex((File)null);
-	ProtoIndexComponentSerialiser csrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, null);
-	ProtoIndex idx;
+	
+	public BIndexTest() {
+	    f = new File("BindexTest");
+	    f.mkdir();
+	    srl = ProtoIndexSerialiser.forIndex(f);
+	    csrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, srl.getChildSerialiser());
+	}
+	
+	private final File f;
+	private final ProtoIndexSerialiser srl; 
+	private final ProtoIndexComponentSerialiser csrl;
+	private ProtoIndex idx;
 
 	Set<String> randomWords = new HashSet<String>(Arrays.asList(
 		"Lorem", "ipsum", "dolor", "sit", "amet,", "consectetur", "adipisicing",

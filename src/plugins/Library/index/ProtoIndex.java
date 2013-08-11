@@ -220,7 +220,7 @@ final public class ProtoIndex implements Index {
 
 				if (root == null) {
 					// TODO HIGH better way to handle this
-					throw new TaskAbortException("Index does not contain term " + subject, null);
+					throw new TaskAbortException("Index does not contain term " + subject, new Exception("Index does not contain term " + subject));
 				}
 				last = root.getProgressInflate(); // REMOVE ME
 				root.inflate();

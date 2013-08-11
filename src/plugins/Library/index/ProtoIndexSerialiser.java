@@ -7,6 +7,7 @@ import plugins.Library.Library;
 import plugins.Library.client.FreenetArchiver;
 import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
+import plugins.Library.util.exec.SimpleProgress;
 import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.io.serial.LiveArchiver;
@@ -50,10 +51,10 @@ implements Archiver<ProtoIndex>,
 	final protected Translator<ProtoIndex, Map<String, Object>>
 	trans;
 
-	final protected Archiver<Map<String, Object>>
+	final protected LiveArchiver<Map<String, Object>, SimpleProgress> 
 	subsrl;
 
-	public ProtoIndexSerialiser(Archiver<Map<String, Object>> s) {
+	public ProtoIndexSerialiser(LiveArchiver<Map<String, Object>, SimpleProgress> s) {
 		subsrl = s;
 		trans = new IndexTranslator(subsrl);
 	}
@@ -99,10 +100,14 @@ implements Archiver<ProtoIndex>,
 //		return srl;
 		
 		// One serialiser per application. See comments above re srl_cls.
+<<<<<<< HEAD
 		return new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION, prefix == null ? "" : prefix.toString()+File.separator, ""));
+=======
+		return new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION, "", "", prefix));
+>>>>>>> upstream/master
 	}
 
-	/*@Override**/ public Archiver<Map<String, Object>> getChildSerialiser() {
+	/*@Override**/ public LiveArchiver<Map<String, Object>, SimpleProgress> getChildSerialiser() {
 		return subsrl;
 	}
 
@@ -148,9 +153,9 @@ implements Archiver<ProtoIndex>,
 		SkeletonBTreeMap.TreeTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null, new
 		ProtoIndexComponentSerialiser.TreeMapTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null));
 
-		private Archiver<Map<String, Object>> subsrl;
+		private LiveArchiver<Map<String, Object>, SimpleProgress> subsrl;
 		
-		public IndexTranslator(Archiver<Map<String, Object>> subsrl) {
+		public IndexTranslator(LiveArchiver<Map<String, Object>, SimpleProgress> subsrl) {
 			this.subsrl = subsrl;
 		}
 
@@ -191,7 +196,7 @@ implements Archiver<ProtoIndex>,
 			if (magic == ProtoIndex.serialVersionUID) {
 				try {
 					// FIXME yet more hacks related to the lack of proper asynchronous FreenetArchiver...
-					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"), subsrl instanceof LiveArchiver ? ((LiveArchiver)subsrl) : null);
+					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"), subsrl);
 					FreenetURI reqID = (FreenetURI)map.get("reqID");
 					String name = (String)map.get("name");
 					String ownerName = (String)map.get("ownerName");

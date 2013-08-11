@@ -531,7 +531,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				while((b = bis.read()) != -1) {
 					if(mode == MODE_SEEKING_DECLARATION) {
 						if(declarationPtr == declarationBuf.length)
-							throw new TaskAbortException("Could not split up XML: declaration too long", null);
+							throw new TaskAbortException("Could not split up XML: declaration too long", new Exception("bad xml"));
 						declarationBuf[declarationPtr++] = (byte)b;
 						mainOS.write(b);
 						filesOS.write(b);
@@ -573,7 +573,7 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 				}
 				
 				if(mode != MODE_COPYING_REST)
-					throw new TaskAbortException("Could not split up XML: Last mode was "+mode, null);
+					throw new TaskAbortException("Could not split up XML: Last mode was "+mode, new Exception("bad xml"));
 				
 				mainOS.close();
 				filesOS.close();
