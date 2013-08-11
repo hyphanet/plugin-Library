@@ -67,6 +67,7 @@ import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.net.MalformedURLException;
 import java.security.MessageDigest;
 import plugins.Library.index.TermEntryReaderWriter;
 import plugins.Library.index.xml.LibrarianHandler;
@@ -85,6 +86,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	private Library library;
 	private WebInterface webinterface;
 	private SpiderIndexUploader uploader;
+	private IdentityIndexUploader uploaderCur;
 	
 	static volatile boolean logMINOR;
 	static volatile boolean logDEBUG;
@@ -189,6 +191,14 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	public void handle(PluginReplySender replysender, SimpleFieldSet params, final Bucket data, int accesstype) {
 		if("pushBuffer".equals(params.get("command"))){
 			uploader.handlePushBuffer(params, data);
+		} else if("pushBufferCur".equals(params.get("command"))) {		
+			try{
+				uploaderCur = new IdentityIndexUploader(pr, params.get("insertURI"),params.get("hashPubKey")); //TODO replaced by Identity	
+				uploaderCur.start();
+				uploaderCur.handlePushBuffer(data);					
+			} catch (MalformedURLException e) {
+					Logger.error(this, "Malformed URI ", e);
+			}
 		} else if("getSpiderURI".equals(params.get("command"))) {
 			uploader.handleGetSpiderURI(replysender);
 		} else {
