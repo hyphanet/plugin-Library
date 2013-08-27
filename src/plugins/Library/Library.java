@@ -203,6 +203,7 @@ final public class Library implements URLUpdateHook {
 		inner = store.subStores.get(STOREKEY);
 		if(inner == null)
 			store.subStores.put(STOREKEY, inner = new PluginStore());
+		inner.strings.clear();
 		inner.strings.putAll(bookmarks);
 		try {
 			pr.putStore(store);
