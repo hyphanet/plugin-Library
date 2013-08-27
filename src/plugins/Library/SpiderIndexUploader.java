@@ -342,8 +342,8 @@ public class SpiderIndexUploader {
             fos = null;
             return true;
         } catch (IOException e) {
-            Logger.error(this, "Failed to write filename of uploaded index: "+uri, e);
-            System.out.println("Failed to write filename of uploaded index: "+uri+" : "+e);
+            Logger.error(this, "Failed to write to "+filename+" : "+uri, e);
+            System.out.println("Failed to write to "+filename+" : "+uri+" : "+e);
             return false;
         } finally {
             Closer.close(fos);
@@ -357,7 +357,6 @@ public class SpiderIndexUploader {
             fis = new FileInputStream(file);
             BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
             ret = br.readLine();
-            System.out.println("Continuing from last index CHK: "+lastUploadURI);
             fis.close();
             fis = null;
             return ret;
