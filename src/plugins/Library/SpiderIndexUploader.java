@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -349,23 +350,35 @@ public class SpiderIndexUploader {
         }
     }
 
-    private FreenetURI readURIFrom(File file) {
-        FreenetURI uri;
+    private String readStringFrom(File file) {
+        String ret;
         FileInputStream fis = null;
         try {
             fis = new FileInputStream(file);
             BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
-            uri = new FreenetURI(br.readLine());
+            ret = br.readLine();
             System.out.println("Continuing from last index CHK: "+lastUploadURI);
             fis.close();
             fis = null;
-            return uri;
+            return ret;
         } catch (IOException e) {
             // Ignore
             return null;
         } finally {
             Closer.close(fis);
         }
+    }
+    
+    private FreenetURI readURIFrom(File file) {
+        String s = readStringFrom(file);
+        if(s != null) {
+            try {
+                return new FreenetURI(s);
+            } catch (MalformedURLException e) {
+                // Ignore.
+            }
+        }
+        return null;
     }
 
     /** Create a callback object which will do the merging of individual terms. This will be called 
@@ -534,27 +547,17 @@ public class SpiderIndexUploader {
 		LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
 			(LiveArchiver<Map<String,Object>,SimpleProgress>)(s.getChildSerialiser());
 		ProtoIndexComponentSerialiser leaf = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, archiver);
-		String f = null;
-		FileInputStream fis = null;
-		try {
-			fis = new FileInputStream(new File(diskDir, LAST_DISK_FILENAME));
-			BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
-			f = br.readLine();
-			System.out.println("Continuing old bucket: "+f);
-			fis.close();
-			fis = null;
-		} catch (IOException e) {
-		    if(diskDir.list().length == 0) {
-		        System.err.println("Directory "+diskDir+" is empty. Nothing to merge.");
-		        diskDir.delete();
-		        return;
-		    }
-			// Ignore
-			System.err.println("Unable to merge old data "+diskDir+" : "+e);
-			e.printStackTrace();
-			Logger.error(this, "Unable to merge old data "+diskDir+" : "+e, e);
-		} finally {
-			Closer.close(fis);
+		String f = this.readStringFrom(new File(diskDir, LAST_DISK_FILENAME));
+		if(f == null) {
+            if(diskDir.list().length == 0) {
+                System.err.println("Directory "+diskDir+" is empty. Nothing to merge.");
+                diskDir.delete();
+                return;
+            }
+            // Ignore
+            System.err.println("Unable to merge old data "+diskDir);
+		} else {
+            System.out.println("Continuing old bucket: "+f);
 		}
 
 		ProtoIndex idxDisk = null;
