@@ -556,6 +556,7 @@ public class SpiderIndexUploader {
             }
             // Ignore
             System.err.println("Unable to merge old data "+diskDir);
+            return;
 		} else {
             System.out.println("Continuing old bucket: "+f);
 		}
