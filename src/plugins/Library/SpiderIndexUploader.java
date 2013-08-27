@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -168,7 +169,7 @@ public class SpiderIndexUploader {
 	}
 
 	// This is a member variable because it is huge, and having huge stuff in local variables seems to upset the default garbage collector.
-	// It doesn't need to be synchronized because it's always used from innerInnerHandle, which never runs in parallel.
+	// It doesn't need to be synchronized because it's always used from mergeToDisk, which never runs in parallel.
 	private Map<String, SortedSet<TermEntry>> newtrees;
 	// Ditto
 	private SortedSet<String> terms;
@@ -178,90 +179,20 @@ public class SpiderIndexUploader {
 	
 	private long lastMergedToFreenet = -1;
 	
+	/** Merge a bucket of TermEntry's into an on-disk index. */
 	private void mergeToDisk(Bucket data) {
 		
 		boolean newIndex = false;
 		
 		if(idxDiskDir == null) {
 			newIndex = true;
-			dirNumber++;
-			idxDiskDir = new File(DISK_DIR_PREFIX + Integer.toString(dirNumber));
-			System.out.println("Created new disk dir for merging: "+idxDiskDir);
-			if(!(idxDiskDir.mkdir() || idxDiskDir.isDirectory())) {
-				Logger.error(this, "Unable to create new disk dir: "+idxDiskDir);
-				synchronized(this) {
-					pushBroken = true;
-					return;
-				}
-			}
+			if(!createDiskDir()) return;
 		}
-		if(srlDisk == null) {
-			srlDisk = ProtoIndexSerialiser.forIndex(idxDiskDir);
-			LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
-				(LiveArchiver<Map<String,Object>,SimpleProgress>)(srlDisk.getChildSerialiser());
-			leafsrlDisk = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, archiver);
-			if(lastDiskIndexName == null) {
-				try {
-					idxDisk = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0L);
-				} catch (java.net.MalformedURLException e) {
-					throw new AssertionError(e);
-				}
-				// FIXME more hacks: It's essential that we use the same FileArchiver instance here.
-				leafsrlDisk.setSerialiserFor(idxDisk);
-			} else {
-				try {
-					PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(lastDiskIndexName);
-					System.out.println("Pulling previous index "+lastDiskIndexName+" from disk so can update it.");
-					srlDisk.pull(pull);
-					System.out.println("Pulled previous index "+lastDiskIndexName+" from disk - updating...");
-					idxDisk = pull.data;
-					if(idxDisk.getSerialiser().getLeafSerialiser() != archiver)
-						throw new IllegalStateException("Different serialiser: "+idxFreenet.getSerialiser()+" should be "+leafsrl);
-				} catch (TaskAbortException e) {
-					Logger.error(this, "Failed to download previous index for spider update: "+e, e);
-					System.err.println("Failed to download previous index for spider update: "+e);
-					e.printStackTrace();
-					synchronized(freenetMergeSync) {
-						pushBroken = true;
-					}
-					return;
-				}
-			}
-		}
+		
+		if(!makeDiskDirSerialiser()) return;
 		
 		// Read data into newtrees and trees.
-		
-		FileWriter w = null;
-		newtrees = new HashMap<String, SortedSet<TermEntry>>();
-		terms = new TreeSet<String>();
-		int entriesAdded = 0;
-		InputStream is = null;
-		try {
-			Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes");
-			is = data.getInputStream();
-			SimpleFieldSet fs = new SimpleFieldSet(new LineReadingInputStream(is), 1024, 512, true, true, true);
-			idxDisk.setName(fs.get("index.title"));
-			idxDisk.setOwnerEmail(fs.get("index.owner.email"));
-			idxDisk.setOwner(fs.get("index.owner.name"));
-			idxDisk.setTotalPages(fs.getLong("totalPages", -1));
-			try{
-				while(true){	// Keep going til an EOFExcepiton is thrown
-					TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
-					SortedSet<TermEntry> set = newtrees.get(readObject.subj);
-					if(set == null)
-						newtrees.put(readObject.subj, set = new TreeSet<TermEntry>());
-					set.add(readObject);
-					terms.add(readObject.subj);
-					entriesAdded++;
-				}
-			}catch(EOFException e){
-				// EOF, do nothing
-			}
-		} catch (IOException ex) {
-			java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
-		} finally {
-			Closer.close(is);
-		}
+		long entriesAdded = readTermsFrom(data);
 		
 		if(terms.size() == 0) {
 			System.out.println("Nothing to merge");
@@ -272,60 +203,19 @@ public class SpiderIndexUploader {
 			return;
 		}
 		
-		
-		
-		// Do the upload
+		// Merge the new data to the disk index.
 		
 		try {
 			final MutableBoolean maxDiskEntrySizeExceeded = new MutableBoolean();
 			maxDiskEntrySizeExceeded.value = false;
 			long mergeStartTime = System.currentTimeMillis();
 			if(newIndex) {
-				// created a new index, fill it with data.
-				// DON'T MERGE, merge with a lot of data will deadlock.
-				// FIXME throw in update() if it will deadlock.
-				for(String key : terms) {
-					SkeletonBTreeSet<TermEntry> tree = makeEntryTree(leafsrlDisk);
-					SortedSet<TermEntry> toMerge = newtrees.get(key);
-					tree.addAll(toMerge);
-					if(toMerge.size() > MAX_DISK_ENTRY_SIZE)
-						maxDiskEntrySizeExceeded.value = true;
-					toMerge = null;
-					tree.deflate();
-					assert(tree.isBare());
-					idxDisk.ttab.put(key, tree);
-				}
-				idxDisk.ttab.deflate();
+			    if(createDiskIndex())
+			        maxDiskEntrySizeExceeded.value = true;
 			} else {
 				// async merge
-				Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo = new
-				Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
-					/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
-						String key = entry.getKey();
-						SkeletonBTreeSet<TermEntry> tree = entry.getValue();
-						if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
-						if(tree != null)
-							System.out.println("Merging data (on disk) in term "+key);
-						else
-							System.out.println("Adding new term to disk index:  "+key);
-						//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
-						if (tree == null) {
-							entry.setValue(tree = makeEntryTree(leafsrlDisk));
-						}
-						assert(tree.isBare());
-						SortedSet<TermEntry> toMerge = newtrees.get(key);
-						tree.update(toMerge, null);
-						if(toMerge.size() > MAX_DISK_ENTRY_SIZE)
-							synchronized(maxDiskEntrySizeExceeded) {
-								maxDiskEntrySizeExceeded.value = true;
-							}
-						toMerge = null;
-						newtrees.remove(key);
-						assert(tree.isBare());
-						if(logMINOR) Logger.minor(this, "Updated: "+key+" : "+tree);
-						//System.out.println("handled " + key);
-					}
-				};
+				Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo =
+				    createMergeFromNewtreesClosure(maxDiskEntrySizeExceeded);
 				assert(idxDisk.ttab.isBare());
 				System.out.println("Merging "+terms.size()+" terms, tree.size = "+idxDisk.ttab.size()+" from "+data+"...");
 				idxDisk.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
@@ -346,98 +236,13 @@ public class SpiderIndexUploader {
 			String uri = (String)task4.meta;
 			lastDiskIndexName = uri;
 			System.out.println("Pushed new index to file "+uri);
-			FileOutputStream fos = null;
-			try {
-				fos = new FileOutputStream(LAST_DISK_FILENAME);
-				OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-				osw.write(uri.toString());
-				osw.close();
-				fos = null;
-				data.free();
-			} catch (IOException e) {
-				Logger.error(this, "Failed to write filename of uploaded index: "+uri, e);
-				System.out.println("Failed to write filename of uploaded index: "+uri+" : "+e);
-			} finally {
-				Closer.close(fos);
-			}
-			try {
-				fos = new FileOutputStream(new File(idxDiskDir, LAST_DISK_FILENAME));
-				OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-				osw.write(uri.toString());
-				osw.close();
-				fos = null;
-			} catch (IOException e) {
-				Logger.error(this, "Failed to write filename of uploaded index: "+uri, e);
-				System.out.println("Failed to write filename of uploaded index: "+uri+" : "+e);
-			} finally {
-				Closer.close(fos);
+			if(writeURITo(new File(LAST_DISK_FILENAME), uri) &&
+			        writeURITo(new File(idxDiskDir, LAST_DISK_FILENAME), uri)) {
+			    // Successfully uploaded and written new status. Can delete the incoming data.
+			    data.free();
 			}
 			
-			// Maybe chain to mergeToFreenet ???
-			
-			boolean termTooBig = false;
-			synchronized(maxDiskEntrySizeExceeded) {
-				termTooBig = maxDiskEntrySizeExceeded.value;
-			}
-			
-			mergedToDisk++;
-			if((lastMergedToFreenet > 0 && idxDisk.ttab.size() > MAX_TERMS) || 
-			        (idxDisk.ttab.size() > MAX_TERMS_NOT_UPLOADED)
-			        || (mergedToDisk > MAX_UPDATES) || termTooBig || 
-					(lastMergedToFreenet > 0 && (System.currentTimeMillis() - lastMergedToFreenet) > MAX_TIME)) {
-				
-				final ProtoIndex diskToMerge = idxDisk;
-				final File dir = idxDiskDir;
-				System.out.println("Exceeded threshold, starting new disk index and starting merge from disk to Freenet...");
-				mergedToDisk = 0;
-				lastMergedToFreenet = -1;
-				idxDisk = null;
-				srlDisk = null;
-				leafsrlDisk = null;
-				idxDiskDir = null;
-				lastDiskIndexName = null;
-				
-			synchronized(freenetMergeSync) {
-				while(freenetMergeRunning) {
-					if(pushBroken) return;
-					System.err.println("Need to merge to Freenet, but last merge not finished yet. Waiting...");
-					try {
-						freenetMergeSync.wait();
-					} catch (InterruptedException e) {
-						// Ignore
-					}
-				}
-				if(pushBroken) return;
-				freenetMergeRunning = true;
-			}
-			
-			Runnable r = new Runnable() {
-				
-				public void run() {
-					try {
-						mergeToFreenet(diskToMerge, dir);
-					} catch (Throwable t) {
-						Logger.error(this, "Merge to Freenet failed: "+t, t);
-						System.err.println("Merge to Freenet failed: "+t);
-						t.printStackTrace();
-						synchronized(freenetMergeSync) {
-							pushBroken = true;
-						}
-					} finally {
-						synchronized(freenetMergeSync) {
-							freenetMergeRunning = false;
-							if(!pushBroken)
-								lastMergedToFreenet = System.currentTimeMillis();
-							freenetMergeSync.notifyAll();
-						}
-					}
-				}
-				
-			};
-			pr.getNode().executor.execute(r, "Library: Merge data from disk to Freenet");
-			} else {
-			    System.out.println("Not merging to Freenet yet: "+idxDisk.ttab.size()+" terms in index, "+mergedToDisk+" merges, "+(lastMergedToFreenet <= 0 ? "never merged to Freenet" : ("last merged to Freenet "+TimeUtil.formatTime(System.currentTimeMillis() - lastMergedToFreenet))+"ago"));
-			}
+			maybeMergeToFreenet(maxDiskEntrySizeExceeded);
 		} catch (TaskAbortException e) {
 			Logger.error(this, "Failed to upload index for spider: "+e, e);
 			System.err.println("Failed to upload index for spider: "+e);
@@ -448,7 +253,254 @@ public class SpiderIndexUploader {
 		}
 	}
 
-	static final String INDEX_DOCNAME = "index.yml";
+	/** We have just written a Bucket of new data to an on-disk index. We may or may not want to
+	 * upload to an on-Freenet index, depending on how big the data is etc. If we do, we will need
+	 * to create a new on-disk index.
+	 * @param maxDiskEntrySizeExceeded A flag object which is set (off-thread) if any single term 
+	 * in the index is very large.
+	 */
+	private void maybeMergeToFreenet(MutableBoolean maxDiskEntrySizeExceeded) {
+        // Maybe chain to mergeToFreenet ???
+        
+        boolean termTooBig = false;
+        synchronized(maxDiskEntrySizeExceeded) {
+            termTooBig = maxDiskEntrySizeExceeded.value;
+        }
+        
+        mergedToDisk++;
+        if((lastMergedToFreenet > 0 && idxDisk.ttab.size() > MAX_TERMS) || 
+                (idxDisk.ttab.size() > MAX_TERMS_NOT_UPLOADED)
+                || (mergedToDisk > MAX_UPDATES) || termTooBig || 
+                (lastMergedToFreenet > 0 && (System.currentTimeMillis() - lastMergedToFreenet) > MAX_TIME)) {
+            
+            final ProtoIndex diskToMerge = idxDisk;
+            final File dir = idxDiskDir;
+            System.out.println("Exceeded threshold, starting new disk index and starting merge from disk to Freenet...");
+            mergedToDisk = 0;
+            lastMergedToFreenet = -1;
+            idxDisk = null;
+            srlDisk = null;
+            leafsrlDisk = null;
+            idxDiskDir = null;
+            lastDiskIndexName = null;
+            
+        synchronized(freenetMergeSync) {
+            while(freenetMergeRunning) {
+                if(pushBroken) return;
+                System.err.println("Need to merge to Freenet, but last merge not finished yet. Waiting...");
+                try {
+                    freenetMergeSync.wait();
+                } catch (InterruptedException e) {
+                    // Ignore
+                }
+            }
+            if(pushBroken) return;
+            freenetMergeRunning = true;
+        }
+        
+        Runnable r = new Runnable() {
+            
+            public void run() {
+                try {
+                    mergeToFreenet(diskToMerge, dir);
+                } catch (Throwable t) {
+                    Logger.error(this, "Merge to Freenet failed: "+t, t);
+                    System.err.println("Merge to Freenet failed: "+t);
+                    t.printStackTrace();
+                    synchronized(freenetMergeSync) {
+                        pushBroken = true;
+                    }
+                } finally {
+                    synchronized(freenetMergeSync) {
+                        freenetMergeRunning = false;
+                        if(!pushBroken)
+                            lastMergedToFreenet = System.currentTimeMillis();
+                        freenetMergeSync.notifyAll();
+                    }
+                }
+            }
+            
+        };
+        pr.getNode().executor.execute(r, "Library: Merge data from disk to Freenet");
+        } else {
+            System.out.println("Not merging to Freenet yet: "+idxDisk.ttab.size()+" terms in index, "+mergedToDisk+" merges, "+(lastMergedToFreenet <= 0 ? "never merged to Freenet" : ("last merged to Freenet "+TimeUtil.formatTime(System.currentTimeMillis() - lastMergedToFreenet))+"ago"));
+        }
+    }
+
+    private boolean writeURITo(File filename, String uri) {
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(filename);
+            OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
+            osw.write(uri.toString());
+            osw.close();
+            fos = null;
+            return true;
+        } catch (IOException e) {
+            Logger.error(this, "Failed to write filename of uploaded index: "+uri, e);
+            System.out.println("Failed to write filename of uploaded index: "+uri+" : "+e);
+            return false;
+        } finally {
+            Closer.close(fos);
+        }
+    }
+
+    /** Create a callback object which will do the merging of individual terms. This will be called 
+	 * for each term as it is unpacked from the existing on-disk index. It then merges in new data
+	 * from newtrees and writes the subtree for the term back to disk. Most of the work is done in
+	 * update() below. 
+	 * @param maxDiskEntrySizeExceeded Will be set if any single term is so large that we need to
+	 * upload to Freenet immediately. */
+	private Closure<Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> createMergeFromNewtreesClosure(final MutableBoolean maxDiskEntrySizeExceeded) {
+        return new
+        Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
+            /*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
+                String key = entry.getKey();
+                SkeletonBTreeSet<TermEntry> tree = entry.getValue();
+                if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
+                if(tree != null)
+                    System.out.println("Merging data (on disk) in term "+key);
+                else
+                    System.out.println("Adding new term to disk index:  "+key);
+                //System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
+                if (tree == null) {
+                    entry.setValue(tree = makeEntryTree(leafsrlDisk));
+                }
+                assert(tree.isBare());
+                SortedSet<TermEntry> toMerge = newtrees.get(key);
+                tree.update(toMerge, null);
+                if(toMerge.size() > MAX_DISK_ENTRY_SIZE)
+                    synchronized(maxDiskEntrySizeExceeded) {
+                        maxDiskEntrySizeExceeded.value = true;
+                    }
+                toMerge = null;
+                newtrees.remove(key);
+                assert(tree.isBare());
+                if(logMINOR) Logger.minor(this, "Updated: "+key+" : "+tree);
+                //System.out.println("handled " + key);
+            }
+        };
+    }
+
+    /** Create a new on-disk index from terms and newtrees.
+	 * @return True if the size of any one item in the index is so large that we must upload
+	 * immediately to Freenet. 
+	 * @throws TaskAbortException If something broke catastrophically. */
+	private boolean createDiskIndex() throws TaskAbortException {
+	    boolean tooBig = false;
+        // created a new index, fill it with data.
+        // DON'T MERGE, merge with a lot of data will deadlock.
+        // FIXME throw in update() if it will deadlock.
+        for(String key : terms) {
+            SkeletonBTreeSet<TermEntry> tree = makeEntryTree(leafsrlDisk);
+            SortedSet<TermEntry> toMerge = newtrees.get(key);
+            tree.addAll(toMerge);
+            if(toMerge.size() > MAX_DISK_ENTRY_SIZE)
+                tooBig = true;
+            toMerge = null;
+            tree.deflate();
+            assert(tree.isBare());
+            idxDisk.ttab.put(key, tree);
+        }
+        idxDisk.ttab.deflate();
+        return tooBig;
+    }
+
+    /** Read the TermEntry's from the Bucket into newtrees and terms, and set up the index
+	 * properties.
+	 * @param data The Bucket containing TermPageEntry's etc serialised with TermEntryReaderWriter.
+	 */
+    private long readTermsFrom(Bucket data) {
+        FileWriter w = null;
+        newtrees = new HashMap<String, SortedSet<TermEntry>>();
+        terms = new TreeSet<String>();
+        int entriesAdded = 0;
+        InputStream is = null;
+        try {
+            Logger.normal(this, "Bucket of buffer received, "+data.size()+" bytes");
+            is = data.getInputStream();
+            SimpleFieldSet fs = new SimpleFieldSet(new LineReadingInputStream(is), 1024, 512, true, true, true);
+            idxDisk.setName(fs.get("index.title"));
+            idxDisk.setOwnerEmail(fs.get("index.owner.email"));
+            idxDisk.setOwner(fs.get("index.owner.name"));
+            idxDisk.setTotalPages(fs.getLong("totalPages", -1));
+            try{
+                while(true){    // Keep going til an EOFExcepiton is thrown
+                    TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
+                    SortedSet<TermEntry> set = newtrees.get(readObject.subj);
+                    if(set == null)
+                        newtrees.put(readObject.subj, set = new TreeSet<TermEntry>());
+                    set.add(readObject);
+                    terms.add(readObject.subj);
+                    entriesAdded++;
+                }
+            }catch(EOFException e){
+                // EOF, do nothing
+            }
+        } catch (IOException ex) {
+            java.util.logging.Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+        } finally {
+            Closer.close(is);
+        }
+        return entriesAdded;
+    }
+
+    /** Create a directory for an on-disk index.
+     * @return False if something broke and we can't continue. */
+	private boolean createDiskDir() {
+        dirNumber++;
+        idxDiskDir = new File(DISK_DIR_PREFIX + Integer.toString(dirNumber));
+        System.out.println("Created new disk dir for merging: "+idxDiskDir);
+        if(!(idxDiskDir.mkdir() || idxDiskDir.isDirectory())) {
+            Logger.error(this, "Unable to create new disk dir: "+idxDiskDir);
+            synchronized(this) {
+                pushBroken = true;
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Set up the serialisers for an on-disk index.
+     * @return False if something broke and we can't continue. */
+    private boolean makeDiskDirSerialiser() {
+        if(srlDisk == null) {
+            srlDisk = ProtoIndexSerialiser.forIndex(idxDiskDir);
+            LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
+                (LiveArchiver<Map<String,Object>,SimpleProgress>)(srlDisk.getChildSerialiser());
+            leafsrlDisk = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, archiver);
+            if(lastDiskIndexName == null) {
+                try {
+                    idxDisk = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0L);
+                } catch (java.net.MalformedURLException e) {
+                    throw new AssertionError(e);
+                }
+                // FIXME more hacks: It's essential that we use the same FileArchiver instance here.
+                leafsrlDisk.setSerialiserFor(idxDisk);
+            } else {
+                try {
+                    PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(lastDiskIndexName);
+                    System.out.println("Pulling previous index "+lastDiskIndexName+" from disk so can update it.");
+                    srlDisk.pull(pull);
+                    System.out.println("Pulled previous index "+lastDiskIndexName+" from disk - updating...");
+                    idxDisk = pull.data;
+                    if(idxDisk.getSerialiser().getLeafSerialiser() != archiver)
+                        throw new IllegalStateException("Different serialiser: "+idxFreenet.getSerialiser()+" should be "+leafsrl);
+                } catch (TaskAbortException e) {
+                    Logger.error(this, "Failed to download previous index for spider update: "+e, e);
+                    System.err.println("Failed to download previous index for spider update: "+e);
+                    e.printStackTrace();
+                    synchronized(freenetMergeSync) {
+                        pushBroken = true;
+                    }
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    static final String INDEX_DOCNAME = "index.yml";
 	
 	private ProtoIndexComponentSerialiser leafsrl;
 	
