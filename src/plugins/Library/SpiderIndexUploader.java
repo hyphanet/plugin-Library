@@ -236,8 +236,8 @@ public class SpiderIndexUploader {
 			String uri = (String)task4.meta;
 			lastDiskIndexName = uri;
 			System.out.println("Pushed new index to file "+uri);
-			if(writeURITo(new File(LAST_DISK_FILENAME), uri) &&
-			        writeURITo(new File(idxDiskDir, LAST_DISK_FILENAME), uri)) {
+			if(writeStringTo(new File(LAST_DISK_FILENAME), uri) &&
+			        writeStringTo(new File(idxDiskDir, LAST_DISK_FILENAME), uri)) {
 			    // Successfully uploaded and written new status. Can delete the incoming data.
 			    data.free();
 			}
@@ -327,7 +327,11 @@ public class SpiderIndexUploader {
         }
     }
 
-    private boolean writeURITo(File filename, String uri) {
+    private boolean writeURITo(File filename, FreenetURI uri) {
+        return writeStringTo(filename, uri.toString());
+    }
+	
+    private boolean writeStringTo(File filename, String uri) {
         FileOutputStream fos = null;
         try {
             fos = new FileOutputStream(filename);
@@ -342,6 +346,25 @@ public class SpiderIndexUploader {
             return false;
         } finally {
             Closer.close(fos);
+        }
+    }
+
+    private FreenetURI readURIFrom(File file) {
+        FreenetURI uri;
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(file);
+            BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
+            uri = new FreenetURI(br.readLine());
+            System.out.println("Continuing from last index CHK: "+lastUploadURI);
+            fis.close();
+            fis = null;
+            return uri;
+        } catch (IOException e) {
+            // Ignore
+            return null;
+        } finally {
+            Closer.close(fis);
         }
     }
 
@@ -555,122 +578,28 @@ public class SpiderIndexUploader {
 
 	private final Object inflateSync = new Object();
 	
+	/** Merge from an on-disk index to an on-Freenet index.
+	 * @param diskToMerge The on-disk index.
+	 * @param diskDir The folder the on-disk index is stored in.
+	 */
 	protected void mergeToFreenet(ProtoIndex diskToMerge, File diskDir) {
 	    System.out.println("Merging on-disk index to Freenet: "+diskDir);
 		if(lastUploadURI == null) {
-			File f = new File(LAST_URL_FILENAME);
-			FileInputStream fis = null;
-			try {
-				fis = new FileInputStream(f);
-				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
-				lastUploadURI = new FreenetURI(br.readLine());
-				System.out.println("Continuing from last index CHK: "+lastUploadURI);
-				fis.close();
-				fis = null;
-			} catch (IOException e) {
-				// Ignore
-			} finally {
-				Closer.close(fis);
-			}
+		    lastUploadURI = readURIFrom(new File(LAST_URL_FILENAME));
 		}
-			if(FreenetArchiver.getCacheDir() == null) {
-				File dir = new File("library-spider-pushed-data-cache");
-				dir.mkdir();
-				FreenetArchiver.setCacheDir(dir);
-			}
+		setupFreenetCacheDir();
+		
+		makeFreenetSerialisers();
 			
-			if(srl == null) {
-				srl = ProtoIndexSerialiser.forIndex(lastUploadURI, RequestStarter.BULK_SPLITFILE_PRIORITY_CLASS);
-				LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
-					(LiveArchiver<Map<String,Object>,SimpleProgress>)(srl.getChildSerialiser());
-				leafsrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_DEFAULT, archiver);
-				if(lastUploadURI == null) {
-					try {
-						idxFreenet = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0L);
-					} catch (java.net.MalformedURLException e) {
-						throw new AssertionError(e);
-					}
-					// FIXME more hacks: It's essential that we use the same FreenetArchiver instance here.
-					leafsrl.setSerialiserFor(idxFreenet);
-				} else {
-					try {
-						PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(lastUploadURI);
-						System.out.println("Pulling previous index "+lastUploadURI+" so can update it.");
-						srl.pull(pull);
-						System.out.println("Pulled previous index "+lastUploadURI+" - updating...");
-						idxFreenet = pull.data;
-						if(idxFreenet.getSerialiser().getLeafSerialiser() != archiver)
-							throw new IllegalStateException("Different serialiser: "+idxFreenet.getSerialiser()+" should be "+leafsrl);
-					} catch (TaskAbortException e) {
-						Logger.error(this, "Failed to download previous index for spider update: "+e, e);
-						System.err.println("Failed to download previous index for spider update: "+e);
-						e.printStackTrace();
-						synchronized(freenetMergeSync) {
-							pushBroken = true;
-						}
-						return;
-					}
-				}
-			}
-			
-			idxFreenet.setName(diskToMerge.getName());
-			idxFreenet.setOwnerEmail(diskToMerge.getOwnerEmail());
-			idxFreenet.setOwner(diskToMerge.getOwner());
-			// This is roughly accurate, it might not be exactly so if we process a bit out of order.
-			idxFreenet.setTotalPages(diskToMerge.getTotalPages() + Math.max(0,idxFreenet.getTotalPages()));
-			
+		updateOverallMetadata(diskToMerge);
+		
 			final SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> newtrees = diskToMerge.ttab;
 			
 			// Do the upload
 			
 			// async merge
-			Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo = new
-			Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
-				/*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
-					String key = entry.getKey();
-					SkeletonBTreeSet<TermEntry> tree = entry.getValue();
-					if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
-					//System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
-					boolean newTree = false;
-					if (tree == null) {
-						entry.setValue(tree = makeEntryTree(leafsrl));
-						newTree = true;
-					}
-					assert(tree.isBare());
-					SortedSet<TermEntry> data;
-					// Can't be run in parallel.
-					synchronized(inflateSync) {
-						newtrees.inflate(key, true);
-						SkeletonBTreeSet<TermEntry> entries;
-						entries = newtrees.get(key);
-						// CONCURRENCY: Because the lower-level trees are packed by the top tree, the bottom
-						// trees (SkeletonBTreeSet's) are not independant of each other. When the newtrees 
-						// inflate above runs, it can deflate a tree that is still in use by another instance
-						// of this callback. Therefore we must COPY IT AND DEFLATE IT INSIDE THE LOCK.
-						entries.inflate();
-						data = new TreeSet<TermEntry>(entries);
-						entries.deflate();
-						assert(entries.isBare());
-					}
-					if(tree != null)
-						
-					if(newTree) {
-						tree.addAll(data);
-						assert(tree.size() == data.size());
-						System.out.println("Added data to Freenet for term "+key+" : "+data.size());
-					} else {
-						int oldSize = tree.size();
-						tree.update(data, null);
-						// Note that it is possible for data.size() + oldSize != tree.size(), because we might be merging data we've already merged.
-						// But most of the time it will add up.
-						System.out.println("Merged data to Freenet in term "+key+" : "+data.size()+" + "+oldSize+" -> "+tree.size());
-					}
-					tree.deflate();
-					assert(tree.isBare());
-					if(logMINOR) Logger.minor(this, "Updated: "+key+" : "+tree);
-					//System.out.println("handled " + key);
-				}
-			};
+			Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo =
+			    createMergeFromTreeClosure(newtrees);
 			try {
 			long mergeStartTime = System.currentTimeMillis();
 			assert(idxFreenet.ttab.isBare());
@@ -683,15 +612,19 @@ public class SpiderIndexUploader {
 			assert(idxFreenet.ttab.isBare());
 			assert(diskToMerge.ttab.isBare());
 			long entriesAdded = terms.size();
+			// Run the actual merge.
 			idxFreenet.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
 			assert(idxFreenet.ttab.isBare());
+			// Deflate the main tree.
 			newtrees.deflate();
 			assert(diskToMerge.ttab.isBare());
 			
+			// Push the top node to a CHK.
 			PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idxFreenet);
 			task4.meta = FreenetURI.EMPTY_CHK_URI;
 			srl.push(task4);
-			
+
+			// Now wait for the inserts to finish. They are started asynchronously.
 			FreenetArchiver arch = (FreenetArchiver) srl.getChildSerialiser();
 			arch.waitForAsyncInserts();
 			
@@ -700,54 +633,16 @@ public class SpiderIndexUploader {
 			FreenetURI uri = (FreenetURI)task4.meta;
 			lastUploadURI = uri;
 			System.out.println("Uploaded new index to "+uri);
-			FileOutputStream fos = null;
-			try {
-				fos = new FileOutputStream(LAST_URL_FILENAME);
-				OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-				osw.write(uri.toASCIIString());
-				osw.close();
-				fos = null;
-				newtrees.deflate();
-				diskToMerge = null;
-				terms = null;
-				System.out.println("Finished with disk index "+diskDir);
-				FileUtil.removeAll(diskDir);
-			} catch (IOException e) {
-				Logger.error(this, "Failed to write URL of uploaded index: "+uri, e);
-				System.out.println("Failed to write URL of uploaded index: "+uri+" : "+e);
-			} finally {
-				Closer.close(fos);
+			if(writeURITo(new File(LAST_URL_FILENAME), uri)) {
+                newtrees.deflate();
+                diskToMerge = null;
+                terms = null;
+                System.out.println("Finished with disk index "+diskDir);
+                FileUtil.removeAll(diskDir);
 			}
 			
-			// Upload to USK
-			FreenetURI privUSK = spiderIndexURIs.getPrivateUSK();
-			try {
-				FreenetURI tmp = pr.getHLSimpleClient().insertRedirect(privUSK, uri);
-				long ed;
-				synchronized(freenetMergeSync) {
-					ed = spiderIndexURIs.setEdition(tmp.getEdition()+1);
-				}
-				System.out.println("Uploaded index as USK to "+tmp);
-				
-				fos = null;
-				try {
-					fos = new FileOutputStream(EDITION_FILENAME);
-					OutputStreamWriter osw = new OutputStreamWriter(fos, "UTF-8");
-					osw.write(Long.toString(ed));
-					osw.close();
-					fos = null;
-				} catch (IOException e) {
-					Logger.error(this, "Failed to write URL of uploaded index: "+uri, e);
-					System.out.println("Failed to write URL of uploaded index: "+uri+" : "+e);
-				} finally {
-					Closer.close(fos);
-				}
-				
-			} catch (InsertException e) {
-				System.err.println("Failed to upload USK for index update: "+e);
-				e.printStackTrace();
-				Logger.error(this, "Failed to upload USK for index update", e);
-			}
+			// Create the USK to redirect to the CHK at the top of the index.
+			uploadUSKForFreenetIndex(uri);
 			
 			} catch (TaskAbortException e) {
 				Logger.error(this, "Failed to upload index for spider: "+e, e);
@@ -759,7 +654,140 @@ public class SpiderIndexUploader {
 			}
 	}
 
-	protected static SkeletonBTreeSet<TermEntry> makeEntryTree(ProtoIndexComponentSerialiser leafsrl) {
+	private void uploadUSKForFreenetIndex(FreenetURI uri) {
+        FreenetURI privUSK = spiderIndexURIs.getPrivateUSK();
+        try {
+            FreenetURI tmp = pr.getHLSimpleClient().insertRedirect(privUSK, uri);
+            long ed;
+            synchronized(freenetMergeSync) {
+                ed = spiderIndexURIs.setEdition(tmp.getEdition()+1);
+            }
+            System.out.println("Uploaded index as USK to "+tmp);
+            
+            writeStringTo(new File(EDITION_FILENAME), Long.toString(ed));
+            
+        } catch (InsertException e) {
+            System.err.println("Failed to upload USK for index update: "+e);
+            e.printStackTrace();
+            Logger.error(this, "Failed to upload USK for index update", e);
+        }
+    }
+
+    /** Create a Closure which will merge the subtrees from one index (on disk) into the subtrees 
+	 * of another index (on Freenet). It will be called with each subtree from the on-Freenet 
+	 * index, and will merge data from the relevant on-disk subtree. Both subtrees are initially 
+	 * deflated, and should be deflated when we leave the method, to avoid running out of memory.
+	 * @param newtrees The on-disk tree of trees to get data from.
+	 * @return
+	 */
+	private Closure<Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> createMergeFromTreeClosure(final SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> newtrees) {
+        return new
+        Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException>() {
+            /*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
+                String key = entry.getKey();
+                SkeletonBTreeSet<TermEntry> tree = entry.getValue();
+                if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
+                //System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
+                boolean newTree = false;
+                if (tree == null) {
+                    entry.setValue(tree = makeEntryTree(leafsrl));
+                    newTree = true;
+                }
+                assert(tree.isBare());
+                SortedSet<TermEntry> data;
+                // Can't be run in parallel.
+                synchronized(inflateSync) {
+                    newtrees.inflate(key, true);
+                    SkeletonBTreeSet<TermEntry> entries;
+                    entries = newtrees.get(key);
+                    // CONCURRENCY: Because the lower-level trees are packed by the top tree, the bottom
+                    // trees (SkeletonBTreeSet's) are not independant of each other. When the newtrees 
+                    // inflate above runs, it can deflate a tree that is still in use by another instance
+                    // of this callback. Therefore we must COPY IT AND DEFLATE IT INSIDE THE LOCK.
+                    entries.inflate();
+                    data = new TreeSet<TermEntry>(entries);
+                    entries.deflate();
+                    assert(entries.isBare());
+                }
+                if(tree != null)
+                    
+                if(newTree) {
+                    tree.addAll(data);
+                    assert(tree.size() == data.size());
+                    System.out.println("Added data to Freenet for term "+key+" : "+data.size());
+                } else {
+                    int oldSize = tree.size();
+                    tree.update(data, null);
+                    // Note that it is possible for data.size() + oldSize != tree.size(), because we might be merging data we've already merged.
+                    // But most of the time it will add up.
+                    System.out.println("Merged data to Freenet in term "+key+" : "+data.size()+" + "+oldSize+" -> "+tree.size());
+                }
+                tree.deflate();
+                assert(tree.isBare());
+                if(logMINOR) Logger.minor(this, "Updated: "+key+" : "+tree);
+                //System.out.println("handled " + key);
+            }
+        };
+    }
+
+    /** Update the overall metadata for the on-Freenet index from the on-disk index. */
+	private void updateOverallMetadata(ProtoIndex diskToMerge) {
+        idxFreenet.setName(diskToMerge.getName());
+        idxFreenet.setOwnerEmail(diskToMerge.getOwnerEmail());
+        idxFreenet.setOwner(diskToMerge.getOwner());
+        // This is roughly accurate, it might not be exactly so if we process a bit out of order.
+        idxFreenet.setTotalPages(diskToMerge.getTotalPages() + Math.max(0,idxFreenet.getTotalPages()));
+    }
+
+    /** Setup the serialisers for uploading to Freenet. These convert tree nodes to and from blocks
+	 * on Freenet, essentially. */
+	private void makeFreenetSerialisers() {
+        if(srl == null) {
+            srl = ProtoIndexSerialiser.forIndex(lastUploadURI, RequestStarter.BULK_SPLITFILE_PRIORITY_CLASS);
+            LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
+                (LiveArchiver<Map<String,Object>,SimpleProgress>)(srl.getChildSerialiser());
+            leafsrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_DEFAULT, archiver);
+            if(lastUploadURI == null) {
+                try {
+                    idxFreenet = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0L);
+                } catch (java.net.MalformedURLException e) {
+                    throw new AssertionError(e);
+                }
+                // FIXME more hacks: It's essential that we use the same FreenetArchiver instance here.
+                leafsrl.setSerialiserFor(idxFreenet);
+            } else {
+                try {
+                    PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(lastUploadURI);
+                    System.out.println("Pulling previous index "+lastUploadURI+" so can update it.");
+                    srl.pull(pull);
+                    System.out.println("Pulled previous index "+lastUploadURI+" - updating...");
+                    idxFreenet = pull.data;
+                    if(idxFreenet.getSerialiser().getLeafSerialiser() != archiver)
+                        throw new IllegalStateException("Different serialiser: "+idxFreenet.getSerialiser()+" should be "+leafsrl);
+                } catch (TaskAbortException e) {
+                    Logger.error(this, "Failed to download previous index for spider update: "+e, e);
+                    System.err.println("Failed to download previous index for spider update: "+e);
+                    e.printStackTrace();
+                    synchronized(freenetMergeSync) {
+                        pushBroken = true;
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+    /** Set up the on-disk cache, which keeps a copy of everything we upload to Freenet, so we 
+	 * won't need to re-download it, which can be very slow and doesn't always succeed. */
+    private void setupFreenetCacheDir() {
+        if(FreenetArchiver.getCacheDir() == null) {
+            File dir = new File("library-spider-pushed-data-cache");
+            dir.mkdir();
+            FreenetArchiver.setCacheDir(dir);
+        }
+    }
+
+    protected static SkeletonBTreeSet<TermEntry> makeEntryTree(ProtoIndexComponentSerialiser leafsrl) {
 		SkeletonBTreeSet<TermEntry> tree = new SkeletonBTreeSet<TermEntry>(ProtoIndex.BTREE_NODE_MIN);
 		leafsrl.setSerialiserFor(tree);
 		return tree;
