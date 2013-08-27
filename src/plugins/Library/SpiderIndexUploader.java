@@ -593,16 +593,16 @@ public class SpiderIndexUploader {
 			
 		updateOverallMetadata(diskToMerge);
 		
-			final SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> newtrees = diskToMerge.ttab;
-			
-			// Do the upload
-			
-			// async merge
-			Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo =
-			    createMergeFromTreeClosure(newtrees);
-			try {
-			long mergeStartTime = System.currentTimeMillis();
-			assert(idxFreenet.ttab.isBare());
+		final SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> newtrees = diskToMerge.ttab;
+		
+		// Do the upload
+		
+		// async merge
+		Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo =
+		    createMergeFromTreeClosure(newtrees);
+		try {
+		    long mergeStartTime = System.currentTimeMillis();
+		    assert(idxFreenet.ttab.isBare());
 			Iterator<String> it =
 				diskToMerge.ttab.keySetAutoDeflate().iterator();
 			TreeSet<String> terms = new TreeSet<String>();
@@ -644,14 +644,14 @@ public class SpiderIndexUploader {
 			// Create the USK to redirect to the CHK at the top of the index.
 			uploadUSKForFreenetIndex(uri);
 			
-			} catch (TaskAbortException e) {
-				Logger.error(this, "Failed to upload index for spider: "+e, e);
-				System.err.println("Failed to upload index for spider: "+e);
-				e.printStackTrace();
-				synchronized(freenetMergeSync) {
-					pushBroken = true;
-				}
-			}
+		} catch (TaskAbortException e) {
+		    Logger.error(this, "Failed to upload index for spider: "+e, e);
+		    System.err.println("Failed to upload index for spider: "+e);
+		    e.printStackTrace();
+		    synchronized(freenetMergeSync) {
+		        pushBroken = true;
+		    }
+		}
 	}
 
 	private void uploadUSKForFreenetIndex(FreenetURI uri) {
