@@ -569,7 +569,7 @@ public class SpiderIndexUploader {
 			System.out.println("Pulled previous index "+f+" from disk - updating...");
 			idxDisk = pull.data;
 			if(idxDisk.getSerialiser().getLeafSerialiser() != archiver)
-				throw new IllegalStateException("Different serialiser: "+idxFreenet.getSerialiser()+" should be "+leafsrl);
+				throw new IllegalStateException("Different serialiser: "+idxDisk.getSerialiser()+" should be "+archiver);
 		} catch (TaskAbortException e) {
 			Logger.error(this, "Failed to download previous index for spider update: "+e, e);
 			System.err.println("Failed to download previous index for spider update: "+e);
