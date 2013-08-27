@@ -625,7 +625,8 @@ public class SpiderIndexUploader {
 			srl.push(task4);
 
 			// Now wait for the inserts to finish. They are started asynchronously.
-			FreenetArchiver arch = (FreenetArchiver) srl.getChildSerialiser();
+			FreenetArchiver<Map<String, Object>> arch = 
+			    (FreenetArchiver<Map<String, Object>>) srl.getChildSerialiser();
 			arch.waitForAsyncInserts();
 			
 			long mergeEndTime = System.currentTimeMillis();
