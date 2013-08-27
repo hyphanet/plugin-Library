@@ -527,6 +527,8 @@ public class SpiderIndexUploader {
 	
 	private ProtoIndexComponentSerialiser leafsrl;
 	
+	/** Merge a disk dir to an on-Freenet index. Usually called on startup, i.e. we haven't just
+	 * created the on-disk index so we need to setup the ProtoIndex etc. */
 	protected void mergeToFreenet(File diskDir) {
 		ProtoIndexSerialiser s = ProtoIndexSerialiser.forIndex(diskDir);
 		LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
@@ -624,7 +626,7 @@ public class SpiderIndexUploader {
 			task4.meta = FreenetURI.EMPTY_CHK_URI;
 			srl.push(task4);
 
-			// Now wait for the inserts to finish. They are started asynchronously.
+			// Now wait for the inserts to finish. They are started asynchronously in the above merge.
 			FreenetArchiver<Map<String, Object>> arch = 
 			    (FreenetArchiver<Map<String, Object>>) srl.getChildSerialiser();
 			arch.waitForAsyncInserts();
