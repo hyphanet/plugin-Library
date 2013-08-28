@@ -64,7 +64,7 @@ import freenet.support.io.FileUtil;
 final public class Library implements URLUpdateHook {
 
 	public static final String BOOKMARK_PREFIX = "bookmark:";
-	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "peekaboo" + " " + BOOKMARK_PREFIX + "wanna" + " " + BOOKMARK_PREFIX + "wanna.old" + " " + BOOKMARK_PREFIX + "gogo";
+	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "gotcha" + " " + BOOKMARK_PREFIX + "wanna" + " " + BOOKMARK_PREFIX + "wanna.old" + " " + BOOKMARK_PREFIX + "gogo";
 	private static int version = 34;
 	public static final String plugName = "Library " + getVersion();
 
@@ -179,9 +179,9 @@ final public class Library implements URLUpdateHook {
 				callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rcBulk);
 			}
 		}
-		if(bookmarks.isEmpty() || needNewWanna || !bookmarks.containsKey("peekaboo")) {
-		    if(!bookmarks.containsKey("peekaboo"))
-		        addBookmark("peekaboo", "USK@4OQB3Qpi4uc8iEIKMhyuQgxL-T2ISHCJZSPCpLhRtPA,b4L313eWcf7BessblG~HxoaJuDrB96k7cqqjdHZzgEE,AQACAAE/index.yml/0");
+		if(bookmarks.isEmpty() || needNewWanna || !bookmarks.containsKey("gotcha")) {
+		    if(!bookmarks.containsKey("gotcha"))
+		        addBookmark("gotcha", "USK@zcAnAgT-xp5LnnK28-Lc7Qt-GU7pNKnVdkmU4-HCCBc,s2jiTh8~O9MtnGdVqJqgnKGrXrosK8rArcZ8A49hprY,AQACAAE/index.yml/6");
 			if(!bookmarks.containsKey("wanna.old"))
 				addBookmark("wanna.old", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/25/index.xml");
 			if(!bookmarks.containsKey("freenetindex"))
