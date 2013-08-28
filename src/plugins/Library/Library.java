@@ -138,7 +138,7 @@ final public class Library implements URLUpdateHook {
 				ObjectInputStream is = new ObjectInputStream(new FileInputStream(persistentFile));	// These are annoying but it's better than nothing
 				bookmarks = (Map<String, String>)is.readObject();
 				is.close();
-				FileUtil.secureDelete(persistentFile, pr.getNode().fastWeakRandom);
+				FileUtil.secureDelete(persistentFile);
 				Logger.error(this, "Moved LibraryPersistent contents into database and securely deleted old file.");
 				migrated = true;
 			} catch (ClassNotFoundException ex) {
