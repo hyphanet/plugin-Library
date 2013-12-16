@@ -64,7 +64,8 @@ import freenet.support.io.FileUtil;
 final public class Library implements URLUpdateHook {
 
 	public static final String BOOKMARK_PREFIX = "bookmark:";
-	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "gotcha" + " " + BOOKMARK_PREFIX + "wanna" + " " + BOOKMARK_PREFIX + "wanna.old" + " " + BOOKMARK_PREFIX + "gogo";
+	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "liberty-of-information" + " " + BOOKMARK_PREFIX + "free-market-free-people" + " " +
+	    BOOKMARK_PREFIX + "gotcha" + " " + BOOKMARK_PREFIX + "wanna" + " " + BOOKMARK_PREFIX + "wanna.old" + " " + BOOKMARK_PREFIX + "gogo";
 	private static int version = 35;
 	public static final String plugName = "Library " + getVersion();
 
@@ -179,7 +180,13 @@ final public class Library implements URLUpdateHook {
 				callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rcBulk);
 			}
 		}
-		if(bookmarks.isEmpty() || needNewWanna || !bookmarks.containsKey("gotcha")) {
+		if(bookmarks.isEmpty() || needNewWanna || !bookmarks.containsKey("gotcha") || 
+		        !bookmarks.containsKey("liberty-of-information") ||
+		        !bookmarks.containsKey("free-market-free-people")) {
+		    if(!bookmarks.containsKey("liberty-of-information"))
+		        addBookmark("liberty-of-information", "USK@5YCPzcs60uab6VSdiKcyvo-G-r-ga2UWCyOzWHaPoYE,a1zEPCf0qkUFQxftFZK5xmxYdxt0JErDb2aJgwG8s~4,AQACAAE/index.yml/25");
+		    if(!bookmarks.containsKey("free-market-free-people"))
+		        addBookmark("free-market-free-people", "USK@X4lMQ51bXPSicAgbR~XdFzDyizYHYrvzStdeUrIFhes,0ze4TAqd~RdAMZMsshybHZFema3ZP3id4sgN3H8969g,AQACAAE/index.yml/4");
 		    if(!bookmarks.containsKey("gotcha"))
 		        addBookmark("gotcha", "USK@zcAnAgT-xp5LnnK28-Lc7Qt-GU7pNKnVdkmU4-HCCBc,s2jiTh8~O9MtnGdVqJqgnKGrXrosK8rArcZ8A49hprY,AQACAAE/index.yml/6");
 			if(!bookmarks.containsKey("wanna.old"))
