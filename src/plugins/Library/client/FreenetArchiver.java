@@ -147,7 +147,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		if(task.meta instanceof FreenetURI) {
 			u = (FreenetURI) task.meta;
 			initialMetadata = null;
-			cacheKey = u.toASCIIString();
+			cacheKey = u.toString(false, true);
 		} else {
 			initialMetadata = (byte[]) task.meta;
 			u = FreenetURI.EMPTY_CHK_URI;
@@ -344,7 +344,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					} else if(status == WAIT_STATUS.GENERATED_URI) {
 						FreenetURI uri = cb.getURI();
 						task.meta = uri;
-						cacheKey = uri.toASCIIString();
+						cacheKey = uri.toString(false, true);
 						System.out.println("Got URI for asynchronous insert: "+uri+" size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
 					} else {
 						Bucket data = cb.getGeneratedMetadata();
