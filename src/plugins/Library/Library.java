@@ -241,16 +241,6 @@ final public class Library implements URLUpdateHook {
 	 * search for multiple terms in the same btree, but for now, turning off caching is the only viable option.
 	 */
 
-//	/**
-//	** Holds all the read-indexes.
-//	*/
-//	private Map<String, Index> rtab = new HashMap<String, Index>();
-//
-//	/**
-//	** Holds all the writeable indexes.
-//	*/
-//	private Map<String, WriteableIndex> wtab = new HashMap<String, WriteableIndex>();
-//
 	/**
 	** Holds all the bookmarks (aliases into the rtab).
 	*/
@@ -329,10 +319,10 @@ final public class Library implements URLUpdateHook {
 
 	public Class<?> getIndexTypeFromMIME(String mime) {
 		if (mime.equals(ProtoIndex.MIME_TYPE)) {
-			//return "YAML index";
+			// YAML index
 			return ProtoIndex.class;
 		} else if (mime.equals(XMLIndex.MIME_TYPE)) {
-			//return "XML index";
+			// XML index
 			return XMLIndex.class;
 		} else {
 			throw new UnsupportedOperationException("Unknown mime-type for index: "+mime);
@@ -340,103 +330,6 @@ final public class Library implements URLUpdateHook {
 	}
 
 
-/*
-	KEYEXPLORER slightly more efficient version that depends on KeyExplorer
-
-	/**
-	** Get the index type giving a {@code FreenetURI}. This should have been
-	** passed through {@link KeyExplorerUtils#sanitizeURI(List, String)} at
-	** some point - ie. it must not contain a metastring (end with "/") or be
-	** a USK.
-	* /
-	public Class<?> getIndexType(FreenetURI uri)
-	throws FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
-		GetResult getresult  = KeyExplorerUtils.simpleGet(pr, uri);
-		byte[] data = BucketTools.toByteArray(getresult.getData());
-
-		if (getresult.isMetaData()) {
-			try {
-				Metadata md = Metadata.construct(data);
-
-				if (md.isArchiveManifest()) {
-					if (md.getArchiveType() == ARCHIVE_TYPE.TAR) {
-						return getIndexTypeFromManifest(uri, false, true);
-
-					} else if (md.getArchiveType() == ARCHIVE_TYPE.ZIP) {
-						return getIndexTypeFromManifest(uri, true, false);
-
-					} else {
-						throw new UnsupportedOperationException("not implemented - unknown archive manifest");
-					}
-
-				} else if (md.isSimpleManifest()) {
-					return getIndexTypeFromManifest(uri, false, false);
-				}
-
-				return getIndexTypeFromSimpleMetadata(md);
-
-			} catch (MetadataParseException e) {
-				throw new RuntimeException(e);
-			}
-		} else {
-			throw new UnsupportedOperationException("Found data instead of metadata; I do not have enough intelligence to decode this.");
-		}
-	}
-
-	public Class<?> getIndexTypeFromSimpleMetadata(Metadata md) {
-		String mime = md.getMIMEType();
-		if (mime.equals(ProtoIndex.MIME_TYPE)) {
-			//return "YAML index";
-			return ProtoIndex.class;
-		} else if (mime.equals(XMLIndex.MIME_TYPE)) {
-			//return "XML index";
-			return XMLIndex.class;
-		} else {
-			throw new UnsupportedOperationException("Unknown mime-type for index");
-		}
-	}
-
-	public Class<?> getIndexTypeFromManifest(FreenetURI furi, boolean zip, boolean tar)
-	throws FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
-
-		boolean automf = true, deep = true, ml = true;
-		Metadata md = null;
-
-		if (zip)
-			md = KeyExplorerUtils.zipManifestGet(pr, furi);
-		else if (tar)
-			md = KeyExplorerUtils.tarManifestGet(pr, furi, ".metadata");
-		else {
-			md = KeyExplorerUtils.simpleManifestGet(pr, furi);
-			if (ml) {
-				md = KeyExplorerUtils.splitManifestGet(pr, md);
-			}
-		}
-
-		if (md.isSimpleManifest()) {
-			// a subdir
-			HashMap<String, Metadata> docs = md.getDocuments();
-			Metadata defaultDoc = md.getDefaultDocument();
-
-			if (defaultDoc != null) {
-				//return "(default doc method) " + getIndexTypeFromSimpleMetadata(defaultDoc);
-				return getIndexTypeFromSimpleMetadata(defaultDoc);
-			}
-
-			if (docs.containsKey(ProtoIndex.DEFAULT_FILE)) {
-				//return "(doclist method) YAML index";
-				return ProtoIndex.class;
-			} else if (docs.containsKey(XMLIndex.DEFAULT_FILE)) {
-				//return "(doclist method) XML index";
-				return XMLIndex.class;
-			} else {
-				throw new UnsupportedOperationException("Could not find a supported index in the document-listings for " + furi.toString());
-			}
-		}
-
-		throw new UnsupportedOperationException("Parsed metadata but did not reach a simple manifest: " + furi.toString());
-	}
-*/
 	public Class<?> getIndexType(File f) {
 		if (f.getName().endsWith(ProtoIndexSerialiser.FILE_EXTENSION))
 			return ProtoIndex.class;
@@ -452,8 +345,6 @@ final public class Library implements URLUpdateHook {
 			// OPT HIGH if it already ends with eg. *Index.DEFAULT_FILE, don't strip
 			// the MetaString, and have getIndexType behave accordingly
 			FreenetURI tempURI = new FreenetURI(indexuri);
-//			if (tempURI.hasMetaStrings()) { tempURI = tempURI.setMetaString(null); }
-//			if (tempURI.isUSK()) { tempURI = tempURI.sskForUSK(); }
 			return tempURI;
 		} catch (MalformedURLException e) {
 			File file = new File(indexuri);
@@ -606,14 +497,6 @@ final public class Library implements URLUpdateHook {
 		return indices;
 	}
 
-	// See comments near rtab. Can't use in parallel so not acceptable.
-//	/**
-//	 * Method to get all of the instatiated Indexes
-//	 */
-//	public final Iterable<Index> getAllIndices() {
-//		return rtab.values();
-//	}
-//
 	public final Index getIndex(String indexuri) throws InvalidSearchException, TaskAbortException {
 		return getIndex(indexuri, null);
 	}
@@ -644,10 +527,6 @@ final public class Library implements URLUpdateHook {
 				throw new InvalidSearchException("Index bookmark '"+indexuri+" does not exist");
 		}
 
-		// See comments near rtab. Can't use in parallel so caching is dangerous.
-//		if (rtab.containsKey(indexuri))
-//			return rtab.get(indexuri);
-//
 		Class<?> indextype;
 		Index index;
 		Object indexkey;
@@ -686,33 +565,16 @@ final public class Library implements URLUpdateHook {
 				throw new AssertionError();
 			}
 
-			// See comments near rtab. Can't use in parallel so caching is dangerous.
-			//rtab.put(indexuri, index);
 			Logger.normal(this, "Loaded index type " + indextype.getName() + " at " + indexuri);
 
 			return index;
 
 		} catch (FetchException e) {
-			throw new TaskAbortException("Failed to fetch index " + indexuri+" : "+e, e, true); // can retry
-/* KEYEXPLORER
-		} catch (IOException e) {
-			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
-
-		} catch (LowLevelGetException e) {
-			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
-
-		} catch (KeyListenerConstructionException e) {
-			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
-
-		} catch (MetadataParseException e) {
-			throw new TaskAbortException("Failed to parse index  " + indexuri, e);
-*/
+			throw new TaskAbortException("Failed to fetch index " + indexuri+" : "+e, e, true);
 		} catch (UnsupportedOperationException e) {
 			throw new TaskAbortException("Failed to parse index  " + indexuri+" : "+e, e);
-
 		} catch (RuntimeException e) {
 			throw new TaskAbortException("Failed to load index  " + indexuri+" : "+e, e);
-
 		}
 	}
 

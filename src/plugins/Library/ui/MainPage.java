@@ -342,7 +342,7 @@ class MainPage {
 						searchBox.addChild("input", new String[]{"type","name"}, new String[]{"hidden","js"});
 					// Shows the list of bookmarked indexes TODO show descriptions on mouseover ??
 					HTMLNode indexeslist = searchBox.addChild("ul", "class", "index-bookmark-list", "Select indexes");
-					for (String bm : library.bookmarkKeys()){
+					for (String bm : library.bookmarkKeys()) {
 						HTMLNode bmItem = indexeslist.addChild("li");
 						bmItem.addChild("input", new String[]{"name", "type", "value", "title", (selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"~"+bm, "checkbox", Library.BOOKMARK_PREFIX+bm, "Index uri : "+library.getBookmark(bm), "1" } , bm);
 						bmItem.addChild("input", new String[]{"name", "type", "value", "title", "class"}, new String[]{Commands.removebookmark+bm, "submit", "X", "Delete this bookmark", "index-bookmark-delete" });
@@ -351,9 +351,9 @@ class MainPage {
 					for (String uri : selectedOtherIndexes) {
 						HTMLNode removeItem = indexeslist.addChild("li");
 							String showuri;
-							try{
+							try {
 								showuri = (new FreenetURI(uri)).toShortString();
-							}catch(MalformedURLException e){
+							} catch (MalformedURLException e) {
 								showuri = uri;
 							}
 							removeItem.addChild("input", new String[]{"type", "name", "value", "checked"}, new String[]{"checkbox", "index"+i, uri, "checked", } , showuri);
@@ -434,7 +434,7 @@ class MainPage {
 				error1.addChild("br");
 				error1.addChild("#", " -- "+ste.toString());
 			}
-			if(error.getCause()!=null)
+			if (error.getCause()!=null)
 				addError(error1, error.getCause(), messages);
 		}
 	}
@@ -447,17 +447,17 @@ class MainPage {
 	 */
 	public static HTMLNode progressBar(Progress progress, boolean canFail) throws TaskAbortException {
 		synchronized (progress){
-			if( progress instanceof CompositeProgress && ((CompositeProgress) progress).getSubProgress()!=null && ((CompositeProgress) progress).getSubProgress().iterator().hasNext()){
+			if (progress instanceof CompositeProgress && ((CompositeProgress) progress).getSubProgress()!=null && ((CompositeProgress) progress).getSubProgress().iterator().hasNext()){
 				// Put together progress bars for all the subProgress
 				HTMLNode block = new HTMLNode("#");
 				block.addChild("tr").addChild("td", "colspan", "6", progress.getSubject() + " : "+progress.getStatus());
 				TaskAbortException firstError = null;
 				boolean anySuccess = false;
-				if(canFail && progress instanceof Search) {
+				if (canFail && progress instanceof Search) {
 					if(!(((Search)progress).innerCanFailAndStillComplete()))
 						canFail = false;
 				} else canFail = false;
-				if(((CompositeProgress) progress).getSubProgress() != null)
+				if (((CompositeProgress) progress).getSubProgress() != null)
 					for (Progress progress1 : ((CompositeProgress) progress).getSubProgress()) {
 						try {
 							block.addChild(progressBar(progress1, canFail));
