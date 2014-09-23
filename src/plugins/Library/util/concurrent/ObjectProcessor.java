@@ -328,7 +328,6 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 					} catch (InterruptedException e) {
 						// TODO LOW log this somewhere
 					}
-					// System.out.println("pending " + pending.size());
 
 					if (t > 0) { continue; }
 					synchronized (ObjectProcessor.class) {

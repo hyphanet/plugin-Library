@@ -289,17 +289,8 @@ implements LiveArchiver<T, SimpleProgress> {
 				}
 				InsertBlock ib = new InsertBlock(tempB, new ClientMetadata(default_mime), target);
 
-				System.out.println("Inserting block for FreenetArchiver...");
 				long startTime = System.currentTimeMillis();
 				
-				// code for async insert - maybe be useful elsewhere
-				//ClientContext cctx = core.clientContext;
-				//InsertContext ictx = hlsc.getInsertContext(true);
-				//PutWaiter pw = new PutWaiter();
-				//ClientPutter pu = hlsc.insert(ib, false, null, false, ictx, pw);
-				//pu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
-				//FreenetURI uri = pw.waitForCompletion();
-
 				// bookkeeping. detects bugs in the SplitfileProgressEvent handler
 				ProgressParts prog_old = null;
 				if(progress != null)
@@ -440,7 +431,9 @@ implements LiveArchiver<T, SimpleProgress> {
 			synchronized(FreenetArchiver.this) {
 				if(semiAsyncPushes.add(this))
 					totalBytesPushing += size;
-				System.out.println("Pushing "+totalBytesPushing+" bytes on "+semiAsyncPushes.size()+" inserters");
+				System.out.println("Added insert of " + size + " bytes, now pushing: " + 
+						   semiAsyncPushes.size() +
+						   " (" + SizeUtil.formatSize(totalBytesPushing) + ").");
 			}
 		}
 
@@ -471,7 +464,9 @@ implements LiveArchiver<T, SimpleProgress> {
 
 		@Override
 		public void onFailure(InsertException e, BaseClientPutter state) {
-			System.out.println("Failed background insert ("+generatedURI+"), now running: "+semiAsyncPushes.size()+" ("+SizeUtil.formatSize(totalBytesPushing)+").");
+			System.out.println("Failed background insert (" + generatedURI + "), now pushing: " +
+					   semiAsyncPushes.size() +
+					   " (" + SizeUtil.formatSize(totalBytesPushing) + ").");
 			synchronized(this) {
 				failed = e;
 				notifyAll();
@@ -502,12 +497,14 @@ implements LiveArchiver<T, SimpleProgress> {
 			synchronized(FreenetArchiver.this) {
 				if(semiAsyncPushes.remove(this))
 					totalBytesPushing -= size;
-				System.out.println("Completed background insert ("+generatedURI+") in "+(System.currentTimeMillis()-startTime)+"ms, now running: "+semiAsyncPushes.size()+" ("+SizeUtil.formatSize(totalBytesPushing)+").");
+				System.out.println("Completed background insert (" + generatedURI + ") in " +
+						   (System.currentTimeMillis()-startTime) + "ms, now pushing: " +
+						   semiAsyncPushes.size() + 
+						   " (" + SizeUtil.formatSize(totalBytesPushing) + ").");
 				FreenetArchiver.this.notifyAll();
 			}
 			if(ib != null)
 				ib.free();
-//			if(progress != null) progress.addPartKnown(0, true);
 
 		}
 
@@ -595,7 +592,7 @@ implements LiveArchiver<T, SimpleProgress> {
 					System.out.println("Asynchronous inserts completed.");
 					return; // Completed all pushes.
 				}
-				System.out.println("Waiting for "+semiAsyncPushes.size()+" asynchronous inserts ("+SizeUtil.formatSize(totalBytesPushing)+")...");
+
 				try {
 					wait();
 				} catch (InterruptedException e) {

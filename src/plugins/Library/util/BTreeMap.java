@@ -953,10 +953,6 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			verify(node.nodeSize() + 1 == node.rnodes.size());
 			verify(node.nodeSize() + 1 == node.lnodes.size());
 		}
-		/* DEBUG if (node._size > 0 && node._size != s) {
-			System.out.println(node._size + " vs " + s);
-			System.out.println(node.toTreeString("\t"));
-		}*/
 		verify(node._size < 0 || node._size == s);
 
 		verify(node.nodeSize() <= ENT_MAX);

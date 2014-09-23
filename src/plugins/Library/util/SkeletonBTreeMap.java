@@ -579,8 +579,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			new LinkedBlockingQueue<X2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
 			new HashMap<PullTask<SkeletonNode>, SkeletonNode>()
 		);
-		//System.out.println("Using scheduler");
-		//int DEBUG_pushed = 0, DEBUG_popped = 0;
 
 		try {
 			nodequeue.add((SkeletonNode)root);
@@ -589,8 +587,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			// operation fails
 
 			do {
-				//System.out.println("pushed: " + DEBUG_pushed + "; popped: " + DEBUG_popped);
-
 				// handle the inflated tasks and attach them to the tree.
 				// THREAD progress tracker should prevent this from being run twice for the
 				// same node, but what if we didn't use a progress tracker? hmm...
@@ -654,8 +650,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			throw new TaskAbortException("interrupted", e);
 		} finally {
 			proc_pull.close();
-			//System.out.println("pushed: " + DEBUG_pushed + "; popped: " + DEBUG_popped);
-			//assert(DEBUG_pushed == DEBUG_popped);
 		}
 	}
 
@@ -1111,7 +1105,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					reassignKeyToSweeper(key, parVClo);
 				}
 
-				//System.out.println("parent:"+parent.getRange()+"\nseps:"+keys+"\nheld:"+held);
 				parNClo.open();
 
 				// for each split-node, create a sweeper that will run when all its (k,v)
@@ -1122,12 +1115,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					// reassign appropriate keys to the split-node's sweeper
 					SortedSet<K> subheld = subSet(held, n.lkey, n.rkey);
-					//try {
 					assert(subheld.isEmpty() || compareL(n.lkey, subheld.first()) < 0 && compareR(subheld.last(), n.rkey) < 0);
-					//} catch (AssertionError e) {
-					//	System.out.println(n.lkey + " " + subheld.first() + " " + subheld.last() + " " + n.rkey);
-					//	throw e;
-					//}
 					for (K key: subheld) {
 						reassignKeyToSweeper(key, vClo);
 					}
@@ -1336,16 +1324,15 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			int ccount = 0;
 			
 			do {
-
-				//System.out.println(System.identityHashCode(this) + " " + proc_pull + " " + proc_push + " " + ((proc_val == null)? "": proc_val));
-
 				// Only sleep if we run out of jobs.
 				if((!progress) && (count++ > 10)) {
 					count = 0;
-//					if(ccount++ > 10) {
-						System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push+ " "+proc_deflate);
-//						ccount = 0;
-//					}
+					Logger.debug(this,
+						     "SkeletonBTreeMap update " +
+						     proc_val + " " +
+						     proc_pull + " " +
+						     proc_push + " " +
+						     proc_deflate);
 					notifier.waitUpdate(1000);
 				}
 				progress = false;
@@ -1368,8 +1355,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					progress = true;
 				}
 				if(loop) continue;
-
-				//System.out.println(System.identityHashCode(this) + " " + proc_push + " " + ((proc_val == null)? "": proc_val+ " ") + proc_pull);
 
 				if(proc_deflate.hasCompleted()) {
 					X3<DeflateNode, SkeletonNode, TaskAbortException> res = proc_deflate.accept();

@@ -147,22 +147,18 @@ class MainPage {
 		page.indexstring = "";
 		for (String bm : library.bookmarkKeys()){
 			String bmid = (Library.BOOKMARK_PREFIX + bm).trim();
-			//Logger.normal(this, "checking for ~" + bm + " - "+request.isPartSet("~"+bm));
 			if(request.isPartSet("~"+bm)){
 				page.indexstring += bmid + " ";
 				page.selectedBMIndexes.add(bmid);
 			}
 		}
 		// Get other index list
-		//Logger.normal(page, "extra indexes : "+request.getIntPart("extraindexcount", 0));
 		for (int i = 0; i < request.getIntPart("extraindexcount", 0); i++) {
 			if (request.isPartSet("index"+i)){
 				String otherindexuri = request.getPartAsStringFailsafe("index"+i, 256);
-				//Logger.normal(page, "Added index : "+otherindexuri);
 				page.indexstring += otherindexuri + " ";
 				page.selectedOtherIndexes.add(otherindexuri);
-			}//else
-				//Logger.normal(page, "other index #"+i+" unchecked");
+			}
 		}
 		for (String string : etcIndexes) {
 			if(string.length()>0){
@@ -285,10 +281,8 @@ class MainPage {
 				if (search.isDone()) {
 					if(search.hasGeneratedResultNode()){
 						contentNode.addChild(search.getHTMLNode());
-						//Logger.normal(this, "Got pre generated result node.");
 					}else
 						try {
-							//Logger.normal(this, "Blocking to generate resultnode.");
 							ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk, showold, true); // js is being switch on always currently due to detection being off
 							nodegenerator.run();
 							contentNode.addChild(nodegenerator.getPageEntryNode());
@@ -310,8 +304,6 @@ class MainPage {
 				// refresh will GET so use a request id
 				if (!js) {
 					headers.put("Refresh", "2;url=" + refreshURL);
-					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "script.js" : "detect.js") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
-					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "script.js" : "detect.js") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
 				}
 			}
 		}catch(TaskAbortException e) {
@@ -351,10 +343,9 @@ class MainPage {
 					// Shows the list of bookmarked indexes TODO show descriptions on mouseover ??
 					HTMLNode indexeslist = searchBox.addChild("ul", "class", "index-bookmark-list", "Select indexes");
 					for (String bm : library.bookmarkKeys()){
-						//Logger.normal(this, "Checking for bm="+Library.BOOKMARK_PREFIX+bm+" in \""+indexuri + " = " + selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm)+" "+indexuri.contains(Library.BOOKMARK_PREFIX+bm));
 						HTMLNode bmItem = indexeslist.addChild("li");
-							bmItem.addChild("input", new String[]{"name", "type", "value", "title", (selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"~"+bm, "checkbox", Library.BOOKMARK_PREFIX+bm, "Index uri : "+library.getBookmark(bm), "1" } , bm);
-							bmItem.addChild("input", new String[]{"name", "type", "value", "title", "class"}, new String[]{Commands.removebookmark+bm, "submit", "X", "Delete this bookmark", "index-bookmark-delete" });
+						bmItem.addChild("input", new String[]{"name", "type", "value", "title", (selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"~"+bm, "checkbox", Library.BOOKMARK_PREFIX+bm, "Index uri : "+library.getBookmark(bm), "1" } , bm);
+						bmItem.addChild("input", new String[]{"name", "type", "value", "title", "class"}, new String[]{Commands.removebookmark+bm, "submit", "X", "Delete this bookmark", "index-bookmark-delete" });
 					}
 					int i=0;
 					for (String uri : selectedOtherIndexes) {
