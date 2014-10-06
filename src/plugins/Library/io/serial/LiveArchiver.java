@@ -15,32 +15,32 @@ import plugins.Library.util.exec.TaskAbortException;
 */
 public interface LiveArchiver<T, P extends Progress> extends Archiver<T> {
 
-	/**
-	** Executes a {@link PullTask} and update the progress associated with it.
-	** {@link TaskAbortException}s are stored in the progress object, rather
-	** than thrown.
-	**
-	** Implementations must also modify the state of the progress object such
-	** that after the operation completes, all threads blocked on {@link
-	** Progress#join()} will either return normally or throw the exact {@link
-	** TaskAbortException} that caused it to abort.
-	**
-	** '''If this does not occur, deadlock will result'''.
-	*/
-	public void pullLive(PullTask<T> task, P p) throws TaskAbortException;
+    /**
+    ** Executes a {@link PullTask} and update the progress associated with it.
+    ** {@link TaskAbortException}s are stored in the progress object, rather
+    ** than thrown.
+    **
+    ** Implementations must also modify the state of the progress object such
+    ** that after the operation completes, all threads blocked on {@link
+    ** Progress#join()} will either return normally or throw the exact {@link
+    ** TaskAbortException} that caused it to abort.
+    **
+    ** '''If this does not occur, deadlock will result'''.
+    */
+    public void pullLive(PullTask<T> task, P p) throws TaskAbortException;
 
-	/**
-	** Executes a {@link PushTask} and update the progress associated with it.
-	** {@link TaskAbortException}s are stored in the progress object, rather
-	** than thrown.
-	**
-	** Implementations must also modify the state of the progress object such
-	** that after the operation completes, all threads blocked on {@link
-	** Progress#join()} will either return normally or throw the exact {@link
-	** TaskAbortException} that caused it to abort.
-	**
-	** '''If this does not occur, deadlock will result'''.
-	*/
-	public void pushLive(PushTask<T> task, P p) throws TaskAbortException;
+    /**
+    ** Executes a {@link PushTask} and update the progress associated with it.
+    ** {@link TaskAbortException}s are stored in the progress object, rather
+    ** than thrown.
+    **
+    ** Implementations must also modify the state of the progress object such
+    ** that after the operation completes, all threads blocked on {@link
+    ** Progress#join()} will either return normally or throw the exact {@link
+    ** TaskAbortException} that caused it to abort.
+    **
+    ** '''If this does not occur, deadlock will result'''.
+    */
+    public void pushLive(PushTask<T> task, P p) throws TaskAbortException;
 
 }

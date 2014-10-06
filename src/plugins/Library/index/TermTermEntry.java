@@ -12,43 +12,43 @@ import plugins.Library.index.TermEntry.EntryType;
 */
 public class TermTermEntry extends TermEntry {
 
-	/**
-	** Related term target for this entry.
-	*/
-	final public String term;
+    /**
+    ** Related term target for this entry.
+    */
+    final public String term;
 
-	public TermTermEntry(String s, float r, String t) {
-		super(s, r);
-		if (t == null) {
-			throw new IllegalArgumentException("can't have a null term!");
-		}
-		term = t.intern();
-	}
+    public TermTermEntry(String s, float r, String t) {
+        super(s, r);
+        if (t == null) {
+            throw new IllegalArgumentException("can't have a null term!");
+        }
+        term = t.intern();
+    }
 
-	/*========================================================================
-	  abstract public class TermEntry
-	 ========================================================================*/
+    /*========================================================================
+      abstract public class TermEntry
+     ========================================================================*/
 
-	@Override public EntryType entryType() {
-		assert(getClass() == TermTermEntry.class);
-		return EntryType.TERM;
-	}
+    @Override public EntryType entryType() {
+        assert(getClass() == TermTermEntry.class);
+        return EntryType.TERM;
+    }
 
-	@Override public int compareTo(TermEntry o) {
-		int a = super.compareTo(o);
-		if (a != 0) { return a; }
-		return term.compareTo(((TermTermEntry)o).term);
-	}
+    @Override public int compareTo(TermEntry o) {
+        int a = super.compareTo(o);
+        if (a != 0) { return a; }
+        return term.compareTo(((TermTermEntry)o).term);
+    }
 
-	@Override public boolean equals(Object o) {
-		return o == this || super.equals(o) && term.equals(((TermTermEntry)o).term);
-	}
+    @Override public boolean equals(Object o) {
+        return o == this || super.equals(o) && term.equals(((TermTermEntry)o).term);
+    }
 
-	@Override public boolean equalsTarget(TermEntry entry) {
-		return entry == this || (entry instanceof TermTermEntry) && term.equals(((TermTermEntry)entry).term);
-	}
+    @Override public boolean equalsTarget(TermEntry entry) {
+        return entry == this || (entry instanceof TermTermEntry) && term.equals(((TermTermEntry)entry).term);
+    }
 
-	@Override public int hashCode() {
-		return super.hashCode() ^ term.hashCode();
-	}
+    @Override public int hashCode() {
+        return super.hashCode() ^ term.hashCode();
+    }
 }

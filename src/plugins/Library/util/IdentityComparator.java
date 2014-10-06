@@ -35,50 +35,50 @@ import java.util.HashMap;
 */
 abstract public class IdentityComparator<T> implements Comparator<T> {
 
-	/**
-	** A singleton comparator for use by {@link Comparable#compareTo(Object)}.
-	*/
-	final public static IdentityComparator comparator = new IdentityComparator() {};
+    /**
+    ** A singleton comparator for use by {@link Comparable#compareTo(Object)}.
+    */
+    final public static IdentityComparator comparator = new IdentityComparator() {};
 
-	/**
-	** Keeps track of objects with the same identity hashcode, and the unique
-	** IDs assigned to them by the comparator. This map is *ONLY* used if the
-	** comparator encounters two distinct objects with the same identity
-	** hashcodes.
-	*/
-	final private static IdentityHashMap<Object, Long> objectid = new IdentityHashMap<Object, Long>(4);
+    /**
+    ** Keeps track of objects with the same identity hashcode, and the unique
+    ** IDs assigned to them by the comparator. This map is *ONLY* used if the
+    ** comparator encounters two distinct objects with the same identity
+    ** hashcodes.
+    */
+    final private static IdentityHashMap<Object, Long> objectid = new IdentityHashMap<Object, Long>(4);
 
-	/**
-	** Counts the number of objects that have a given identity hashcode. This
-	** map is *ONLY* used if the comparator encounters two distinct objects
-	** with the same identity hashcodes.
-	*/
-	final private static HashMap<Integer, Long> idcounter = new HashMap<Integer, Long>(4);
+    /**
+    ** Counts the number of objects that have a given identity hashcode. This
+    ** map is *ONLY* used if the comparator encounters two distinct objects
+    ** with the same identity hashcodes.
+    */
+    final private static HashMap<Integer, Long> idcounter = new HashMap<Integer, Long>(4);
 
-	/**
-	** Compare two objects by identity.
-	*/
-	public int compare(T o1, T o2) {
-		if (o1 == o2) { return 0; }
-		int h1 = System.identityHashCode(o1);
-		int h2 = System.identityHashCode(o2);
-		if (h1 != h2) {
-			return (h1 > h2)? 1: -1;
-		} else {
-			synchronized (IdentityComparator.class) {
-				Long counter = idcounter.get(h1);
-				if (counter == null) { counter = 0L; }
+    /**
+    ** Compare two objects by identity.
+    */
+    public int compare(T o1, T o2) {
+        if (o1 == o2) { return 0; }
+        int h1 = System.identityHashCode(o1);
+        int h2 = System.identityHashCode(o2);
+        if (h1 != h2) {
+            return (h1 > h2)? 1: -1;
+        } else {
+            synchronized (IdentityComparator.class) {
+                Long counter = idcounter.get(h1);
+                if (counter == null) { counter = 0L; }
 
-				Long l1 = objectid.get(o1);
-				Long l2 = objectid.get(o2);
-				if (l1 == null) { l1 = counter++; objectid.put(o1, l1); }
-				if (l2 == null) { l2 = counter++; objectid.put(o2, l2); }
+                Long l1 = objectid.get(o1);
+                Long l2 = objectid.get(o2);
+                if (l1 == null) { l1 = counter++; objectid.put(o1, l1); }
+                if (l2 == null) { l2 = counter++; objectid.put(o2, l2); }
 
-				idcounter.put(h1, counter);
-				assert((long)l1 != (long)l2);
-				return (l1 > l2)? 1: -1;
-			}
-		}
-	}
+                idcounter.put(h1, counter);
+                assert((long)l1 != (long)l2);
+                return (l1 > l2)? 1: -1;
+            }
+        }
+    }
 
 }

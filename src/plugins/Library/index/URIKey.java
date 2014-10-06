@@ -17,32 +17,32 @@ import freenet.keys.ClientKey;
 */
 public class URIKey extends BytePrefixKey<URIKey> {
 
-	public URIKey() {
-		super(0x20);
-	}
+    public URIKey() {
+        super(0x20);
+    }
 
-	public URIKey(byte[] h) {
-		super(0x20, h);
-	}
+    public URIKey(byte[] h) {
+        super(0x20, h);
+    }
 
-	public URIKey(FreenetURI u) throws java.net.MalformedURLException {
-		super(0x20, getNodeRoutingKey(u));
-	}
+    public URIKey(FreenetURI u) throws java.net.MalformedURLException {
+        super(0x20, getNodeRoutingKey(u));
+    }
 
-	public static byte[] getNodeRoutingKey(FreenetURI u) throws java.net.MalformedURLException {
-		try {
-			return ((ClientKey)BaseClientKey.getBaseKey(u.isUSK()? u.sskForUSK(): u)).getNodeKey().getRoutingKey();
-		} catch (ClassCastException e) {
-			throw new UnsupportedOperationException("Could not get the node routing key for FreenetURI " + u + ". Only CHK/SSK/USK/KSKs are supported.");
-		}
-	}
+    public static byte[] getNodeRoutingKey(FreenetURI u) throws java.net.MalformedURLException {
+        try {
+            return ((ClientKey)BaseClientKey.getBaseKey(u.isUSK()? u.sskForUSK(): u)).getNodeKey().getRoutingKey();
+        } catch (ClassCastException e) {
+            throw new UnsupportedOperationException("Could not get the node routing key for FreenetURI " + u + ". Only CHK/SSK/USK/KSKs are supported.");
+        }
+    }
 
-	/*========================================================================
-	  public interface BytePrefixKey
-	 ========================================================================*/
+    /*========================================================================
+      public interface BytePrefixKey
+     ========================================================================*/
 
-	@Override public URIKey clone() {
-		return new URIKey(hash);
-	}
+    @Override public URIKey clone() {
+        return new URIKey(hash);
+    }
 
 }

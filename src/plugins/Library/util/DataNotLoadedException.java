@@ -19,46 +19,46 @@ package plugins.Library.util;
 */
 public class DataNotLoadedException extends RuntimeException {
 
-	/**
-	** The parent container of the not-yet-loaded data.
-	*/
-	final Skeleton parent;
+    /**
+    ** The parent container of the not-yet-loaded data.
+    */
+    final Skeleton parent;
 
-	/**
-	** The key, if any, that the not-yet-loaded data was associated with.
-	*/
-	final Object key;
+    /**
+    ** The key, if any, that the not-yet-loaded data was associated with.
+    */
+    final Object key;
 
-	/**
-	** The metadata for the not-yet-loaded data.
-	*/
-	final Object meta;
+    /**
+    ** The metadata for the not-yet-loaded data.
+    */
+    final Object meta;
 
-	public DataNotLoadedException(String s, Throwable t, Skeleton p, Object k, Object v) {
-		super(s, t);
-		parent = p;
-		key = k;
-		meta = v;
-	}
+    public DataNotLoadedException(String s, Throwable t, Skeleton p, Object k, Object v) {
+        super(s, t);
+        parent = p;
+        key = k;
+        meta = v;
+    }
 
-	public DataNotLoadedException(Throwable t, Skeleton p, Object k, Object v) {
-		this(null, t, p, k, v);
-	}
+    public DataNotLoadedException(Throwable t, Skeleton p, Object k, Object v) {
+        this(null, t, p, k, v);
+    }
 
-	public DataNotLoadedException(String s, Skeleton p, Object k, Object v) {
-		this(s, null, p, k, v);
-	}
+    public DataNotLoadedException(String s, Skeleton p, Object k, Object v) {
+        this(s, null, p, k, v);
+    }
 
-	public DataNotLoadedException(String s, Skeleton p, Object k) {
-		this(s, null, p, k, null);
-	}
+    public DataNotLoadedException(String s, Skeleton p, Object k) {
+        this(s, null, p, k, null);
+    }
 
-	public DataNotLoadedException(String s, Skeleton p) {
-		this(s, null, p, null, null);
-	}
+    public DataNotLoadedException(String s, Skeleton p) {
+        this(s, null, p, null, null);
+    }
 
-	public Skeleton getParent() { return parent; }
-	public Object getKey() { return key; }
-	public Object getValue() { return meta; }
+    public Skeleton getParent() { return parent; }
+    public Object getKey() { return key; }
+    public Object getValue() { return meta; }
 
 }

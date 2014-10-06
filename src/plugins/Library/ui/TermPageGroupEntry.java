@@ -17,34 +17,34 @@ import plugins.Library.index.TermPageEntry;
  * @author MikeB
  */
 public class TermPageGroupEntry extends TermEntry {
-	private final SortedMap<Long, SortedSet<TermPageEntry>> editions = new TreeMap<Long, SortedSet<TermPageEntry>>();
+    private final SortedMap<Long, SortedSet<TermPageEntry>> editions = new TreeMap<Long, SortedSet<TermPageEntry>>();
 
-	TermPageGroupEntry(String sitebase) {
-		super(sitebase, 0);
-	}
+    TermPageGroupEntry(String sitebase) {
+        super(sitebase, 0);
+    }
 
-	@Override
-	public TermEntry.EntryType entryType() {
-		throw new UnsupportedOperationException("Not supported yet.");
-	}
+    @Override
+    public TermEntry.EntryType entryType() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 
-	@Override
-	public boolean equalsTarget(TermEntry entry) {
-		throw new UnsupportedOperationException("Not supported yet.");
-	}
+    @Override
+    public boolean equalsTarget(TermEntry entry) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 
-	public void addPage(long uskEdition, TermPageEntry pageEntry) {
-		// Add Edition
-		if(!editions.containsKey(uskEdition))
-			editions.put(uskEdition, new TreeSet(RelevanceComparator.comparator));
-		editions.get(uskEdition).add(pageEntry);
+    public void addPage(long uskEdition, TermPageEntry pageEntry) {
+        // Add Edition
+        if(!editions.containsKey(uskEdition))
+            editions.put(uskEdition, new TreeSet(RelevanceComparator.comparator));
+        editions.get(uskEdition).add(pageEntry);
 
-		// TODO HIGH rework this... TermEntry is supposed to be immutable
-		//if(rel < pageEntry.rel)	// TODO enter better algorithm for calculating relevance here
-		//	rel = pageEntry.rel;	// relevance should be on a per-edition basis, probably shouldnt use TermEntry at all
-	}
+        // TODO HIGH rework this... TermEntry is supposed to be immutable
+        //if(rel < pageEntry.rel)    // TODO enter better algorithm for calculating relevance here
+        //    rel = pageEntry.rel;    // relevance should be on a per-edition basis, probably shouldnt use TermEntry at all
+    }
 
-	SortedMap<Long, SortedSet<TermPageEntry>> getEditions() {
-		return Collections.unmodifiableSortedMap(editions);
-	}
+    SortedMap<Long, SortedSet<TermPageEntry>> getEditions() {
+        return Collections.unmodifiableSortedMap(editions);
+    }
 }

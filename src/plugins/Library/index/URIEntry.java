@@ -18,58 +18,58 @@ import freenet.keys.FreenetURI;
 */
 public class URIEntry {
 
-	/**
-	** Subject URI of this entry.
-	*/
-	protected FreenetURI subject;
+    /**
+    ** Subject URI of this entry.
+    */
+    protected FreenetURI subject;
 
-	/**
-	** Quality rating. Must be in the closed interval [0,1].
-	*/
-	protected float qual;
+    /**
+    ** Quality rating. Must be in the closed interval [0,1].
+    */
+    protected float qual;
 
-	// TODO NORM make bean getter/setters for these
-	Date date_checked;
-	String title;
-	int size;
-	String type;
+    // TODO NORM make bean getter/setters for these
+    Date date_checked;
+    String title;
+    int size;
+    String type;
 
-	/**
-	** Terms that this URI is associated with.
-	*/
-	protected Set<String> terms;
+    /**
+    ** Terms that this URI is associated with.
+    */
+    protected Set<String> terms;
 
-	public URIEntry(FreenetURI u) {
-		subject = u;
-		date_checked = new Date();
-		terms = new HashSet<String>();
-	}
+    public URIEntry(FreenetURI u) {
+        subject = u;
+        date_checked = new Date();
+        terms = new HashSet<String>();
+    }
 
-	public FreenetURI getSubject() {
-		return subject;
-	}
+    public FreenetURI getSubject() {
+        return subject;
+    }
 
-	public void setSubject(FreenetURI u) {
-		subject = u;
-	}
+    public void setSubject(FreenetURI u) {
+        subject = u;
+    }
 
-	public float getQuality() {
-		return qual;
-	}
+    public float getQuality() {
+        return qual;
+    }
 
-	public void setQuality(float q) {
-		if (q < 0 || q > 1) {
-			throw new IllegalArgumentException("Relevance must be in the closed interval [0,1].");
-		}
-		qual = q;
-	}
+    public void setQuality(float q) {
+        if (q < 0 || q > 1) {
+            throw new IllegalArgumentException("Relevance must be in the closed interval [0,1].");
+        }
+        qual = q;
+    }
 
-	public Set<String> getTerms() {
-		return terms;
-	}
+    public Set<String> getTerms() {
+        return terms;
+    }
 
-	public void setTerms(Set<String> t) {
-		terms = (t == null)? new HashSet<String>(): t;
-	}
+    public void setTerms(Set<String> t) {
+        terms = (t == null)? new HashSet<String>(): t;
+    }
 
 }

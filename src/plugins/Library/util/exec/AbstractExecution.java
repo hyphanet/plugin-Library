@@ -30,147 +30,147 @@ import java.util.HashSet;
 */
 public abstract class AbstractExecution<V> implements Execution<V> {
 
-	protected Date start;
-	protected Date stop = null;
+    protected Date start;
+    protected Date stop = null;
 
-	/**
-	** Keeps track of the acceptors.
-	*/
-	final protected Set<ExecutionAcceptor<V>> accept = new HashSet<ExecutionAcceptor<V>>();
+    /**
+    ** Keeps track of the acceptors.
+    */
+    final protected Set<ExecutionAcceptor<V>> accept = new HashSet<ExecutionAcceptor<V>>();
 
-	/**
-	** Subject of the execution.
-	*/
-	final protected String subject;
+    /**
+    ** Subject of the execution.
+    */
+    final protected String subject;
 
-	/**
-	** Holds the error that caused the operation to abort, if any. If not
-	** {@code null}, then thrown by {@link #getResult()}.
-	*/
-	private TaskAbortException error;
+    /**
+    ** Holds the error that caused the operation to abort, if any. If not
+    ** {@code null}, then thrown by {@link #getResult()}.
+    */
+    private TaskAbortException error;
 
-	/**
-	** Holds the result of the operation once it completes. If {@link #error}
-	** is {@code null}, then returned by {@link #getResult()}.
-	*/
-	private V result;
+    /**
+    ** Holds the result of the operation once it completes. If {@link #error}
+    ** is {@code null}, then returned by {@link #getResult()}.
+    */
+    private V result;
 
-	/**
-	** Create an {@code Execution} with the given subject.
-	**
-	** @param subj The subject
-	*/
-	public AbstractExecution(String subj) {
-		this.subject = subj;
-		setStartDate();
-	}
+    /**
+    ** Create an {@code Execution} with the given subject.
+    **
+    ** @param subj The subject
+    */
+    public AbstractExecution(String subj) {
+        this.subject = subj;
+        setStartDate();
+    }
 
-	protected synchronized void setStartDate() {
-		if (start != null) { throw new IllegalStateException("Execution is already running"); }
-		start = new Date();
-		for (ExecutionAcceptor<V> acc: accept) { offerStarted(acc); }
-	}
+    protected synchronized void setStartDate() {
+        if (start != null) { throw new IllegalStateException("Execution is already running"); }
+        start = new Date();
+        for (ExecutionAcceptor<V> acc: accept) { offerStarted(acc); }
+    }
 
-	protected void offerStarted(ExecutionAcceptor<V> acc) {
-		try {
-			acc.acceptStarted(this);
-		} catch (RuntimeException e) {
-			// FIXME NORM log this somewhere
-		}
-	}
+    protected void offerStarted(ExecutionAcceptor<V> acc) {
+        try {
+            acc.acceptStarted(this);
+        } catch (RuntimeException e) {
+            // FIXME NORM log this somewhere
+        }
+    }
 
-	protected synchronized void setResult(V res) {
-		if (stop != null) { throw new IllegalStateException("Execution has already finished."); }
-		result = res;
-		stop = new Date();
-		notifyAll();
-		for (ExecutionAcceptor<V> acc: accept) { offerDone(acc); }
-	}
+    protected synchronized void setResult(V res) {
+        if (stop != null) { throw new IllegalStateException("Execution has already finished."); }
+        result = res;
+        stop = new Date();
+        notifyAll();
+        for (ExecutionAcceptor<V> acc: accept) { offerDone(acc); }
+    }
 
-	protected void offerDone(ExecutionAcceptor<V> acc) {
-		try {
-			acc.acceptDone(this, result);
-		} catch (RuntimeException e) {
-			// FIXME NORM log this somewhere
-		}
-	}
+    protected void offerDone(ExecutionAcceptor<V> acc) {
+        try {
+            acc.acceptDone(this, result);
+        } catch (RuntimeException e) {
+            // FIXME NORM log this somewhere
+        }
+    }
 
-	protected synchronized void setError(TaskAbortException err) {
-		if (stop != null) { throw new IllegalStateException("Execution has already finished."); }
-		error = err;
-		stop = new Date();
-		notifyAll();
-		for (ExecutionAcceptor<V> acc: accept) { offerAborted(acc); }
-	}
+    protected synchronized void setError(TaskAbortException err) {
+        if (stop != null) { throw new IllegalStateException("Execution has already finished."); }
+        error = err;
+        stop = new Date();
+        notifyAll();
+        for (ExecutionAcceptor<V> acc: accept) { offerAborted(acc); }
+    }
 
-	protected void offerAborted(ExecutionAcceptor<V> acc) {
-		try {
-			acc.acceptAborted(this, error);
-		} catch (RuntimeException e) {
-			// FIXME NORM log this somewhere
-		}
-	}
+    protected void offerAborted(ExecutionAcceptor<V> acc) {
+        try {
+            acc.acceptAborted(this, error);
+        } catch (RuntimeException e) {
+            // FIXME NORM log this somewhere
+        }
+    }
 
-	/*========================================================================
-	  public interface Progress
-	 ========================================================================*/
+    /*========================================================================
+      public interface Progress
+     ========================================================================*/
 
-	/*@Override**/ public String getSubject() {
-		return subject;
-	}
+    /*@Override**/ public String getSubject() {
+        return subject;
+    }
 
-	abstract public String getStatus();
+    abstract public String getStatus();
 
-	abstract public ProgressParts getParts() throws TaskAbortException;
+    abstract public ProgressParts getParts() throws TaskAbortException;
 
-	/*@Override**/ public synchronized boolean isDone() throws TaskAbortException {
-		if (error != null) { throw error; }
-		return result != null;
-	}
+    /*@Override**/ public synchronized boolean isDone() throws TaskAbortException {
+        if (error != null) { throw error; }
+        return result != null;
+    }
 
-	/*@Override**/ public synchronized boolean isStarted() {
-		return start != null;
-	}
+    /*@Override**/ public synchronized boolean isStarted() {
+        return start != null;
+    }
 
-	/*@Override**/ public synchronized void join() throws InterruptedException, TaskAbortException {
-		while (stop == null) { wait(); }
-		if (error != null) { throw error; }
-	}
+    /*@Override**/ public synchronized void join() throws InterruptedException, TaskAbortException {
+        while (stop == null) { wait(); }
+        if (error != null) { throw error; }
+    }
 
-	/*========================================================================
-	  public interface Execution
-	 ========================================================================*/
+    /*========================================================================
+      public interface Execution
+     ========================================================================*/
 
-	/*@Override**/ public Date getStartDate() {
-		return start;
-	}
+    /*@Override**/ public Date getStartDate() {
+        return start;
+    }
 
-	/*@Override**/ public long getTimeElapsed() {
-		return System.currentTimeMillis() - start.getTime();
-	}
+    /*@Override**/ public long getTimeElapsed() {
+        return System.currentTimeMillis() - start.getTime();
+    }
 
-	/*@Override**/ public long getTimeTaken() {
-		if (stop == null) { return -1; }
-		return stop.getTime() - start.getTime();
-	}
+    /*@Override**/ public long getTimeTaken() {
+        if (stop == null) { return -1; }
+        return stop.getTime() - start.getTime();
+    }
 
-	/**
-	** {@inheritDoc}
-	**
-	** This implementation returns {@link #result} if {@link #error} is {@code
-	** null}, otherwise it throws it.
-	*/
-	/*@Override**/ public V getResult() throws TaskAbortException {
-		if (error != null) { throw error; }
-		return result;
-	}
+    /**
+    ** {@inheritDoc}
+    **
+    ** This implementation returns {@link #result} if {@link #error} is {@code
+    ** null}, otherwise it throws it.
+    */
+    /*@Override**/ public V getResult() throws TaskAbortException {
+        if (error != null) { throw error; }
+        return result;
+    }
 
-	/*@Override**/ public synchronized void addAcceptor(ExecutionAcceptor<V> acc) {
-		accept.add(acc);
-		// trigger the event if the task is already done/aborted
-		if (start != null) { offerStarted(acc); }
-		if (error != null) { offerDone(acc); }
-		if (result != null) { offerAborted(acc); }
-	}
+    /*@Override**/ public synchronized void addAcceptor(ExecutionAcceptor<V> acc) {
+        accept.add(acc);
+        // trigger the event if the task is already done/aborted
+        if (start != null) { offerStarted(acc); }
+        if (error != null) { offerDone(acc); }
+        if (result != null) { offerAborted(acc); }
+    }
 
 }

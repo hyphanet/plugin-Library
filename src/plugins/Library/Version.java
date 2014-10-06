@@ -8,10 +8,10 @@ package plugins.Library;
  */
 public class Version {
 
-	private static final String vcsRevision = "@custom@";
+    private static final String vcsRevision = "@custom@";
 
-	public static String vcsRevision() {
-		return vcsRevision;
-	}
+    public static String vcsRevision() {
+        return vcsRevision;
+    }
 
 }

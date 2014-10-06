@@ -11,10 +11,10 @@ package plugins.Library.util.exec;
 */
 public interface ExecutionAcceptor<V> {
 
-	public void acceptStarted(Execution<V> opn);
+    public void acceptStarted(Execution<V> opn);
 
-	public void acceptDone(Execution<V> opn, V result);
+    public void acceptDone(Execution<V> opn, V result);
 
-	public void acceptAborted(Execution<V> opn, TaskAbortException abort);
+    public void acceptAborted(Execution<V> opn, TaskAbortException abort);
 
 }

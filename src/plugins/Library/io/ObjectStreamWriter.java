@@ -13,9 +13,9 @@ import java.io.IOException;
 */
 public interface ObjectStreamWriter<T> {
 
-	/**
-	** Write the given object to the given stream.
-	*/
-	public void writeObject(T o, OutputStream os) throws IOException;
+    /**
+    ** Write the given object to the given stream.
+    */
+    public void writeObject(T o, OutputStream os) throws IOException;
 
 }

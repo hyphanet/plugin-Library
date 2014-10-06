@@ -20,34 +20,34 @@ import java.util.concurrent.BlockingQueue;
 */
 public interface ScheduledSerialiser<T> extends IterableSerialiser<T> {
 
-	/**
-	** Creates a {@link ObjectProcessor} for executing {@link PullTask}s, which
-	** should be {@linkplain ObjectProcessor#auto()} automatically started.
-	**
-	** @param input Queue to add task requests to
-	** @param output Queue to pop completed tasks from
-	** @param deposit Map of tasks to deposits
-	*/
-	// TODO LOW public <E> Scheduler pullSchedule(
-	public <E> ObjectProcessor<PullTask<T>, E, TaskAbortException> pullSchedule(
-		BlockingQueue<PullTask<T>> input,
-		BlockingQueue<X2<PullTask<T>, TaskAbortException>> output,
-		Map<PullTask<T>, E> deposit
-	);
+    /**
+    ** Creates a {@link ObjectProcessor} for executing {@link PullTask}s, which
+    ** should be {@linkplain ObjectProcessor#auto()} automatically started.
+    **
+    ** @param input Queue to add task requests to
+    ** @param output Queue to pop completed tasks from
+    ** @param deposit Map of tasks to deposits
+    */
+    // TODO LOW public <E> Scheduler pullSchedule(
+    public <E> ObjectProcessor<PullTask<T>, E, TaskAbortException> pullSchedule(
+        BlockingQueue<PullTask<T>> input,
+        BlockingQueue<X2<PullTask<T>, TaskAbortException>> output,
+        Map<PullTask<T>, E> deposit
+    );
 
-	/**
-	** Creates a {@link ObjectProcessor} for executing {@link PushTask}s, which
-	** should be {@linkplain ObjectProcessor#auto()} automatically started.
-	**
-	** @param input Queue to add task requests to
-	** @param output Queue to pop completed tasks from
-	** @param deposit Map of tasks to deposits
-	*/
-	// TODO LOW public <E> Scheduler pushSchedule(
-	public <E> ObjectProcessor<PushTask<T>, E, TaskAbortException> pushSchedule(
-		BlockingQueue<PushTask<T>> input,
-		BlockingQueue<X2<PushTask<T>, TaskAbortException>> output,
-		Map<PushTask<T>, E> deposit
-	);
+    /**
+    ** Creates a {@link ObjectProcessor} for executing {@link PushTask}s, which
+    ** should be {@linkplain ObjectProcessor#auto()} automatically started.
+    **
+    ** @param input Queue to add task requests to
+    ** @param output Queue to pop completed tasks from
+    ** @param deposit Map of tasks to deposits
+    */
+    // TODO LOW public <E> Scheduler pushSchedule(
+    public <E> ObjectProcessor<PushTask<T>, E, TaskAbortException> pushSchedule(
+        BlockingQueue<PushTask<T>> input,
+        BlockingQueue<X2<PushTask<T>, TaskAbortException>> output,
+        Map<PushTask<T>, E> deposit
+    );
 
 }

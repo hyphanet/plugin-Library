@@ -11,10 +11,10 @@ package plugins.Library.util.exec;
 */
 public class TaskCompleteException extends TaskAbortException {
 
-	// EXPAND
+    // EXPAND
 
-	public TaskCompleteException(String s) {
-		super(s, null, false, false);
-	}
+    public TaskCompleteException(String s) {
+        super(s, null, false, false);
+    }
 
 }

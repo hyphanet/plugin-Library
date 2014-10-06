@@ -15,29 +15,29 @@ import plugins.Library.util.IdentityComparator;
 public class RelevanceComparator extends IdentityComparator<TermEntry>  {
 
 
-	public static final RelevanceComparator comparator = new RelevanceComparator();
+    public static final RelevanceComparator comparator = new RelevanceComparator();
 
-	@Override
-	public int compare(TermEntry o1, TermEntry o2) {
-		float rel1 = o1.rel;
-		float rel2 = o2.rel;
+    @Override
+    public int compare(TermEntry o1, TermEntry o2) {
+        float rel1 = o1.rel;
+        float rel2 = o2.rel;
 
-		if(rel1 == rel2)
-			return super.compare(o1, o2);
-		else
-			return (rel1 < rel2) ? +1 : -1;
-	}
+        if(rel1 == rel2)
+            return super.compare(o1, o2);
+        else
+            return (rel1 < rel2) ? +1 : -1;
+    }
 
-	@Override
-	public boolean equals(Object o){
-		return getClass() == o.getClass();
-	}
+    @Override
+    public boolean equals(Object o){
+        return getClass() == o.getClass();
+    }
 
-	@Override
-	public int hashCode() {
-		int hash = 7;
-		return hash;
-	}
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        return hash;
+    }
 
 
 }

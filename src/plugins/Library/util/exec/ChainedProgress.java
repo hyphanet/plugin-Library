@@ -12,31 +12,31 @@ package plugins.Library.util.exec;
 */
 public interface ChainedProgress extends Progress {
 
-	/**
-	** {@inheritDoc}
-	**
-	** Implementations should return {@link ProgressParts#getParts(Iterable,
-	** int)}, with the first argument being the collection of already
-	** completed progresses plus the current one.
-	*/
-	/*@Override**/ public ProgressParts getParts() throws TaskAbortException;
+    /**
+    ** {@inheritDoc}
+    **
+    ** Implementations should return {@link ProgressParts#getParts(Iterable,
+    ** int)}, with the first argument being the collection of already
+    ** completed progresses plus the current one.
+    */
+    /*@Override**/ public ProgressParts getParts() throws TaskAbortException;
 
-	/**
-	** Gets the latest subprogress. The earlier ones should all be complete.
-	** Note: '''this can return {@code null}''' which means the next stage
-	** hasn't started yet.
-	*/
-	public Progress getCurrentProgress();
+    /**
+    ** Gets the latest subprogress. The earlier ones should all be complete.
+    ** Note: '''this can return {@code null}''' which means the next stage
+    ** hasn't started yet.
+    */
+    public Progress getCurrentProgress();
 
-	/*
+    /*
 
-	display would look something like
+    display would look something like
 
-	{as for Progress.this}
-		+----------------------------------------------------+
-		| {as for getCurrentProgress()}                      |
-		+----------------------------------------------------+
+    {as for Progress.this}
+        +----------------------------------------------------+
+        | {as for getCurrentProgress()}                      |
+        +----------------------------------------------------+
 
-	*/
+    */
 
 }

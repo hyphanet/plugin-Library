@@ -10,10 +10,10 @@ package plugins.Library.search;
  */
 public class InvalidSearchException extends Exception{
     public InvalidSearchException(String s){
-		super (s);
-	}
+        super (s);
+    }
 
-	public InvalidSearchException(String string, Exception ex) {
-		super(string, ex);
-	}
+    public InvalidSearchException(String string, Exception ex) {
+        super(string, ex);
+    }
 }

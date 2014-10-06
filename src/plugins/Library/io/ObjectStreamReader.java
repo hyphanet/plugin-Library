@@ -13,9 +13,9 @@ import java.io.IOException;
 */
 public interface ObjectStreamReader<T> {
 
-	/**
-	** Read and return the object from the given stream.
-	*/
-	public T readObject(InputStream is) throws IOException;
+    /**
+    ** Read and return the object from the given stream.
+    */
+    public T readObject(InputStream is) throws IOException;
 
 }

@@ -35,6 +35,6 @@ package plugins.Library.util.func;
 */
 public interface Closure<P, E extends Exception> {
 
-	public void invoke(P param) throws E;
+    public void invoke(P param) throws E;
 
 }

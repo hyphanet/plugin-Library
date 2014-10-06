@@ -18,13 +18,13 @@ import java.util.Set;
 */
 public interface Index {
 
-	/**
-	** Non-blocking fetch of the entries associated with a given term.
-	**
-	** DOCUMENT
-	*/
-	public Execution<Set<TermEntry>> getTermEntries(String term);
+    /**
+    ** Non-blocking fetch of the entries associated with a given term.
+    **
+    ** DOCUMENT
+    */
+    public Execution<Set<TermEntry>> getTermEntries(String term);
 
-	public Execution<URIEntry> getURIEntry(FreenetURI uri);
+    public Execution<URIEntry> getURIEntry(FreenetURI uri);
 
 }

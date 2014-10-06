@@ -21,12 +21,12 @@ import java.util.Set;
 */
 public interface WriteableIndex extends Index {
 
-	public Execution<FreenetURI> putTermEntries(Collection<TermEntry> entries);
+    public Execution<FreenetURI> putTermEntries(Collection<TermEntry> entries);
 
-	public Execution<FreenetURI> remTermEntries(Collection<TermEntry> entries);
+    public Execution<FreenetURI> remTermEntries(Collection<TermEntry> entries);
 
-	public Execution<FreenetURI> putURIEntries(Collection<URIEntry> entries);
+    public Execution<FreenetURI> putURIEntries(Collection<URIEntry> entries);
 
-	public Execution<FreenetURI> remURIEntries(Collection<URIEntry> entries);
+    public Execution<FreenetURI> remURIEntries(Collection<URIEntry> entries);
 
 }

@@ -13,9 +13,9 @@ package plugins.Library.util.concurrent;
 */
 public interface Scheduler extends java.io.Closeable {
 
-	/**
-	** Stop accepting objects (but continue any started actions).
-	*/
-	public void close();
+    /**
+    ** Stop accepting objects (but continue any started actions).
+    */
+    public void close();
 
 }

@@ -10,28 +10,28 @@ package plugins.Library.util.exec;
 */
 public class TaskInProgressException extends TaskAbortException {
 
-	final Progress prog;
+    final Progress prog;
 
-	public TaskInProgressException(String s, Progress p) {
-		super(s, null, false, false);
-		prog = p;
-	}
+    public TaskInProgressException(String s, Progress p) {
+        super(s, null, false, false);
+        prog = p;
+    }
 
-	public TaskInProgressException(Progress p) {
-		super(null, null, false, false);
-		prog = p;
-	}
+    public TaskInProgressException(Progress p) {
+        super(null, null, false, false);
+        prog = p;
+    }
 
-	public Progress getProgress() {
-		return prog;
-	}
+    public Progress getProgress() {
+        return prog;
+    }
 
-	/**
-	** DOCUMENT
-	*/
-	public TaskCompleteException join() throws InterruptedException, TaskAbortException {
-		prog.join();
-		return new TaskCompleteException("Completed task: " + prog.getSubject());
-	}
+    /**
+    ** DOCUMENT
+    */
+    public TaskCompleteException join() throws InterruptedException, TaskAbortException {
+        prog.join();
+        return new TaskCompleteException("Completed task: " + prog.getSubject());
+    }
 
 }

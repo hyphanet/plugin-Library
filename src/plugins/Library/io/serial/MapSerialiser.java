@@ -21,30 +21,30 @@ import java.util.Map;
 */
 public interface MapSerialiser<K, T> extends Serialiser<T> {
 
-	/**
-	** Execute everything in a map of {@link PullTask}s, returning only when
-	** they are all done.
-	**
-	** Implementations should only execute the tasks for which the metadata
-	** is not null.
-	**
-	** @param tasks The map of tasks to execute
-	** @param mapmeta The map-wide metadata
-	*/
-	public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) throws TaskAbortException;
+    /**
+    ** Execute everything in a map of {@link PullTask}s, returning only when
+    ** they are all done.
+    **
+    ** Implementations should only execute the tasks for which the metadata
+    ** is not null.
+    **
+    ** @param tasks The map of tasks to execute
+    ** @param mapmeta The map-wide metadata
+    */
+    public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) throws TaskAbortException;
 
-	/**
-	** Execute everything in a map of {@link PushTask}s, returning only when
-	** they are all done.
-	**
-	** Implementations should only execute the tasks for which the data is not
-	** null, but may require that an entire submap (which might include tasks
-	** with null data and non-null metadata) be passed into the method in order
-	** to perform better optimisation.
-	**
-	** @param tasks The map of tasks to execute
-	** @param mapmeta The map-wide metadata
-	*/
-	public void push(Map<K, PushTask<T>> tasks, Object mapmeta) throws TaskAbortException;
+    /**
+    ** Execute everything in a map of {@link PushTask}s, returning only when
+    ** they are all done.
+    **
+    ** Implementations should only execute the tasks for which the data is not
+    ** null, but may require that an entire submap (which might include tasks
+    ** with null data and non-null metadata) be passed into the method in order
+    ** to perform better optimisation.
+    **
+    ** @param tasks The map of tasks to execute
+    ** @param mapmeta The map-wide metadata
+    */
+    public void push(Map<K, PushTask<T>> tasks, Object mapmeta) throws TaskAbortException;
 
 }

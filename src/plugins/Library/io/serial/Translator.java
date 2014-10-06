@@ -14,31 +14,31 @@ import plugins.Library.io.DataFormatException;
 */
 public interface Translator<T, I> {
 
-	/**
-	** Apply the translation.
-	**
-	** Implementations of this method which act on a recursive data structure
-	** that is designed to be partially loaded (such as
-	** {@link plugins.Library.util.SkeletonMap}), should follow the same
-	** guidelines as in {@link Archiver#push(Serialiser.PushTask)},
-	** particularly with regards to throwing {@link IllegalArgumentException}.
-	**
-	** TODO LOW maybe this could throw {@link DataFormatException} like {@link
-	** #rev(Object)}? (probably no point...)
-	*/
-	I app(T translatee);// throws DataFormatException;
+    /**
+    ** Apply the translation.
+    **
+    ** Implementations of this method which act on a recursive data structure
+    ** that is designed to be partially loaded (such as
+    ** {@link plugins.Library.util.SkeletonMap}), should follow the same
+    ** guidelines as in {@link Archiver#push(Serialiser.PushTask)},
+    ** particularly with regards to throwing {@link IllegalArgumentException}.
+    **
+    ** TODO LOW maybe this could throw {@link DataFormatException} like {@link
+    ** #rev(Object)}? (probably no point...)
+    */
+    I app(T translatee);// throws DataFormatException;
 
-	/**
-	** Reverse the translation.
-	**
-	** Implementations of this method which act on a recursive data structure
-	** that is designed to be partially loaded (such as
-	** {@link plugins.Library.util.SkeletonMap}), should follow the same
-	** guidelines as in {@link Archiver#pull(Serialiser.PullTask)}.
-	**
-	** @throws DataFormatException if some aspect of the input prevents the
-	**         output from being constructed.
-	*/
-	T rev(I intermediate) throws DataFormatException;
+    /**
+    ** Reverse the translation.
+    **
+    ** Implementations of this method which act on a recursive data structure
+    ** that is designed to be partially loaded (such as
+    ** {@link plugins.Library.util.SkeletonMap}), should follow the same
+    ** guidelines as in {@link Archiver#pull(Serialiser.PullTask)}.
+    **
+    ** @throws DataFormatException if some aspect of the input prevents the
+    **         output from being constructed.
+    */
+    T rev(I intermediate) throws DataFormatException;
 
 }

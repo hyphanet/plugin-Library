@@ -10,45 +10,45 @@ package plugins.Library.util.exec;
 */
 public interface Progress {
 
-	/**
-	** Returns the subject / name of the task, if any.
-	*/
-	public String getSubject();
+    /**
+    ** Returns the subject / name of the task, if any.
+    */
+    public String getSubject();
 
-	/**
-	** Returns the current completion status.
-	*/
-	public String getStatus();
+    /**
+    ** Returns the current completion status.
+    */
+    public String getStatus();
 
-	/**
-	** Get the details of this progress as a {@link ProgressParts} object, or
-	** throw an exception if the task has aborted.
-	*/
-	public ProgressParts getParts() throws TaskAbortException;
+    /**
+    ** Get the details of this progress as a {@link ProgressParts} object, or
+    ** throw an exception if the task has aborted.
+    */
+    public ProgressParts getParts() throws TaskAbortException;
 
-	/**
-	** Whether the progress has started.
-	*/
-	public boolean isStarted();
+    /**
+    ** Whether the progress has started.
+    */
+    public boolean isStarted();
 
-	/**
-	** Whether the progress has completed successfully, or throw an exception
-	** if it has aborted.
-	*/
-	public boolean isDone() throws TaskAbortException;
+    /**
+    ** Whether the progress has completed successfully, or throw an exception
+    ** if it has aborted.
+    */
+    public boolean isDone() throws TaskAbortException;
 
-	/**
-	** Wait for the progress to finish.
-	*/
-	public void join() throws InterruptedException, TaskAbortException;
+    /**
+    ** Wait for the progress to finish.
+    */
+    public void join() throws InterruptedException, TaskAbortException;
 
-	/*
+    /*
 
-	display would look something like:
+    display would look something like:
 
-	getName(): getStatus()
-	|        done|         started| known|                           estimate|
+    getName(): getStatus()
+    |        done|         started| known|                           estimate|
 
-	*/
+    */
 
 }

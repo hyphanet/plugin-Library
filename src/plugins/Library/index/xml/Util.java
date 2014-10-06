@@ -21,55 +21,55 @@ import freenet.support.io.FileBucket;
  * @author  j16sdiz (1024D/75494252)
  */
 public class Util {
-	
-	static volatile boolean logMINOR;
-	static volatile boolean logDEBUG;
-	
-	static {
-		Logger.registerClass(Util.class);
-	}
+    
+    static volatile boolean logMINOR;
+    static volatile boolean logDEBUG;
+    
+    static {
+        Logger.registerClass(Util.class);
+    }
 
-	public static Bucket fetchBucket(String uri, HighLevelSimpleClient hlsc) throws FetchException, MalformedURLException {
-		// try local file first
-		File file = new File(uri);
-		if (file.exists() && file.canRead()) 
-			return new FileBucket(file, true, false, false, false, false);
-		else if (hlsc==null)
-			throw new NullPointerException("No client or file "+uri+" found");
-		
-		// FreenetURI, try to fetch from freenet
-		if(logMINOR) Logger.minor(Util.class, "Fetching "+uri);
-		FreenetURI u = new FreenetURI(uri);
-		FetchResult res;
-		while (true) {
-			try {
-				res = hlsc.fetch(u);
-				break;
-			} catch (FetchException e) {
-				if (e.newURI != null) {
-					u = e.newURI;
-					continue;
-				} else
-					throw e;
-			}
-		}
+    public static Bucket fetchBucket(String uri, HighLevelSimpleClient hlsc) throws FetchException, MalformedURLException {
+        // try local file first
+        File file = new File(uri);
+        if (file.exists() && file.canRead()) 
+            return new FileBucket(file, true, false, false, false, false);
+        else if (hlsc==null)
+            throw new NullPointerException("No client or file "+uri+" found");
+        
+        // FreenetURI, try to fetch from freenet
+        if(logMINOR) Logger.minor(Util.class, "Fetching "+uri);
+        FreenetURI u = new FreenetURI(uri);
+        FetchResult res;
+        while (true) {
+            try {
+                res = hlsc.fetch(u);
+                break;
+            } catch (FetchException e) {
+                if (e.newURI != null) {
+                    u = e.newURI;
+                    continue;
+                } else
+                    throw e;
+            }
+        }
 
-		return res.asBucket();
-	}
-	
-	public static boolean isValid(String uri) {
-		// try local file first
-		File file = new File(uri);
-		if (!file.exists() || !file.canRead()) {
-			// FreenetURI, try to fetch from freenet
-			try{
-				FreenetURI u = new FreenetURI(uri);
-			}catch(MalformedURLException e){
-				return false;
-			}
-		}
-		return true;
-	}
+        return res.asBucket();
+    }
+    
+    public static boolean isValid(String uri) {
+        // try local file first
+        File file = new File(uri);
+        if (!file.exists() || !file.canRead()) {
+            // FreenetURI, try to fetch from freenet
+            try{
+                FreenetURI u = new FreenetURI(uri);
+            }catch(MalformedURLException e){
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 
