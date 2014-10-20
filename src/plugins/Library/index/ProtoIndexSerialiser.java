@@ -1,6 +1,8 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
+
+
 package plugins.Library.index;
 
 import plugins.Library.Library;
@@ -30,201 +32,237 @@ import java.util.HashMap;
 import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.Date;
+
 import java.io.File;
 
 /**
-** Serialiser for ProtoIndex
-**
-** DOCUMENT
-**
-** @author infinity0
-*/
+ * Serialiser for ProtoIndex
+ *
+ * DOCUMENT
+ *
+ * @author infinity0
+ */
 public class ProtoIndexSerialiser
-implements Archiver<ProtoIndex>,
-           Serialiser.Composite<Archiver<Map<String, Object>>>, // TODO NORM make this a LiveArchiver
-           Serialiser.Translate<ProtoIndex, Map<String, Object>>/*,
-           Serialiser.Trackable<Index>*/ {
+        implements Archiver<ProtoIndex>,
+                   Serialiser.Composite<Archiver<Map<String,
+                       Object>>>,    // TODO NORM make this a LiveArchiver
+        Serialiser.Translate<ProtoIndex, Map<String, Object>>    /*
+                                                                  * ,
+                                                                  * Serialiser.Trackable<Index>
+                                                                  */
+{
+    final public static String                                        MIME_TYPE      =
+        YamlReaderWriter.MIME_TYPE;
+    final public static String                                        FILE_EXTENSION =
+        YamlReaderWriter.FILE_EXTENSION;
+    final protected Translator<ProtoIndex, Map<String, Object>>       trans;
+    final protected LiveArchiver<Map<String, Object>, SimpleProgress> subsrl;
 
-	final public static String MIME_TYPE = YamlReaderWriter.MIME_TYPE;
-	final public static String FILE_EXTENSION = YamlReaderWriter.FILE_EXTENSION;
+    public ProtoIndexSerialiser(LiveArchiver<Map<String, Object>, SimpleProgress> s) {
+        subsrl = s;
+        trans  = new IndexTranslator(subsrl);
+    }
 
-	final protected Translator<ProtoIndex, Map<String, Object>>
-	trans;
+    /*
+     *  FIXME HIGH: Parallelism in fetching multiple words for the same query.
+     * A single serialiser means when we fetch two words for the same query, and they both end up in the same
+     * bucket, we get an AssertionError when we fetch the bucket twice in ProgressTracker.addPullProgress.
+     * So the solution, for the time being, is simply to use two separate serialisers.
+     */
 
-	final protected LiveArchiver<Map<String, Object>, SimpleProgress> 
-	subsrl;
+//  final protected static HashMap<Class<?>, ProtoIndexSerialiser>
+//  srl_cls = new HashMap<Class<?>, ProtoIndexSerialiser>();
+    public static ProtoIndexSerialiser forIndex(Object o, short priorityClass) {
+        if (o instanceof FreenetURI) {
+            return forIndex((FreenetURI) o, priorityClass);
+        } else if (o instanceof File) {
+            return forIndex((File) o);
+        } else {
+            throw new UnsupportedOperationException(
+                "Don't know how to retrieve index for object " + o);
+        }
+    }
 
-	public ProtoIndexSerialiser(LiveArchiver<Map<String, Object>, SimpleProgress> s) {
-		subsrl = s;
-		trans = new IndexTranslator(subsrl);
-	}
+    public static ProtoIndexSerialiser forIndex(FreenetURI uri, short priorityClass) {
 
-	/* FIXME HIGH: Parallelism in fetching multiple words for the same query.
-	 * A single serialiser means when we fetch two words for the same query, and they both end up in the same
-	 * bucket, we get an AssertionError when we fetch the bucket twice in ProgressTracker.addPullProgress.
-	 * So the solution, for the time being, is simply to use two separate serialisers. */
-	
-//	final protected static HashMap<Class<?>, ProtoIndexSerialiser>
-//	srl_cls = new HashMap<Class<?>, ProtoIndexSerialiser>();
+//      ProtoIndexSerialiser srl = srl_cls.get(FreenetURI.class);
+//      if (srl == null) {
+//          // java's type-inference isn't that smart, see
+//          FreenetArchiver<Map<String, Object>> arx = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN);
+//          srl_cls.put(FreenetURI.class, srl = new ProtoIndexSerialiser(arx));
+//      }
+//      return srl;
+        // One serialiser per application. See comments above re srl_cls.
+        // java's type-inference isn't that smart, see
+        FreenetArchiver<Map<String, Object>> arx =
+            Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE,
+                                 0x80 * ProtoIndex.BTREE_NODE_MIN, priorityClass);
 
-	public static ProtoIndexSerialiser forIndex(Object o, short priorityClass) {
-		if (o instanceof FreenetURI) {
-			return forIndex((FreenetURI)o, priorityClass);
-		} else if (o instanceof File) {
-			return forIndex((File)o);
-		} else {
-			throw new UnsupportedOperationException("Don't know how to retrieve index for object " + o);
-		}
-	}
+        return new ProtoIndexSerialiser(arx);
+    }
 
-	public static ProtoIndexSerialiser forIndex(FreenetURI uri, short priorityClass) {
-//		ProtoIndexSerialiser srl = srl_cls.get(FreenetURI.class);
-//		if (srl == null) {
-//			// java's type-inference isn't that smart, see
-//			FreenetArchiver<Map<String, Object>> arx = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN);
-//			srl_cls.put(FreenetURI.class, srl = new ProtoIndexSerialiser(arx));
-//		}
-//		return srl;
-		
-		// One serialiser per application. See comments above re srl_cls.
-		// java's type-inference isn't that smart, see
-		FreenetArchiver<Map<String, Object>> arx = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN, priorityClass);
-		return new ProtoIndexSerialiser(arx);
-	}
+    public static ProtoIndexSerialiser forIndex(File prefix) {
 
-	public static ProtoIndexSerialiser forIndex(File prefix) {
-//		ProtoIndexSerialiser srl = srl_cls.get(File.class);
-//		if (srl == null) {
-//			srl_cls.put(File.class, srl = new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION)));
-//		}
-//		return srl;
-		
-		// One serialiser per application. See comments above re srl_cls.
-		return new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION, "", "", prefix));
-	}
+//      ProtoIndexSerialiser srl = srl_cls.get(File.class);
+//      if (srl == null) {
+//          srl_cls.put(File.class, srl = new ProtoIndexSerialiser(new FileArchiver<Map<String, Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION)));
+//      }
+//      return srl;
+        // One serialiser per application. See comments above re srl_cls.
+        return new ProtoIndexSerialiser(new FileArchiver<Map<String,
+                Object>>(ProtoIndexComponentSerialiser.yamlrw, true, FILE_EXTENSION, "", "",
+                         prefix));
+    }
 
-	/*@Override**/ public LiveArchiver<Map<String, Object>, SimpleProgress> getChildSerialiser() {
-		return subsrl;
-	}
+    /* @Override* */
+    public LiveArchiver<Map<String, Object>, SimpleProgress> getChildSerialiser() {
+        return subsrl;
+    }
 
-	/*@Override**/ public Translator<ProtoIndex, Map<String, Object>> getTranslator() {
-		return trans;
-	}
+    /* @Override* */
+    public Translator<ProtoIndex, Map<String, Object>> getTranslator() {
+        return trans;
+    }
 
-	/*@Override**/ public void pull(PullTask<ProtoIndex> task) throws TaskAbortException {
-		PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(task.meta);
-		subsrl.pull(serialisable);
-		task.meta = serialisable.meta;
-		if (task.meta instanceof FreenetURI) { // if not FreenetURI, skip this silently so we can test on local files
-			serialisable.data.put("reqID", task.meta);
-		}
-		try {
-			task.data = trans.rev(serialisable.data);
-		} catch (DataFormatException e) {
-			throw new TaskAbortException("Could not construct index from data", e);
-		}
-	}
+    /* @Override* */
+    public void pull(PullTask<ProtoIndex> task) throws TaskAbortException {
+        PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(task.meta);
 
-	/*@Override**/ public void push(PushTask<ProtoIndex> task) throws TaskAbortException {
-		PushTask<Map<String, Object>> serialisable = new PushTask<Map<String, Object>>(trans.app(task.data));
-		serialisable.meta = serialisable.data.remove("insID");
-		subsrl.push(serialisable);
-		task.meta = serialisable.meta;
-	}
+        subsrl.pull(serialisable);
+        task.meta = serialisable.meta;
 
-	public static class IndexTranslator
-	implements Translator<ProtoIndex, Map<String, Object>> {
+        if (task.meta instanceof
+                FreenetURI) {    // if not FreenetURI, skip this silently so we can test on local files
+            serialisable.data.put("reqID", task.meta);
+        }
 
-		/**
-		** Term-table translator
-		*/
-		Translator<SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>>, Map<String, Object>> ttrans = new
-		SkeletonBTreeMap.TreeTranslator<String, SkeletonBTreeSet<TermEntry>>(null, new
-		ProtoIndexComponentSerialiser.TreeMapTranslator<String, SkeletonBTreeSet<TermEntry>>(null));
+        try {
+            task.data = trans.rev(serialisable.data);
+        } catch (DataFormatException e) {
+            throw new TaskAbortException("Could not construct index from data", e);
+        }
+    }
 
-		/**
-		** URI-table translator
-		*/
-		Translator<SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>, Map<String, Object>> utrans = new
-		SkeletonBTreeMap.TreeTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null, new
-		ProtoIndexComponentSerialiser.TreeMapTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null));
+    /* @Override* */
+    public void push(PushTask<ProtoIndex> task) throws TaskAbortException {
+        PushTask<Map<String, Object>> serialisable = new PushTask<Map<String,
+                                                         Object>>(trans.app(task.data));
 
-		private LiveArchiver<Map<String, Object>, SimpleProgress> subsrl;
-		
-		public IndexTranslator(LiveArchiver<Map<String, Object>, SimpleProgress> subsrl) {
-			this.subsrl = subsrl;
-		}
+        serialisable.meta = serialisable.data.remove("insID");
+        subsrl.push(serialisable);
+        task.meta = serialisable.meta;
+    }
 
-		/**
-		** {@inheritDoc}
-		**
-		** Note: the resulting map will contain the insert SSK URI under the
-		** key {@code insID}. The intention is for push methods to remove this
-		** and add it to the task metadata. '''Failure to do this could result
-		** in the insert URI being published'''.
-		**
-		** FIXME NORM maybe make this more secure, eg. wrap it in a
-		** UnserialisableWrapper or something that makes YAML throw an
-		** exception if it is accidentally passed to it.
-		*/
-		/*@Override**/ public Map<String, Object> app(ProtoIndex idx) {
-			if (!idx.ttab.isBare() || !idx.utab.isBare()) {
-				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
-			}
-			Map<String, Object> map = new LinkedHashMap<String, Object>();
-			map.put("serialVersionUID", idx.serialVersionUID);
-			map.put("serialFormatUID", idx.serialFormatUID);
-			map.put("insID", idx.insID);
-			map.put("name", idx.name);
-			map.put("ownerName", idx.indexOwnerName);
-			map.put("ownerEmail", idx.indexOwnerEmail);
-			map.put("totalPages", new Long(idx.totalPages));
-			map.put("modified", idx.modified);
-			map.put("extra", idx.extra);
-			map.put("utab", utrans.app(idx.utab));
-			map.put("ttab", ttrans.app(idx.ttab));
-			return map;
-		}
+    public static class IndexTranslator implements Translator<ProtoIndex, Map<String, Object>> {
 
-		/*@Override**/ public ProtoIndex rev(Map<String, Object> map) throws DataFormatException {
-			long magic = (Long)map.get("serialVersionUID");
+        /**
+         * Term-table translator
+         */
+        Translator<SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>>, Map<String, Object>> ttrans =
+            new SkeletonBTreeMap.TreeTranslator<String, SkeletonBTreeSet<TermEntry>>(null,
+                new ProtoIndexComponentSerialiser.TreeMapTranslator<String,
+                    SkeletonBTreeSet<TermEntry>>(null));
 
-			if (magic == ProtoIndex.serialVersionUID) {
-				try {
-					// FIXME yet more hacks related to the lack of proper asynchronous FreenetArchiver...
-					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"), subsrl);
-					FreenetURI reqID = (FreenetURI)map.get("reqID");
-					String name = (String)map.get("name");
-					String ownerName = (String)map.get("ownerName");
-					String ownerEmail = (String)map.get("ownerEmail");
-					// FIXME yaml idiocy??? It seems to give a Long if the number is big enough to need one, and an Integer otherwise.
-					long totalPages;
-					Object o = map.get("totalPages");
-					if(o instanceof Long)
-						totalPages = (Long)o;
-					else // Integer
-						totalPages = (Integer)o;
-					Date modified = (Date)map.get("modified");
-					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
-					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
-					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>)map.get("ttab"));
+        /**
+         * URI-table translator
+         */
+        Translator<SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>, Map<String, Object>> utrans =
+            new SkeletonBTreeMap.TreeTranslator<URIKey,
+                SkeletonBTreeMap<FreenetURI, URIEntry>>(null,
+                    new ProtoIndexComponentSerialiser.TreeMapTranslator<URIKey,
+                        SkeletonBTreeMap<FreenetURI, URIEntry>>(null));
+        private LiveArchiver<Map<String, Object>, SimpleProgress> subsrl;
 
-					return cmpsrl.setSerialiserFor(new ProtoIndex(reqID, name, ownerName, ownerEmail, totalPages, modified, extra, utab, ttab));
+        public IndexTranslator(LiveArchiver<Map<String, Object>, SimpleProgress> subsrl) {
+            this.subsrl = subsrl;
+        }
 
-				} catch (ClassCastException e) {
-					// TODO LOW maybe find a way to pass the actual bad data to the exception
-					throw new DataFormatException("Badly formatted data", e, null);
+        /**
+        ** {@inheritDoc}
+        **
+        ** Note: the resulting map will contain the insert SSK URI under the
+        ** key {@code insID}. The intention is for push methods to remove this
+        ** and add it to the task metadata. '''Failure to do this could result
+        ** in the insert URI being published'''.
+        **
+        ** FIXME NORM maybe make this more secure, eg. wrap it in a
+        ** UnserialisableWrapper or something that makes YAML throw an
+        ** exception if it is accidentally passed to it.
+        */
+        /* @Override* */
+        public Map<String, Object> app(ProtoIndex idx) {
+            if ( !idx.ttab.isBare() || !idx.utab.isBare()) {
+                throw new IllegalArgumentException(
+                    "Data structure is not bare. Try calling deflate() first.");
+            }
 
-				} catch (UnsupportedOperationException e) {
-					throw new DataFormatException("Unrecognised format ID", e, map.get("serialFormatUID"), map, "serialFormatUID");
+            Map<String, Object> map = new LinkedHashMap<String, Object>();
 
-				}
+            map.put("serialVersionUID", idx.serialVersionUID);
+            map.put("serialFormatUID", idx.serialFormatUID);
+            map.put("insID", idx.insID);
+            map.put("name", idx.name);
+            map.put("ownerName", idx.indexOwnerName);
+            map.put("ownerEmail", idx.indexOwnerEmail);
+            map.put("totalPages", new Long(idx.totalPages));
+            map.put("modified", idx.modified);
+            map.put("extra", idx.extra);
+            map.put("utab", utrans.app(idx.utab));
+            map.put("ttab", ttrans.app(idx.ttab));
 
-			} else {
-				throw new DataFormatException("Unrecognised serial ID", null, magic, map, "serialVersionUID");
-			}
-		}
+            return map;
+        }
 
-	}
+        /* @Override* */
+        public ProtoIndex rev(Map<String, Object> map) throws DataFormatException {
+            long magic = (Long) map.get("serialVersionUID");
 
+            if (magic == ProtoIndex.serialVersionUID) {
+                try {
+
+                    // FIXME yet more hacks related to the lack of proper asynchronous FreenetArchiver...
+                    ProtoIndexComponentSerialiser cmpsrl =
+                        ProtoIndexComponentSerialiser.get((Integer) map.get("serialFormatUID"),
+                            subsrl);
+                    FreenetURI reqID      = (FreenetURI) map.get("reqID");
+                    String     name       = (String) map.get("name");
+                    String     ownerName  = (String) map.get("ownerName");
+                    String     ownerEmail = (String) map.get("ownerEmail");
+
+                    // FIXME yaml idiocy??? It seems to give a Long if the number is big enough to need one, and an Integer otherwise.
+                    long   totalPages;
+                    Object o = map.get("totalPages");
+
+                    if (o instanceof Long) {
+                        totalPages = (Long) o;
+                    } else {    // Integer
+                        totalPages = (Integer) o;
+                    }
+
+                    Date                                                             modified =
+                        (Date) map.get("modified");
+                    Map<String, Object>                                              extra    =
+                        (Map<String, Object>) map.get("extra");
+                    SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab     =
+                        utrans.rev((Map<String, Object>) map.get("utab"));
+                    SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab =
+                        ttrans.rev((Map<String, Object>) map.get("ttab"));
+
+                    return cmpsrl.setSerialiserFor(new ProtoIndex(reqID, name, ownerName,
+                            ownerEmail, totalPages, modified, extra, utab, ttab));
+                } catch (ClassCastException e) {
+
+                    // TODO LOW maybe find a way to pass the actual bad data to the exception
+                    throw new DataFormatException("Badly formatted data", e, null);
+                } catch (UnsupportedOperationException e) {
+                    throw new DataFormatException("Unrecognised format ID", e,
+                                                  map.get("serialFormatUID"), map,
+                                                  "serialFormatUID");
+                }
+            } else {
+                throw new DataFormatException("Unrecognised serial ID", null, magic, map,
+                                              "serialVersionUID");
+            }
+        }
+    }
 }
