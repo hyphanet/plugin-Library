@@ -11,4 +11,3 @@
  * @author MikeB
  */
 package plugins.Library.ui;
-
