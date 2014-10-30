@@ -100,9 +100,9 @@ public class ProgressParts {
     public ProgressParts(int d, int s, int k, int t) {
         if ((0 > d) || (d > s) || (s > k) || ((t >= 0) && (k > t)) ||
                 ((t < 0) && (t != ESTIMATE_UNKNOWN) && (t != TOTAL_FINALIZED))) {
-            throw new IllegalArgumentException(
-                "ProgressParts (" + d + "/" + s + "/" + k + "/" + t +
-                ") must obey the contract 0 <= done <= started <= known <= totalest or totalest == ESTIMATE_UNKNOWN or TOTAL_FINALIZED");
+            throw new IllegalArgumentException("ProgressParts (" + d + "/" + s + "/" + k + "/" +
+                    t + ") must obey the contract 0 <= done <= started <= known <= totalest" +
+                    " or totalest == ESTIMATE_UNKNOWN or TOTAL_FINALIZED");
         }
 
         done = d;

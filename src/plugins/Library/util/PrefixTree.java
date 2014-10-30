@@ -83,8 +83,8 @@ abstract public class PrefixTree<K extends PrefixTree.PrefixKey, V> {
             // doing... this is needed for SkeletonPrefixTreeMap.DummyChild
             if (chd.length != p.symbols()) {
                 throw new IllegalArgumentException(
-                    "The child array must be able to exactly hold all its potential children, of which there are " +
-                    p.symbols());
+                    "The child array must be able to exactly hold all its potential children," +
+                    " of which there are " + p.symbols());
             }
 
             for (PrefixTree<K, V> c : chd) {

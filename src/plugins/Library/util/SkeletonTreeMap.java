@@ -441,8 +441,8 @@ public class SkeletonTreeMap<K, V> extends TreeMap<K, V>
                     }
                 } catch (ClassCastException e) {
                     throw new DataFormatException(
-                        "TreeMapTranslator: reverse translation failed. Try supplying a non-null key-translator.",
-                        e, intm, null, null);
+                        "TreeMapTranslator: reverse translation failed." +
+                        " Try supplying a non-null key-translator.", e, intm, null, null);
                 }
             } else {
                 for (Map.Entry<String, Object> en : intm.entrySet()) {
