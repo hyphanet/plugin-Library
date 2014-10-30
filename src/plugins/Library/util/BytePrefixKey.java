@@ -116,7 +116,7 @@ abstract public class BytePrefixKey<K extends BytePrefixKey<K>> extends Abstract
      *
      * public void setString(String s) {
      *   if (s.length != hash.length<<1) {
-     *       throw new IllegalArgumentException("Incorrect length of string for this BytePrefixKey.");
+     *    throw new IllegalArgumentException("Incorrect length of string for this BytePrefixKey.");
      *   }
      *   System.arraycopy(hexToBytes(s), 0, hash, 0, hash.length);
      * }

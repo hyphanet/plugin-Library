@@ -42,7 +42,8 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
     final protected Executor exec;
     final protected ExceptionConvertor<X> convertor;
 
-    // Allows a group of ObjectProcessor's to all notify the same object so that the caller doesn't have to poll.
+    // Allows a group of ObjectProcessor's to all notify the
+    // same object so that the caller doesn't have to poll.
     protected Notifier notifier;
     protected volatile boolean open = true;
     protected int dispatched = 0;
@@ -177,7 +178,8 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
         }
 
         // in.put() can block. Don't hold the outer lock during pushing.
-        // Note that this can result in more stuff being in dep than is in in. This is okay, assuming that
+        // Note that this can result in more stuff being in dep than is in in.
+        // This is okay, assuming that
         // we don't have an infinite number of calling threads.
         in.put(item);
     }
@@ -380,9 +382,10 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
                     try {
 
                         // FIXME why do we sleep here at all?
-                        // FIXME for small jobs, such as merging to disk in SpiderIndexUploader, this can
-                        // dominate the execution time!
-                        // FIXME the executors are perfectly capable of limiting the number of threads running...
+                        // FIXME for small jobs, such as merging to disk in SpiderIndexUploader,
+                        // this can dominate the execution time!
+                        // FIXME the executors are perfectly capable of limiting the number of
+                        // threads running...
                         Thread.sleep(100);
                     } catch (InterruptedException e) {
 

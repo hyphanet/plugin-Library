@@ -89,8 +89,11 @@ public class MainPageToadlet extends Toadlet {
 
             // write reply
             writeHTMLReply(ctx, 200, "OK", headers, pageNode.generate());
-        } catch (RuntimeException e) {  // this way isnt working particularly well, i think the ctx only gives out one page maker
-            Logger.error(this, "Runtime Exception writing main page", e);
+        } catch (RuntimeException e) {  /*
+                                         *  this way isnt working particularly well, i think the
+                                         *  ctx only gives out one page maker
+                                         */
+        Logger.error(this, "Runtime Exception writing main page", e);
 
             PageNode p = ctx.getPageMaker().getPageNode(Library.plugName, ctx);
 

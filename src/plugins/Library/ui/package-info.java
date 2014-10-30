@@ -6,7 +6,8 @@
 /**
  * Generates the web interface for the Library
  *
- * TODO get rid of code duplication in here, break up methods into smaller ones and cope with all types of TermEntry
+ * TODO get rid of code duplication in here, break up methods into smaller ones and
+ * cope with all types of TermEntry
  *
  * @author MikeB
  */

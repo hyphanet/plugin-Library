@@ -9,7 +9,8 @@ import plugins.Library.index.TermEntry;
 import plugins.Library.util.IdentityComparator;
 
 /**
- * Compares the relevance of two TermEntrys, extends IdentityComparator so that two unique entries will not return a comparison of 0
+ * Compares the relevance of two TermEntrys, extends IdentityComparator so that two unique entries
+ * will not return a comparison of 0
  *
  * @author MikeB
  */

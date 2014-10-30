@@ -66,7 +66,8 @@ public class LibrarianHandler extends DefaultHandler {
 
     /**
      * Construct a LibrarianHandler to look for many terms
-     * @param requests the requests wanting to be resolved by this LibrarianHandler, results are written back to them
+     * @param requests the requests wanting to be resolved by this LibrarianHandler,
+     *        results are written back to them
      * @throws java.lang.Exception
      */
     public LibrarianHandler(List<FindRequest> requests) {
@@ -215,7 +216,8 @@ public class LibrarianHandler extends DefaultHandler {
                                 }
                             } catch (Exception e) {
 
-                                // if(logMINOR) Logger.minor(this, "No wordcount found " + e.toString(), e);
+                                // if(logMINOR) Logger.minor(this, "No wordcount found " +
+                                // e.toString(), e);
                             }
                         }
 
@@ -262,7 +264,8 @@ public class LibrarianHandler extends DefaultHandler {
                 Set<TermPageEntry> result = match.getUnfinishedResult();
                 float relevance = 0;
 
-//              if(logMINOR) Logger.minor(this, "termcount "+termpositions.size()+" filewordcount = "+inFileWordCount);
+//              if(logMINOR) Logger.minor(this, "termcount "+termpositions.size()+" filewordcount =
+//                                               "+inFileWordCount);
                 if ((termpositions != null) && (termpositions.size() > 0) &&
                         (inFileWordCount > 0)) {
                     relevance = (float) (termpositions.size() / (float) inFileWordCount);
@@ -271,7 +274,8 @@ public class LibrarianHandler extends DefaultHandler {
                         relevance *= Math.log((float) totalFileCount / (float) inWordFileCount);
                     }
 
-                    // if(logMINOR) Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.rel+" - "+pageEntry.toString());
+                    // if(logMINOR) Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+
+                    // " to "+pageEntry.rel+" - "+pageEntry.toString());
                 }
 
                 TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), relevance,

@@ -8,7 +8,8 @@
  * splitting search queries, searching on multiple indexes.
  *
  * TODO support for stopwords, maybe it should be an exception passed back from
- * getResult() so that that one can be ignored and need to send a message to the user to say it was excluded ( Could be a TermEntry )
+ * getResult() so that that one can be ignored and need to send a message to the user to say it was
+ * excluded ( Could be a TermEntry )
  *
  * @author MikeB
  */

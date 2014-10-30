@@ -81,8 +81,10 @@ public class TermPageEntry extends TermEntry {
             throw new IllegalArgumentException("can't have a null page");
         }
 
-        page = u
-            .intern();  // OPT LOW make the translator use the same URI object as from the URI table?
+        page = u.intern();  /*
+                             *  OPT LOW make the translator use the same URI object
+                             *  as from the URI table?
+                             */
         title = (t == null) ? null : t.intern();
 
         if (p == null) {
@@ -114,8 +116,9 @@ public class TermPageEntry extends TermEntry {
             throw new IllegalArgumentException("can't have a null page");
         }
 
-        page = u
-            .intern();  // OPT LOW make the translator use the same URI object as from the URI table?
+        page = u.intern();  // OPT LOW make the translator use the same URI object
+
+        // as from the URI table?
         title = t;
 
         if (pos != null) {
@@ -215,7 +218,10 @@ public class TermPageEntry extends TermEntry {
         return positions != null;
     }
 
-    /** Get the positions to fragments map. If we don't have fragments, create this from the positions list. */
+    /*
+     * Get the positions to fragments map. If we don't have fragments,
+     * create this from the positions list.
+     */
     public Map<Integer, String> positionsMap() {
         if (positions == null) {
             return null;

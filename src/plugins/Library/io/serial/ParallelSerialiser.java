@@ -44,11 +44,16 @@ import java.util.concurrent.ConcurrentMap;
 public abstract class ParallelSerialiser<T, P extends Progress>
         implements IterableSerialiser<T>, ScheduledSerialiser<T>, LiveArchiver<T, P>,
                    Serialiser.Trackable<T> {
-    final static protected ThreadPoolExecutor exec =
-        new ThreadPoolExecutor(0, 0x40, 60, TimeUnit
-            .SECONDS, new LinkedBlockingQueue<Runnable>(), new ThreadPoolExecutor
-            .CallerRunsPolicy()  // easier than catching RejectedExecutionException, if it ever occurs
-        );
+    final static protected ThreadPoolExecutor exec = new ThreadPoolExecutor(0, 0x40, 60,
+                                                         TimeUnit.SECONDS,
+                                                         new LinkedBlockingQueue<Runnable>(),
+                                                         new ThreadPoolExecutor.CallerRunsPolicy()
+
+    /*
+     *  easier than catching RejectedExecutionException,
+     *  if it ever occurs
+     */
+    );
     final protected ProgressTracker<T, P> tracker;
 
     public ParallelSerialiser(ProgressTracker<T, P> k) {
@@ -127,7 +132,8 @@ public abstract class ParallelSerialiser<T, P extends Progress>
                     // FIXME OPT NORM Two-phase pull (see FreenetArchiver.pull comments):
                     // All we'd need to do is:
                     // Bucket = pullFirst(task, prog)
-                    // Take semaphore (purpose is to limit the number of decoded stuff in memory which is not yet wanted)
+                    // Take semaphore (purpose is to limit the number of decoded stuff in memory
+                    // which is not yet wanted)
                     // pullSecond(task, prog, bucket)
                     // Call post-process
                     // Release semaphore

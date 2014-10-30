@@ -143,7 +143,8 @@ public class FreenetArchiver<T> implements LiveArchiver<T, SimpleProgress>, Requ
     * The reason for this is memory usage: We can limit the number in the second
     * phase according to downstream demand (e.g. blocking queues in ObjectProcessor's),
     * so that the amount of stuff kept in memory is limited, while still allowing an
-    * (almost?) unlimited number in the fetching data phase. See comments in ParallelSerialiser.createPullJob.
+    * (almost?) unlimited number in the fetching data phase. See comments in
+    * ParallelSerialiser.createPullJob.
     */
     /* @Override* */
     public void pullLive(PullTask<T> task, final SimpleProgress progress)
@@ -203,7 +204,8 @@ public class FreenetArchiver<T> implements LiveArchiver<T, SimpleProgress>, Requ
                         // FetchContext fctx = hlsc.getFetchContext();
                         // FetchWaiter fw = new FetchWaiter();
                         // ClientGetter gu = hlsc.fetch(furi, false, null, false, fctx, fw);
-                        // gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
+                        // gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS,
+                        // cctx, null);
                         // FetchResult res = fw.waitForCompletion();
                         FetchResult res;
 

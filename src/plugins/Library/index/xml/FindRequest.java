@@ -29,8 +29,8 @@ import plugins.Library.index.TermPageEntry;
 import plugins.Library.index.TermEntry;
 
 /**
- * An {@link Execution} implementation for xmlindex operations which have distinct parts working in serial
- * eg a search for 1 term on 1 index. Only used for XMLIndex
+ * An {@link Execution} implementation for xmlindex operations which have distinct parts working in
+ * serial eg a search for 1 term on 1 index. Only used for XMLIndex
  * @author MikeB
  */
 public class FindRequest extends AbstractExecution<Set<TermEntry>>
@@ -125,7 +125,8 @@ public class FindRequest extends AbstractExecution<Set<TermEntry>>
     }
 
     /**
-     * Set the stage number, between 0 & 4 inclusive TODO : now stage is not used in Progress make this an enum
+     * Set the stage number, between 0 & 4 inclusive
+     * TODO : now stage is not used in Progress make this an enum
      * @param stage The stage number to set
      */
     void setStage(Stages stage) {
@@ -133,8 +134,8 @@ public class FindRequest extends AbstractExecution<Set<TermEntry>>
     }
 
     /**
-     * Update the ProgressParts of the currentProgress of all the FindRequests in the List with the contents of the ClientEvent
-     * @param receivingEvent
+     * Update the ProgressParts of the currentProgress of all the FindRequests in the List with
+     * the contents of the ClientEvent@param receivingEvent
      * @param ce
      */
     static void updateWithEvent(ArrayList<FindRequest> receivingEvent, ClientEvent ce) {

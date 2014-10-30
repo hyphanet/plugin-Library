@@ -12,10 +12,10 @@ public class BoundedPriorityBlockingQueue<E> extends PriorityBlockingQueue<E> {
     /*
      *  Locking strategy:
      * We do not have access to the parent's lock object.
-     * We need to be able to wait for the queue to become non-full, meaning we need to be able to signal it.
-     * We need to be able to do so reliably i.e. we need a lock surrounding it.
-     * We could do this with a Lock and a Condition, but the easiest solution is just to lock on an Object.
-     * Because callers might expect us to use an internal lock, we'll use a separate object.
+     * We need to be able to wait for the queue to become non-full, meaning we need to be able to
+     * signal it. We need to be able to do so reliably i.e. we need a lock surrounding it.
+     * We could do this with a Lock and a Condition, but the easiest solution is just to lock on an
+     * object. Because callers might expect us to use an internal lock, we'll use a separate object.
      */
     protected final Object fullLock = new Object();
 

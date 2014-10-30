@@ -115,7 +115,8 @@ public interface Serialiser<T> {
 
         public PushTask(T d, Object m) {
 
-            // d == null && m != null is allowed in some cases, e.g. MapSerialiser allows us to have some stuff already serialised.
+            // d == null && m != null is allowed in some cases, e.g. MapSerialiser
+            // allows us to have some stuff already serialised.
             if ((d == null) && (m == null)) {
                 throw new IllegalArgumentException(
                     "Cowardly refusing to make a PushTask with null data.");

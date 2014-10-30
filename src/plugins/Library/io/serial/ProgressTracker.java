@@ -76,15 +76,22 @@ public class ProgressTracker<T, P extends Progress> {
     protected P newProgress() {
         if (progressClass == null) {
             throw new IllegalStateException(
-                "ProgressTracker cannot create progress: No class was given to the constructor, but newElement() was not overriden.");
+                "ProgressTracker cannot create progress: No class was given to the constructor," +
+                " but newElement() was not overriden.");
         }
 
         try {
             return progressClass.newInstance();
         } catch (InstantiationException e) {
-            return null;  // constructor should prevent this from ever happening, but the compiler bitches.
+            return null;  /*
+                           *  constructor should prevent this from ever happening, but the
+                           * compiler bitches.
+                           */
         } catch (IllegalAccessException e) {
-            return null;  // constructor should prevent this from ever happening, but the compiler bitches.
+            return null;  /*
+                           *  constructor should prevent this from ever happening, but the
+                           * compiler bitches.
+                           */
         }
     }
 

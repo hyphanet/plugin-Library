@@ -65,8 +65,10 @@ public class BaseCompositeProgress implements CompositeProgress {
         try {
             return getParts().toString();
         } catch (TaskAbortException e) {
-            assert(e
-                .isError());  // in-progress / complete tasks should have been rm'd from the underlying iterable
+            assert(e.isError());  /*
+                                   *  in-progress / complete tasks should have been rm'd
+                                   *  from the underlying iterable
+                                   */
 
             return "Aborted: " + e.getMessage();
         }

@@ -51,7 +51,9 @@ public class WebInterface {
         toadletContainer.register(mainToadlet, mainToadlet.menu(), mainToadlet.path(), true,
                                   mainToadlet.name(), mainToadlet.name(), true, null);
 
-        // Ive just realised that the form filter allows access to /plugins/... so /library/ wont be allowed, this is a temporary Toadlet untilthere is a whitelist for formfilter and /library is on it TODO put /library on formfilter whitelist
+        // Ive just realised that the form filter allows access to /plugins/... so /library/ wont be
+        // allowed, this is a temporary Toadlet untilthere is a whitelist for formfilter and
+        // /library is on it TODO put /library on formfilter whitelist
         pluginsToadlet = new MainPageToadlet(client, library, core, pr);
         toadletContainer.register(pluginsToadlet, null, "/plugins/plugin.Library.FreesiteSearch",
                                   true, null, null, true, null);
