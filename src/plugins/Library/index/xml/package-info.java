@@ -2,8 +2,8 @@
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
 
+
 /**
  * Where classes which only apply to xml indexes stay
  */
 package plugins.Library.index.xml;
-

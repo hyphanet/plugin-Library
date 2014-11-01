@@ -1,205 +1,237 @@
 package plugins.Library.search;
 
 import java.lang.Character.UnicodeBlock;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Locale;
+
 import static plugins.Library.search.SearchUtil.*;
 
 /**
  * Search Tokenizer
- * 
+ *
  * Normalize and tokenize text blocks into words (for latin scripts),
- * or single-double-tokens (for CJK). 
- * 
+ * or single-double-tokens (for CJK).
+ *
  * @author SDiZ <sdiz+freenet@gmail.com>
  */
 public class SearchTokenizer implements Iterable<String>, Iterator<String> {
-	private ArrayList<Mode> mode;
-	private ArrayList<String> segments;
-	private int nextPos;
-	private final boolean returnPairs;
-	static final int KEEP_NON_LETTER_MIN_CHARS = 3;
-	static final String allowedMidWord = "'";
-	static final String discardIfEndWord = "'";
+    private ArrayList<Mode> mode;
+    private ArrayList<String> segments;
+    private int nextPos;
+    private final boolean returnPairs;
+    static final int KEEP_NON_LETTER_MIN_CHARS = 3;
+    static final String allowedMidWord = "'";
+    static final String discardIfEndWord = "'";
+    private Iterator<String> cjkTokenizer;
 
-	private Iterator<String> cjkTokenizer;
+    enum Mode { UNDEF, LATIN, CJK }
 
-	enum Mode {
-		UNDEF, LATIN, CJK
-	};
+    ;
+    public SearchTokenizer(String text, boolean returnPairs) {
+        this.returnPairs = returnPairs;
 
-	public SearchTokenizer(String text, boolean returnPairs) {
-		this.returnPairs = returnPairs;
-		// normalize
-		text = normalize(text);
+        // normalize
+        text = normalize(text);
 
-		// split code points, filter for letter or digit
-		final int length = text.length();
-		segments = new ArrayList<String>();
-		mode = new ArrayList<Mode>();
+        // split code points, filter for letter or digit
+        final int length = text.length();
 
-		Mode curMode = Mode.UNDEF;
+        segments = new ArrayList<String>();
+        mode = new ArrayList<Mode>();
 
-		StringBuilder sb = new StringBuilder();
-		for (int offset = 0; offset < length;) {
-			final int codepoint = text.codePointAt(offset);
-			int charCount = Character.charCount(codepoint);
-			offset += charCount;
+        Mode curMode = Mode.UNDEF;
+        StringBuilder sb = new StringBuilder();
 
-			if (Character.isLetterOrDigit(codepoint)) {
-				boolean isCJK = isCJK(codepoint);
-				boolean isNum = Character.isDigit(codepoint);
+        for (int offset = 0; offset < length; ) {
+            final int codepoint = text.codePointAt(offset);
+            int charCount = Character.charCount(codepoint);
 
-				// add seperator across CJK/latin margin
-				if (isCJK) {
-					if (curMode == Mode.LATIN && sb.length() != 0) {
-						segments.add(sb.toString());
-						mode.add(curMode);
-						sb = new StringBuilder();
-					}
-					curMode = Mode.CJK;
-				} else if (!isNum) {
-					if (curMode == Mode.CJK && sb.length() != 0) {
-						segments.add(sb.toString());
-						mode.add(curMode);
-						sb = new StringBuilder();
-					}
-					curMode = Mode.LATIN;
-				}
+            offset += charCount;
 
-				sb.append(Character.toChars(codepoint));
-			} else if (sb.length() != 0) {
-				boolean passed = false;
-				if(charCount == 1) {
-					// Allow apostrophes mid-word.
-					char c = text.charAt(offset-1);
-					if(allowedMidWord.indexOf(c) != -1) {
-						sb.append(c);
-						passed = true;
-					}
-				}
-				if(!passed) {
-					// last code point is not 0, add a separator
-					if(curMode != Mode.UNDEF || sb.length() >= KEEP_NON_LETTER_MIN_CHARS) {
-						// Words can't end in an apostrophe.
-						while(sb.length() > 0 && discardIfEndWord.indexOf(sb.charAt(sb.length()-1)) != -1) {
-							sb.setLength(sb.length()-1);
-						}
-						if(sb.length() > 0) {
-							segments.add(sb.toString());
-							mode.add(curMode);
-						}
-					}
-					curMode = Mode.UNDEF;
-					sb = new StringBuilder();
-				}
-			}
-		}
+            if (Character.isLetterOrDigit(codepoint)) {
+                boolean isCJK = isCJK(codepoint);
+                boolean isNum = Character.isDigit(codepoint);
 
-		if (sb.length() != 0) {
-			// Words can't end in an apostrophe.
-			while(sb.length() > 0 && discardIfEndWord.indexOf(sb.charAt(sb.length()-1)) != -1) {
-				sb.setLength(sb.length()-1);
-			}
-			if(sb.length() > 0) {
-				segments.add(sb.toString());
-				mode.add(curMode);
-			}
-		}
-	}
+                // add seperator across CJK/latin margin
+                if (isCJK) {
+                    if ((curMode == Mode.LATIN) && (sb.length() != 0)) {
+                        segments.add(sb.toString());
+                        mode.add(curMode);
+                        sb = new StringBuilder();
+                    }
 
-	public String toString() {
-		StringBuilder str = new StringBuilder();
-		str.append("->[");
+                    curMode = Mode.CJK;
+                } else if ( !isNum) {
+                    if ((curMode == Mode.CJK) && (sb.length() != 0)) {
+                        segments.add(sb.toString());
+                        mode.add(curMode);
+                        sb = new StringBuilder();
+                    }
 
-		Iterator<String> it = segments.iterator();
-		if (it.hasNext())
-			str.append(it.next());
-		while (it.hasNext()) {
-			str.append(',');
-			str.append(it.next());
-		}
-		str.append("]");
+                    curMode = Mode.LATIN;
+                }
 
-		for (String s : this) {
-			str.append(';');
-			str.append(s);
-		}
+                sb.append(Character.toChars(codepoint));
+            } else if (sb.length() != 0) {
+                boolean passed = false;
 
-		return str.toString();
-	}
+                if (charCount == 1) {
 
-	public Iterator<String> iterator() {
-		return this;
-	}
+                    // Allow apostrophes mid-word.
+                    char c = text.charAt(offset - 1);
 
-	public boolean hasNext() {
-		return (cjkTokenizer != null && cjkTokenizer.hasNext()) ||
-			(nextPos < segments.size());
-	}
+                    if (allowedMidWord.indexOf(c) != -1) {
+                        sb.append(c);
+                        passed = true;
+                    }
+                }
 
-	public String next() {
-		if (cjkTokenizer != null) {
-			if (cjkTokenizer.hasNext())
-				return cjkTokenizer.next();
-			cjkTokenizer = null;
-		}
+                if ( !passed) {
 
-		Mode curMode = mode.get(nextPos);
-		String curSeg = segments.get(nextPos);
-		nextPos++;
+                    // last code point is not 0, add a separator
+                    if ((curMode != Mode.UNDEF) || (sb.length() >= KEEP_NON_LETTER_MIN_CHARS)) {
 
-		switch (curMode) {
-		case LATIN:
-			return curSeg;
+                        // Words can't end in an apostrophe.
+                        while ((sb.length() > 0) &&
+                                (discardIfEndWord.indexOf(sb.charAt(sb.length() - 1)) != -1)) {
+                            sb.setLength(sb.length() - 1);
+                        }
 
-		case CJK:
-			cjkTokenizer = cjkIterator(curSeg, returnPairs);
-			assert cjkTokenizer.hasNext();
-			return cjkTokenizer.next();
+                        if (sb.length() > 0) {
+                            segments.add(sb.toString());
+                            mode.add(curMode);
+                        }
+                    }
 
-		case UNDEF:
-			// E.g. a number. We do index these. FIXME should we? Probably yes...
-			return curSeg;
-			
-		default:
-			assert false; // DOH!
-		}
-		return null;
-	}
+                    curMode = Mode.UNDEF;
+                    sb = new StringBuilder();
+                }
+            }
+        }
 
-	/** Iterate a CJK string. Return characters or characters and pairs of characters.
-	 * @param returnPairs If true, return pairs of characters in between characters: 
-	 * C1C2C3C4 -> C1, C1C2, C2, C2C3, C3, C3C4, C4 */
-	private Iterator<String> cjkIterator(String cjkText, final boolean returnPairs) {
-		ArrayList<String> cjkToken = new ArrayList<String>();
+        if (sb.length() != 0) {
 
-		String lastChar = null;
-		int length = cjkText.length();
-		for (int offset = 0; offset < length;) {
-			final int codepoint = cjkText.codePointAt(offset);
-			offset += Character.charCount(codepoint);
+            // Words can't end in an apostrophe.
+            while ((sb.length() > 0) &&
+                    (discardIfEndWord.indexOf(sb.charAt(sb.length() - 1)) != -1)) {
+                sb.setLength(sb.length() - 1);
+            }
 
-			String curChar = new String(Character.toChars(codepoint));
+            if (sb.length() > 0) {
+                segments.add(sb.toString());
+                mode.add(curMode);
+            }
+        }
+    }
 
-			if (lastChar != null && returnPairs)
-				cjkToken.add(lastChar + curChar);
-			if (isCJK(codepoint)) // skip number embedded in cjk
-				cjkToken.add(curChar);
-			lastChar = curChar;
-		}
+    public String toString() {
+        StringBuilder str = new StringBuilder();
 
-		return cjkToken.iterator();
-	}
+        str.append("->[");
 
-	public void remove() {
-		throw new UnsupportedOperationException();
-	}
+        Iterator<String> it = segments.iterator();
 
-	protected String normalize(String text) {
-		// TODO: JAVA6: normalize to NFKC
-		// Do upper case first for Turkish and friends
-		return text.toUpperCase(Locale.US).toLowerCase(Locale.US);
-	}
+        if (it.hasNext()) {
+            str.append(it.next());
+        }
+
+        while (it.hasNext()) {
+            str.append(',');
+            str.append(it.next());
+        }
+
+        str.append("]");
+
+        for (String s : this) {
+            str.append(';');
+            str.append(s);
+        }
+
+        return str.toString();
+    }
+
+    public Iterator<String> iterator() {
+        return this;
+    }
+
+    public boolean hasNext() {
+        return ((cjkTokenizer != null) && cjkTokenizer.hasNext()) || (nextPos < segments.size());
+    }
+
+    public String next() {
+        if (cjkTokenizer != null) {
+            if (cjkTokenizer.hasNext()) {
+                return cjkTokenizer.next();
+            }
+
+            cjkTokenizer = null;
+        }
+
+        Mode curMode = mode.get(nextPos);
+        String curSeg = segments.get(nextPos);
+
+        nextPos++;
+
+        switch (curMode) {
+            case LATIN :
+                return curSeg;
+            case CJK :
+                cjkTokenizer = cjkIterator(curSeg, returnPairs);
+                assert cjkTokenizer.hasNext();
+
+                return cjkTokenizer.next();
+            case UNDEF :
+
+                // E.g. a number. We do index these. FIXME should we? Probably yes...
+                return curSeg;
+            default :
+                assert false;  // DOH!
+        }
+
+        return null;
+    }
+
+    /**
+     * Iterate a CJK string. Return characters or characters and pairs of characters.
+     * @param returnPairs If true, return pairs of characters in between characters:
+     * C1C2C3C4 -> C1, C1C2, C2, C2C3, C3, C3C4, C4
+     */
+    private Iterator<String> cjkIterator(String cjkText, final boolean returnPairs) {
+        ArrayList<String> cjkToken = new ArrayList<String>();
+        String lastChar = null;
+        int length = cjkText.length();
+
+        for (int offset = 0; offset < length; ) {
+            final int codepoint = cjkText.codePointAt(offset);
+
+            offset += Character.charCount(codepoint);
+
+            String curChar = new String(Character.toChars(codepoint));
+
+            if ((lastChar != null) && returnPairs) {
+                cjkToken.add(lastChar + curChar);
+            }
+
+            if (isCJK(codepoint)) {  // skip number embedded in cjk
+                cjkToken.add(curChar);
+            }
+
+            lastChar = curChar;
+        }
+
+        return cjkToken.iterator();
+    }
+
+    public void remove() {
+        throw new UnsupportedOperationException();
+    }
+
+    protected String normalize(String text) {
+
+        // TODO: JAVA6: normalize to NFKC
+        // Do upper case first for Turkish and friends
+        return text.toUpperCase(Locale.US).toLowerCase(Locale.US);
+    }
 }
