@@ -77,7 +77,7 @@ public class ProgressTracker<T, P extends Progress> {
         if (progressClass == null) {
             throw new IllegalStateException(
                 "ProgressTracker cannot create progress: No class was given to the constructor," +
-                " but newElement() was not overriden.");
+                " but newElement() was not overridden.");
         }
 
         try {
