@@ -4,11 +4,11 @@
 package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.concurrent.ObjectProcessor;
 
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
+import freenet.library.util.concurrent.ObjectProcessor;
 import freenet.library.util.concurrent.Scheduler;
 import freenet.library.util.exec.TaskAbortException;
 import freenet.library.util.func.Tuples.X2;

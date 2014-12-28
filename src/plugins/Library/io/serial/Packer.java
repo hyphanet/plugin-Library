@@ -5,7 +5,6 @@ package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.IdentityComparator;
-import plugins.Library.util.concurrent.ObjectProcessor;
 
 import java.util.Collections;
 import java.util.Collection;
@@ -20,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeSet;
 
+import freenet.library.util.concurrent.ObjectProcessor;
 import freenet.library.util.exec.TaskAbortException;
 import freenet.library.util.exec.TaskCompleteException;
 import freenet.support.Logger;

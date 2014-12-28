@@ -48,6 +48,7 @@ import freenet.library.util.concurrent.BoundedPriorityBlockingQueue;
 import freenet.library.util.concurrent.ExceptionConvertor;
 import freenet.library.util.concurrent.Executors;
 import freenet.library.util.concurrent.Notifier;
+import freenet.library.util.concurrent.ObjectProcessor;
 import freenet.library.util.concurrent.Scheduler;
 import freenet.library.util.event.CountingSweeper;
 import freenet.library.util.event.TrackingSweeper;
@@ -62,7 +63,6 @@ import freenet.library.util.func.Tuples.X2;
 import freenet.library.util.func.Tuples.X3;
 import freenet.support.Logger;
 import plugins.Library.util.Sorted;
-import plugins.Library.util.concurrent.ObjectProcessor;
 import static plugins.Library.util.Maps.$K;
 
 /**

@@ -1,7 +1,7 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.util.concurrent;
+package freenet.library.util.concurrent;
 
 import static freenet.library.util.func.Tuples.X2;
 import static freenet.library.util.func.Tuples.X3;
@@ -15,12 +15,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
-import freenet.library.util.concurrent.ExceptionConvertor;
-import freenet.library.util.concurrent.Notifier;
-import freenet.library.util.concurrent.Scheduler;
 import freenet.library.util.func.Closure;
 import freenet.library.util.func.SafeClosure;
-import freenet.support.Logger;
 
 /**
 ** A class that wraps around an {@link Executor}, for processing any given type
@@ -48,13 +44,6 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	protected int dispatched = 0;
 	protected int completed = 0;
 	protected int started = 0;
-	
-	private static volatile boolean logMINOR;
-	private static volatile boolean logDEBUG;
-
-	static {
-		Logger.registerClass(ObjectProcessor.class);
-	}
 
 	// Most ObjectProcessor's are likely to be autostart()'ed, and this way we can
 	// still use ConcurrentMap for pending while having garbage collection.
@@ -278,11 +267,9 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 			/*@Override**/ public void run() {
 				X ex = null;
 				synchronized(ObjectProcessor.this) { ++started; }
-				RuntimeException ee = null;
 				try { clo.invoke(item); }
 				// FIXME NORM this could throw RuntimeException
 				catch (RuntimeException e) {
-					Logger.error(this, "Caught "+e, e);
 					System.err.println("In ObjProc-"+name+" : "+e);
 					e.printStackTrace();
 					ex = convertor.convert(e); 

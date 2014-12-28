@@ -5,7 +5,6 @@ package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.TaskAbortExceptionConvertor;
-import plugins.Library.util.concurrent.ObjectProcessor;
 import static freenet.library.util.func.Tuples.X2;
 
 import java.util.Iterator;
@@ -21,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentMap;
 
 import freenet.library.util.concurrent.Executors;
+import freenet.library.util.concurrent.ObjectProcessor;
 import freenet.library.util.concurrent.Scheduler;
 import freenet.library.util.exec.Progress;
 import freenet.library.util.exec.TaskAbortException;
