@@ -1,12 +1,16 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.util.event;
+package freenet.library.util.event;
 
 import junit.framework.TestCase;
 
 import java.util.Iterator;
 import java.util.HashSet;
+
+import freenet.library.util.event.CountingSweeper;
+import freenet.library.util.event.Sweeper;
+import freenet.library.util.event.TrackingSweeper;
 
 /**
 ** @author infinity0

@@ -4,5 +4,6 @@
 	<classpathentry kind="src" path="test"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry exported="true" kind="lib" path="projects/freenet/plugin-Library/lib/snakeyaml-1.5.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/junit"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

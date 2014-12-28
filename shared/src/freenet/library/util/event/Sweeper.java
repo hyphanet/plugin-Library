@@ -1,7 +1,7 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.util.event;
+package freenet.library.util.event;
 
 /**
 ** A class which holds a group of objects, eg. for the purposes of delaying an

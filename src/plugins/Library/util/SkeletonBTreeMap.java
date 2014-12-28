@@ -45,6 +45,8 @@ import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.HashMap;
 
+import freenet.library.util.event.CountingSweeper;
+import freenet.library.util.event.TrackingSweeper;
 import freenet.library.util.exec.BaseCompositeProgress;
 import freenet.library.util.exec.Progress;
 import freenet.library.util.exec.ProgressParts;
@@ -61,8 +63,6 @@ import plugins.Library.util.concurrent.ExceptionConvertor;
 import plugins.Library.util.concurrent.Notifier;
 import plugins.Library.util.concurrent.ObjectProcessor;
 import plugins.Library.util.concurrent.Executors;
-import plugins.Library.util.event.TrackingSweeper;
-import plugins.Library.util.event.CountingSweeper;
 import static plugins.Library.util.Maps.$K;
 
 /**
