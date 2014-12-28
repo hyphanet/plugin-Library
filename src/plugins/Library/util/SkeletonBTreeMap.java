@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 import plugins.Library.io.serial.Serialiser;
 import plugins.Library.io.serial.ProgressTracker;
 import plugins.Library.util.BTreeMap.Node;
-import plugins.Library.util.concurrent.Scheduler;
 
 import java.util.Collections;
 import java.util.SortedSet;
@@ -45,6 +44,11 @@ import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.HashMap;
 
+import freenet.library.util.concurrent.BoundedPriorityBlockingQueue;
+import freenet.library.util.concurrent.ExceptionConvertor;
+import freenet.library.util.concurrent.Executors;
+import freenet.library.util.concurrent.Notifier;
+import freenet.library.util.concurrent.Scheduler;
 import freenet.library.util.event.CountingSweeper;
 import freenet.library.util.event.TrackingSweeper;
 import freenet.library.util.exec.BaseCompositeProgress;
@@ -58,11 +62,7 @@ import freenet.library.util.func.Tuples.X2;
 import freenet.library.util.func.Tuples.X3;
 import freenet.support.Logger;
 import plugins.Library.util.Sorted;
-import plugins.Library.util.concurrent.BoundedPriorityBlockingQueue;
-import plugins.Library.util.concurrent.ExceptionConvertor;
-import plugins.Library.util.concurrent.Notifier;
 import plugins.Library.util.concurrent.ObjectProcessor;
-import plugins.Library.util.concurrent.Executors;
 import static plugins.Library.util.Maps.$K;
 
 /**

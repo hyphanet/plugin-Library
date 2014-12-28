@@ -1,4 +1,4 @@
-package plugins.Library.util.concurrent;
+package freenet.library.util.concurrent;
 
 public interface ExceptionConvertor<X extends Exception> {
 	

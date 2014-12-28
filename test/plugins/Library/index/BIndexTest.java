@@ -7,7 +7,6 @@ import junit.framework.TestCase;
 import static plugins.Library.util.Generators.rand;
 
 import plugins.Library.util.*;
-import plugins.Library.util.func.*;
 import plugins.Library.io.serial.*;
 import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.index.*;

@@ -1,4 +1,4 @@
-package plugins.Library.util.concurrent;
+package freenet.library.util.concurrent;
 
 public class Notifier {
 	

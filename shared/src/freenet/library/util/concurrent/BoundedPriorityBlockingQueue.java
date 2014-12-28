@@ -1,4 +1,4 @@
-package plugins.Library.util.concurrent;
+package freenet.library.util.concurrent;
 
 import java.util.Collection;
 import java.util.Comparator;

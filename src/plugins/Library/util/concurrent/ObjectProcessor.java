@@ -15,6 +15,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
+import freenet.library.util.concurrent.ExceptionConvertor;
+import freenet.library.util.concurrent.Notifier;
+import freenet.library.util.concurrent.Scheduler;
 import freenet.library.util.func.Closure;
 import freenet.library.util.func.SafeClosure;
 import freenet.support.Logger;
