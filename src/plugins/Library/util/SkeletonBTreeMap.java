@@ -19,15 +19,11 @@ import java.util.Stack;
 // TODO NORM tidy this
 import java.util.Queue;
 import java.util.PriorityQueue;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import plugins.Library.util.BTreeMap.Node;
 
 import java.util.Collections;
 import java.util.SortedSet;
@@ -51,11 +47,9 @@ import freenet.library.util.concurrent.ExceptionConvertor;
 import freenet.library.util.concurrent.Executors;
 import freenet.library.util.concurrent.Notifier;
 import freenet.library.util.concurrent.ObjectProcessor;
-import freenet.library.util.concurrent.Scheduler;
 import freenet.library.util.event.CountingSweeper;
 import freenet.library.util.event.TrackingSweeper;
 import freenet.library.util.exec.BaseCompositeProgress;
-import freenet.library.util.exec.Progress;
 import freenet.library.util.exec.ProgressParts;
 import freenet.library.util.exec.TaskAbortException;
 import freenet.library.util.exec.TaskCompleteException;
@@ -63,7 +57,6 @@ import freenet.library.util.func.Closure;
 import freenet.library.util.func.SafeClosure;
 import freenet.library.util.func.Tuples.X2;
 import freenet.library.util.func.Tuples.X3;
-import freenet.support.Logger;
 import static freenet.library.util.Maps.$K;
 
 /**
@@ -150,9 +143,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	static volatile boolean logMINOR;
 	static volatile boolean logDEBUG;
 	
-	static {
-		Logger.registerClass(SkeletonBTreeMap.class);
-	}
+	//	static {
+	//		Logger.registerClass(SkeletonBTreeMap.class);
+	//	}
 	
 	final public Comparator<PullTask<SkeletonNode>> CMP_PULL = new Comparator<PullTask<SkeletonNode>>() {
 		/*@Override**/ public int compare(PullTask<SkeletonNode> t1, PullTask<SkeletonNode> t2) {
@@ -968,7 +961,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			public void invoke(Map.Entry<K, V> en) {
 				assert(node.entries.containsKey(en.getKey()));
 				node.entries.put(en.getKey(), en.getValue());
-				if(logMINOR) Logger.minor(this, "New value for key "+en.getKey()+" : "+en.getValue()+" in "+node+" parent = "+parNClo);
+				// if(logMINOR) Logger.minor(this, "New value for key "+en.getKey()+" : "+en.getValue()+" in "+node+" parent = "+parNClo);
 			}
 
 			public void deflate() throws TaskAbortException {
@@ -1156,7 +1149,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				//assert(((UpdateValue)value_closures.get(key)).node == node);
 				proc_val.update($K(key, (V)null), clo);
 				// FIXME what if it has already run???
-				if(logMINOR) Logger.minor(this, "Reassigning key "+key+" to "+clo+" on "+this+" parent="+parent+" parent split node "+parNClo+" parent deflate node "+parVClo);
+				// if(logMINOR) Logger.minor(this, "Reassigning key "+key+" to "+clo+" on "+this+" parent="+parent+" parent split node "+parNClo+" parent deflate node "+parVClo);
 				// nodeVClo.release(key);
 				// this is unnecessary since nodeVClo() will only be used if we did not
 				// split its node (and never called this method)
@@ -1264,7 +1257,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						} catch (ClassCastException e) {
 							// This has been seen in practice. I have no idea what it means.
 							// FIXME HIGH !!!
-							Logger.error(this, "Node is already loaded?!?!?!: "+node.selectNode(rng.first()));
+							// Logger.error(this, "Node is already loaded?!?!?!: "+node.selectNode(rng.first()));
 							continue;
 						}
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(n);
@@ -1296,7 +1289,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			private void handleLocalPut(SkeletonNode n, K key, DeflateNode vClo) {
 				V oldval = n.entries.put(key, null);
 				vClo.acquire(key);
-				if(logMINOR) Logger.minor(this, "handleLocalPut for key "+key+" old value "+oldval+" for deflate node "+vClo+" - passing to proc_val");
+				// if(logMINOR) Logger.minor(this, "handleLocalPut for key "+key+" old value "+oldval+" for deflate node "+vClo+" - passing to proc_val");
 				ObjectProcessor.submitSafe(proc_val, $K(key, oldval), vClo);
 			}
 
@@ -1327,12 +1320,12 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				// Only sleep if we run out of jobs.
 				if((!progress) && (count++ > 10)) {
 					count = 0;
-					Logger.debug(this,
-						     "SkeletonBTreeMap update " +
-						     proc_val + " " +
-						     proc_pull + " " +
-						     proc_push + " " +
-						     proc_deflate);
+					//					Logger.debug(this,
+					//						     "SkeletonBTreeMap update " +
+					//						     proc_val + " " +
+					//						     proc_pull + " " +
+					//						     proc_push + " " +
+					//						     proc_deflate);
 					notifier.waitUpdate(1000);
 				}
 				progress = false;

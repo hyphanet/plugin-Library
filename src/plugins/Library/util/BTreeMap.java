@@ -6,7 +6,6 @@ package plugins.Library.util;
 
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
@@ -18,7 +17,6 @@ import java.util.TreeMap;
 import java.util.HashMap;
 import java.util.Stack;
 import java.util.NoSuchElementException;
-import java.util.ConcurrentModificationException;
 
 import freenet.library.util.CompositeIterable;
 import freenet.library.util.Integers;

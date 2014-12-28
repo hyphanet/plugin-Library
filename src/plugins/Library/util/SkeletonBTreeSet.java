@@ -7,7 +7,6 @@ package plugins.Library.util;
 import java.util.Comparator;
 import java.util.Collection;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.ArrayList;
 
@@ -15,7 +14,6 @@ import freenet.library.io.DataFormatException;
 import freenet.library.io.serial.IterableSerialiser;
 import freenet.library.io.serial.MapSerialiser;
 import freenet.library.io.serial.Translator;
-import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.SortedSetMap;
 import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.exec.TaskAbortException;

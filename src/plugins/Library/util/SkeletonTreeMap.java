@@ -22,7 +22,6 @@ import freenet.library.io.serial.Translator;
 import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.exec.TaskAbortException;
 import freenet.library.util.exec.TaskCompleteException;
-import freenet.support.Logger;
 
 /**
 ** A {@link SkeletonMap} of a {@link TreeMap}. DOCUMENT
