@@ -829,7 +829,7 @@ public class XMLIndex implements Index, ClientGetCallback {
 										if(logDEBUG) Logger.debug(this, "Set relevance of "+title+" to "+relevance+" - "+key);
 									}
 									
-									TermPageEntry pageEntry = new TermPageEntry(req.getSubject(), relevance, new FreenetURI(key), title, match.termpositions);
+									TermPageEntry pageEntry = new TermPageEntry(req.getSubject(), relevance, key, title, match.termpositions);
 									result.add(pageEntry);
 									//Logger.minor(this, "added "+inFileURI+ " to "+ match);
 								}

@@ -21,9 +21,7 @@ import org.yaml.snakeyaml.constructor.AbstractConstruct;
 import java.util.Collections;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.LinkedHashMap;
 import java.util.concurrent.Semaphore;
-import java.io.File;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.InputStream;
@@ -35,7 +33,6 @@ import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermPageEntry;
 import plugins.Library.index.TermIndexEntry;
 import plugins.Library.index.TermTermEntry;
-import freenet.keys.FreenetURI;
 import freenet.library.io.DataFormatException;
 import freenet.library.io.ObjectBlueprint;
 import freenet.library.io.ObjectStreamReader;
@@ -123,11 +120,11 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	public static class ExtendedRepresenter extends Representer {
 
 		public ExtendedRepresenter() {
-			this.representers.put(FreenetURI.class, new Represent() {
-				/*@Override**/ public Node representData(Object data) {
-					return representScalar("!FreenetURI", ((FreenetURI) data).toString());
-				}
-			});
+			//			this.representers.put(FreenetURI.class, new Represent() {
+			//				/*@Override**/ public Node representData(Object data) {
+			//					return representScalar("!FreenetURI", data.toString());
+			//				}
+			//			});
 			this.representers.put(Packer.BinInfo.class, new Represent() {
 				/*@Override**/ public Node representData(Object data) {
 					Packer.BinInfo inf = (Packer.BinInfo)data;
@@ -167,11 +164,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 			this.yamlConstructors.put("!FreenetURI", new AbstractConstruct() {
 				/*@Override**/ public Object construct(Node node) {
 					String uri = (String) constructScalar((ScalarNode)node);
-					try {
-						return new FreenetURI(uri);
-					} catch (java.net.MalformedURLException e) {
-						throw new ConstructorException("while constructing a FreenetURI", node.getStartMark(), "found malformed URI " + uri, null);
-					}
+					return uri;
 				}
 			});
 			this.yamlConstructors.put("!BinInfo", new AbstractConstruct() {

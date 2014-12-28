@@ -228,7 +228,8 @@ public class LibrarianHandler extends DefaultHandler {
 					//if(logMINOR) Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.rel+" - "+pageEntry.toString());
 				}
 
-				TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), relevance, inFileURI, inFileTitle, termpositions);
+				TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), relevance, 
+															inFileURI.intern().toString(), inFileTitle, termpositions);
 				result.add(pageEntry);
 				//if(logMINOR) Logger.minor(this, "added "+inFileURI+ " to "+ match);
 			}

@@ -3,18 +3,13 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.index.TermEntry.EntryType;
-
-import freenet.keys.FreenetURI;
-import freenet.support.SortedIntSet;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
 ** A {@link TermEntry} that associates a subject term with a final target
@@ -27,11 +22,12 @@ public class TermPageEntry extends TermEntry {
 	/**
 	** URI of the target
 	*/
-	final public FreenetURI page;
+	final public String page;
 
-	/** Positions where the term occurs. May be null if we don't have that data. 
-	 * Specified as SortedSet<Integer> for ObjectBlueprint but will really always be a SortedIntSet. */
-	final public Set<Integer> positions;
+	/** 
+	 * Positions where the term occurs. May be null if we don't have that data. 
+	 */
+	final private SortedSet<Integer> positions;
 	
 	/**
 	** Map from positions in the text to a fragment of text around where it occurs.
@@ -54,7 +50,7 @@ public class TermPageEntry extends TermEntry {
 	** @param p Map of positions (where the term appears) to context (fragment
 	**          surrounding it).
 	*/
-	public TermPageEntry(String s, float r, FreenetURI u, Map<Integer, String> p) {
+	public TermPageEntry(String s, float r, String u, Map<Integer, String> p) {
 		this(s, r, u, (String)null, p);
 	}
 
@@ -69,48 +65,34 @@ public class TermPageEntry extends TermEntry {
 	** @param p Map of positions (where the term appears) to context (fragment
 	**          surrounding it).
 	*/
-	public TermPageEntry(String s, float r, FreenetURI u, String t, Map<Integer, String> p) {
+	public TermPageEntry(String s, float r, String u, String t, Map<Integer, String> p) {
 		super(s, r);
 		if (u == null) {
 			throw new IllegalArgumentException("can't have a null page");
 		}
-		page = u.intern(); // OPT LOW make the translator use the same URI object as from the URI table?
+		page = u;
 		title = t == null ? null : t.intern();
 		if(p == null) {
 			posFragments = null;
 			positions = null;
 		} else {
 			posFragments = Collections.unmodifiableMap(p);
-			int[] pos = new int[p.size()];
-			int x = 0;
-			for(Integer i : p.keySet())
-				pos[x++] = i;
-			Arrays.sort(pos);
-			positions = new SortedIntSet(pos);
+			positions = new TreeSet<Integer>(p.keySet());
 		}
 	}
 
 	/**
 	** For serialisation.
 	*/
-	public TermPageEntry(String s, float r, FreenetURI u, String t, Set<Integer> pos, Map<Integer, String> frags) {
+	public TermPageEntry(String s, float r, String u, String t, Set<Integer> pos, Map<Integer, String> frags) {
 		super(s, r);
 		if (u == null) {
 			throw new IllegalArgumentException("can't have a null page");
 		}
-		page = u.intern(); // OPT LOW make the translator use the same URI object as from the URI table?
+		page = u;
 		title = t;
 		if(pos != null) {
-			if(pos instanceof SortedIntSet)
-				this.positions = (SortedIntSet) pos;
-			else {
-				Integer[] p = pos.toArray(new Integer[pos.size()]);
-				int[] pp = new int[p.length];
-				for(int i=0;i<pp.length;i++) pp[i] = p[i];
-				if(!(pos instanceof SortedSet))
-					Arrays.sort(pp);
-				this.positions = new SortedIntSet(pp);
-			}
+			positions = new TreeSet<Integer>(pos);
 		} else
 			positions = null;
 		if(frags != null) {
@@ -177,19 +159,9 @@ public class TermPageEntry extends TermEntry {
 		if(positions == null) return null;
 		if(posFragments != null) return posFragments;
 		HashMap<Integer, String> ret = new HashMap<Integer, String>(positions.size());
-		if(positions instanceof SortedIntSet) {
-			int[] array = ((SortedIntSet)positions).toArrayRaw();
-			for(int x : array)
-				ret.put(x, null);
-			return ret;
-		} else {
-			Integer[] array = positions.toArray(new Integer[positions.size()]);
-			if(!(positions instanceof SortedSet))
-				Arrays.sort(array);
-			for(int x : array)
-				ret.put(x, null);
-			return ret;
-		}
+		for(int x : positions)
+			ret.put(x, null);
+		return ret;
 	}
 
 	public boolean hasPosition(int i) {
@@ -197,35 +169,21 @@ public class TermPageEntry extends TermEntry {
 	}
 
 	public ArrayList<Integer> positions() {
-		if(positions instanceof SortedIntSet) {
-			int[] array = ((SortedIntSet)positions).toArrayRaw();
-			ArrayList<Integer> pos = new ArrayList<Integer>(array.length);
-			for(int x : array)
-				pos.add(x);
-			return pos;
-		} else {
-			Integer[] array = positions.toArray(new Integer[positions.size()]);
-			if(!(positions instanceof SortedSet))
-				Arrays.sort(array);
-			ArrayList<Integer> ret = new ArrayList<Integer>(positions.size());
-			for(int i=0;i<array.length;i++) ret.add(array[i]);
-			return ret;
+		Integer[] array = positions.toArray(new Integer[positions.size()]);
+		ArrayList<Integer> ret = new ArrayList<Integer>(positions.size());
+		for(int i=0;i<array.length;i++) {
+			ret.add(array[i]);
 		}
+		return ret;
 	}
 
 	public int[] positionsRaw() {
-		if(positions instanceof SortedIntSet) {
-			return ((SortedIntSet)positions).toArrayRaw();
-		} else {
-			int[] ret = new int[positions.size()];
-			Integer[] r = new Integer[positions.size()];
-			r = positions.toArray(r);
-			for(int i=0;i<ret.length;i++)
-				ret[i] = r[i];
-			if(!(positions instanceof SortedSet))
-				Arrays.sort(ret);
-			return ret;
-		}
+		Integer[] r = new Integer[positions.size()];
+		r = positions.toArray(r);
+		int[] ret = new int[positions.size()];
+		for(int i = 0; i < ret.length; i++)
+			ret[i] = r[i];
+		return ret;
 	}
 
 	public int positionsSize() {

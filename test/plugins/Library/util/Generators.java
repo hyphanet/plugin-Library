@@ -37,7 +37,7 @@ final public class Generators {
 	}
 
 	public static TermPageEntry rndEntry(String key) {
-		return new TermPageEntry(key, (float)Math.random(), FreenetURI.generateRandomCHK(rand), null);
+		return new TermPageEntry(key, (float)Math.random(), FreenetURI.generateRandomCHK(rand).toString(), null);
 	}
 
 }
