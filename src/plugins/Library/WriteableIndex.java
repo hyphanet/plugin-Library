@@ -5,9 +5,9 @@ package plugins.Library;
 
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.URIEntry;
-import plugins.Library.util.exec.Execution;
 
 import freenet.keys.FreenetURI;
+import freenet.library.util.exec.Execution;
 
 import java.util.Collection;
 import java.util.Set;

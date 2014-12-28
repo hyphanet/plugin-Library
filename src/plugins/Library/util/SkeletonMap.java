@@ -4,9 +4,10 @@
 package plugins.Library.util;
 
 import plugins.Library.io.serial.MapSerialiser;
-import plugins.Library.util.exec.TaskAbortException;
 
 import java.util.Map;
+
+import freenet.library.util.exec.TaskAbortException;
 
 /**
 ** A {@link Skeleton} of a {@link Map}.

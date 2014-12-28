@@ -3,10 +3,11 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
-import plugins.Library.util.exec.Progress;
 
 import java.util.Collection;
 import java.util.Map;
+
+import freenet.library.util.exec.Progress;
 
 /**
 ** An empty marker interface for serialisation classes. It defines some nested

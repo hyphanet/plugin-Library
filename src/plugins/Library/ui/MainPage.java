@@ -6,13 +6,13 @@ package plugins.Library.ui;
 import plugins.Library.Library;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.search.Search;
-import plugins.Library.util.exec.ChainedProgress;
-import plugins.Library.util.exec.CompositeProgress;
-import plugins.Library.util.exec.Progress;
-import plugins.Library.util.exec.ProgressParts;
-import plugins.Library.util.exec.TaskAbortException;
 
 import freenet.keys.FreenetURI;
+import freenet.library.util.exec.ChainedProgress;
+import freenet.library.util.exec.CompositeProgress;
+import freenet.library.util.exec.Progress;
+import freenet.library.util.exec.ProgressParts;
+import freenet.library.util.exec.TaskAbortException;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;

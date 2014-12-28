@@ -6,4 +6,4 @@
 **
 ** @author infinity0
 */
-package plugins.Library.util.exec;
+package freenet.library.util.exec;

@@ -9,8 +9,6 @@ import plugins.Library.io.serial.ScheduledSerialiser;
 import plugins.Library.io.serial.MapSerialiser;
 import plugins.Library.io.serial.Translator;
 import plugins.Library.io.DataFormatException;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.util.exec.TaskCompleteException;
 import plugins.Library.util.func.Tuples.X2;
 import plugins.Library.util.func.Tuples.X3;
 
@@ -37,12 +35,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import plugins.Library.util.exec.Progress;
-import plugins.Library.util.exec.ProgressParts;
-import plugins.Library.util.exec.BaseCompositeProgress;
 import plugins.Library.io.serial.Serialiser;
 import plugins.Library.io.serial.ProgressTracker;
-import plugins.Library.util.exec.TaskCompleteException;
 import plugins.Library.util.BTreeMap.Node;
 import plugins.Library.util.concurrent.Scheduler;
 
@@ -53,6 +47,11 @@ import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.HashMap;
 
+import freenet.library.util.exec.BaseCompositeProgress;
+import freenet.library.util.exec.Progress;
+import freenet.library.util.exec.ProgressParts;
+import freenet.library.util.exec.TaskAbortException;
+import freenet.library.util.exec.TaskCompleteException;
 import freenet.support.Logger;
 import plugins.Library.util.Sorted;
 import plugins.Library.util.concurrent.BoundedPriorityBlockingQueue;
@@ -596,7 +595,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					SkeletonNode parent = res._1;
 					TaskAbortException ex = res._2;
 					if (ex != null) {
-						assert(!(ex instanceof plugins.Library.util.exec.TaskInProgressException)); // by contract of ScheduledSerialiser
+						assert(!(ex instanceof freenet.library.util.exec.TaskInProgressException)); // by contract of ScheduledSerialiser
 						if (!(ex instanceof TaskCompleteException)) {
 							// TODO LOW maybe dump it somewhere else and throw it at the end...
 							throw ex;

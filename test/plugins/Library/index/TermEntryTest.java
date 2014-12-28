@@ -7,12 +7,12 @@ import junit.framework.TestCase;
 
 import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.io.serial.FileArchiver;
-import plugins.Library.util.exec.TaskAbortException;
 import plugins.Library.io.serial.Packer;
 
 import plugins.Library.io.YamlReaderWriter;
 
 import freenet.keys.FreenetURI;
+import freenet.library.util.exec.TaskAbortException;
 
 import java.util.Arrays;
 import java.util.List;

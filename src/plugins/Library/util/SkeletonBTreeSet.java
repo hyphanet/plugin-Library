@@ -8,7 +8,6 @@ import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.io.serial.IterableSerialiser;
 import plugins.Library.io.serial.MapSerialiser;
 import plugins.Library.io.serial.Translator;
-import plugins.Library.util.exec.TaskAbortException;
 
 import java.util.Comparator;
 import java.util.Collection;
@@ -16,6 +15,8 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.ArrayList;
+
+import freenet.library.util.exec.TaskAbortException;
 
 /**
 ** {@link Skeleton} of a {@link BTreeSet}. DOCUMENT
@@ -67,7 +68,7 @@ public class SkeletonBTreeSet<E> extends BTreeSet<E> /*implements Skeleton<E, Ma
 	}
 
 	// TODO NORM tidy this - see SkeletonBTreeMap.inflate() for details
-	public plugins.Library.util.exec.BaseCompositeProgress getProgressInflate() {
+	public freenet.library.util.exec.BaseCompositeProgress getProgressInflate() {
 		return ((SkeletonBTreeMap<E, E>)bkmap).pr_inf;
 	}
 

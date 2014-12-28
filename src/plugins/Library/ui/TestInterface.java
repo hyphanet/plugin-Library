@@ -3,10 +3,10 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.ui;
 
-import plugins.Library.util.exec.Execution;
 import plugins.Library.search.Search;
 import plugins.Library.*;
 
+import freenet.library.util.exec.Execution;
 import freenet.support.Logger;
 
 import java.util.HashMap;

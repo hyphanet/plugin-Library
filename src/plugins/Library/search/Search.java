@@ -18,12 +18,12 @@ import plugins.Library.Library;
 import plugins.Library.index.TermEntry;
 import plugins.Library.search.ResultSet.ResultOperation;
 import plugins.Library.ui.ResultNodeGenerator;
-import plugins.Library.util.exec.AbstractExecution;
-import plugins.Library.util.exec.CompositeProgress;
-import plugins.Library.util.exec.Execution;
-import plugins.Library.util.exec.Progress;
-import plugins.Library.util.exec.ProgressParts;
-import plugins.Library.util.exec.TaskAbortException;
+import freenet.library.util.exec.AbstractExecution;
+import freenet.library.util.exec.CompositeProgress;
+import freenet.library.util.exec.Execution;
+import freenet.library.util.exec.Progress;
+import freenet.library.util.exec.ProgressParts;
+import freenet.library.util.exec.TaskAbortException;
 import freenet.support.Executor;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;
@@ -497,7 +497,7 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 
 	/**
 	 * After this finishes running, the status of this Search object will be correct, stimulates the creation of the result if all subreqquests are complete and the result isn't made
-	 * @throws plugins.Library.util.exec.TaskAbortException
+	 * @throws freenet.library.util.exec.TaskAbortException
 	 */
 	private synchronized void setStatus() throws TaskAbortException{
 		switch (status){

@@ -7,8 +7,6 @@ import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.io.serial.Translator;
 import plugins.Library.io.serial.MapSerialiser;
 import plugins.Library.io.DataFormatException;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.util.exec.TaskCompleteException;
 
 import java.util.Iterator;
 import java.util.Comparator;
@@ -22,6 +20,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.HashMap;
 
+import freenet.library.util.exec.TaskAbortException;
+import freenet.library.util.exec.TaskCompleteException;
 import freenet.support.Logger;
 
 /**

@@ -26,7 +26,6 @@ import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
 import plugins.Library.io.serial.Serialiser.PullTask;
 import plugins.Library.search.InvalidSearchException;
-import plugins.Library.util.exec.TaskAbortException;
 
 import freenet.client.FetchContext;
 import freenet.client.FetchException;
@@ -46,6 +45,7 @@ import freenet.client.events.ClientEventListener;
 import freenet.client.events.ExpectedMIMEEvent;
 import freenet.keys.FreenetURI;
 import freenet.keys.USK;
+import freenet.library.util.exec.TaskAbortException;
 import freenet.node.NodeClientCore;
 import freenet.node.RequestClient;
 import freenet.node.RequestStarter;

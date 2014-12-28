@@ -14,6 +14,9 @@ import plugins.Library.util.*;
 import plugins.Library.*;
 
 import freenet.keys.FreenetURI;
+import freenet.library.util.exec.ProgressParts;
+import freenet.library.util.exec.SimpleProgress;
+import freenet.library.util.exec.TaskAbortException;
 import freenet.node.RequestStarter;
 
 import java.util.*;

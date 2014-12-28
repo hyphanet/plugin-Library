@@ -4,13 +4,14 @@
 package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.exec.Progress;
-import plugins.Library.util.exec.TaskInProgressException;
 import plugins.Library.util.CompositeIterable;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
+
+import freenet.library.util.exec.Progress;
+import freenet.library.util.exec.TaskInProgressException;
 
 /**
 ** Keeps track of a task's progress and provides methods to retrieve this data.

@@ -3,9 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library;
 
+import freenet.library.util.exec.Execution;
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.URIEntry;
-import plugins.Library.util.exec.Execution;
 
 /**
 ** Represents a virtual index that gets its data from another plugin.

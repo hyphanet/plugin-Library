@@ -4,10 +4,11 @@
 package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.exec.TaskAbortException;
 
 import java.util.Collection;
 import java.util.Map;
+
+import freenet.library.util.exec.TaskAbortException;
 
 /**
 ** An interface that handles a single {@link Serialiser.Task}.

@@ -14,6 +14,8 @@ import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.index.*;
 
 import freenet.keys.FreenetURI;
+import freenet.library.util.exec.Execution;
+import freenet.library.util.exec.TaskAbortException;
 
 import java.util.*;
 import java.io.*;

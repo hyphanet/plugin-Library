@@ -3,8 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
+import freenet.library.util.exec.TaskAbortException;
 import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.exec.TaskAbortException;
 
 /**
 ** An interface that handles an iterable group of {@link Serialiser.Task}s.

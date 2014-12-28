@@ -7,9 +7,9 @@ import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermIndexEntry;
 import plugins.Library.index.TermTermEntry;
 import plugins.Library.index.TermPageEntry;
-import plugins.Library.util.exec.Execution;
-import plugins.Library.util.exec.TaskAbortException;
 
+import freenet.library.util.exec.Execution;
+import freenet.library.util.exec.TaskAbortException;
 import freenet.support.Logger;
 
 import java.util.Iterator;

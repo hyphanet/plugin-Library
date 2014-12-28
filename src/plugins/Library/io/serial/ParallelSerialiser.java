@@ -8,10 +8,6 @@ import plugins.Library.util.TaskAbortExceptionConvertor;
 import plugins.Library.util.concurrent.Scheduler;
 import plugins.Library.util.concurrent.ObjectProcessor;
 import plugins.Library.util.concurrent.Executors;
-import plugins.Library.util.exec.Progress;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.util.exec.TaskInProgressException;
-import plugins.Library.util.exec.TaskCompleteException;
 import plugins.Library.util.func.SafeClosure;
 import static plugins.Library.util.func.Tuples.X2; // also imports the class
 
@@ -26,6 +22,11 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentMap;
+
+import freenet.library.util.exec.Progress;
+import freenet.library.util.exec.TaskAbortException;
+import freenet.library.util.exec.TaskCompleteException;
+import freenet.library.util.exec.TaskInProgressException;
 
 /**
 ** An {@link IterableSerialiser} that uses threads to handle tasks given to it
