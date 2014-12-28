@@ -7,11 +7,11 @@ import plugins.Library.client.*;
 import plugins.Library.index.*;
 import plugins.Library.io.*;
 import plugins.Library.io.serial.*;
-import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.*;
 import plugins.Library.*;
 
 import freenet.keys.FreenetURI;
+import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.exec.ProgressParts;
 import freenet.library.util.exec.SimpleProgress;

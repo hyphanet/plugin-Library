@@ -3,7 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io;
 
-import plugins.Library.io.DataFormatException;
 
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.YAMLException;
@@ -38,6 +37,7 @@ import plugins.Library.index.TermPageEntry;
 import plugins.Library.index.TermIndexEntry;
 import plugins.Library.index.TermTermEntry;
 import freenet.keys.FreenetURI;
+import freenet.library.io.DataFormatException;
 
 
 /**

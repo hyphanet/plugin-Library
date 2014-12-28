@@ -1,9 +1,9 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.io.serial;
+package freenet.library.io.serial;
 
-import plugins.Library.io.DataFormatException;
+import freenet.library.io.DataFormatException;
 
 /**
 ** A class that translates an object into one of another type. Used mostly in

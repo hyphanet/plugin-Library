@@ -3,12 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.io.serial.IterableSerialiser;
-import plugins.Library.io.serial.ScheduledSerialiser;
-import plugins.Library.io.serial.MapSerialiser;
-import plugins.Library.io.serial.Translator;
-import plugins.Library.io.DataFormatException;
 
 import java.util.AbstractSet;
 import java.util.Comparator;
@@ -33,8 +27,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import plugins.Library.io.serial.Serialiser;
-import plugins.Library.io.serial.ProgressTracker;
 import plugins.Library.util.BTreeMap.Node;
 
 import java.util.Collections;
@@ -44,6 +36,14 @@ import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.HashMap;
 
+import freenet.library.io.DataFormatException;
+import freenet.library.io.serial.IterableSerialiser;
+import freenet.library.io.serial.MapSerialiser;
+import freenet.library.io.serial.ProgressTracker;
+import freenet.library.io.serial.ScheduledSerialiser;
+import freenet.library.io.serial.Serialiser;
+import freenet.library.io.serial.Translator;
+import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.Sorted;
 import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.concurrent.BoundedPriorityBlockingQueue;

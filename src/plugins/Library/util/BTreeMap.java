@@ -275,15 +275,15 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	**
 	** This is fine in the context of {@link BTreeMap}, but serialisation makes
 	** it extremely awkard. Passing the tree requires us to extend {@link
-	** plugins.Library.io.serial.Translator} to take a context paramater, and
+	** freenet.library.io.serial.Translator} to take a context paramater, and
 	** passing the comparator requires us to add checks to ensure that the
 	** comparators are equal when the node is re-attached to the tree.
 	**
 	** And even if this is implemented, nodes still need to know their parent
-	** tree (to set {@link plugins.Library.io.serial.Serialiser}s etc) and so you
+	** tree (to set {@link freenet.library.io.serial.Serialiser}s etc) and so you
 	** would need to code a secondary initialisation scheme to be called after
 	** object construction, and after execution returns from {@link
-	** plugins.Library.io.serial.Translator#rev(Object)}. All in all, this is more
+	** freenet.library.io.serial.Translator#rev(Object)}. All in all, this is more
 	** trouble than it's worth.
 	**
 	** So I've gone with the non-static class, which means a new {@code

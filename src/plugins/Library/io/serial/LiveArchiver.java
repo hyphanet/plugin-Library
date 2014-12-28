@@ -3,9 +3,11 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
+import freenet.library.io.serial.Archiver;
+import freenet.library.io.serial.Serialiser;
+import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.exec.Progress;
 import freenet.library.util.exec.TaskAbortException;
-import plugins.Library.io.serial.Serialiser.*;
 
 /**
 ** An interface that handles a single {@link Serialiser.Task} and sends live

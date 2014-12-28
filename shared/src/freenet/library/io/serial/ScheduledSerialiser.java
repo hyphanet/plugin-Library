@@ -1,13 +1,12 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.io.serial;
-
-import plugins.Library.io.serial.Serialiser.*;
+package freenet.library.io.serial;
 
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
+import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.concurrent.ObjectProcessor;
 import freenet.library.util.concurrent.Scheduler;
 import freenet.library.util.exec.TaskAbortException;

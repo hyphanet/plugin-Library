@@ -8,10 +8,10 @@ import static plugins.Library.util.Generators.rand;
 
 import plugins.Library.util.*;
 import plugins.Library.io.serial.*;
-import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.index.*;
 
 import freenet.keys.FreenetURI;
+import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.exec.Execution;
 import freenet.library.util.exec.TaskAbortException;

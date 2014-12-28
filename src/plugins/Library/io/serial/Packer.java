@@ -3,7 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
-import plugins.Library.io.serial.Serialiser.*;
 
 import java.util.Collections;
 import java.util.Collection;
@@ -18,6 +17,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.TreeSet;
 
+import freenet.library.io.serial.IterableSerialiser;
+import freenet.library.io.serial.MapSerialiser;
+import freenet.library.io.serial.ProgressTracker;
+import freenet.library.io.serial.Serialiser;
+import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.IdentityComparator;
 import freenet.library.util.concurrent.ObjectProcessor;
 import freenet.library.util.exec.TaskAbortException;

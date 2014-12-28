@@ -3,10 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.io.serial.Translator;
-import plugins.Library.io.serial.MapSerialiser;
-import plugins.Library.io.DataFormatException;
 
 import java.util.Iterator;
 import java.util.Comparator;
@@ -20,6 +16,10 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.HashMap;
 
+import freenet.library.io.DataFormatException;
+import freenet.library.io.serial.MapSerialiser;
+import freenet.library.io.serial.Translator;
+import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.exec.TaskAbortException;
 import freenet.library.util.exec.TaskCompleteException;
 import freenet.support.Logger;

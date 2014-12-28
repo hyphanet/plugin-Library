@@ -48,6 +48,8 @@ import freenet.client.InsertException;
 import freenet.keys.FreenetURI;
 import freenet.keys.InsertableClientSSK;
 import freenet.l10n.BaseL10n.LANGUAGE;
+import freenet.library.io.serial.Serialiser.PullTask;
+import freenet.library.io.serial.Serialiser.PushTask;
 import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.concurrent.Executors;
 import freenet.library.util.exec.SimpleProgress;
@@ -71,8 +73,6 @@ import java.security.MessageDigest;
 import plugins.Library.index.TermEntryReaderWriter;
 import plugins.Library.index.xml.LibrarianHandler;
 import plugins.Library.io.serial.LiveArchiver;
-import plugins.Library.io.serial.Serialiser.PullTask;
-import plugins.Library.io.serial.Serialiser.PushTask;
 
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces

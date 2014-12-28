@@ -3,8 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
+import freenet.library.io.serial.Serialiser;
 import freenet.library.util.exec.TaskAbortException;
-import plugins.Library.io.serial.Serialiser;
 
 /**
 ** Defines an interface for an extension of a data structure which is only

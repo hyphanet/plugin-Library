@@ -3,11 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.io.DataFormatException;
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.io.serial.IterableSerialiser;
-import plugins.Library.io.serial.MapSerialiser;
-import plugins.Library.io.serial.Translator;
 
 import java.util.Comparator;
 import java.util.Collection;
@@ -16,6 +11,11 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.ArrayList;
 
+import freenet.library.io.DataFormatException;
+import freenet.library.io.serial.IterableSerialiser;
+import freenet.library.io.serial.MapSerialiser;
+import freenet.library.io.serial.Translator;
+import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.SortedSetMap;
 import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.exec.TaskAbortException;

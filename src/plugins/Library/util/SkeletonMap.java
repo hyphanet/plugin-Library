@@ -3,10 +3,10 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.io.serial.MapSerialiser;
 
 import java.util.Map;
 
+import freenet.library.io.serial.MapSerialiser;
 import freenet.library.util.exec.TaskAbortException;
 
 /**

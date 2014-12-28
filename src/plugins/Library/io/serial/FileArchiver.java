@@ -9,12 +9,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileLock;
 
+import freenet.library.io.serial.Archiver;
+import freenet.library.io.serial.Serialiser.Task;
 import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;
 
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
-import plugins.Library.io.serial.Serialiser.Task;
 
 /**
 ** Converts between a map of {@link String} to {@link Object}, and a file on

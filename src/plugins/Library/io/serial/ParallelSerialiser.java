@@ -3,7 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
-import plugins.Library.io.serial.Serialiser.*;
 import static freenet.library.util.func.Tuples.X2;
 
 import java.util.Iterator;
@@ -18,6 +17,11 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentMap;
 
+import freenet.library.io.serial.IterableSerialiser;
+import freenet.library.io.serial.ProgressTracker;
+import freenet.library.io.serial.ScheduledSerialiser;
+import freenet.library.io.serial.Serialiser;
+import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.concurrent.Executors;
 import freenet.library.util.concurrent.ObjectProcessor;
