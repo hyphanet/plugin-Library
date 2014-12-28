@@ -1,4 +1,4 @@
-package plugins.Library.util;
+package freenet.library.util;
 
 import freenet.library.util.concurrent.ExceptionConvertor;
 import freenet.library.util.exec.TaskAbortException;

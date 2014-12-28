@@ -44,6 +44,8 @@ import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.HashMap;
 
+import freenet.library.util.Sorted;
+import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.concurrent.BoundedPriorityBlockingQueue;
 import freenet.library.util.concurrent.ExceptionConvertor;
 import freenet.library.util.concurrent.Executors;
@@ -62,8 +64,7 @@ import freenet.library.util.func.SafeClosure;
 import freenet.library.util.func.Tuples.X2;
 import freenet.library.util.func.Tuples.X3;
 import freenet.support.Logger;
-import plugins.Library.util.Sorted;
-import static plugins.Library.util.Maps.$K;
+import static freenet.library.util.Maps.$K;
 
 /**
 ** {@link Skeleton} of a {@link BTreeMap}. DOCUMENT

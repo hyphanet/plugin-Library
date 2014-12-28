@@ -3,10 +3,11 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.util.PrefixTree.PrefixKey;
-import plugins.Library.util.PrefixTree.AbstractPrefixKey;
 
 import java.util.Arrays;
+
+import freenet.library.util.PrefixTree.AbstractPrefixKey;
+import freenet.library.util.PrefixTree.PrefixKey;
 
 /**
 ** A PrefixKey backed by an array of bytes.

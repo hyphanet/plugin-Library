@@ -3,7 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.util.CompositeIterable;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -21,6 +20,9 @@ import java.util.Stack;
 import java.util.NoSuchElementException;
 import java.util.ConcurrentModificationException;
 
+import freenet.library.util.CompositeIterable;
+import freenet.library.util.Integers;
+import freenet.library.util.Sorted;
 import freenet.library.util.func.Tuples.X2;
 import freenet.library.util.func.Tuples.X3;
 

@@ -7,6 +7,8 @@ import java.util.Comparator;
 import java.util.Set;
 import java.util.SortedSet;
 
+import freenet.library.util.SortedMapSet;
+
 /**
 ** A B-tree set implementation backed by a {@link BTreeMap}. DOCUMENT
 **

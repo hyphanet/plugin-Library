@@ -4,12 +4,12 @@
 package plugins.Library.io.serial;
 
 import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.CompositeIterable;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.WeakHashMap;
 
+import freenet.library.util.CompositeIterable;
 import freenet.library.util.exec.Progress;
 import freenet.library.util.exec.TaskInProgressException;
 

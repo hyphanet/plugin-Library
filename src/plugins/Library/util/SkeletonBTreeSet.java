@@ -16,6 +16,8 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.ArrayList;
 
+import freenet.library.util.SortedSetMap;
+import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.exec.TaskAbortException;
 
 /**

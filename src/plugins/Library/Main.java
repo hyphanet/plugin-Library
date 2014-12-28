@@ -35,7 +35,6 @@ import plugins.Library.search.Search;
 import plugins.Library.ui.WebInterface;
 import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
-import plugins.Library.util.TaskAbortExceptionConvertor;
 
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginL10n;
@@ -49,6 +48,7 @@ import freenet.client.InsertException;
 import freenet.keys.FreenetURI;
 import freenet.keys.InsertableClientSSK;
 import freenet.l10n.BaseL10n.LANGUAGE;
+import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.concurrent.Executors;
 import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;

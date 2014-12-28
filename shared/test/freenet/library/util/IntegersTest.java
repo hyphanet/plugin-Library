@@ -1,13 +1,14 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.util;
+package freenet.library.util;
 
 import junit.framework.TestCase;
-import static plugins.Library.util.Generators.rand;
 
 import java.util.Random;
 import java.util.Arrays;
+
+import freenet.library.util.Integers;
 
 /**
 ** @author infinity0
@@ -29,6 +30,8 @@ public class IntegersTest extends TestCase {
 		{1,2,1,2},
 		{2,1,2,2,1,2}
 	};
+
+	final private static Random rand = new Random();
 
 	public void testAllocateEvenlyPredefined()  {
 		for (int i=0; i<totals.length; ++i) {

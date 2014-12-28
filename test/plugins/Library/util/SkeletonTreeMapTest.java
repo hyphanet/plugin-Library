@@ -8,6 +8,9 @@ import junit.framework.TestCase;
 import java.util.Map;
 import java.util.SortedMap;
 
+import freenet.library.util.SortedMapTestSkeleton;
+
+
 /**
 ** @author infinity0
 */
