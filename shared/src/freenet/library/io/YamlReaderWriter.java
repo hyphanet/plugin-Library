@@ -1,7 +1,7 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.io;
+package freenet.library.io;
 
 
 import org.yaml.snakeyaml.Yaml;
@@ -29,14 +29,10 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 
 /* class definitions added to the extended Yaml processor */
-import plugins.Library.index.TermEntry;
-import plugins.Library.index.TermPageEntry;
-import plugins.Library.index.TermIndexEntry;
-import plugins.Library.index.TermTermEntry;
-import freenet.library.io.DataFormatException;
-import freenet.library.io.ObjectBlueprint;
-import freenet.library.io.ObjectStreamReader;
-import freenet.library.io.ObjectStreamWriter;
+import freenet.library.index.TermEntry;
+import freenet.library.index.TermIndexEntry;
+import freenet.library.index.TermPageEntry;
+import freenet.library.index.TermTermEntry;
 import freenet.library.io.serial.Packer;
 
 

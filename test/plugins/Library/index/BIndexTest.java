@@ -11,6 +11,7 @@ import plugins.Library.io.serial.*;
 import plugins.Library.index.*;
 
 import freenet.keys.FreenetURI;
+import freenet.library.index.TermEntry;
 import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.SkeletonBTreeMap;
 import freenet.library.util.SkeletonBTreeSet;

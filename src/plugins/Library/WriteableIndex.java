@@ -3,10 +3,10 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library;
 
-import plugins.Library.index.TermEntry;
 import plugins.Library.index.URIEntry;
 
 import freenet.keys.FreenetURI;
+import freenet.library.index.TermEntry;
 import freenet.library.util.exec.Execution;
 
 import java.util.Collection;

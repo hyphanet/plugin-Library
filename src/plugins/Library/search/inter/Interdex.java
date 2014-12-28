@@ -3,12 +3,12 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search.inter;
 
-import plugins.Library.index.TermEntry;
-import plugins.Library.index.TermIndexEntry;
-import plugins.Library.index.TermTermEntry;
 import plugins.Library.Index;
 
 import freenet.keys.FreenetURI;
+import freenet.library.index.TermEntry;
+import freenet.library.index.TermIndexEntry;
+import freenet.library.index.TermTermEntry;
 
 import java.util.Set;
 import java.util.Map;

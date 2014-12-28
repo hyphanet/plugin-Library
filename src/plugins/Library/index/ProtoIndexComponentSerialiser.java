@@ -5,10 +5,11 @@ package plugins.Library.index;
 
 import plugins.Library.Library;
 import plugins.Library.client.FreenetArchiver;
-import plugins.Library.io.YamlReaderWriter;
 
 import freenet.keys.FreenetURI;
+import freenet.library.index.TermEntry;
 import freenet.library.io.DataFormatException;
+import freenet.library.io.YamlReaderWriter;
 import freenet.library.io.serial.Archiver;
 import freenet.library.io.serial.FileArchiver;
 import freenet.library.io.serial.IterableSerialiser;

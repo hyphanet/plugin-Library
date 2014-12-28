@@ -3,11 +3,11 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search;
 
-import plugins.Library.index.TermEntry;
-import plugins.Library.index.TermIndexEntry;
-import plugins.Library.index.TermTermEntry;
-import plugins.Library.index.TermPageEntry;
 
+import freenet.library.index.TermEntry;
+import freenet.library.index.TermIndexEntry;
+import freenet.library.index.TermPageEntry;
+import freenet.library.index.TermTermEntry;
 import freenet.library.util.exec.Execution;
 import freenet.library.util.exec.TaskAbortException;
 import freenet.support.Logger;

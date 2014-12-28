@@ -9,8 +9,9 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import plugins.Library.index.TermEntry;
-import plugins.Library.index.TermPageEntry;
+import freenet.library.index.TermEntry;
+import freenet.library.index.TermPageEntry;
+
 
 /**
  * TODO make this fit the TermEntry contract

@@ -15,9 +15,9 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 import plugins.Library.Library;
-import plugins.Library.index.TermEntry;
 import plugins.Library.search.ResultSet.ResultOperation;
 import plugins.Library.ui.ResultNodeGenerator;
+import freenet.library.index.TermEntry;
 import freenet.library.util.exec.AbstractExecution;
 import freenet.library.util.exec.CompositeProgress;
 import freenet.library.util.exec.Execution;

@@ -1,14 +1,16 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.index;
+package freenet.library.index;
 
 import junit.framework.TestCase;
 
-
-import plugins.Library.io.YamlReaderWriter;
-
-import freenet.keys.FreenetURI;
+import freenet.library.index.TermEntry;
+import freenet.library.index.TermEntryReaderWriter;
+import freenet.library.index.TermIndexEntry;
+import freenet.library.index.TermPageEntry;
+import freenet.library.index.TermTermEntry;
+import freenet.library.io.YamlReaderWriter;
 import freenet.library.io.serial.FileArchiver;
 import freenet.library.io.serial.Packer;
 import freenet.library.io.serial.Serialiser.*;
@@ -50,11 +52,7 @@ public class TermEntryTest extends TestCase {
 		l.add(y);
 		l.add(z);
 		map.put("test", l);
-		try {
-			map.put("test2", new Packer.BinInfo(new FreenetURI("http://127.0.0.1:8888/CHK@WtWIvOZXLVZkmDrY5929RxOZ-woRpRoMgE8rdZaQ0VU,rxH~D9VvOOuA7bCnVuzq~eux77i9RR3lsdwVHUgXoOY,AAIC--8/Library.jar"), 123));
-		} catch (java.net.MalformedURLException e) {
-			assert(false);
-		}
+		map.put("test2", new Packer.BinInfo("CHK@WtWIvOZXLVZkmDrY5929RxOZ-woRpRoMgE8rdZaQ0VU,rxH~D9VvOOuA7bCnVuzq~eux77i9RR3lsdwVHUgXoOY,AAIC--8/Library.jar", 123));
 
 		ym.push(new PushTask<Map<String, Object>>(map));
 		PullTask<Map<String, Object>> pt = new PullTask<Map<String, Object>>("");
@@ -76,7 +74,7 @@ public class TermEntryTest extends TestCase {
 
 		assertTrue(m.get("test2") instanceof Packer.BinInfo);
 		Packer.BinInfo inf = (Packer.BinInfo)m.get("test2");
-		assertTrue(inf.getID() instanceof FreenetURI);
+		assertTrue(inf.getID() instanceof String);
 	}
 
 	public void testBinaryReadWrite() throws IOException, TaskAbortException {

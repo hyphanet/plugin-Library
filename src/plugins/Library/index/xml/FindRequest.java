@@ -10,6 +10,8 @@ import freenet.client.events.ExpectedMIMEEvent;
 import freenet.client.events.SendingToNetworkEvent;
 import freenet.client.events.SplitfileCompatibilityModeEvent;
 import freenet.client.events.SplitfileProgressEvent;
+import freenet.library.index.TermEntry;
+import freenet.library.index.TermPageEntry;
 import freenet.library.util.exec.AbstractExecution;
 import freenet.library.util.exec.ChainedProgress;
 import freenet.library.util.exec.Execution;
@@ -22,8 +24,6 @@ import java.util.Collections;
 import java.util.ArrayList;
 import java.util.Set;
 
-import plugins.Library.index.TermPageEntry;
-import plugins.Library.index.TermEntry;
 
 
 /**

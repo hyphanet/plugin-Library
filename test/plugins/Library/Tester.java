@@ -11,6 +11,8 @@ import plugins.Library.util.*;
 import plugins.Library.*;
 
 import freenet.keys.FreenetURI;
+import freenet.library.index.TermEntry;
+import freenet.library.io.YamlReaderWriter;
 import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.SkeletonBTreeSet;
 import freenet.library.util.TaskAbortExceptionConvertor;

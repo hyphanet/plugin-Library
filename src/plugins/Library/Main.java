@@ -29,8 +29,6 @@ import plugins.Library.client.FreenetArchiver;
 import plugins.Library.index.ProtoIndex;
 import plugins.Library.index.ProtoIndexComponentSerialiser;
 import plugins.Library.index.ProtoIndexSerialiser;
-import plugins.Library.index.TermEntry;
-import plugins.Library.index.TermPageEntry;
 import plugins.Library.search.Search;
 import plugins.Library.ui.WebInterface;
 
@@ -46,6 +44,9 @@ import freenet.client.InsertException;
 import freenet.keys.FreenetURI;
 import freenet.keys.InsertableClientSSK;
 import freenet.l10n.BaseL10n.LANGUAGE;
+import freenet.library.index.TermEntry;
+import freenet.library.index.TermEntryReaderWriter;
+import freenet.library.index.TermPageEntry;
 import freenet.library.io.serial.LiveArchiver;
 import freenet.library.io.serial.Serialiser.PullTask;
 import freenet.library.io.serial.Serialiser.PushTask;
@@ -71,7 +72,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.security.MessageDigest;
-import plugins.Library.index.TermEntryReaderWriter;
 import plugins.Library.index.xml.LibrarianHandler;
 
 /**

@@ -5,8 +5,6 @@ package plugins.Library.index.xml;
 
 import plugins.Library.Library;
 import plugins.Library.Index;
-import plugins.Library.index.TermEntry;
-import plugins.Library.index.TermPageEntry;
 import plugins.Library.index.URIEntry;
 import plugins.Library.search.InvalidSearchException;
 
@@ -26,6 +24,8 @@ import freenet.client.FetchResult;
 import freenet.node.RequestStarter;
 import freenet.node.RequestClient;
 import freenet.keys.FreenetURI;
+import freenet.library.index.TermEntry;
+import freenet.library.index.TermPageEntry;
 import freenet.library.util.exec.Execution;
 import freenet.library.util.exec.TaskAbortException;
 

@@ -6,6 +6,8 @@ package plugins.Library.index;
 import plugins.Library.Index;
 
 import freenet.keys.FreenetURI;
+import freenet.library.index.TermEntry;
+import freenet.library.index.TermPageEntry;
 import freenet.library.io.serial.ProgressTracker;
 import freenet.library.io.serial.Serialiser;
 import freenet.library.util.DataNotLoadedException;

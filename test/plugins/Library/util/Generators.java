@@ -8,6 +8,7 @@ import junit.framework.TestCase;
 import plugins.Library.index.*;
 
 import freenet.keys.FreenetURI;
+import freenet.library.index.TermPageEntry;
 
 import java.util.UUID;
 import java.util.Random;
