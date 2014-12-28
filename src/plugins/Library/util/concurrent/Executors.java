@@ -3,7 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util.concurrent;
 
-import plugins.Library.util.func.SafeClosure;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -11,6 +10,8 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy; // WORKAROUND javadoc bug #4464323
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+
+import freenet.library.util.func.SafeClosure;
 
 /**
 ** Class providing various {@link Executor}s.

@@ -3,8 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util.concurrent;
 
-import static plugins.Library.util.func.Tuples.X2;
-import static plugins.Library.util.func.Tuples.X3;
+import static freenet.library.util.func.Tuples.X2;
+import static freenet.library.util.func.Tuples.X3;
 
 import java.lang.ref.WeakReference;
 import java.util.Iterator;
@@ -15,8 +15,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
-import plugins.Library.util.func.Closure;
-import plugins.Library.util.func.SafeClosure;
+import freenet.library.util.func.Closure;
+import freenet.library.util.func.SafeClosure;
 import freenet.support.Logger;
 
 /**

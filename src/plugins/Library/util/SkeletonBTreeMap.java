@@ -9,8 +9,6 @@ import plugins.Library.io.serial.ScheduledSerialiser;
 import plugins.Library.io.serial.MapSerialiser;
 import plugins.Library.io.serial.Translator;
 import plugins.Library.io.DataFormatException;
-import plugins.Library.util.func.Tuples.X2;
-import plugins.Library.util.func.Tuples.X3;
 
 import java.util.AbstractSet;
 import java.util.Comparator;
@@ -52,6 +50,10 @@ import freenet.library.util.exec.Progress;
 import freenet.library.util.exec.ProgressParts;
 import freenet.library.util.exec.TaskAbortException;
 import freenet.library.util.exec.TaskCompleteException;
+import freenet.library.util.func.Closure;
+import freenet.library.util.func.SafeClosure;
+import freenet.library.util.func.Tuples.X2;
+import freenet.library.util.func.Tuples.X3;
 import freenet.support.Logger;
 import plugins.Library.util.Sorted;
 import plugins.Library.util.concurrent.BoundedPriorityBlockingQueue;
@@ -61,8 +63,6 @@ import plugins.Library.util.concurrent.ObjectProcessor;
 import plugins.Library.util.concurrent.Executors;
 import plugins.Library.util.event.TrackingSweeper;
 import plugins.Library.util.event.CountingSweeper;
-import plugins.Library.util.func.Closure;
-import plugins.Library.util.func.SafeClosure;
 import static plugins.Library.util.Maps.$K;
 
 /**

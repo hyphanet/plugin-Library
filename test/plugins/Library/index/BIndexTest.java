@@ -8,7 +8,6 @@ import static plugins.Library.util.Generators.rand;
 
 import plugins.Library.util.*;
 import plugins.Library.util.func.*;
-import plugins.Library.util.exec.*;
 import plugins.Library.io.serial.*;
 import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.index.*;
@@ -16,6 +15,7 @@ import plugins.Library.index.*;
 import freenet.keys.FreenetURI;
 import freenet.library.util.exec.Execution;
 import freenet.library.util.exec.TaskAbortException;
+import freenet.library.util.func.Closure;
 
 import java.util.*;
 import java.io.*;

@@ -4,8 +4,6 @@
 package plugins.Library;
 
 import plugins.Library.client.*;
-import plugins.Library.util.exec.*;
-import plugins.Library.util.func.Closure;
 import plugins.Library.index.*;
 import plugins.Library.io.*;
 import plugins.Library.io.serial.*;
@@ -17,6 +15,7 @@ import freenet.keys.FreenetURI;
 import freenet.library.util.exec.ProgressParts;
 import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;
+import freenet.library.util.func.Closure;
 import freenet.node.RequestStarter;
 
 import java.util.*;

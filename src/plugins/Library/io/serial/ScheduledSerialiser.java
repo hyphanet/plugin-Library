@@ -6,12 +6,12 @@ package plugins.Library.io.serial;
 import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.concurrent.Scheduler;
 import plugins.Library.util.concurrent.ObjectProcessor;
-import plugins.Library.util.func.Tuples.X2;
 
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 
 import freenet.library.util.exec.TaskAbortException;
+import freenet.library.util.func.Tuples.X2;
 
 /**
 ** An interface for asynchronous task execution. The methods return objects

@@ -9,4 +9,4 @@
 ** @see <a href="http://en.wikipedia.org/wiki/Functional_programming">Functional
 **      programming</a>
 */
-package plugins.Library.util.func;
+package freenet.library.util.func;

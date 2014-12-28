@@ -4,8 +4,6 @@
 package plugins.Library.util;
 
 import plugins.Library.util.CompositeIterable;
-import plugins.Library.util.func.Tuples.X2;
-import plugins.Library.util.func.Tuples.X3;
 
 import java.util.Comparator;
 import java.util.Iterator;
@@ -22,6 +20,9 @@ import java.util.HashMap;
 import java.util.Stack;
 import java.util.NoSuchElementException;
 import java.util.ConcurrentModificationException;
+
+import freenet.library.util.func.Tuples.X2;
+import freenet.library.util.func.Tuples.X3;
 
 /**
 ** General purpose B-tree implementation. '''This class is not a general-use

@@ -37,7 +37,6 @@ import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.TaskAbortExceptionConvertor;
 import plugins.Library.util.concurrent.Executors;
-import plugins.Library.util.func.Closure;
 
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginL10n;
@@ -53,6 +52,7 @@ import freenet.keys.InsertableClientSSK;
 import freenet.l10n.BaseL10n.LANGUAGE;
 import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;
+import freenet.library.util.func.Closure;
 
 import freenet.pluginmanager.FredPluginFCP;
 import freenet.support.Logger;
