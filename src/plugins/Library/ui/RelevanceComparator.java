@@ -4,8 +4,8 @@
 
 package plugins.Library.ui;
 
+import freenet.library.util.IdentityComparator;
 import plugins.Library.index.TermEntry;
-import plugins.Library.util.IdentityComparator;
 
 /**
  * Compares the relevance of two TermEntrys, extends IdentityComparator so that two unique entries will not return a comparison of 0

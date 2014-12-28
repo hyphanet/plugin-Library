@@ -3,7 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.util.BytePrefixKey;
+import freenet.library.util.BytePrefixKey;
 
 import freenet.keys.FreenetURI;
 import freenet.keys.BaseClientKey;

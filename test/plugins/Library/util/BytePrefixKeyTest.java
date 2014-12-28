@@ -9,6 +9,8 @@ import static plugins.Library.util.Generators.rand;
 import java.util.Random;
 import java.util.Arrays;
 
+import freenet.library.util.BytePrefixKey;
+
 /**
 ** @author infinity0
 */
