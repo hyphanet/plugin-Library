@@ -12,6 +12,7 @@ import plugins.Library.*;
 
 import freenet.keys.FreenetURI;
 import freenet.library.io.serial.Serialiser.*;
+import freenet.library.util.SkeletonBTreeSet;
 import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.exec.ProgressParts;
 import freenet.library.util.exec.SimpleProgress;

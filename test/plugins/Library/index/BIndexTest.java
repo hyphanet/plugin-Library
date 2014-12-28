@@ -12,6 +12,8 @@ import plugins.Library.index.*;
 
 import freenet.keys.FreenetURI;
 import freenet.library.io.serial.Serialiser.*;
+import freenet.library.util.SkeletonBTreeMap;
+import freenet.library.util.SkeletonBTreeSet;
 import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.exec.Execution;
 import freenet.library.util.exec.TaskAbortException;

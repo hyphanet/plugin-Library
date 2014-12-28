@@ -1,7 +1,7 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.util;
+package freenet.library.util;
 
 
 import java.util.Comparator;
@@ -14,8 +14,6 @@ import freenet.library.io.DataFormatException;
 import freenet.library.io.serial.IterableSerialiser;
 import freenet.library.io.serial.MapSerialiser;
 import freenet.library.io.serial.Translator;
-import freenet.library.util.SortedSetMap;
-import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.exec.TaskAbortException;
 
 /**

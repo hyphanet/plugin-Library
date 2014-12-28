@@ -33,8 +33,6 @@ import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermPageEntry;
 import plugins.Library.search.Search;
 import plugins.Library.ui.WebInterface;
-import plugins.Library.util.SkeletonBTreeMap;
-import plugins.Library.util.SkeletonBTreeSet;
 
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginL10n;
@@ -50,6 +48,8 @@ import freenet.keys.InsertableClientSSK;
 import freenet.l10n.BaseL10n.LANGUAGE;
 import freenet.library.io.serial.Serialiser.PullTask;
 import freenet.library.io.serial.Serialiser.PushTask;
+import freenet.library.util.SkeletonBTreeMap;
+import freenet.library.util.SkeletonBTreeSet;
 import freenet.library.util.TaskAbortExceptionConvertor;
 import freenet.library.util.concurrent.Executors;
 import freenet.library.util.exec.SimpleProgress;

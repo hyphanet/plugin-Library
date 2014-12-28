@@ -5,8 +5,6 @@ package plugins.Library.index;
 
 import plugins.Library.Library;
 import plugins.Library.client.FreenetArchiver;
-import plugins.Library.util.SkeletonBTreeMap;
-import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.io.serial.LiveArchiver;
 import plugins.Library.io.serial.FileArchiver;
 import plugins.Library.io.YamlReaderWriter;
@@ -17,6 +15,8 @@ import freenet.library.io.serial.Archiver;
 import freenet.library.io.serial.Serialiser;
 import freenet.library.io.serial.Translator;
 import freenet.library.io.serial.Serialiser.*;
+import freenet.library.util.SkeletonBTreeMap;
+import freenet.library.util.SkeletonBTreeSet;
 import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;
 

@@ -1,14 +1,14 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.util;
-
-import junit.framework.TestCase;
+package freenet.library.util;
 
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.UUID;
 
-import freenet.library.util.SortedMapTestSkeleton;
+import freenet.library.util.DataNotLoadedException;
+import freenet.library.util.SkeletonTreeMap;
 
 
 /**
@@ -18,10 +18,18 @@ public class SkeletonTreeMapTest extends SortedMapTestSkeleton {
 
 	SkeletonTreeMap<String, Integer> skelmap;
 
+	private static String rndStr() {
+		return UUID.randomUUID().toString();
+	}
+
+	private static String rndKey() {
+		return rndStr().substring(0,8);
+	}
+
 	protected void setUp() {
 		skelmap = new SkeletonTreeMap<String, Integer>();
 		for (int i=0; i<1024; ++i) {
-			skelmap.putGhost(Generators.rndKey(), Boolean.FALSE);
+			skelmap.putGhost(rndKey(), Boolean.FALSE);
 		}
 	}
 

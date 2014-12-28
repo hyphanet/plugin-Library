@@ -6,7 +6,6 @@ package plugins.Library.io.serial;
 import junit.framework.TestCase;
 
 import plugins.Library.util.Generators;
-import plugins.Library.util.SkeletonTreeMap;
 import plugins.Library.io.serial.Packer.Bin;
 
 import java.util.Map;
@@ -17,6 +16,7 @@ import java.util.HashMap;
 
 import freenet.library.io.serial.IterableSerialiser;
 import freenet.library.io.serial.Serialiser.*;
+import freenet.library.util.SkeletonTreeMap;
 import freenet.library.util.exec.TaskAbortException;
 
 /**

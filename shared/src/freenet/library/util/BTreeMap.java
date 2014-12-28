@@ -1,7 +1,7 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.util;
+package freenet.library.util;
 
 
 import java.util.Comparator;
@@ -18,9 +18,6 @@ import java.util.HashMap;
 import java.util.Stack;
 import java.util.NoSuchElementException;
 
-import freenet.library.util.CompositeIterable;
-import freenet.library.util.Integers;
-import freenet.library.util.Sorted;
 import freenet.library.util.func.Tuples.X2;
 import freenet.library.util.func.Tuples.X3;
 
