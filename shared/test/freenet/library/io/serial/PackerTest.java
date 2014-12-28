@@ -1,20 +1,20 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.io.serial;
+package freenet.library.io.serial;
 
 import junit.framework.TestCase;
-
-import plugins.Library.util.Generators;
-import plugins.Library.io.serial.Packer.Bin;
 
 import java.util.Map;
 import java.util.List;
 import java.util.Iterator;
 import java.util.HashSet;
 import java.util.HashMap;
+import java.util.UUID;
 
 import freenet.library.io.serial.IterableSerialiser;
+import freenet.library.io.serial.Packer;
+import freenet.library.io.serial.Packer.Bin;
 import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.SkeletonTreeMap;
 import freenet.library.util.exec.TaskAbortException;
@@ -27,6 +27,14 @@ import freenet.library.util.exec.TaskAbortException;
 public class PackerTest extends TestCase {
 
 	final static public int NODE_MAX = 64;
+
+	private static String rndStr() {
+		return UUID.randomUUID().toString();
+	}
+
+	private static String rndKey() {
+		return rndStr().substring(0,8);
+	}
 
 	final public static Packer<String, HashSet> srl = new Packer<String, HashSet>(
 		new IterableSerialiser<Map<String, HashSet>>() {
@@ -62,7 +70,7 @@ public class PackerTest extends TestCase {
 			for (int i=0; i<size; ++i) {
 				hs.add(new Integer(i));
 			}
-			tasks.put(Generators.rndKey(), new PushTask<HashSet>(hs, meta));
+			tasks.put(rndKey(), new PushTask<HashSet>(hs, meta));
 		}
 		return tasks;
 	}

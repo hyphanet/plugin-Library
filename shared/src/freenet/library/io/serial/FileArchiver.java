@@ -1,7 +1,7 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.io.serial;
+package freenet.library.io.serial;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -9,13 +9,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileLock;
 
-import freenet.library.io.serial.Archiver;
-import freenet.library.io.serial.Serialiser.Task;
 import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;
 
-import plugins.Library.io.ObjectStreamReader;
-import plugins.Library.io.ObjectStreamWriter;
+import freenet.library.io.ObjectStreamReader;
+import freenet.library.io.ObjectStreamWriter;
 
 /**
 ** Converts between a map of {@link String} to {@link Object}, and a file on

@@ -356,7 +356,7 @@ public class BIndexTest extends TestCase {
 		srl.push(task);
 
 		System.out.print("deflated in " + timeDiff() + " ms, root at " + task.meta + ", ");
-		plugins.Library.io.serial.FileArchiver.setTestMode();
+		freenet.library.io.serial.FileArchiver.setTestMode();
 
 		System.out.println("Requesting entries for term " + sterm);
 		Execution<Set<TermEntry>> rq1 = idx.getTermEntries(sterm);

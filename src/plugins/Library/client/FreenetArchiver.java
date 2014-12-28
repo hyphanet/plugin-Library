@@ -10,10 +10,8 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 
+
 import plugins.Library.Library;
-import plugins.Library.io.ObjectStreamReader;
-import plugins.Library.io.ObjectStreamWriter;
-import plugins.Library.io.serial.LiveArchiver;
 
 import freenet.client.ClientMetadata;
 import freenet.client.FetchException;
@@ -34,6 +32,9 @@ import freenet.client.events.SplitfileProgressEvent;
 import freenet.crypt.SHA256;
 import freenet.keys.CHKBlock;
 import freenet.keys.FreenetURI;
+import freenet.library.io.ObjectStreamReader;
+import freenet.library.io.ObjectStreamWriter;
+import freenet.library.io.serial.LiveArchiver;
 import freenet.library.util.exec.ProgressParts;
 import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;

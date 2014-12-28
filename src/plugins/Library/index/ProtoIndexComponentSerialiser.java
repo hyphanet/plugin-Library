@@ -5,21 +5,21 @@ package plugins.Library.index;
 
 import plugins.Library.Library;
 import plugins.Library.client.FreenetArchiver;
-import plugins.Library.io.serial.LiveArchiver;
-import plugins.Library.io.serial.ParallelSerialiser;
-import plugins.Library.io.serial.Packer;
-import plugins.Library.io.serial.Packer.Scale; // WORKAROUND javadoc bug #4464323
-import plugins.Library.io.serial.FileArchiver;
 import plugins.Library.io.YamlReaderWriter;
 
 import freenet.keys.FreenetURI;
 import freenet.library.io.DataFormatException;
 import freenet.library.io.serial.Archiver;
+import freenet.library.io.serial.FileArchiver;
 import freenet.library.io.serial.IterableSerialiser;
+import freenet.library.io.serial.LiveArchiver;
 import freenet.library.io.serial.MapSerialiser;
+import freenet.library.io.serial.Packer;
+import freenet.library.io.serial.ParallelSerialiser;
 import freenet.library.io.serial.ProgressTracker;
 import freenet.library.io.serial.Serialiser;
 import freenet.library.io.serial.Translator;
+import freenet.library.io.serial.Packer.Scale;
 import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.SkeletonBTreeMap;
 import freenet.library.util.SkeletonBTreeSet;

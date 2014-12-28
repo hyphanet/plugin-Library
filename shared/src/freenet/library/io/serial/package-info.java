@@ -8,4 +8,4 @@
 **
 ** @author infinity0
 */
-package plugins.Library.io.serial;
+package freenet.library.io.serial;

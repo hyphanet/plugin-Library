@@ -5,12 +5,12 @@ package plugins.Library.index;
 
 import junit.framework.TestCase;
 
-import plugins.Library.io.serial.FileArchiver;
-import plugins.Library.io.serial.Packer;
 
 import plugins.Library.io.YamlReaderWriter;
 
 import freenet.keys.FreenetURI;
+import freenet.library.io.serial.FileArchiver;
+import freenet.library.io.serial.Packer;
 import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.exec.TaskAbortException;
 

@@ -31,13 +31,16 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 
 /* class definitions added to the extended Yaml processor */
-import plugins.Library.io.serial.Packer;
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermPageEntry;
 import plugins.Library.index.TermIndexEntry;
 import plugins.Library.index.TermTermEntry;
 import freenet.keys.FreenetURI;
 import freenet.library.io.DataFormatException;
+import freenet.library.io.ObjectBlueprint;
+import freenet.library.io.ObjectStreamReader;
+import freenet.library.io.ObjectStreamWriter;
+import freenet.library.io.serial.Packer;
 
 
 /**

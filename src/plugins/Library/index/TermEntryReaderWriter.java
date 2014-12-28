@@ -3,11 +3,11 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.io.ObjectStreamReader;
-import plugins.Library.io.ObjectStreamWriter;
 
 import freenet.keys.FreenetURI;
 import freenet.library.io.DataFormatException;
+import freenet.library.io.ObjectStreamReader;
+import freenet.library.io.ObjectStreamWriter;
 
 import java.util.Map;
 import java.util.HashMap;
