@@ -7,7 +7,6 @@ package plugins.Library.io.serial;
 import java.util.Collections;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
@@ -23,10 +22,8 @@ import freenet.library.io.serial.ProgressTracker;
 import freenet.library.io.serial.Serialiser;
 import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.IdentityComparator;
-import freenet.library.util.concurrent.ObjectProcessor;
 import freenet.library.util.exec.TaskAbortException;
 import freenet.library.util.exec.TaskCompleteException;
-import freenet.support.Logger;
 
 /**
 ** {@link MapSerialiser} that packs a map of weighable elements (eg. objects
@@ -75,9 +72,9 @@ implements MapSerialiser<K, T>,
 	private static volatile boolean logMINOR;
 	private static volatile boolean logDEBUG;
 
-	static {
-		Logger.registerClass(Packer.class);
-	}
+	//	static {
+	//		Logger.registerClass(Packer.class);
+	//	}
 
 	/**
 	** Maximum weight of a bin (except one; see {@link #push(Map, Object)} for
@@ -608,7 +605,7 @@ implements MapSerialiser<K, T>,
 		try {
 			// read local copy of aggression
 			int agg = getAggression();
-			if(logDEBUG) Logger.debug(this, "Aggression = "+agg+" tasks size = "+tasks.size());
+			// if(logDEBUG) Logger.debug(this, "Aggression = "+agg+" tasks size = "+tasks.size());
 
 			IDGenerator gen = generator();
 			Inventory<K, T> inv = new Inventory<K, T>(this, tasks);
