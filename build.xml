@@ -6,9 +6,19 @@
 	<property name="freenet-ext.location" location="../fred/lib/freenet/freenet-ext.jar"/>
 	<property name="source-version" value="1.6"/>
 	<property name="target-version" value="1.6"/>
-	<property name="build" location="build/"/>
-	<property name="build-test" location="build-test/"/>
-	<property name="run-test" location="run-test/"/>
+
+	<property name="build" location="build"/>
+	<property name="build-shared" location="${build}/shared"/>
+	<property name="build-uploader" location="${build}/uploader"/>
+	<property name="build-plugin" location="${build}/plugin"/>
+
+	<property name="build-test" location="build-test"/>
+	<property name="build-test-shared" location="${build-test}/shared"/>
+	<property name="build-test-uploader" location="${build-test}/uploader"/>
+	<property name="build-test-plugin" location="${build-test}/plugin"/>
+
+	<property name="run-test" location="${build-test}/run"/>
+
 	<property name="tmp" location="tmp/"/>
 	<property name="dist" location="dist/"/>
 	<property name="javadoc" location="javadoc/"/>
@@ -48,8 +58,9 @@
 	<!-- ================================================== -->
 	<target name="mkdir">
 		<mkdir dir="${build}"/>
-		<mkdir dir="${build-test}"/>
-		<mkdir dir="${run-test}"/>
+		<mkdir dir="${build-shared}"/>
+		<mkdir dir="${build-uploader}"/>
+		<mkdir dir="${build-plugin}"/>
 		<mkdir dir="${dist}"/>
 		<echo message="Using ${freenet-cvs-snapshot.location} as freenet-cvs-snapshot.jar"/>
 		<echo message="Using ${freenet-ext.location} as freenet-ext.jar"/>
@@ -83,25 +94,6 @@
 		<move file="${tmp}/snakeyaml-1.5.jar" todir="lib/" />
 	</target>
 
-	<!--<property name="KeyExplorer.mirror" value="http://cloud.github.com/downloads/freenet/plugin-Library-staging/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" />
-	<property name="KeyExplorer.md5" value="be5f1ec860fe71c55d029ebe0350f129" />
-	<property name="KeyExplorer.sha" value="12bf9bc1b4d436424e43c6b509b87690ac887de1" />
-	<available property="KeyExplorer.exist" classname="plugins.KeyExplorer.KeyExplorerUtils" classpathref="lib.path"/>
-	<target name="KeyExplorer-get" unless="KeyExplorer.exist">
-		<get verbose="true" src="${KeyExplorer.mirror}" dest="${tmp}/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" />
-		<checksum file="${tmp}/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" algorithm="MD5" property="${KeyExplorer.md5}" verifyProperty="KeyExplorerMD5ok" />
-		<checksum file="${tmp}/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" algorithm="SHA" property="${KeyExplorer.sha}" verifyProperty="KeyExplorerSHAok" />
-		<fail message="KeyExplorer.jar checksum mismatch">
-			<condition>
-				<or>
-					<equals arg1="${KeyExplorerMD5ok}" arg2="false" />
-					<equals arg1="${KeyExplorerSHAok}" arg2="false" />
-				</or>
-			</condition>
-		</fail>
-		<move file="${tmp}/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" todir="lib/" />
-	</target>-->
-
 	<!-- ================================================== -->
 	<target name="setver" if="version.present">
 		<!-- Update the Version.java file in ${build}-->
@@ -117,13 +109,34 @@
 	<target name="compile" depends="mkdir,build-dep,setver">
 		<tstamp/>
 
-		<javac srcdir="src/" destdir="${build}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
+		<javac srcdir="shared/src/" destdir="${build-shared}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
+			<classpath>
+				<path refid="lib.path"/>
+			</classpath>
+			<include name="**/*.java"/>
+			<exclude name="**/package-info.java"/>
+		</javac>
+
+		<!--
+		<javac srcdir="uploader/src/" destdir="${build-uploader}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
+			<classpath>
+				<path refid="lib.path"/>
+				<pathelement location="${build-shared}"/>
+			</classpath>
+			<include name="**/*.java"/>
+			<exclude name="**/package-info.java"/>
+		</javac>
+		-->
+
+		<javac srcdir="src/" destdir="${build-plugin}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
 			<!--<compilerarg value="-Xlint"/>-->
 			<sourcepath>
 				<pathelement path="${build}"/>
 			</sourcepath>
 			<classpath>
 				<path refid="lib.path"/>
+				<pathelement location="${build-shared}"/>
+				<pathelement location="${build-plugin}"/>
 			</classpath>
 			<include name="**/*.java"/>
 			<exclude name="**/package-info.java"/>
@@ -131,7 +144,7 @@
 		</javac>
 
 		<!-- Force compile of Version.java in case compile of ${src} didn't trigger it -->
-		<javac srcdir="${build}" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
+		<javac srcdir="${build-plugin}" destdir="${build-plugin}" debug="on" optimize="on" source="1.5" target="1.5">
 			<classpath>
 				<path refid="lib.path"/>
 			</classpath>
@@ -145,69 +158,83 @@
 		<assertions><enable/></assertions>
 	</target>
 
-	<target name="compile-tester" depends="compile" if="tester">
-		<javac srcdir="test/" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
-			<classpath>
-				<path refid="lib.path"/>
-				<!-- Uses some code that uses junit -->
-				<pathelement location="${junit.location}"/>
-			</classpath>
-			<include name="plugins/Library/Tester.java"/>
-		</javac>
-	</target>
-
-	<target name="delete-tester" depends="compile" unless="tester">
-		<delete verbose="true">
-			<fileset dir="${build}" includes="plugins/Library/Tester.* plugins/Library/Tester$*" />
-		</delete>
-	</target>
-
-	<target name="run" depends="dist">
-		<java classname="${packagebase}.ui.TestInterface">
-			<classpath>
-				<path refid="lib.path"/>
-				<pathelement location="${dist}/Library.jar"/>
-			</classpath>
-		</java>
-	</target>
-
 	<!-- ================================================== -->
 	<target name="unit-build" depends="compile" if="junit.present" unless="skip_tests">
-		<javac srcdir="test/" destdir="${build-test}" debug="on" optimize="on" source="1.5">
+		<delete dir="${build-test}"/>
+
+		<mkdir dir="${build-test-shared}"/>
+		<javac srcdir="shared/test/" destdir="${build-test-shared}" debug="on" optimize="on" source="1.5">
 			<classpath>
 				<path refid="lib.path"/>
-				<pathelement path="${build}"/>
+				<pathelement location="${build-shared}"/>
 				<pathelement location="${junit.location}"/>
 			</classpath>
 			<compilerarg value="-Xlint"/>
 			<include name="**/*.java"/>
 		</javac>
+
+		<mkdir dir="${build-test-plugin}"/>
+		<javac srcdir="test/" destdir="${build-test-plugin}" debug="on" optimize="on" source="1.5">
+			<classpath>
+				<path refid="lib.path"/>
+				<pathelement path="${build-shared}"/>
+				<pathelement path="${build-plugin}"/>
+				<pathelement location="${junit.location}"/>
+			</classpath>
+			<compilerarg value="-Xlint"/>
+			<include name="**/*.java"/>
+		</javac>
+		<!-- uploader -->
 	</target>
 
 	<target name="junit" depends="unit-build" if="junit.present" unless="skip_tests">
 		<delete dir="${run-test}"/>
 		<mkdir dir="${run-test}"/>
-		<junit printsummary="yes" fork="yes" haltonfailure="yes" dir="${run-test}" showoutput="yes">
+
+		<junit printsummary="yes" fork="yes" haltonfailure="yes"
+		       dir="${run-test}" showoutput="yes">
 			<classpath>
 				<path refid="lib.path"/>
-				<pathelement path="${build}"/>
-				<pathelement path="${build-test}"/>
+				<pathelement path="${build-shared}"/>
+				<pathelement path="${build-test-shared}"/>
 				<pathelement location="${junit.location}"/>
 			</classpath>
 			<assertions><enable/></assertions>
 			<formatter type="plain" usefile="false"/>
 			<batchtest fork="yes">
-				<fileset dir="${build-test}">
+				<fileset dir="${build-test-shared}">
 					<include name="**/*Test.class"/>
 				</fileset>
 			</batchtest>
 			<sysproperty key="benchmark" value="${benchmark}" />
 			<sysproperty key="extensiveTesting" value="${extensiveTesting}" />
 		</junit>
+
+		<junit printsummary="yes" fork="yes" haltonfailure="yes"
+		       dir="${run-test}" showoutput="yes">
+			<classpath>
+				<path refid="lib.path"/>
+				<pathelement path="${build-shared}"/>
+				<pathelement path="${build-plugin}"/>
+				<pathelement path="${build-test-plugin}"/>
+				<pathelement location="${junit.location}"/>
+			</classpath>
+			<assertions><enable/></assertions>
+			<formatter type="plain" usefile="false"/>
+			<batchtest fork="yes">
+				<fileset dir="${build-test-plugin}">
+					<include name="**/*Test.class"/>
+				</fileset>
+			</batchtest>
+			<sysproperty key="benchmark" value="${benchmark}" />
+			<sysproperty key="extensiveTesting" value="${extensiveTesting}" />
+		</junit>
+
 	</target>
 
 	<!-- ================================================== -->
-	<target name="jar" depends="compile,compile-tester,delete-tester,junit" description="create a jar package">
+	<target name="jar" depends="compile,junit"
+		description="create a jar package">
 		<jar jarfile="${dist}/Library.jar" duplicate="fail">
 			<manifest>
 				<attribute name="Main-Class" value="${packagebase}.ui.TestInterface"/>
@@ -218,7 +245,8 @@
 				<include name="**/*.txt"/>
 				<include name="**/*.properties"/>
 			</fileset>
-			<fileset dir="${build}/">
+			<fileset dir="${build-shared}"/>
+			<fileset dir="${build-plugin}/">
 				<exclude name="${version.src}"/>
 			</fileset>
 			<zipgroupfileset dir="lib/" includes="**/*.jar"/>
@@ -247,8 +275,6 @@
 	<!-- ================================================== -->
 	<target name="clean" description="Delete class files and docs dir.">
 		<delete dir="${build}"/>
-		<delete dir="${build-test}"/>
-		<delete dir="${run-test}"/>
 		<delete dir="${dist}"/>
 	</target>
 

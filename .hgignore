@@ -1,3 +1,5 @@
 shared/bin
 build
 lib/snakeyaml-1.5.jar
+dist/Library.jar
+shared/TermEntryTest/test.yml

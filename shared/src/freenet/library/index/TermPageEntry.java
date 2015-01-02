@@ -25,9 +25,11 @@ public class TermPageEntry extends TermEntry {
 	final public String page;
 
 	/** 
-	 * Positions where the term occurs. May be null if we don't have that data. 
+	 * Positions where the term occurs. May be null if we don't have that data.
+	 * 
+	 * Retrieved from the YamlReaderWriter so must be public.
 	 */
-	final private SortedSet<Integer> positions;
+	final public SortedSet<Integer> positions;
 	
 	/**
 	** Map from positions in the text to a fragment of text around where it occurs.
@@ -84,7 +86,7 @@ public class TermPageEntry extends TermEntry {
 	/**
 	** For serialisation.
 	*/
-	public TermPageEntry(String s, float r, String u, String t, Set<Integer> pos, Map<Integer, String> frags) {
+	public TermPageEntry(String s, float r, String u, String t, SortedSet<Integer> pos, Map<Integer, String> frags) {
 		super(s, r);
 		if (u == null) {
 			throw new IllegalArgumentException("can't have a null page");
