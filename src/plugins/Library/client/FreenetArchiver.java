@@ -241,12 +241,18 @@ implements LiveArchiver<T, SimpleProgress> {
 					u = e.newURI;
 					continue;
 				}
+				System.out.println("FetchException:");
+				e.printStackTrace();
 				throw new TaskAbortException("Failed to fetch content", e, true);
 
 			} catch (IOException e) {
+				System.out.println("IOException:");
+				e.printStackTrace();
 				throw new TaskAbortException("Failed to read content from local tempbucket", e, true);
 
 			} catch (RuntimeException e) {
+				System.out.println("RuntimeException:");
+				e.printStackTrace();
 				throw new TaskAbortException("Failed to complete task: ", e);
 
 			}
