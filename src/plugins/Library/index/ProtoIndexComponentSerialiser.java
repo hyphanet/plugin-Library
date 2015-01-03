@@ -10,7 +10,7 @@ import java.util.TreeMap;
 
 import plugins.Library.Library;
 import plugins.Library.client.FreenetArchiver;
-import freenet.keys.FreenetURI;
+
 import freenet.library.index.TermEntry;
 import freenet.library.io.DataFormatException;
 import freenet.library.io.YamlReaderWriter;
@@ -83,8 +83,8 @@ public class ProtoIndexComponentSerialiser {
 	/**
 	** Translator for the local entries of a node of the ''uri table''.
 	*/
-	final protected static Translator<SkeletonTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>, Map<String, Object>>
-	utab_keys_mtr = new TreeMapTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(utab_keys_ktr);
+	final protected static Translator<SkeletonTreeMap<URIKey, SkeletonBTreeMap<String, URIEntry>>, Map<String, Object>>
+	utab_keys_mtr = new TreeMapTranslator<URIKey, SkeletonBTreeMap<String, URIEntry>>(utab_keys_ktr);
 
 	/**
 	** Serialiser for the ''targets'' of the values stored in a node of the
@@ -98,7 +98,7 @@ public class ProtoIndexComponentSerialiser {
 	** ''B-tree'' for a ''urikey''. In this case, the values are the actual
 	** targets and are stored inside the node, so we use a dummy.
 	*/
-	final protected static MapSerialiser<FreenetURI, URIEntry> uri_dummy = new DummySerialiser<FreenetURI, URIEntry>();
+	final protected static MapSerialiser<String, URIEntry> uri_dummy = new DummySerialiser<String, URIEntry>();
 
 	/**
 	** {@link Scale} for the root node of the ''B-tree'' that holds
@@ -115,9 +115,9 @@ public class ProtoIndexComponentSerialiser {
 	** {@link Scale} for the root node of the ''B-tree'' that holds
 	** ''uri-entry mappings'' for a ''urikey''.
 	*/
-	final protected static Packer.Scale<SkeletonBTreeMap<FreenetURI, URIEntry>>
-	uri_data_scale = new Packer.Scale<SkeletonBTreeMap<FreenetURI, URIEntry>>() {
-		@Override public int weigh(SkeletonBTreeMap<FreenetURI, URIEntry> element) {
+	final protected static Packer.Scale<SkeletonBTreeMap<String, URIEntry>>
+	uri_data_scale = new Packer.Scale<SkeletonBTreeMap<String, URIEntry>>() {
+		@Override public int weigh(SkeletonBTreeMap<String, URIEntry> element) {
 			return element.sizeRoot();
 		}
 	};
@@ -180,7 +180,7 @@ public class ProtoIndexComponentSerialiser {
 	** ''B-tree'' that holds ''uri-entry mappings'' for the ''urikey'' mapping
 	** to the value.
 	*/
-	final protected BTreePacker<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>, EntryGroupSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>>
+	final protected BTreePacker<URIKey, SkeletonBTreeMap<String, URIEntry>, EntryGroupSerialiser<URIKey, SkeletonBTreeMap<String, URIEntry>>>
 	utab_data;
 
 	/**
@@ -226,12 +226,12 @@ public class ProtoIndexComponentSerialiser {
 			ProtoIndex.BTREE_ENT_MAX
 		);
 
-		utab_data = new BTreePacker<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>, EntryGroupSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>>(
-			new EntryGroupSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(
+		utab_data = new BTreePacker<URIKey, SkeletonBTreeMap<String, URIEntry>, EntryGroupSerialiser<URIKey, SkeletonBTreeMap<String, URIEntry>>>(
+			new EntryGroupSerialiser<URIKey, SkeletonBTreeMap<String, URIEntry>>(
 				leaf_arx,
 				null,
-				new SkeletonBTreeMap.TreeTranslator<FreenetURI, URIEntry>(null, null) {
-					@Override public SkeletonBTreeMap<FreenetURI, URIEntry> rev(Map<String, Object> tree) throws DataFormatException {
+				new SkeletonBTreeMap.TreeTranslator<String, URIEntry>(null, null) {
+					@Override public SkeletonBTreeMap<String, URIEntry> rev(Map<String, Object> tree) throws DataFormatException {
 						return setSerialiserFor(super.rev(tree));
 					}
 				}
@@ -255,7 +255,7 @@ public class ProtoIndexComponentSerialiser {
 		index.ttab.setSerialiser(ttab_keys, ttab_data);
 
 		// set serialisers on the utab
-		BTreeNodeSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab_keys = new BTreeNodeSerialiser<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(
+		BTreeNodeSerialiser<URIKey, SkeletonBTreeMap<String, URIEntry>> utab_keys = new BTreeNodeSerialiser<URIKey, SkeletonBTreeMap<String, URIEntry>>(
 			"uri listings",
 			leaf_arx,
 			index.utab.makeNodeTranslator(utab_keys_ktr, utab_keys_mtr)
@@ -271,11 +271,11 @@ public class ProtoIndexComponentSerialiser {
 	** Set the serialiser for the ''B-tree'' that holds the ''uri-entry
 	** mappings'' for a ''urikey''.
 	*/
-	public SkeletonBTreeMap<FreenetURI, URIEntry> setSerialiserFor(SkeletonBTreeMap<FreenetURI, URIEntry> entries) {
-		BTreeNodeSerialiser<FreenetURI, URIEntry> uri_keys = new BTreeNodeSerialiser<FreenetURI, URIEntry>(
+	public SkeletonBTreeMap<String, URIEntry> setSerialiserFor(SkeletonBTreeMap<String, URIEntry> entries) {
+		BTreeNodeSerialiser<String, URIEntry> uri_keys = new BTreeNodeSerialiser<String, URIEntry>(
 			"uri entries",
 			leaf_arx,
-			entries.makeNodeTranslator(null, null) // no translator needed as FreenetURI and URIEntry are both directly serialisable by YamlReaderWriter
+			entries.makeNodeTranslator(null, null) // no translator needed as String and URIEntry are both directly serialisable by YamlReaderWriter
 		);
 		entries.setSerialiser(uri_keys, uri_dummy);
 		return entries;

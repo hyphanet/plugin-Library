@@ -548,6 +548,7 @@ final public class Library implements URLUpdateHook {
 				if(uri.isUSK())
 					edition = uri.getEdition();
 				indextype = getIndexType(uri);
+				indexkey = uri.toASCIIString();
 			} else {
 				throw new AssertionError();
 			}

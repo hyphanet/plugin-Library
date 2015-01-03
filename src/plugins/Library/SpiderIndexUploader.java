@@ -527,11 +527,7 @@ public class SpiderIndexUploader {
                 (LiveArchiver<Map<String,Object>,SimpleProgress>)(srlDisk.getChildSerialiser());
             leafsrlDisk = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, archiver);
             if(lastDiskIndexName == null) {
-                try {
-                    idxDisk = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0L);
-                } catch (java.net.MalformedURLException e) {
-                    throw new AssertionError(e);
-                }
+            	idxDisk = new ProtoIndex("CHK@", "test", null, null, 0L);
                 // FIXME more hacks: It's essential that we use the same FileArchiver instance here.
                 leafsrlDisk.setSerialiserFor(idxDisk);
             } else {
@@ -768,16 +764,12 @@ public class SpiderIndexUploader {
 	 * on Freenet, essentially. */
 	private void makeFreenetSerialisers() {
 		if(srl == null) {
-			srl = ProtoIndexSerialiser.forIndex(lastUploadURI, RequestStarter.BULK_SPLITFILE_PRIORITY_CLASS);
+			srl = ProtoIndexSerialiser.forIndex(lastUploadURI.toASCIIString(), RequestStarter.BULK_SPLITFILE_PRIORITY_CLASS);
 			LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
 				(LiveArchiver<Map<String,Object>,SimpleProgress>)(srl.getChildSerialiser());
 			leafsrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_DEFAULT, archiver);
 			if(lastUploadURI == null) {
-				try {
-					idxFreenet = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0L);
-				} catch (java.net.MalformedURLException e) {
-					throw new AssertionError(e);
-				}
+				idxFreenet = new ProtoIndex("CHK@", "test", null, null, 0L);
 				// FIXME more hacks: It's essential that we use the same FreenetArchiver instance here.
 				leafsrl.setSerialiserFor(idxFreenet);
 			} else {

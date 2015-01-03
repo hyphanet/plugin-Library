@@ -14,7 +14,7 @@ import java.util.Set;
 import java.util.concurrent.Executor;
 
 import plugins.Library.Index;
-import freenet.keys.FreenetURI;
+
 import freenet.library.index.TermEntry;
 import freenet.library.index.TermPageEntry;
 import freenet.library.io.serial.ProgressTracker;
@@ -59,12 +59,12 @@ final public class ProtoIndex implements Index {
 	/**
 	** Request ID for this index
 	*/
-	protected FreenetURI reqID;
+	protected String reqID;
 
 	/**
 	** Insert ID for this index
 	*/
-	protected FreenetURI insID; // TODO HIGH maybe move this to WriteableProtoIndex?
+	protected String insID; // TODO HIGH maybe move this to WriteableProtoIndex?
 
 	/**
 	** Name for this index.
@@ -94,19 +94,19 @@ final public class ProtoIndex implements Index {
 
 
 	final public /* DEBUG protected*/ SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab;
-	final protected SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab;
+	final protected SkeletonBTreeMap<URIKey, SkeletonBTreeMap<String, URIEntry>> utab;
 
 
-	public ProtoIndex(FreenetURI id, String n, String owner, String ownerEmail, long pages) {
+	public ProtoIndex(String id, String n, String owner, String ownerEmail, long pages) {
 		this(id, n, owner, ownerEmail, pages, new Date(), new HashMap<String, Object>(),
-			new SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(BTREE_NODE_MIN),
+			new SkeletonBTreeMap<URIKey, SkeletonBTreeMap<String, URIEntry>>(BTREE_NODE_MIN),
 			new SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>>(BTREE_NODE_MIN)/*,
 			//filtab = new SkeletonPrefixTreeMap<Token, TokenFilter>(new Token(), TKTAB_MAX)*/
 		);
 	}
 
-	protected ProtoIndex(FreenetURI id, String n, String owner, String ownerEmail, long pages, Date m, Map<String, Object> x,
-		SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> u,
+	protected ProtoIndex(String id, String n, String owner, String ownerEmail, long pages, Date m, Map<String, Object> x,
+		SkeletonBTreeMap<URIKey, SkeletonBTreeMap<String, URIEntry>> u,
 		SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> t/*,
 		SkeletonMap<Token, TokenFilter> f*/
 		) {

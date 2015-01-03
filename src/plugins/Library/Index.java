@@ -3,8 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library;
 
-import plugins.Library.index.URIEntry;
-
 import freenet.library.index.TermEntry;
 import freenet.library.util.exec.Execution;
 

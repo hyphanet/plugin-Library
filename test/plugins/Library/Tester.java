@@ -148,16 +148,12 @@ public class Tester {
 		if (push_index_thread == null) {
 			push_index_start = new Date();
 			push_index_thread = new Thread() {
-				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI, RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI.toASCIIString(), RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 				ProtoIndex idx;
 				Random rand = new Random();
 
 				@Override public void run() {
-					try {
-						idx = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0);
-					} catch (java.net.MalformedURLException e) {
-						throw new AssertionError(e);
-					}
+					idx = new ProtoIndex("CHK@", "test", null, null, 0);
 					ProtoIndexComponentSerialiser.get().setSerialiserFor(idx);
 
 					for (String key: push_index_words) {
@@ -232,17 +228,12 @@ public class Tester {
 			FreenetArchiver.setCacheDir(cacheDir);
 			
 			push_index_thread = new Thread() {
-				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI, RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI.toASCIIString(), RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 				ProtoIndex idx;
 				Random rand = new Random();
 
 				@Override public void run() {
-					
-					try {
-						idx = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0);
-					} catch (java.net.MalformedURLException e) {
-						throw new AssertionError(e);
-					}
+					idx = new ProtoIndex("CHK@", "test", null, null, 0);
 					ProtoIndexComponentSerialiser.get().setSerialiserFor(idx);
 
 					try {
