@@ -3,9 +3,13 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
+
 import plugins.Library.Library;
 import plugins.Library.client.FreenetArchiver;
-
 import freenet.keys.FreenetURI;
 import freenet.library.index.TermEntry;
 import freenet.library.io.DataFormatException;
@@ -16,12 +20,11 @@ import freenet.library.io.serial.IterableSerialiser;
 import freenet.library.io.serial.LiveArchiver;
 import freenet.library.io.serial.MapSerialiser;
 import freenet.library.io.serial.Packer;
+import freenet.library.io.serial.Packer.Scale;
 import freenet.library.io.serial.ParallelSerialiser;
 import freenet.library.io.serial.ProgressTracker;
 import freenet.library.io.serial.Serialiser;
 import freenet.library.io.serial.Translator;
-import freenet.library.io.serial.Packer.Scale;
-import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.SkeletonBTreeMap;
 import freenet.library.util.SkeletonBTreeSet;
 import freenet.library.util.SkeletonTreeMap;
@@ -32,18 +35,6 @@ import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;
 import freenet.library.util.exec.TaskInProgressException;
 import freenet.node.RequestStarter;
-
-import java.io.File;
-import java.util.Collection;
-import java.util.Set;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.LinkedHashMap;
-import java.util.HashMap;
-import java.util.TreeSet;
-import java.util.TreeMap;
-import java.util.Date;
 
 /**
 ** Serialiser for the components of a ProtoIndex.

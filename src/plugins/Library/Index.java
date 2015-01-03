@@ -5,7 +5,6 @@ package plugins.Library;
 
 import plugins.Library.index.URIEntry;
 
-import freenet.keys.FreenetURI;
 import freenet.library.index.TermEntry;
 import freenet.library.util.exec.Execution;
 
@@ -24,7 +23,4 @@ public interface Index {
 	** DOCUMENT
 	*/
 	public Execution<Set<TermEntry>> getTermEntries(String term);
-
-	public Execution<URIEntry> getURIEntry(FreenetURI uri);
-
 }

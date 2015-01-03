@@ -3,8 +3,17 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.Index;
+import java.util.AbstractSet;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Executor;
 
+import plugins.Library.Index;
 import freenet.keys.FreenetURI;
 import freenet.library.index.TermEntry;
 import freenet.library.index.TermPageEntry;
@@ -14,7 +23,6 @@ import freenet.library.util.DataNotLoadedException;
 import freenet.library.util.Skeleton;
 import freenet.library.util.SkeletonBTreeMap;
 import freenet.library.util.SkeletonBTreeSet;
-import freenet.library.util.SkeletonTreeMap;
 import freenet.library.util.concurrent.Executors;
 import freenet.library.util.exec.AbstractExecution;
 import freenet.library.util.exec.ChainedProgress;
@@ -22,21 +30,6 @@ import freenet.library.util.exec.Execution;
 import freenet.library.util.exec.Progress;
 import freenet.library.util.exec.ProgressParts;
 import freenet.library.util.exec.TaskAbortException;
-import freenet.support.Logger;
-
-import java.util.AbstractSet;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.HashMap;
-import java.util.TreeSet;
-import java.util.LinkedHashMap;
-import java.util.Date;
-
-import java.util.concurrent.Executor;
 
 /**
 ** Prototype B-tree based index. DOCUMENT
@@ -160,14 +153,6 @@ final public class ProtoIndex implements Index {
 		return request;
 	}
 
-
-
-
-	public Execution<URIEntry> getURIEntry(FreenetURI uri) {
-		throw new UnsupportedOperationException("not implemented");
-	}
-
-
 	public class getTermEntriesHandler extends AbstractExecution<Set<TermEntry>> implements Runnable, ChainedProgress {
 		// TODO NORM have a Runnable field instead of extending Runnable
 		// basically, redesign this entire class and series of classes
@@ -234,10 +219,12 @@ final public class ProtoIndex implements Index {
 					long specific = root.size(); // Number of pages in this entry
 					multiplier = Math.log(((double)total) / ((double)specific));
 					if(multiplier < 0) {
-						Logger.error(this, "Negative multiplier!: "+multiplier+" total = "+total+" specific = "+root.size());
+						// Logger.error(this, "Negative multiplier!: "+multiplier+" total = "+total+" specific = "+root.size());
+						System.out.println("Negative multiplier!: "+multiplier+" total = "+total+" specific = "+root.size());
 						multiplier = 1.0;
-					} else
-						Logger.normal(this, "Correcting results: "+multiplier);
+					} else {
+						// Logger.normal(this, "Correcting results: "+multiplier);
+					}
 				}
 				Set<TermEntry> entries = wrapper(root, multiplier);
 				

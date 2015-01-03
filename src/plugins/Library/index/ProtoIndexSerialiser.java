@@ -3,9 +3,13 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
+import java.io.File;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import plugins.Library.Library;
 import plugins.Library.client.FreenetArchiver;
-
 import freenet.keys.FreenetURI;
 import freenet.library.index.TermEntry;
 import freenet.library.io.DataFormatException;
@@ -15,23 +19,10 @@ import freenet.library.io.serial.FileArchiver;
 import freenet.library.io.serial.LiveArchiver;
 import freenet.library.io.serial.Serialiser;
 import freenet.library.io.serial.Translator;
-import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.SkeletonBTreeMap;
 import freenet.library.util.SkeletonBTreeSet;
 import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;
-
-import java.util.Collection;
-import java.util.Set;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.LinkedHashMap;
-import java.util.HashMap;
-import java.util.TreeSet;
-import java.util.TreeMap;
-import java.util.Date;
-import java.io.File;
 
 /**
 ** Serialiser for ProtoIndex
@@ -173,7 +164,7 @@ implements Archiver<ProtoIndex>,
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
-			map.put("serialVersionUID", idx.serialVersionUID);
+			map.put("serialVersionUID", ProtoIndex.serialVersionUID);
 			map.put("serialFormatUID", idx.serialFormatUID);
 			map.put("insID", idx.insID);
 			map.put("name", idx.name);

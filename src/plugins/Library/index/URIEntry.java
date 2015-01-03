@@ -7,10 +7,8 @@ import java.util.Date;
 import java.util.Set;
 import java.util.HashSet;
 
-import freenet.keys.FreenetURI;
-
 /**
-** Data associated with a {@link FreenetURI}. DOCUMENT expand this...
+** Data associated with a FreenetURI. DOCUMENT expand this...
 **
 ** FIXME NORM code equals()
 **
@@ -21,7 +19,7 @@ public class URIEntry {
 	/**
 	** Subject URI of this entry.
 	*/
-	protected FreenetURI subject;
+	protected String subject;
 
 	/**
 	** Quality rating. Must be in the closed interval [0,1].
@@ -39,17 +37,17 @@ public class URIEntry {
 	*/
 	protected Set<String> terms;
 
-	public URIEntry(FreenetURI u) {
+	public URIEntry(String u) {
 		subject = u;
 		date_checked = new Date();
 		terms = new HashSet<String>();
 	}
 
-	public FreenetURI getSubject() {
+	public String getSubject() {
 		return subject;
 	}
 
-	public void setSubject(FreenetURI u) {
+	public void setSubject(String u) {
 		subject = u;
 	}
 
