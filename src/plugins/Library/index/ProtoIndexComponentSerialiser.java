@@ -12,6 +12,8 @@ import plugins.Library.Library;
 import plugins.Library.client.FreenetArchiver;
 
 import freenet.library.index.TermEntry;
+import freenet.library.index.URIEntry;
+import freenet.library.index.URIKey;
 import freenet.library.io.DataFormatException;
 import freenet.library.io.YamlReaderWriter;
 import freenet.library.io.serial.Archiver;

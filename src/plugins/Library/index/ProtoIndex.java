@@ -13,10 +13,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
-import plugins.Library.Index;
 
+
+import freenet.library.index.Index;
 import freenet.library.index.TermEntry;
 import freenet.library.index.TermPageEntry;
+import freenet.library.index.URIEntry;
+import freenet.library.index.URIKey;
 import freenet.library.io.serial.ProgressTracker;
 import freenet.library.io.serial.Serialiser;
 import freenet.library.util.DataNotLoadedException;

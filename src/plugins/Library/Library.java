@@ -42,6 +42,7 @@ import freenet.client.events.ClientEventListener;
 import freenet.client.events.ExpectedMIMEEvent;
 import freenet.keys.FreenetURI;
 import freenet.keys.USK;
+import freenet.library.index.Index;
 import freenet.library.io.ObjectStreamReader;
 import freenet.library.io.ObjectStreamWriter;
 import freenet.library.io.serial.Serialiser.PullTask;

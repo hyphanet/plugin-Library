@@ -3,9 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search.inter;
 
-import plugins.Library.Index;
 
 import freenet.keys.FreenetURI;
+import freenet.library.index.Index;
 import freenet.library.index.TermEntry;
 import freenet.library.index.TermIndexEntry;
 import freenet.library.index.TermTermEntry;
