@@ -13,8 +13,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
-
-
 import freenet.library.index.Index;
 import freenet.library.index.TermEntry;
 import freenet.library.index.TermPageEntry;

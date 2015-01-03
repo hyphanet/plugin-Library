@@ -8,9 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-import plugins.Library.Library;
-import plugins.Library.client.FreenetArchiver;
-
+import freenet.library.FactoryRegister;
 import freenet.library.index.TermEntry;
 import freenet.library.index.URIEntry;
 import freenet.library.index.URIKey;
@@ -36,7 +34,6 @@ import freenet.library.util.exec.ProgressParts;
 import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;
 import freenet.library.util.exec.TaskInProgressException;
-import freenet.node.RequestStarter;
 
 /**
 ** Serialiser for the components of a ProtoIndex.
@@ -199,10 +196,11 @@ public class ProtoIndexComponentSerialiser {
 		} else {
 			switch (fmtid) {
 			case FMT_FREENET_SIMPLE:
-				short priorityClass = RequestStarter.INTERACTIVE_PRIORITY_CLASS;
-				if(archiver instanceof FreenetArchiver)
-					priorityClass = ((FreenetArchiver)archiver).priorityClass;
-				leaf_arx = Library.makeArchiver(yamlrw, ProtoIndex.MIME_TYPE, 0x180 * ProtoIndex.BTREE_NODE_MIN, priorityClass);
+				leaf_arx = FactoryRegister.getArchiverFactory().newArchiver(
+						yamlrw, 
+						ProtoIndex.MIME_TYPE, 
+						0x180 * ProtoIndex.BTREE_NODE_MIN, 
+						archiver);
 				break;
 			case FMT_FILE_LOCAL:
 				leaf_arx = new FileArchiver<Map<String, Object>>(yamlrw, true, YamlReaderWriter.FILE_EXTENSION, "", "", null);

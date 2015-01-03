@@ -124,7 +124,7 @@ implements LiveArchiver<T, SimpleProgress> {
 	public <S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver(NodeClientCore c, S rw, String mime, int size, short priority) {
 		this(c, rw, rw, mime, size, priority);
 	}
-
+	
 	/**
 	** {@inheritDoc}
 	**

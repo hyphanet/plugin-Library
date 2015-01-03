@@ -9,8 +9,10 @@ import plugins.Library.util.*;
 import plugins.Library.*;
 
 import freenet.keys.FreenetURI;
+import freenet.library.Priority;
 import freenet.library.index.TermEntry;
 import freenet.library.io.YamlReaderWriter;
+import freenet.library.io.serial.LiveArchiver;
 import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.SkeletonBTreeSet;
 import freenet.library.util.TaskAbortExceptionConvertor;
@@ -80,7 +82,7 @@ public class Tester {
 		if (push_progress_thread == null) {
 			push_progress_thread = new Thread() {
 				YamlReaderWriter yamlrw = new YamlReaderWriter();
-				FreenetArchiver<Map<String, Integer>> arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000, RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+				LiveArchiver<Map<String, Integer>, SimpleProgress> arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000, RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 
 				@Override public void run() {
 					push_progress_start = new Date();
@@ -148,7 +150,7 @@ public class Tester {
 		if (push_index_thread == null) {
 			push_index_start = new Date();
 			push_index_thread = new Thread() {
-				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI.toASCIIString(), RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI.toASCIIString(), Priority.Interactive);
 				ProtoIndex idx;
 				Random rand = new Random();
 
@@ -228,7 +230,7 @@ public class Tester {
 			FreenetArchiver.setCacheDir(cacheDir);
 			
 			push_index_thread = new Thread() {
-				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI.toASCIIString(), RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI.toASCIIString(), Priority.Interactive);
 				ProtoIndex idx;
 				Random rand = new Random();
 

@@ -8,9 +8,7 @@ import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import plugins.Library.Library;
-import plugins.Library.client.FreenetArchiver;
-
+import freenet.library.FactoryRegister;
 import freenet.library.index.TermEntry;
 import freenet.library.index.URIEntry;
 import freenet.library.index.URIKey;
@@ -21,6 +19,7 @@ import freenet.library.io.serial.FileArchiver;
 import freenet.library.io.serial.LiveArchiver;
 import freenet.library.io.serial.Serialiser;
 import freenet.library.io.serial.Translator;
+import freenet.library.Priority;
 import freenet.library.util.SkeletonBTreeMap;
 import freenet.library.util.SkeletonBTreeSet;
 import freenet.library.util.exec.SimpleProgress;
@@ -61,9 +60,9 @@ implements Archiver<ProtoIndex>,
 //	final protected static HashMap<Class<?>, ProtoIndexSerialiser>
 //	srl_cls = new HashMap<Class<?>, ProtoIndexSerialiser>();
 
-	public static ProtoIndexSerialiser forIndex(Object o, short priorityClass) {
+	public static ProtoIndexSerialiser forIndex(Object o, Priority priorityLevel) {
 		if (o instanceof String) {
-			return forIndex((String)o, priorityClass);
+			return forIndex((String)o, priorityLevel);
 		} else if (o instanceof File) {
 			return forIndex((File)o);
 		} else {
@@ -71,7 +70,7 @@ implements Archiver<ProtoIndex>,
 		}
 	}
 
-	public static ProtoIndexSerialiser forIndex(String uri, short priorityClass) {
+	public static ProtoIndexSerialiser forIndex(String uri, Priority priorityLevel) {
 //		ProtoIndexSerialiser srl = srl_cls.get(FreenetURI.class);
 //		if (srl == null) {
 //			// java's type-inference isn't that smart, see
@@ -82,7 +81,7 @@ implements Archiver<ProtoIndex>,
 		
 		// One serialiser per application. See comments above re srl_cls.
 		// java's type-inference isn't that smart, see
-		FreenetArchiver<Map<String, Object>> arx = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN, priorityClass);
+		LiveArchiver<Map<String, Object>, SimpleProgress> arx = FactoryRegister.getArchiverFactory().newArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN, priorityLevel);
 		return new ProtoIndexSerialiser(arx);
 	}
 

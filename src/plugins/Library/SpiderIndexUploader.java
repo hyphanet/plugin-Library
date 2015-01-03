@@ -27,6 +27,7 @@ import plugins.Library.index.ProtoIndexComponentSerialiser;
 import plugins.Library.index.ProtoIndexSerialiser;
 import freenet.client.InsertException;
 import freenet.keys.FreenetURI;
+import freenet.library.Priority;
 import freenet.library.index.TermEntry;
 import freenet.library.index.TermEntryReaderWriter;
 import freenet.library.io.serial.LiveArchiver;
@@ -764,7 +765,7 @@ public class SpiderIndexUploader {
 	 * on Freenet, essentially. */
 	private void makeFreenetSerialisers() {
 		if(srl == null) {
-			srl = ProtoIndexSerialiser.forIndex(lastUploadURI.toASCIIString(), RequestStarter.BULK_SPLITFILE_PRIORITY_CLASS);
+			srl = ProtoIndexSerialiser.forIndex(lastUploadURI.toASCIIString(), Priority.Bulk);
 			LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
 				(LiveArchiver<Map<String,Object>,SimpleProgress>)(srl.getChildSerialiser());
 			leafsrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_DEFAULT, archiver);

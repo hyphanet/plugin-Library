@@ -42,10 +42,15 @@ import freenet.client.events.ClientEventListener;
 import freenet.client.events.ExpectedMIMEEvent;
 import freenet.keys.FreenetURI;
 import freenet.keys.USK;
+import freenet.library.ArchiverFactory;
+import freenet.library.FactoryRegister;
 import freenet.library.index.Index;
 import freenet.library.io.ObjectStreamReader;
 import freenet.library.io.ObjectStreamWriter;
+import freenet.library.io.serial.LiveArchiver;
 import freenet.library.io.serial.Serialiser.PullTask;
+import freenet.library.Priority;
+import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;
 import freenet.node.NodeClientCore;
 import freenet.node.RequestClient;
@@ -61,7 +66,7 @@ import freenet.support.io.FileUtil;
  * Library class is the api for others to use search facilities, it is used by the interfaces
  * @author MikeB
  */
-final public class Library implements URLUpdateHook {
+final public class Library implements URLUpdateHook, ArchiverFactory {
 
 	public static final String BOOKMARK_PREFIX = "bookmark:";
 	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "liberty-of-information" + " " + BOOKMARK_PREFIX + "free-market-free-people" + " " +
@@ -122,8 +127,9 @@ final public class Library implements URLUpdateHook {
 	 * Method to setup Library class so it has access to PluginRespirator, and load bookmarks
 	 * TODO pull bookmarks from disk
 	 */
-	private Library(PluginRespirator pr){
+	private Library(PluginRespirator pr) {
 		this.pr = pr;
+		FactoryRegister.register(this);
 		PluginStore ps;
 		if(pr!=null) {
 			this.exec = pr.getNode().executor;
@@ -557,7 +563,7 @@ final public class Library implements URLUpdateHook {
 			if (indextype == ProtoIndex.class) {
 				// TODO HIGH this *must* be non-blocking as it fetches the whole index root
 				PullTask<ProtoIndex> task = new PullTask<ProtoIndex>(indexkey);
-				ProtoIndexSerialiser.forIndex(indexkey, RequestStarter.INTERACTIVE_PRIORITY_CLASS).pull(task);
+				ProtoIndexSerialiser.forIndex(indexkey, Priority.Interactive).pull(task);
 				index = task.data;
 
 			} else if (indextype == XMLIndex.class) {
@@ -588,7 +594,7 @@ final public class Library implements URLUpdateHook {
 	** @throws IllegalStateException if the singleton has not been initialised
 	**         or if it does not have a respirator.
 	*/
-	public static <T> FreenetArchiver<T>
+	public static <T> LiveArchiver<T, SimpleProgress>
 	makeArchiver(ObjectStreamReader r, ObjectStreamWriter w, String mime, int size, short priorityClass) {
 		if (lib == null || lib.pr == null) {
 			throw new IllegalStateException("Cannot archive to freenet without a fully live Library plugin connected to a freenet node.");
@@ -596,7 +602,7 @@ final public class Library implements URLUpdateHook {
 			return new FreenetArchiver<T>(lib.pr.getNode().clientCore, r, w, mime, size, priorityClass);
 		}
 	}
-
+	
 	/**
 	** Create a {@link FreenetArchiver} connected to the core of the
 	** singleton's {@link PluginRespirator}.
@@ -604,9 +610,33 @@ final public class Library implements URLUpdateHook {
 	** @throws IllegalStateException if the singleton has not been initialised
 	**         or if it does not have a respirator.
 	*/
-	public static <T, S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver<T>
+	public static <T, S extends ObjectStreamWriter & ObjectStreamReader> LiveArchiver<T, SimpleProgress>
 	makeArchiver(S rw, String mime, int size, short priorityClass) {
 		return Library.<T>makeArchiver(rw, rw, mime, size, priorityClass);
+	}
+
+	public <T, S extends ObjectStreamWriter & ObjectStreamReader> LiveArchiver<T, SimpleProgress>
+		newArchiver(S rw, String mime, int size, Priority priorityLevel) {
+		short priorityClass = 0;
+		switch (priorityLevel) {
+		case Interactive:
+			priorityClass = RequestStarter.INTERACTIVE_PRIORITY_CLASS;
+			break;
+		case Bulk:
+			priorityClass = RequestStarter.BULK_SPLITFILE_PRIORITY_CLASS;
+			break;
+		}
+		return makeArchiver(rw, mime, size, priorityClass);
+	}
+
+	public <T, S extends ObjectStreamWriter & ObjectStreamReader> LiveArchiver<T, SimpleProgress>
+		newArchiver(S rw, String mime, int size, LiveArchiver<T, SimpleProgress> archiver) {
+		short priorityClass = RequestStarter.BULK_SPLITFILE_PRIORITY_CLASS;
+		if (archiver != null &&
+				archiver instanceof FreenetArchiver)
+			priorityClass = ((FreenetArchiver<T>) archiver).priorityClass;
+
+		return makeArchiver(rw, mime, size, priorityClass);
 	}
 
 	public static String convertToHex(byte[] data) {
