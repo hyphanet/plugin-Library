@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 
@@ -147,7 +148,15 @@ implements LiveArchiver<T, SimpleProgress> {
 		byte[] initialMetadata;
 		String cacheKey;
 		
-		if(task.meta instanceof FreenetURI) {
+		if(task.meta instanceof String) {
+			try {
+				task.meta = new FreenetURI((String) task.meta);
+			} catch (MalformedURLException e) {
+				// This wasn't an URI after all.
+			}
+		}
+
+		if (task.meta instanceof FreenetURI) {
 			u = (FreenetURI) task.meta;
 			initialMetadata = null;
 			cacheKey = u.toString(false, true);

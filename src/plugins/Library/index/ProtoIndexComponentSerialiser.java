@@ -381,8 +381,14 @@ public class ProtoIndexComponentSerialiser {
 				ghost.setMeta(serialisable.meta); task.data = trans.rev(serialisable.data);
 				p.exitingSerialiser();
 			} catch (RuntimeException e) {
+				System.out.println("RuntimeException");
+				System.out.println(e);
+				e.printStackTrace();
 				p.abort(new TaskAbortException("Could not pull B-tree node", e));
 			} catch (DataFormatException e) {
+				System.out.println("DataFormatException");
+				System.out.println(e);
+				e.printStackTrace();
 				p.abort(new TaskAbortException("Could not pull B-tree node", e));
 			}
 		}
