@@ -18,8 +18,6 @@ import java.util.Map;
 import java.util.Set;
 
 import plugins.Library.client.FreenetArchiver;
-import plugins.Library.index.ProtoIndex;
-import plugins.Library.index.ProtoIndexSerialiser;
 import plugins.Library.index.xml.URLUpdateHook;
 import plugins.Library.index.xml.XMLIndex;
 import plugins.Library.search.InvalidSearchException;
@@ -45,6 +43,8 @@ import freenet.keys.USK;
 import freenet.library.ArchiverFactory;
 import freenet.library.FactoryRegister;
 import freenet.library.index.Index;
+import freenet.library.index.ProtoIndex;
+import freenet.library.index.ProtoIndexSerialiser;
 import freenet.library.io.ObjectStreamReader;
 import freenet.library.io.ObjectStreamWriter;
 import freenet.library.io.serial.LiveArchiver;

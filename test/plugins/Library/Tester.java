@@ -10,6 +10,9 @@ import plugins.Library.*;
 
 import freenet.keys.FreenetURI;
 import freenet.library.Priority;
+import freenet.library.index.ProtoIndex;
+import freenet.library.index.ProtoIndexComponentSerialiser;
+import freenet.library.index.ProtoIndexSerialiser;
 import freenet.library.index.TermEntry;
 import freenet.library.io.YamlReaderWriter;
 import freenet.library.io.serial.LiveArchiver;

@@ -1,7 +1,7 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.index;
+package freenet.library.index;
 
 import java.util.AbstractSet;
 import java.util.Collection;
@@ -13,11 +13,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
-import freenet.library.index.Index;
-import freenet.library.index.TermEntry;
-import freenet.library.index.TermPageEntry;
-import freenet.library.index.URIEntry;
-import freenet.library.index.URIKey;
 import freenet.library.io.serial.ProgressTracker;
 import freenet.library.io.serial.Serialiser;
 import freenet.library.util.DataNotLoadedException;

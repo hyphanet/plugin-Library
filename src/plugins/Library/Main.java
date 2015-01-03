@@ -26,9 +26,6 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 
 import plugins.Library.client.FreenetArchiver;
-import plugins.Library.index.ProtoIndex;
-import plugins.Library.index.ProtoIndexComponentSerialiser;
-import plugins.Library.index.ProtoIndexSerialiser;
 import plugins.Library.search.Search;
 import plugins.Library.ui.WebInterface;
 
@@ -44,6 +41,9 @@ import freenet.client.InsertException;
 import freenet.keys.FreenetURI;
 import freenet.keys.InsertableClientSSK;
 import freenet.l10n.BaseL10n.LANGUAGE;
+import freenet.library.index.ProtoIndex;
+import freenet.library.index.ProtoIndexComponentSerialiser;
+import freenet.library.index.ProtoIndexSerialiser;
 import freenet.library.index.TermEntry;
 import freenet.library.index.TermEntryReaderWriter;
 import freenet.library.index.TermPageEntry;

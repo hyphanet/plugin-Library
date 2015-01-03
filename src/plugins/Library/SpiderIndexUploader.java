@@ -22,12 +22,12 @@ import java.util.TreeSet;
 import java.util.logging.Level;
 
 import plugins.Library.client.FreenetArchiver;
-import plugins.Library.index.ProtoIndex;
-import plugins.Library.index.ProtoIndexComponentSerialiser;
-import plugins.Library.index.ProtoIndexSerialiser;
 import freenet.client.InsertException;
 import freenet.keys.FreenetURI;
 import freenet.library.Priority;
+import freenet.library.index.ProtoIndex;
+import freenet.library.index.ProtoIndexComponentSerialiser;
+import freenet.library.index.ProtoIndexSerialiser;
 import freenet.library.index.TermEntry;
 import freenet.library.index.TermEntryReaderWriter;
 import freenet.library.io.serial.LiveArchiver;

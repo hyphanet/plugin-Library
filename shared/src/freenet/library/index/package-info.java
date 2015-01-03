@@ -7,4 +7,4 @@
 **
 ** @author infinity0
 */
-package plugins.Library.index;
+package freenet.library.index;

@@ -1,7 +1,7 @@
 /* This code is part of Freenet. It is distributed under the GNU General
  * Public License, version 2 (or at your option any later version). See
  * http://www.gnu.org/ for further details of the GPL. */
-package plugins.Library.index;
+package freenet.library.index;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -9,9 +9,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import freenet.library.FactoryRegister;
-import freenet.library.index.TermEntry;
-import freenet.library.index.URIEntry;
-import freenet.library.index.URIKey;
 import freenet.library.io.DataFormatException;
 import freenet.library.io.YamlReaderWriter;
 import freenet.library.io.serial.Archiver;
