@@ -202,23 +202,24 @@ implements LiveArchiver<T, SimpleProgress> {
 					FetchResult res;
 					
 					// bookkeeping. detects bugs in the SplitfileProgressEvent handler
+					ProgressParts prog_old = null;
 					if (progress != null) {
-						ProgressParts prog_old = progress.getParts();
-						if(initialMetadata != null)
-							res = hlsc.fetchFromMetadata(new SimpleReadOnlyArrayBucket(initialMetadata));
-						else
-							res = hlsc.fetch(u);
-						ProgressParts prog_new = progress.getParts();
+						prog_old = progress.getParts();
+					}
+
+					if(initialMetadata != null)
+						res = hlsc.fetchFromMetadata(new SimpleReadOnlyArrayBucket(initialMetadata));
+					else
+						res = hlsc.fetch(u);
+
+					ProgressParts prog_new;
+					if (progress != null) {
+						prog_new = progress.getParts();
 						if (prog_old.known - prog_old.done != prog_new.known - prog_new.done) {
 							Logger.error(this, "Inconsistency when tracking split file progress (pulling): "+prog_old.known+" of "+prog_old.done+" -> "+prog_new.known+" of "+prog_new.done);
 							System.err.println("Inconsistency when tracking split file progress (pulling): "+prog_old.known+" of "+prog_old.done+" -> "+prog_new.known+" of "+prog_new.done);
 						}
 						progress.addPartKnown(0, true);
-					} else {
-						if(initialMetadata != null)
-							res = hlsc.fetchFromMetadata(new SimpleReadOnlyArrayBucket(initialMetadata));
-						else
-							res = hlsc.fetch(u);
 					}
 					
 					tempB = res.asBucket();
@@ -229,11 +230,11 @@ implements LiveArchiver<T, SimpleProgress> {
 						progress.addPartDone();
 					}
 				}
-				long endTime = System.currentTimeMillis();
-				System.out.println("Fetched block for FreenetArchiver in "+(endTime-startTime)+"ms.");
 				is = tempB.getInputStream();
 				task.data = (T)reader.readObject(is);
 				is.close();
+				long endTime = System.currentTimeMillis();
+				System.out.println("Fetched block for FreenetArchiver in "+(endTime-startTime)+"ms.");
 
 			} catch (FetchException e) {
 				if(e.mode == FetchExceptionMode.PERMANENT_REDIRECT && e.newURI != null) {
