@@ -4,6 +4,7 @@
 package freenet.library.index;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -27,9 +28,10 @@ public class TermPageEntry extends TermEntry {
 	/** 
 	 * Positions where the term occurs. May be null if we don't have that data.
 	 * 
-	 * Retrieved from the YamlReaderWriter so must be public.
+	 * Retrieved from the YamlReaderWriter so must be public and 
+	 * have the Set<Integer> type to be able to read the old indexes.
 	 */
-	final public SortedSet<Integer> positions;
+	final public Set<Integer> positions;
 	
 	/**
 	** Map from positions in the text to a fragment of text around where it occurs.
@@ -86,7 +88,7 @@ public class TermPageEntry extends TermEntry {
 	/**
 	** For serialisation.
 	*/
-	public TermPageEntry(String s, float r, String u, String t, SortedSet<Integer> pos, Map<Integer, String> frags) {
+	public TermPageEntry(String s, float r, String u, String t, Set<Integer> pos, Map<Integer, String> frags) {
 		super(s, r);
 		if (u == null) {
 			throw new IllegalArgumentException("can't have a null page");
@@ -172,6 +174,7 @@ public class TermPageEntry extends TermEntry {
 
 	public ArrayList<Integer> positions() {
 		Integer[] array = positions.toArray(new Integer[positions.size()]);
+		Arrays.sort(array);
 		ArrayList<Integer> ret = new ArrayList<Integer>(positions.size());
 		for(int i=0;i<array.length;i++) {
 			ret.add(array[i]);
@@ -185,6 +188,7 @@ public class TermPageEntry extends TermEntry {
 		int[] ret = new int[positions.size()];
 		for(int i = 0; i < ret.length; i++)
 			ret[i] = r[i];
+		Arrays.sort(ret);
 		return ret;
 	}
 
