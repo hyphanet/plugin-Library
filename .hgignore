@@ -3,4 +3,5 @@ shared/bin
 uploader/bin
 lib/snakeyaml-1.5.jar
 dist/Library.jar
+dist/uploader.jar
 shared/TermEntryTest/test.yml

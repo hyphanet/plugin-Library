@@ -258,6 +258,21 @@
 	</target>
 
 	<!-- ================================================== -->
+	<target name="uploader-jar" depends="compile,junit"
+		description="create a jar package for the uploader">
+		<jar jarfile="${dist}/uploader.jar" duplicate="fail">
+			<manifest>
+				<attribute name="Main-Class" value="freenet.library.uploader.Merger"/>
+				<attribute name="Required-Node-Version" value="${minNodeVersion}"/>
+			</manifest>
+			<fileset dir="${build-shared}"/>
+			<fileset dir="${build-uploader}"/>
+			<zipgroupfileset dir="lib/" includes="**/*.jar"/>
+			<fileset dir="${fcp.location}"/>
+		</jar>
+	</target>
+
+	<!-- ================================================== -->
 	<target name="javadoc" description="generate javadocs" depends="build-dep">
 		<delete dir="${javadoc}"/>
 		<javadoc classpathref="shared.path" destdir="${javadoc}" author="true" version="true" use="true" private="true">
