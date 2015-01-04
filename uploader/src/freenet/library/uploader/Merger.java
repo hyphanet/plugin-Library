@@ -26,6 +26,7 @@ import net.pterodactylus.fcp.NodeHello;
 
 import freenet.library.index.ProtoIndex;
 import freenet.library.index.TermEntry;
+import freenet.library.index.TermPageEntry;
 import freenet.library.index.TermEntryReaderWriter;
 
 /**
@@ -202,11 +203,16 @@ final public class Merger {
 		    ss = terms.get(t);
 		    System.out.println("\t" + t + ", " +
 				       ss.size() + " elements");
-		}
-		if (ss != null) {
-		    System.out.println("\t\tLast entry:");
 		    for (TermEntry tt : ss) {
-			System.out.println("\t\t" + tt);
+			if (tt.entryType() == TermEntry.EntryType.PAGE) {
+			    TermPageEntry tpe = (TermPageEntry) tt;
+			    System.out.println("\t" + tpe.page + ":");
+			    for (Map.Entry<Integer, String> entry :
+				     tpe.posFragments.entrySet()) {
+				System.out.println("\t\t" + entry.getKey() +
+						   " - " + entry.getValue());
+			    }
+			}
 		    }
 		}
             }
