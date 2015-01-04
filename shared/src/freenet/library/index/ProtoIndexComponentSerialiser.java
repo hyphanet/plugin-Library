@@ -395,6 +395,11 @@ public class ProtoIndexComponentSerialiser {
 			}
 		}
 
+		@Override
+		public void waitForAsyncInserts() throws TaskAbortException {
+			subsrl.waitForAsyncInserts();
+		}
+
 	}
 
 
@@ -517,6 +522,11 @@ public class ProtoIndexComponentSerialiser {
 			} catch (RuntimeException e) {
 				p.abort(new TaskAbortException("Failed task: " + p.getSubject(), e));
 			}
+		}
+
+		@Override
+		public void waitForAsyncInserts() throws TaskAbortException {
+			subsrl.waitForAsyncInserts();
 		}
 
 	}

@@ -43,4 +43,5 @@ public interface LiveArchiver<T, P extends Progress> extends Archiver<T> {
 	*/
 	public void pushLive(PushTask<T> task, P p) throws TaskAbortException;
 
+	public void waitForAsyncInserts() throws TaskAbortException;
 }

@@ -4,6 +4,8 @@
 <project name="plugins-Library" default="dist" basedir=".">
 	<property name="freenet-cvs-snapshot.location" location="../fred/dist/freenet.jar"/>
 	<property name="freenet-ext.location" location="../fred/lib/freenet/freenet-ext.jar"/>
+	<property name="fcp.location" location="../no-infocalypse/lib-jFCPLib/classes"/>
+
 	<property name="source-version" value="1.6"/>
 	<property name="target-version" value="1.6"/>
 
@@ -31,12 +33,23 @@
 	<available file="src/${version.src}" property="version.present"/>
 	<available file="${junit.location}" property="junit.present"/>
 
-	<path id="lib.path">
-		<pathelement location="${freenet-ext.location}"/>
-		<pathelement location="${freenet-cvs-snapshot.location}"/>
+	<path id="shared.path">
 		<fileset dir="lib/">
 			<include name="**/*.jar"/>
 		</fileset>
+	</path>
+
+	<path id="plugin.path">
+		<pathelement location="${freenet-ext.location}"/>
+		<pathelement location="${freenet-cvs-snapshot.location}"/>
+		<path refid="shared.path"/>
+		<pathelement location="${build-shared}"/>
+	</path>
+
+	<path id="uploader.path">
+		<path refid="shared.path"/>
+		<pathelement location="${build-shared}"/>
+		<pathelement location="${fcp.location}"/>
 	</path>
 
 	<exec executable="git"
@@ -78,7 +91,7 @@
 	<property name="SnakeYAML.mirror" value="https://downloads.freenetproject.org/snakeyaml-1.5.jar" />
 	<property name="SnakeYAML.md5" value="1788db5d529a981b090632b8e49b8cd2" />
 	<property name="SnakeYAML.sha" value="a3654035d0b68db775034afa5425a62250de8184" />
-	<available property="SnakeYAML.exist" classname="org.yaml.snakeyaml.Yaml" classpathref="lib.path"/>
+	<available property="SnakeYAML.exist" classname="org.yaml.snakeyaml.Yaml" classpathref="shared.path"/>
 	<target name="SnakeYAML-get" unless="SnakeYAML.exist">
 		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/snakeyaml-1.5.jar" />
 		<checksum file="${tmp}/snakeyaml-1.5.jar" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
@@ -97,9 +110,9 @@
 	<!-- ================================================== -->
 	<target name="setver" if="version.present">
 		<!-- Update the Version.java file in ${build}-->
-		<copy file="src/${version.src}" tofile="${build}/${version.src}" overwrite="true" />
-		<delete file="${build}/${version.build}"/>
-		<replace file="${build}/${version.src}">
+		<copy file="src/${version.src}" tofile="${build-plugin}/${version.src}" overwrite="true" />
+		<delete file="${build-plugin}/${version.build}"/>
+		<replace file="${build-plugin}/${version.src}">
 			<replacefilter token="@custom@" value="${git.revision}"/>
 		</replace>
 		<echo message="Updated build version to ${git.revision} in ${build}/${version.src}"/>
@@ -111,31 +124,23 @@
 
 		<javac srcdir="shared/src/" destdir="${build-shared}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
 			<classpath>
-				<path refid="lib.path"/>
+				<path refid="shared.path"/>
 			</classpath>
 			<include name="**/*.java"/>
 			<exclude name="**/package-info.java"/>
 		</javac>
 
-		<!--
-		<javac srcdir="uploader/src/" destdir="${build-uploader}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
-			<classpath>
-				<path refid="lib.path"/>
-				<pathelement location="${build-shared}"/>
-			</classpath>
-			<include name="**/*.java"/>
-			<exclude name="**/package-info.java"/>
+		<javac srcdir="${build-plugin}" destdir="${build-plugin}" debug="on" optimize="on" source="1.5" target="1.5">
+			<include name="${version.src}"/>
 		</javac>
-		-->
 
 		<javac srcdir="src/" destdir="${build-plugin}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
 			<!--<compilerarg value="-Xlint"/>-->
 			<sourcepath>
-				<pathelement path="${build}"/>
+				<pathelement location="${build-plugin}"/>
 			</sourcepath>
 			<classpath>
-				<path refid="lib.path"/>
-				<pathelement location="${build-shared}"/>
+				<path refid="plugin.path"/>
 				<pathelement location="${build-plugin}"/>
 			</classpath>
 			<include name="**/*.java"/>
@@ -143,12 +148,12 @@
 			<exclude name="${version.src}"/>
 		</javac>
 
-		<!-- Force compile of Version.java in case compile of ${src} didn't trigger it -->
-		<javac srcdir="${build-plugin}" destdir="${build-plugin}" debug="on" optimize="on" source="1.5" target="1.5">
+		<javac srcdir="uploader/src/" destdir="${build-uploader}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
 			<classpath>
-				<path refid="lib.path"/>
+				<path refid="uploader.path"/>
 			</classpath>
-			<include name="${version.src}"/>
+			<include name="**/*.java"/>
+			<exclude name="**/package-info.java"/>
 		</javac>
 
 		<!-- Copy web interface static files to the build dir -->
@@ -165,8 +170,8 @@
 		<mkdir dir="${build-test-shared}"/>
 		<javac srcdir="shared/test/" destdir="${build-test-shared}" debug="on" optimize="on" source="1.5">
 			<classpath>
-				<path refid="lib.path"/>
-				<pathelement location="${build-shared}"/>
+				<path refid="shared.path"/>
+				<pathelement path="${build-shared}"/>
 				<pathelement location="${junit.location}"/>
 			</classpath>
 			<compilerarg value="-Xlint"/>
@@ -176,8 +181,7 @@
 		<mkdir dir="${build-test-plugin}"/>
 		<javac srcdir="test/" destdir="${build-test-plugin}" debug="on" optimize="on" source="1.5">
 			<classpath>
-				<path refid="lib.path"/>
-				<pathelement path="${build-shared}"/>
+				<path refid="plugin.path"/>
 				<pathelement path="${build-plugin}"/>
 				<pathelement location="${junit.location}"/>
 			</classpath>
@@ -194,7 +198,7 @@
 		<junit printsummary="yes" fork="yes" haltonfailure="yes"
 		       dir="${run-test}" showoutput="yes">
 			<classpath>
-				<path refid="lib.path"/>
+				<path refid="shared.path"/>
 				<pathelement path="${build-shared}"/>
 				<pathelement path="${build-test-shared}"/>
 				<pathelement location="${junit.location}"/>
@@ -213,7 +217,7 @@
 		<junit printsummary="yes" fork="yes" haltonfailure="yes"
 		       dir="${run-test}" showoutput="yes">
 			<classpath>
-				<path refid="lib.path"/>
+				<path refid="shared.path"/>
 				<pathelement path="${build-shared}"/>
 				<pathelement path="${build-plugin}"/>
 				<pathelement path="${build-test-plugin}"/>
@@ -256,7 +260,7 @@
 	<!-- ================================================== -->
 	<target name="javadoc" description="generate javadocs" depends="build-dep">
 		<delete dir="${javadoc}"/>
-		<javadoc classpathref="lib.path" destdir="${javadoc}" author="true" version="true" use="true" private="true">
+		<javadoc classpathref="shared.path" destdir="${javadoc}" author="true" version="true" use="true" private="true">
 			<doclet name="info.bliki.doclet.standard.Standard" path="doc/bliki-doclet.jar"/>
 			<!--<doclet name="com.visural.doclets.markdown.standard.Standard" path="doc/MarkdownDoclet.jar"/>-->
 			<fileset dir="src/" defaultexcludes="yes">
