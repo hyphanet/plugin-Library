@@ -69,19 +69,19 @@ final public class Merger {
             }
             final String clientName = "SpiderMerger";
             final FcpMessage hello = new ClientHello(clientName);
-            connection.addFcpListener(new FcpAdapter() {
+            FcpAdapter helloListener = new FcpAdapter() {
                     public void receivedNodeHello(FcpConnection c, NodeHello nh) {
                         synchronized (hello) {
                             hello.notify();
                         }
-                        c.removeFcpListener(this);
                     }
 
                     public void receivedCloseConnectionDuplicateClientName(FcpConnection fcpConnection, CloseConnectionDuplicateClientName closeConnectionDuplicateClientName) {
                         System.out.println("Another " + clientName + " connected - Aborting.");
                         System.exit(1);
                     }
-                });
+                };
+            connection.addFcpListener(helloListener);
 
             synchronized (hello) {
                 try {
@@ -95,8 +95,11 @@ final public class Merger {
                     System.err.println("Hello cannot write.");
                     exitStatus = 1;
                     return;
+                } finally {
+        			connection.removeFcpListener(helloListener);
                 }
             }
+            helloListener = null;
             System.out.println("Connected");
 
             UploaderLibrary.init(connection);
