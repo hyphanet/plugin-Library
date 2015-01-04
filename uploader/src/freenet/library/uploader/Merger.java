@@ -6,8 +6,16 @@ package freenet.library.uploader;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.EOFException;
 import java.io.IOException;
+import java.io.DataInputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import net.pterodactylus.fcp.ClientHello;
 import net.pterodactylus.fcp.CloseConnectionDuplicateClientName;
@@ -15,6 +23,10 @@ import net.pterodactylus.fcp.FcpAdapter;
 import net.pterodactylus.fcp.FcpConnection;
 import net.pterodactylus.fcp.FcpMessage;
 import net.pterodactylus.fcp.NodeHello;
+
+import freenet.library.index.ProtoIndex;
+import freenet.library.index.TermEntry;
+import freenet.library.index.TermEntryReaderWriter;
 
 /**
  * Standalone program to do the merging.
@@ -42,6 +54,52 @@ import net.pterodactylus.fcp.NodeHello;
  * <ol> Done.
  */
 final public class Merger {
+        /** Read the TermEntry's from the Bucket into newtrees and terms, and set up the index
+	 * properties.
+	 * @param data The Bucket containing TermPageEntry's etc serialised with TermEntryReaderWriter.
+	 */
+    private static Map<String, SortedSet<TermEntry>> readTermsFrom(File f) {
+	Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
+        DataInputStream is = null;
+        try {
+            is = new DataInputStream(new FileInputStream(f));
+	    String line;
+	    int laps = 0;
+	    do {
+		line = is.readLine();
+		System.out.println("Line: " + line);
+		if (laps > 100) {
+		    System.err.println("Cannot get out of file header.");
+		    System.exit(1);
+		}
+	    } while (!"End".equals(line));
+            try{
+                while(true){    // Keep going til an EOFExcepiton is thrown
+                    TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
+                    SortedSet<TermEntry> set = newtrees.get(readObject.subj);
+                    if(set == null)
+                        newtrees.put(readObject.subj, set = new TreeSet<TermEntry>());
+                    set.add(readObject);
+                }
+            }catch(EOFException e){
+                // EOF, do nothing
+            }
+        } catch (IOException ex) {
+            ex.printStackTrace();
+	    System.exit(1);
+        } finally {
+	    try {
+		is.close();
+	    } catch (IOException e) {
+		System.err.println("Cannot close");
+		System.exit(1);
+	    }
+        }
+        return newtrees;
+    }
+
+
+
     public static void main(String[] argv) {
         int exitStatus = 0;
 
@@ -117,7 +175,8 @@ final public class Merger {
 
             System.out.println("There are " + dirsToMerge.length + " old directories to merge.");
             if (dirsToMerge.length > 0) {
-                new DirectoryUploader(connection, new File(directory, dirsToMerge[0])).run();
+                new DirectoryUploader(connection, 
+				      new File(directory, dirsToMerge[0])).run();
                 return;
             }
 
@@ -136,6 +195,20 @@ final public class Merger {
             System.out.println("There are " + filesToMerge.length + " files to merge.");
             for (String s : filesToMerge) {
                 System.out.println("File: " + s);
+		Map<String, SortedSet<TermEntry>> terms = readTermsFrom(new File(s));
+		System.out.println("terms:");
+		SortedSet<TermEntry> ss = null;
+		for (String t : terms.keySet()) {
+		    ss = terms.get(t);
+		    System.out.println("\t" + t + ", " +
+				       ss.size() + " elements");
+		}
+		if (ss != null) {
+		    System.out.println("\t\tLast entry:");
+		    for (TermEntry tt : ss) {
+			System.out.println("\t\t" + tt);
+		    }
+		}
             }
 
         } finally {
