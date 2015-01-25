@@ -238,7 +238,7 @@
 
 	<!-- ================================================== -->
 	<target name="jar" depends="compile,junit"
-		description="create a jar package">
+		description="create jar packages">
 		<jar jarfile="${dist}/Library.jar" duplicate="fail">
 			<manifest>
 				<attribute name="Main-Class" value="${packagebase}.ui.TestInterface"/>
@@ -255,11 +255,7 @@
 			</fileset>
 			<zipgroupfileset dir="lib/" includes="**/*.jar"/>
 		</jar>
-	</target>
 
-	<!-- ================================================== -->
-	<target name="uploader-jar" depends="compile,junit"
-		description="create a jar package for the uploader">
 		<jar jarfile="${dist}/uploader.jar" duplicate="fail">
 			<manifest>
 				<attribute name="Main-Class" value="freenet.library.uploader.Merger"/>
