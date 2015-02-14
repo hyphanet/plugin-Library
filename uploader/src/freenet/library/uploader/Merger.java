@@ -24,6 +24,7 @@ import net.pterodactylus.fcp.FcpConnection;
 import net.pterodactylus.fcp.FcpMessage;
 import net.pterodactylus.fcp.NodeHello;
 
+import freenet.library.FactoryRegister;
 import freenet.library.index.ProtoIndex;
 import freenet.library.index.TermEntry;
 import freenet.library.index.TermPageEntry;
@@ -162,6 +163,7 @@ final public class Merger {
             System.out.println("Connected");
 
             UploaderLibrary.init(connection);
+            FactoryRegister.register(UploaderLibrary.getInstance());
             
             final String[] dirsToMerge;
             File directory = new File(".");
@@ -221,7 +223,7 @@ final public class Merger {
             if (connection != null) {
                 connection.close();
             }
-            System.exit(exitStatus);
         }
+        System.exit(exitStatus);
     }
 }
