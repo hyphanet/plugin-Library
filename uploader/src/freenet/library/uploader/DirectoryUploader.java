@@ -344,27 +344,34 @@ class DirectoryUploader implements Runnable {
                 diskToMerge.ttab.keySetAutoDeflate().iterator();
             TreeSet<String> terms = new TreeSet<String>();
             while(it.hasNext()) terms.add(it.next());
-            System.out.println("Merging "+terms.size()+" terms from disk to Freenet...");
+            System.out.println("Merging "
+                               + terms.size()
+                               + " terms from disk to Freenet...");
             assert(terms.size() == diskToMerge.ttab.size());
             assert(idxFreenet.ttab.isBare());
             assert(diskToMerge.ttab.isBare());
             long entriesAdded = terms.size();
             // Run the actual merge.
+            System.out.println("Start update");
             idxFreenet.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
             assert(idxFreenet.ttab.isBare());
             // Deflate the main tree.
+            System.out.println("Start deflate");
             newtrees.deflate();
             assert(diskToMerge.ttab.isBare());
                         
             // Push the top node to a CHK.
             PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idxFreenet);
             task4.meta = "Unknown";
+            System.out.println("Start pushing");
             srl.push(task4);
 
             // Now wait for the inserts to finish. They are started
             // asynchronously in the above merge.
             LiveArchiver<Map<String, Object>, SimpleProgress> arch = srl.getChildSerialiser();
+            System.out.println("Start waiting");
             arch.waitForAsyncInserts();
+            System.out.println("Done waiting");
                         
             long mergeEndTime = System.currentTimeMillis();
             System.out.println(entriesAdded + " entries merged in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta);

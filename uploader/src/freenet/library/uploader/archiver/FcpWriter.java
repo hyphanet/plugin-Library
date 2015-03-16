@@ -56,6 +56,7 @@ public class FcpWriter<T> implements
 	@Override
 	public void pullLive(freenet.library.io.serial.Serialiser.PullTask<T> task,
 			SimpleProgress p) throws TaskAbortException {
+                System.out.println("FcpWriter.pullLive()");
 		throw new UnsupportedOperationException();
 	}
 

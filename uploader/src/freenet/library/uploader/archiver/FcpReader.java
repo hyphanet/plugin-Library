@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import net.pterodactylus.fcp.FcpConnection;
+import freenet.copied.Base64;
+import freenet.copied.SHA256;
 import freenet.library.Priority;
 import freenet.library.io.ObjectStreamReader;
 import freenet.library.io.serial.LiveArchiver;
@@ -54,8 +56,7 @@ public class FcpReader<T> implements
 			if (task.meta instanceof String) {
 				cacheKey = (String) task.meta;
 			} else if (task.meta instanceof byte[]) {
-				throw new UnsupportedOperationException(
-						"Not implemented yet.");
+				cacheKey = Base64.encode(SHA256.digest((byte[]) task.meta));
 			}
 
 			try {
@@ -71,7 +72,7 @@ public class FcpReader<T> implements
 				}
 					
 				if (progress != null) {
-					progress.addPartDone();
+					progress.addPartKnown(0, true);
 				}
 			} catch (IOException e) {
 				System.out.println("IOException:");

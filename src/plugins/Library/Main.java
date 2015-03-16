@@ -72,7 +72,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.security.MessageDigest;
-import plugins.Library.index.xml.LibrarianHandler;
 
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces
