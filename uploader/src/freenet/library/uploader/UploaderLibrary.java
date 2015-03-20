@@ -22,8 +22,6 @@ import freenet.library.ArchiverFactory;
 import freenet.library.io.ObjectStreamReader;
 import freenet.library.io.ObjectStreamWriter;
 import freenet.library.io.serial.LiveArchiver;
-import freenet.library.uploader.archiver.FcpReader;
-import freenet.library.uploader.archiver.FcpWriter;
 import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;
 
@@ -104,15 +102,10 @@ final public class UploaderLibrary implements ArchiverFactory {
                          LiveArchiver<T, SimpleProgress> 
                          newArchiver(S rw, String mime, int size, 
                                      freenet.library.Priority priorityLevel) {
-        if (rw instanceof ObjectStreamWriter) {
-            return new FcpReader<T>(new File(UploaderPaths.LIBRARY_CACHE),
-            		rw, mime, size, priorityLevel);
-        } else if (rw instanceof ObjectStreamReader) {
-            return new FcpWriter<T>(fcpConnection, rw, mime, size, priorityLevel);
-        } else {
-            // This is a Shouldn't happen.
-            throw new IllegalArgumentException("Unknown reader/writer: " + rw);
-        }
+    	return new FcpArchiver<T, S>(fcpConnection,
+            		new File(UploaderPaths.LIBRARY_CACHE),
+            		rw,
+            		mime, size, priorityLevel);
     }
 
     @Override

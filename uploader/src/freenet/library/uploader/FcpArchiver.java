@@ -1,35 +1,56 @@
-package freenet.library.uploader.archiver;
+package freenet.library.uploader;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
+import net.pterodactylus.fcp.ClientGet;
+import net.pterodactylus.fcp.ClientHello;
+import net.pterodactylus.fcp.ClientPut;
+import net.pterodactylus.fcp.CloseConnectionDuplicateClientName;
+import net.pterodactylus.fcp.FcpAdapter;
 import net.pterodactylus.fcp.FcpConnection;
+import net.pterodactylus.fcp.FcpMessage;
+import net.pterodactylus.fcp.NodeHello;
 import freenet.copied.Base64;
 import freenet.copied.SHA256;
 import freenet.library.Priority;
 import freenet.library.io.ObjectStreamReader;
+import freenet.library.io.ObjectStreamWriter;
 import freenet.library.io.serial.LiveArchiver;
 import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;
 
-public class FcpReader<T> implements
-		LiveArchiver<T, freenet.library.util.exec.SimpleProgress> {
+public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader> 
+		implements LiveArchiver<T, freenet.library.util.exec.SimpleProgress> {
+	private FcpConnection connection;
 	private File cacheDir;
-	private ObjectStreamReader reader;
+	private S readerWriter;
 	private String mimeType;
 	private int size;
 	private Priority priorityLevel;
+	private String identifier;
+	
+	private static int identifierCounter = 0;
+	private static String getNewIdentifier() {
+		return "FcpWriter" + (++identifierCounter);
+	}
 
-	public FcpReader(File directory, ObjectStreamReader r, 
-					 String mime, int s,
-					 Priority pl) {
+	public FcpArchiver(FcpConnection fcpConnection, 
+					   File directory,
+					   S rw,
+					   String mime, int s,
+					   Priority pl) {
+		connection = fcpConnection;
 		cacheDir = directory;
-		reader = r;
+		readerWriter = rw;
 		mimeType = mime;
 		size = s;
 		priorityLevel = pl;
+		identifier = getNewIdentifier();
 	}
 
 	@Override
@@ -41,7 +62,7 @@ public class FcpReader<T> implements
 	@Override
 	public void push(freenet.library.io.serial.Serialiser.PushTask<T> task)
 			throws TaskAbortException {
-		throw new UnsupportedOperationException();
+		throw new NotImplementedException();
 	}
 
 	/**
@@ -66,7 +87,7 @@ public class FcpReader<T> implements
 							cached.length() != 0 &&
 							cached.canRead()) {
 						InputStream is = new FileInputStream(cached);
-						task.data = (T) reader.readObject(is);
+						task.data = (T) readerWriter.readObject(is);
 						is.close();
 					}
 				}
@@ -90,7 +111,7 @@ public class FcpReader<T> implements
 	@Override
 	public void pushLive(freenet.library.io.serial.Serialiser.PushTask<T> task,
 			SimpleProgress p) throws TaskAbortException {
-		throw new UnsupportedOperationException();
+		throw new NotImplementedException();
 	}
 
 	@Override
