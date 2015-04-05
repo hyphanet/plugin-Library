@@ -94,7 +94,7 @@ public class SimpleProgress implements Progress {
 			throw new IllegalStateException("More parts done than known");
 		}
 		pdone++;
-		System.err.println("DEBUG: " + this + " done " + pdone + "/" + known);
+		// System.err.println("DEBUG: " + this + " done " + pdone + "/" + known);
 		if (finalizedTotal() && pdone == known) {
 			inprogress = false;
 			notifyAll();
@@ -117,14 +117,14 @@ public class SimpleProgress implements Progress {
 			estimate = known + parts;
 			known = estimate;
 			estimate = ProgressParts.TOTAL_FINALIZED;
-			System.err.println("DEBUG: " + this + " finalise " + pdone + "/" + known);
+			// System.err.println("DEBUG: " + this + " finalise " + pdone + "/" + known);
 		} else {
 			if (finalizedTotal()) {
 				throw new IllegalArgumentException("Cannot un-finalise a final total!");
 			}
 			estimate = ProgressParts.ESTIMATE_UNKNOWN;
 			known += parts;
-			System.err.println("DEBUG: " + this + " add " + pdone + "/" + known);
+			// System.err.println("DEBUG: " + this + " add " + pdone + "/" + known);
 		}
 	}
 

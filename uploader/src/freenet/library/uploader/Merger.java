@@ -143,6 +143,14 @@ final public class Merger {
                 };
             connection.addFcpListener(helloListener);
 
+            FcpAdapter closeListener = new FcpAdapter() {
+            	public void connectionClosed(FcpConnection fcpConnection, Throwable throwable) {
+                    System.out.println("Connection Closed - Aborting.");
+                    System.exit(1);
+                }
+            };
+            connection.addFcpListener(closeListener);
+
             synchronized (hello) {
                 try {
                     connection.sendMessage(hello);
@@ -218,12 +226,13 @@ final public class Merger {
 		    }
 		}
             }
-
+            connection.removeFcpListener(closeListener);
         } finally {
             if (connection != null) {
                 connection.close();
             }
         }
+        System.out.println("Upload completed.");
         System.exit(exitStatus);
     }
 }

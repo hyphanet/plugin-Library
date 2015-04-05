@@ -1,12 +1,15 @@
 package freenet.library.uploader;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,6 +36,8 @@ import net.pterodactylus.fcp.FcpAdapter;
 import net.pterodactylus.fcp.FcpConnection;
 import net.pterodactylus.fcp.PutFailed;
 import net.pterodactylus.fcp.PutSuccessful;
+import net.pterodactylus.fcp.URIGenerated;
+import net.pterodactylus.fcp.UploadFrom;
 
 class DirectoryUploader implements Runnable {
         
@@ -49,6 +54,7 @@ class DirectoryUploader implements Runnable {
     }
         
     private String lastUploadURI;
+    private boolean uskUploadDone;
         
     static final int MAX_HANDLING_COUNT = 5; 
     // When pushing is broken, allow max handling to reach this level
@@ -107,7 +113,7 @@ class DirectoryUploader implements Runnable {
     static final String LAST_URL_FILENAME = "library.index.lastpushed.chk";
     static final String PRIV_URI_FILENAME = "library.index.privkey";
     static final String PUB_URI_FILENAME = "library.index.pubkey";
-    static final String EDITION_FILENAME = "library.index.next-edition";
+    static final String EDITION_FILENAME = "library.index.last-edition";
         
     static final String LAST_DISK_FILENAME = "library.index.lastpushed.disk";
         
@@ -394,41 +400,137 @@ class DirectoryUploader implements Runnable {
         }
     }
 
+	private String readFileLine(final String filename) {
+		File f = new File(filename);
+		FileInputStream fis;
+		try {
+			fis = new FileInputStream(f);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			throw new RuntimeException();
+		}
+		BufferedReader br = null;
+		String line;
+		try {
+			br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
+			line = br.readLine();
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			throw new RuntimeException();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			throw new RuntimeException();
+		} finally {
+			try {
+				if (br != null) {
+					br.close();
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return line;
+	}
+    
+    protected void writeFileLine(String filename, String string) {
+		File f = new File(filename);
+		FileOutputStream fos;
+		try {
+			fos = new FileOutputStream(f);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			throw new RuntimeException();
+		}
+		BufferedWriter bw = null; 
+		try {
+			bw = new BufferedWriter(new OutputStreamWriter(fos, "UTF-8"));
+			bw.write(string);
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			throw new RuntimeException();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			throw new RuntimeException();
+		} finally {
+			try {
+				if (bw != null) {
+					bw.close();
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}		
+	}
+
     private void uploadUSKForFreenetIndex(String uri) {
-        final ClientPut usk = new ClientPut(lastUploadURI, "USKupload");
+    	String insertURI = readFileLine(PRIV_URI_FILENAME);
+    	String keyPart = insertURI.substring("freenet:SSK@".length());
+    	int lastEdition = Integer.parseInt(readFileLine(EDITION_FILENAME));
+        final ClientPut usk = new ClientPut("USK@" + keyPart + "/" + (lastEdition + 1), 
+        									"USKupload",
+        									UploadFrom.redirect);
         usk.setTargetURI(uri);
-        connection.addFcpListener(new FcpAdapter() {
+        uskUploadDone = false;
+        FcpAdapter fcpListener = new FcpAdapter() {
                 public void receivedPutFailed(FcpConnection fcpConnection, PutFailed result) {
+            		assert fcpConnection == connection;
+        			assert result != null;
                     System.out.println("Could not upload USK");
+                    uskUploadDone = true;
                     synchronized (usk) {
-                        usk.notify();
+                        usk.notifyAll();
                     }
-                    connection.removeFcpListener(this);
                 }
 
                 public void receivedPutSuccessful(FcpConnection fcpConnection, PutSuccessful result) {
+            		assert fcpConnection == connection;
+        			assert result != null;
                     System.out.println("USK uploaded");
+                    uskUploadDone = true;
                     synchronized (usk) {
-                        usk.notify();
+                        usk.notifyAll();
                     }
-                    connection.removeFcpListener(this);
                 }
-            });
+                
+            	public void receivedURIGenerated(FcpConnection fcpConnection, URIGenerated uriGenerated) {
+            		assert fcpConnection == connection;
+        			assert uriGenerated != null;
+        			System.out.println("URI generated " + uriGenerated.getURI());
+        			int editionStartPos = uriGenerated.getURI().lastIndexOf('/') + 1;
+        			writeFileLine(EDITION_FILENAME, uriGenerated.getURI().substring(editionStartPos));
+            	}
+
+            };
+		connection.addFcpListener(fcpListener);
 
         try {
             connection.sendMessage(usk);
-            usk.wait();
+            while (!uskUploadDone) {
+            	synchronized (usk) {
+                    usk.wait();            		
+            	}
+            }
         } catch (InterruptedException e) {
             System.err.println("Could not upload USK");
             System.exit(1);
         } catch (IOException e) {
             System.err.println("IO Exception when uploading USK");
             System.exit(1);
+        } finally {
+            connection.removeFcpListener(fcpListener);        	
         }
     }
 
 
-    /** Create a Closure which will merge the subtrees from one index
+	/** Create a Closure which will merge the subtrees from one index
      * (on disk) into the subtrees of another index (on Freenet). It
      * will be called with each subtree from the on-Freenet index, and
      * will merge data from the relevant on-disk subtree. Both
