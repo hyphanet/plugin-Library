@@ -216,15 +216,15 @@ final public class Merger {
                     for (TermEntry tt : ss) {
                         if (tt.entryType() == TermEntry.EntryType.PAGE) {
                             TermPageEntry tpe = (TermPageEntry) tt;
-			    System.out.println("\t" + tpe.page + ":");
-			    for (Map.Entry<Integer, String> entry :
-				     tpe.posFragments.entrySet()) {
-				System.out.println("\t\t" + entry.getKey() +
-						   " - " + entry.getValue());
-			    }
-			}
-		    }
-		}
+                            System.out.println("\t" + tpe.page + ":");
+                            for (Map.Entry<Integer, String> entry :
+                                     tpe.posFragments.entrySet()) {
+                                System.out.println("\t\t" + entry.getKey() +
+                                                   " - " + entry.getValue());
+                            }
+                        }
+                    }
+                }
             }
             connection.removeFcpListener(closeListener);
         } finally {
