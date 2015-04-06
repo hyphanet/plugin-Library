@@ -57,24 +57,24 @@ import freenet.library.index.TermEntryReaderWriter;
  */
 final public class Merger {
         /** Read the TermEntry's from the Bucket into newtrees and terms, and set up the index
-	 * properties.
-	 * @param data The Bucket containing TermPageEntry's etc serialised with TermEntryReaderWriter.
-	 */
+         * properties.
+         * @param data The Bucket containing TermPageEntry's etc serialised with TermEntryReaderWriter.
+         */
     private static Map<String, SortedSet<TermEntry>> readTermsFrom(File f) {
-	Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
+        Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
         DataInputStream is = null;
         try {
             is = new DataInputStream(new FileInputStream(f));
-	    String line;
-	    int laps = 0;
-	    do {
-		line = is.readLine();
-		System.out.println("Line: " + line);
-		if (laps > 100) {
-		    System.err.println("Cannot get out of file header.");
-		    System.exit(1);
-		}
-	    } while (!"End".equals(line));
+            String line;
+            int laps = 0;
+            do {
+                line = is.readLine();
+                System.out.println("Line: " + line);
+                if (laps > 100) {
+                    System.err.println("Cannot get out of file header.");
+                    System.exit(1);
+                }
+            } while (!"End".equals(line));
             try{
                 while(true){    // Keep going til an EOFExcepiton is thrown
                     TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
@@ -88,14 +88,14 @@ final public class Merger {
             }
         } catch (IOException ex) {
             ex.printStackTrace();
-	    System.exit(1);
+            System.exit(1);
         } finally {
-	    try {
-		is.close();
-	    } catch (IOException e) {
-		System.err.println("Cannot close");
-		System.exit(1);
-	    }
+            try {
+                is.close();
+            } catch (IOException e) {
+                System.err.println("Cannot close");
+                System.exit(1);
+            }
         }
         return newtrees;
     }
@@ -144,7 +144,7 @@ final public class Merger {
             connection.addFcpListener(helloListener);
 
             FcpAdapter closeListener = new FcpAdapter() {
-            	public void connectionClosed(FcpConnection fcpConnection, Throwable throwable) {
+                public void connectionClosed(FcpConnection fcpConnection, Throwable throwable) {
                     System.out.println("Connection Closed - Aborting.");
                     System.exit(1);
                 }
@@ -164,7 +164,7 @@ final public class Merger {
                     exitStatus = 1;
                     return;
                 } finally {
-        			connection.removeFcpListener(helloListener);
+                                connection.removeFcpListener(helloListener);
                 }
             }
             helloListener = null;
@@ -175,7 +175,7 @@ final public class Merger {
             
             final String[] dirsToMerge;
             File directory = new File(".");
-			dirsToMerge = directory.list(new FilenameFilter() {
+                        dirsToMerge = directory.list(new FilenameFilter() {
                                 
                     public boolean accept(File arg0, String arg1) {
                         if(!(arg1.toLowerCase().startsWith(UploaderPaths.DISK_DIR_PREFIX))) return false;
@@ -187,7 +187,7 @@ final public class Merger {
             System.out.println("There are " + dirsToMerge.length + " old directories to merge.");
             if (dirsToMerge.length > 0) {
                 new DirectoryUploader(connection, 
-				      new File(directory, dirsToMerge[0])).run();
+                                      new File(directory, dirsToMerge[0])).run();
                 return;
             }
 
@@ -206,16 +206,16 @@ final public class Merger {
             System.out.println("There are " + filesToMerge.length + " files to merge.");
             for (String s : filesToMerge) {
                 System.out.println("File: " + s);
-		Map<String, SortedSet<TermEntry>> terms = readTermsFrom(new File(s));
-		System.out.println("terms:");
-		SortedSet<TermEntry> ss = null;
-		for (String t : terms.keySet()) {
-		    ss = terms.get(t);
-		    System.out.println("\t" + t + ", " +
-				       ss.size() + " elements");
-		    for (TermEntry tt : ss) {
-			if (tt.entryType() == TermEntry.EntryType.PAGE) {
-			    TermPageEntry tpe = (TermPageEntry) tt;
+                Map<String, SortedSet<TermEntry>> terms = readTermsFrom(new File(s));
+                System.out.println("terms:");
+                SortedSet<TermEntry> ss = null;
+                for (String t : terms.keySet()) {
+                    ss = terms.get(t);
+                    System.out.println("\t" + t + ", " +
+                                       ss.size() + " elements");
+                    for (TermEntry tt : ss) {
+                        if (tt.entryType() == TermEntry.EntryType.PAGE) {
+                            TermPageEntry tpe = (TermPageEntry) tt;
 			    System.out.println("\t" + tpe.page + ":");
 			    for (Map.Entry<Integer, String> entry :
 				     tpe.posFragments.entrySet()) {
