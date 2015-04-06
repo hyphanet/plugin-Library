@@ -2,6 +2,7 @@ package freenet.library.uploader;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -321,52 +322,32 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
         putter.setPriority(getPriority());
         putter.setVerbosity(Verbosity.ALL);
         
+        // Writing to file.
 		File file = new File(cacheDir, token);
 		FileOutputStream fileOut = null;
 		try {
 			fileOut = new FileOutputStream(file);
 			writer.writeObject(task.data, fileOut);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new TaskAbortException("Cannot write to file " + file, e);
 		} finally {
 			try {
 				fileOut.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				throw new TaskAbortException("Cannot close file " + file, e);
 			}
 		}
 
         final long dataLength = file.length();
 		putter.setDataLength(dataLength);
         
-        
-        PipedInputStream in = new PipedInputStream();
-        putter.setPayloadInputStream(in);
-        
+        FileInputStream in;
 		try {
-			final PipedOutputStream out = new PipedOutputStream(in);
-			final T data = task.data;
-			new Thread(
-		        new Runnable() {
-		            public void run () {
-		                try {
-		                    // write to the PipedOutputStream
-		                    writer.writeObject(data, out);
-		                    out.close();
-		                }
-		                catch (IOException e) {
-		                    // logging and exception handling should go here
-		        			e.printStackTrace();		                	
-		                }
-		            }
-		        }
-		    ).start();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			in = new FileInputStream(file);
+		} catch (FileNotFoundException e) {
+			throw new TaskAbortException("Cannot read from file " + file, e);
 		}
+        putter.setPayloadInputStream(in);
 
 		PushAdapter putterListener = new PushAdapter(putter, identifier, token);
         connection.addFcpListener(putterListener);
@@ -375,9 +356,9 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
         		progress.addPartKnown(1, true);
         	}
 			connection.sendMessage(putter);
+			in.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			throw new TaskAbortException("Cannot send message", e);
 		}
 
         // Wait for identifier
@@ -386,8 +367,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 				try {
 					putterListener.wait();
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					throw new TaskAbortException("Iterrupted wait", e);
 				}
 			}
 		}
