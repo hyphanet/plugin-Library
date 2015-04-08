@@ -114,6 +114,14 @@ final public class Merger {
         // Now we are in the Freenet directory. 
         // The rest of the work is done here.
         FcpConnection connection = null;
+
+        FcpAdapter closeListener = new FcpAdapter() {
+            public void connectionClosed(FcpConnection fcpConnection, Throwable throwable) {
+                System.out.println("Connection Closed - Aborting.");
+                System.exit(1);
+            }
+        };
+
         try {
             try {
                 connection = new FcpConnection("127.0.0.1");
@@ -143,12 +151,6 @@ final public class Merger {
                 };
             connection.addFcpListener(helloListener);
 
-            FcpAdapter closeListener = new FcpAdapter() {
-                public void connectionClosed(FcpConnection fcpConnection, Throwable throwable) {
-                    System.out.println("Connection Closed - Aborting.");
-                    System.exit(1);
-                }
-            };
             connection.addFcpListener(closeListener);
 
             synchronized (hello) {
@@ -226,8 +228,8 @@ final public class Merger {
                     }
                 }
             }
-            connection.removeFcpListener(closeListener);
         } finally {
+            connection.removeFcpListener(closeListener);
             if (connection != null) {
                 connection.close();
             }
