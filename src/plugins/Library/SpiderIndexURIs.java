@@ -117,7 +117,7 @@ class SpiderIndexURIs {
 
 	private synchronized long getLastUploadedEdition() {
 		/** If none uploaded, return -1, otherwise return the last uploaded version. */
-		return edition-1;
+		return edition;
 	}
 
 }

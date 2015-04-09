@@ -5,17 +5,15 @@
 package freenet.library.uploader;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
-import java.io.EOFException;
 import java.io.IOException;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
-import java.io.InputStream;
 import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 import net.pterodactylus.fcp.ClientHello;
 import net.pterodactylus.fcp.CloseConnectionDuplicateClientName;
@@ -25,10 +23,8 @@ import net.pterodactylus.fcp.FcpMessage;
 import net.pterodactylus.fcp.NodeHello;
 
 import freenet.library.FactoryRegister;
-import freenet.library.index.ProtoIndex;
 import freenet.library.index.TermEntry;
-import freenet.library.index.TermPageEntry;
-import freenet.library.index.TermEntryReaderWriter;
+import freenet.library.util.exec.TaskAbortException;
 
 /**
  * Standalone program to do the merging.
@@ -56,49 +52,28 @@ import freenet.library.index.TermEntryReaderWriter;
  * <ol> Done.
  */
 final public class Merger {
-        /** Read the TermEntry's from the Bucket into newtrees and terms, and set up the index
-         * properties.
-         * @param data The Bucket containing TermPageEntry's etc serialised with TermEntryReaderWriter.
-         */
-    private static Map<String, SortedSet<TermEntry>> readTermsFrom(File f) {
-        Map<String, SortedSet<TermEntry>> newtrees = new HashMap<String, SortedSet<TermEntry>>();
-        DataInputStream is = null;
-        try {
-            is = new DataInputStream(new FileInputStream(f));
-            String line;
-            int laps = 0;
-            do {
-                line = is.readLine();
-                System.out.println("Line: " + line);
-                if (laps > 100) {
-                    System.err.println("Cannot get out of file header.");
-                    System.exit(1);
-                }
-            } while (!"End".equals(line));
-            try{
-                while(true){    // Keep going til an EOFExcepiton is thrown
-                    TermEntry readObject = TermEntryReaderWriter.getInstance().readObject(is);
-                    SortedSet<TermEntry> set = newtrees.get(readObject.subj);
-                    if(set == null)
-                        newtrees.put(readObject.subj, set = new TreeSet<TermEntry>());
-                    set.add(readObject);
-                }
-            }catch(EOFException e){
-                // EOF, do nothing
-            }
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            System.exit(1);
-        } finally {
-            try {
-                is.close();
-            } catch (IOException e) {
-                System.err.println("Cannot close");
-                System.exit(1);
-            }
-        }
-        return newtrees;
-    }
+	
+	static String[] getMatchingFiles(File directory,
+			final String baseFilename) {
+		return directory.list(new FilenameFilter() {
+		                    
+		        public boolean accept(File arg0, String arg1) {
+					if (!(arg1.toLowerCase().startsWith(baseFilename))) {
+						return false;
+					}
+		            File f = new File(arg0, arg1);
+		            if (!f.isFile()) {
+		            	return false;
+		            }
+		            if (f.length() == 0) {
+		            	f.delete();
+		            	return false;
+		            }
+		            return true;
+		        }
+		                    
+		    });
+	}
 
 
 
@@ -188,47 +163,77 @@ final public class Merger {
 
             System.out.println("There are " + dirsToMerge.length + " old directories to merge.");
             if (dirsToMerge.length > 0) {
+                System.out.println("Merging the first one.");
                 new DirectoryUploader(connection, 
                                       new File(directory, dirsToMerge[0])).run();
                 return;
             }
 
-            String[] filesToMerge = directory.list(new FilenameFilter() {
-                                
-                    public boolean accept(File arg0, String arg1) {
-                        if(!(arg1.toLowerCase().startsWith(UploaderPaths.BASE_FILENAME_PUSH_DATA))) return false;
-                        File f = new File(arg0, arg1);
-                        if(!f.isFile()) return false;
-                        if(f.length() == 0) { f.delete(); return false; }
-                        return true;
-                    }
-                                
-                });
+            String filteredFilesBaseFilename = UploaderPaths.BASE_FILENAME_PUSH_DATA + "filtered.";
+            // Calculate the next name
+            int lastFoundFiltered = 0;
+            for (String filename : getMatchingFiles(directory, filteredFilesBaseFilename)) {
+            	int numberFound = Integer.parseInt(filename.substring(filteredFilesBaseFilename.length()));
+            	if (numberFound > lastFoundFiltered) {
+            		lastFoundFiltered = numberFound;
+            	}
+            }
+            System.out.println("Last found: " + lastFoundFiltered);
+
+            String[] filesToMerge = getMatchingFiles(directory, UploaderPaths.BASE_FILENAME_PUSH_DATA);
 
             System.out.println("There are " + filesToMerge.length + " files to merge.");
+
+            DirectoryCreator creator = new DirectoryCreator(directory);
+            IndexPeeker peeker = new IndexPeeker();
+            Set<File> toBeRemoved = new HashSet<File>();
+            TermEntryFileWriter notMerged = null;
+            
             for (String s : filesToMerge) {
                 System.out.println("File: " + s);
-                Map<String, SortedSet<TermEntry>> terms = readTermsFrom(new File(s));
-                System.out.println("terms:");
-                SortedSet<TermEntry> ss = null;
-                for (String t : terms.keySet()) {
-                    ss = terms.get(t);
-                    System.out.println("\t" + t + ", " +
-                                       ss.size() + " elements");
-                    for (TermEntry tt : ss) {
-                        if (tt.entryType() == TermEntry.EntryType.PAGE) {
-                            TermPageEntry tpe = (TermPageEntry) tt;
-                            System.out.println("\t" + tpe.page + ":");
-                            for (Map.Entry<Integer, String> entry :
-                                     tpe.posFragments.entrySet()) {
-                                System.out.println("\t\t" + entry.getKey() +
-                                                   " - " + entry.getValue());
-                            }
-                        }
-                    }
-                }
+				File file = new File(s);
+            	FileInputStream fileInputStream;
+				try {
+					fileInputStream = new FileInputStream(file);
+				} catch (FileNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					return;
+				}
+				TermEntryReaderIterator teri = new TermEntryReaderIterator(new DataInputStream(fileInputStream));
+				Iterator<TermEntry> iterator = teri.iterator();
+				IndexPeeker.Section section = peeker.getSectionFor("a");
+				while (iterator.hasNext()) {
+					TermEntry tt = iterator.next();
+					if (peeker.onTop(tt.subj) ||
+							section.contains(tt.subj)) {
+						creator.putEntry(tt);
+					} else {
+						if (notMerged == null) {
+							lastFoundFiltered ++;
+				            String filteredFilename = filteredFilesBaseFilename + lastFoundFiltered;
+							notMerged = new TermEntryFileWriter(teri.getHeader(), new File(directory, filteredFilename));
+						}
+						notMerged.write(tt);
+						if (notMerged.isFull()) {
+							notMerged.close();
+							notMerged = null;
+						}
+					}
+				}
+				toBeRemoved.add(file);
             }
-        } finally {
+			notMerged.close();
+			notMerged = null;
+			creator.done();
+            for (File file : toBeRemoved) {
+				System.out.println("Removing file " + file);
+            	file.delete();
+            }
+        } catch (TaskAbortException e) {
+			e.printStackTrace();
+			return;
+		} finally {
             connection.removeFcpListener(closeListener);
             if (connection != null) {
                 connection.close();

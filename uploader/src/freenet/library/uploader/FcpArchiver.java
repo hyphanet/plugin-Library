@@ -6,22 +6,15 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import net.pterodactylus.fcp.ClientGet;
-import net.pterodactylus.fcp.ClientHello;
 import net.pterodactylus.fcp.ClientPut;
-import net.pterodactylus.fcp.CloseConnectionDuplicateClientName;
 import net.pterodactylus.fcp.FcpAdapter;
 import net.pterodactylus.fcp.FcpConnection;
-import net.pterodactylus.fcp.FcpMessage;
 import net.pterodactylus.fcp.FinishedCompression;
-import net.pterodactylus.fcp.NodeHello;
 import net.pterodactylus.fcp.PutFailed;
 import net.pterodactylus.fcp.PutFetchable;
 import net.pterodactylus.fcp.PutSuccessful;
@@ -186,7 +179,11 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			assert ps != null;
 			if (!identifier.equals(ps.getIdentifier()))
 				return;
-			System.out.println("receivedPutSuccessful for " + token + ": " + ps);
+			System.out.println("receivedPutSuccessful for " + token);
+			System.out.println("Storing " + progressTotal + 
+					" took " + 
+					((ps.getCompletionTime() - ps.getStartupTime()) / 1000) + "s");
+			
 			markDone();
     	}
     	
@@ -196,7 +193,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			assert pf != null;
 			if (!identifier.equals(pf.getIdentifier()))
 				return;
-			System.out.println("receivedPutFetchable for " + token + ": " + pf);
+			System.out.println("receivedPutFetchable for " + token);
 			synchronized (this) {
 				this.notifyAll();
 			}
@@ -212,7 +209,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
             synchronized (putter) {
                 putter.notify();
             }
-			System.out.println("receivedPutFailed for " + token + ": " + pf);
+			System.out.println("receivedPutFailed for " + token);
     		markDone();
         }
         
@@ -246,9 +243,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			assert startedCompression != null;
 			if (!identifier.equals(startedCompression.getIdentifier()))
 				return;
-			System.out.println("receivedStartedCompression for " + 
-				token + ": " +
-				startedCompression);
+			System.out.println("receivedStartedCompression for " + token);
     	}
 
     	@Override
@@ -258,9 +253,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			assert finishedCompression != null;
 			if (!identifier.equals(finishedCompression.getIdentifier()))
 				return;
-			System.out.println("receivedFinishedCompression for " + 
-				token + ": " +
-				finishedCompression);
+			System.out.println("receivedFinishedCompression for " + token);
     	}
 
     	public void receivedURIGenerated(FcpConnection c, URIGenerated uriGenerated) {
@@ -268,9 +261,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			assert uriGenerated != null;
 			if (!identifier.equals(uriGenerated.getIdentifier()))
 				return;
-			System.out.println("receivedURIGenerated for " + 
-				token + ": " +
-				uriGenerated);
+			System.out.println("receivedURIGenerated for " + token);
 			uri = uriGenerated.getURI();
 			synchronized (this) {
 				this.notifyAll();
