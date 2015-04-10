@@ -98,7 +98,7 @@ public class SpiderIndexUploader {
 	        });
 	
 	        countFilesToMerge = filesToMerge.length;
-	        tooManyFilesToMerge = countFilesToMerge - 2;
+	        tooManyFilesToMerge = countFilesToMerge - 20;
 		} while (tooManyFilesToMerge > 0);
 		System.out.println("There are " + countFilesToMerge + " files to merge.");
 	}
