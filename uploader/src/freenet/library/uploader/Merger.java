@@ -186,8 +186,7 @@ final public class Merger {
             System.out.println("There is " + filesToMerge2.length + " new files to merge.");
 
             DirectoryCreator creator = new DirectoryCreator(directory);
-            IndexPeeker peeker = new IndexPeeker();
-			IndexPeeker.Section section = null;
+            IndexPeeker peeker = new IndexPeeker(directory);
 
 			Set<File> toBeRemoved = new HashSet<File>();
             TermEntryFileWriter notMerged = null;
@@ -214,19 +213,11 @@ final public class Merger {
 				Iterator<TermEntry> iterator = teri.iterator();
 				while (iterator.hasNext()) {
 					TermEntry tt = iterator.next();
-					if (peeker.onTop(tt.subj)) {
+					if (peeker.include(tt.subj)) {
 						creator.putEntry(tt);
 						continue;
 					}
 					
-					if (section == null) {
-						section = peeker.getSectionFor(tt.subj);
-					}
-					if (section.contains(tt.subj)) {
-						creator.putEntry(tt);
-						continue;
-					}
-
 					if (notMerged == null) {
 						lastFoundFiltered ++;
 			            String filteredFilename = UploaderPaths.BASE_FILENAME_FILTERED_DATA + lastFoundFiltered;
