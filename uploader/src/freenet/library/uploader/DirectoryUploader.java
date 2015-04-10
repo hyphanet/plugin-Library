@@ -94,9 +94,6 @@ class DirectoryUploader implements Runnable {
      * demand. SCALABILITY */
     static final int MAX_DISK_ENTRY_SIZE = 10000;
 
-    /** Like pushNumber, the number of the current disk dir, used to
-     * create idxDiskDir. */
-    private int dirNumber;
     static final String DISK_DIR_PREFIX = "library-temp-index-";
     /** Directory the current idxDisk is saved in. */
     File idxDiskDir;
@@ -119,18 +116,7 @@ class DirectoryUploader implements Runnable {
         
     static final String BASE_FILENAME_PUSH_DATA = "library.index.data.";
         
-
-    // This is a member variable because it is huge, and having huge
-    // stuff in local variables seems to upset the default garbage
-    // collector.  It doesn't need to be synchronized because it's
-    // always used from mergeToDisk, which never runs in parallel.
-    private Map<String, SortedSet<TermEntry>> newtrees;
-    // Ditto
-    private SortedSet<String> terms;
-        
     ProtoIndexSerialiser srlDisk = null;
-    private ProtoIndexComponentSerialiser leafsrlDisk;
-        
         
     private boolean writeStringTo(File filename, String uri) {
         FileOutputStream fos = null;
@@ -178,80 +164,8 @@ class DirectoryUploader implements Runnable {
 				e.printStackTrace();
 			}
         }
-    }
-    
+    }  
 
-    /** Create a new on-disk index from terms and newtrees.
-     * @return True if the size of any one item in the index is so
-     * large that we must upload immediately to Freenet.
-     * @throws TaskAbortException If something broke catastrophically. */
-    private boolean createDiskIndex() throws TaskAbortException {
-        boolean tooBig = false;
-        // created a new index, fill it with data.
-        // DON'T MERGE, merge with a lot of data will deadlock.
-        // FIXME throw in update() if it will deadlock.
-        for(String key : terms) {
-            SkeletonBTreeSet<TermEntry> tree = makeEntryTree(leafsrlDisk);
-            SortedSet<TermEntry> toMerge = newtrees.get(key);
-            tree.addAll(toMerge);
-            if(toMerge.size() > MAX_DISK_ENTRY_SIZE)
-                tooBig = true;
-            toMerge = null;
-            tree.deflate();
-            assert(tree.isBare());
-            idxDisk.ttab.put(key, tree);
-        }
-        idxDisk.ttab.deflate();
-        return tooBig;
-    }
-
-
-    /** Create a directory for an on-disk index.
-     * @return False if something broke and we can't continue. */
-    private boolean createDiskDir() {
-        dirNumber++;
-        idxDiskDir = new File(DISK_DIR_PREFIX + Integer.toString(dirNumber));
-        System.out.println("Created new disk dir for merging: "+idxDiskDir);
-        if(!(idxDiskDir.mkdir() || idxDiskDir.isDirectory())) {
-            System.err.println("Unable to create new disk dir: "+idxDiskDir);
-            synchronized(this) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /** Set up the serialisers for an on-disk index.
-     * @return False if something broke and we can't continue. */
-    private boolean makeDiskDirSerialiser() {
-        if(srlDisk == null) {
-            srlDisk = ProtoIndexSerialiser.forIndex(idxDiskDir);
-            LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
-                (LiveArchiver<Map<String,Object>,SimpleProgress>)(srlDisk.getChildSerialiser());
-            leafsrlDisk = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, archiver);
-            if(lastDiskIndexName == null) {
-                idxDisk = new ProtoIndex("CHK@", "test", null, null, 0L);
-                // FIXME more hacks: It's essential that we use the
-                // same FileArchiver instance here.
-                leafsrlDisk.setSerialiserFor(idxDisk);
-            } else {
-                try {
-                    PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(lastDiskIndexName);
-                    System.out.println("Pulling previous index "+lastDiskIndexName+" from disk so can update it.");
-                    srlDisk.pull(pull);
-                    System.out.println("Pulled previous index "+lastDiskIndexName+" from disk - updating...");
-                    idxDisk = pull.data;
-                    if(idxDisk.getSerialiser().getLeafSerialiser() != archiver)
-                        throw new IllegalStateException("Different serialiser: "+idxFreenet.getSerialiser()+" should be "+leafsrl);
-                } catch (TaskAbortException e) {
-                    System.err.println("Failed to download previous index for spider update: "+e);
-                    e.printStackTrace();
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
 
     static final String INDEX_DOCNAME = "index.yml";
         
@@ -575,7 +489,6 @@ class DirectoryUploader implements Runnable {
                         tree.addAll(data);
                         assert(tree.size() == data.size());
                     } else {
-                        int oldSize = tree.size();
                         tree.update(data, null);
                         // Note that it is possible for data.size() +
                         // oldSize != tree.size(), because we might be

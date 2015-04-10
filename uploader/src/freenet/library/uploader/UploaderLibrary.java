@@ -4,29 +4,15 @@
 package freenet.library.uploader;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.lang.UnsupportedOperationException;
-import java.net.MalformedURLException;
 import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import freenet.library.ArchiverFactory;
 import freenet.library.io.ObjectStreamReader;
 import freenet.library.io.ObjectStreamWriter;
 import freenet.library.io.serial.LiveArchiver;
 import freenet.library.util.exec.SimpleProgress;
-import freenet.library.util.exec.TaskAbortException;
 
 import net.pterodactylus.fcp.FcpConnection;
-import net.pterodactylus.fcp.Priority;
 
 
 
