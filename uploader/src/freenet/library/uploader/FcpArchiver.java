@@ -229,10 +229,6 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			progressTotal = sp.getTotal();
 			System.out.println("receivedSimpleProgess for " + token + ": " +
 					sp.getSucceeded() + "/" + sp.getTotal());
-			if (sp.isFinalizedTotal() &&
-					sp.getSucceeded() == sp.getTotal()) {
-				markDone();
-			}
 			printLeft();
     	}
     	
