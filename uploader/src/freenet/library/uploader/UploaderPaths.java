@@ -38,6 +38,7 @@ public class UploaderPaths {
 	static final String LAST_DISK_FILENAME = "library.index.lastpushed.disk";
 	
 	static final String BASE_FILENAME_PUSH_DATA = "library.index.data.";
+	static final String BASE_FILENAME_FILTERED_DATA = "library.index.filtered.";
 	
 	static final String LIBRARY_CACHE = "library-spider-pushed-data-cache";	
 }

@@ -141,7 +141,7 @@ final public class Merger {
                     exitStatus = 1;
                     return;
                 } finally {
-                                connection.removeFcpListener(helloListener);
+                	connection.removeFcpListener(helloListener);
                 }
             }
             helloListener = null;
@@ -169,26 +169,36 @@ final public class Merger {
                 return;
             }
 
-            String filteredFilesBaseFilename = UploaderPaths.BASE_FILENAME_PUSH_DATA + "filtered.";
             // Calculate the next name
             int lastFoundFiltered = 0;
-            for (String filename : getMatchingFiles(directory, filteredFilesBaseFilename)) {
-            	int numberFound = Integer.parseInt(filename.substring(filteredFilesBaseFilename.length()));
+            String[] filesToMerge1 = getMatchingFiles(directory, UploaderPaths.BASE_FILENAME_FILTERED_DATA);
+            System.out.println("There is " + filesToMerge1.length + " old files to merge.");
+			for (String filename : filesToMerge1) {
+            	int numberFound = Integer.parseInt(filename.substring(UploaderPaths.BASE_FILENAME_FILTERED_DATA.length()));
             	if (numberFound > lastFoundFiltered) {
             		lastFoundFiltered = numberFound;
             	}
             }
             System.out.println("Last found: " + lastFoundFiltered);
 
-            String[] filesToMerge = getMatchingFiles(directory, UploaderPaths.BASE_FILENAME_PUSH_DATA);
+            String[] filesToMerge2 = getMatchingFiles(directory, UploaderPaths.BASE_FILENAME_PUSH_DATA);
 
-            System.out.println("There are " + filesToMerge.length + " files to merge.");
+            System.out.println("There is " + filesToMerge2.length + " new files to merge.");
 
             DirectoryCreator creator = new DirectoryCreator(directory);
             IndexPeeker peeker = new IndexPeeker();
-            Set<File> toBeRemoved = new HashSet<File>();
+			IndexPeeker.Section section = null;
+
+			Set<File> toBeRemoved = new HashSet<File>();
             TermEntryFileWriter notMerged = null;
-            
+            String[] filesToMerge = new String[filesToMerge1.length + filesToMerge2.length];
+            int pos = 0;
+            for (; pos < filesToMerge1.length; pos++) {
+            	filesToMerge[pos] = filesToMerge1[pos];
+            }
+            for (int i = 0; i < filesToMerge2.length; i++, pos++) {
+            	filesToMerge[pos] = filesToMerge2[i];
+            }
             for (String s : filesToMerge) {
                 System.out.println("File: " + s);
 				File file = new File(s);
@@ -202,29 +212,38 @@ final public class Merger {
 				}
 				TermEntryReaderIterator teri = new TermEntryReaderIterator(new DataInputStream(fileInputStream));
 				Iterator<TermEntry> iterator = teri.iterator();
-				IndexPeeker.Section section = peeker.getSectionFor("a");
 				while (iterator.hasNext()) {
 					TermEntry tt = iterator.next();
-					if (peeker.onTop(tt.subj) ||
-							section.contains(tt.subj)) {
+					if (peeker.onTop(tt.subj)) {
 						creator.putEntry(tt);
-					} else {
-						if (notMerged == null) {
-							lastFoundFiltered ++;
-				            String filteredFilename = filteredFilesBaseFilename + lastFoundFiltered;
-							notMerged = new TermEntryFileWriter(teri.getHeader(), new File(directory, filteredFilename));
-						}
-						notMerged.write(tt);
-						if (notMerged.isFull()) {
-							notMerged.close();
-							notMerged = null;
-						}
+						continue;
+					}
+					
+					if (section == null) {
+						section = peeker.getSectionFor(tt.subj);
+					}
+					if (section.contains(tt.subj)) {
+						creator.putEntry(tt);
+						continue;
+					}
+
+					if (notMerged == null) {
+						lastFoundFiltered ++;
+			            String filteredFilename = UploaderPaths.BASE_FILENAME_FILTERED_DATA + lastFoundFiltered;
+						notMerged = new TermEntryFileWriter(teri.getHeader(), new File(directory, filteredFilename));
+					}
+					notMerged.write(tt);
+					if (notMerged.isFull()) {
+						notMerged.close();
+						notMerged = null;
 					}
 				}
 				toBeRemoved.add(file);
             }
-			notMerged.close();
-			notMerged = null;
+            if (notMerged != null) {
+            	notMerged.close();
+            	notMerged = null;
+            }
 			creator.done();
             for (File file : toBeRemoved) {
 				System.out.println("Removing file " + file);
