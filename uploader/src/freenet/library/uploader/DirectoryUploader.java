@@ -141,7 +141,7 @@ class DirectoryUploader implements Runnable {
         }
     }
 
-    private String readStringFrom(File file) {
+    static String readStringFrom(File file) {
         String ret;
         FileInputStream fis = null;
         try {
@@ -179,7 +179,7 @@ class DirectoryUploader implements Runnable {
         LiveArchiver<Map<String,Object>,SimpleProgress> archiver = 
             (LiveArchiver<Map<String,Object>,SimpleProgress>)(s.getChildSerialiser());
         ProtoIndexComponentSerialiser leaf = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, archiver);
-        String f = this.readStringFrom(new File(diskDir, LAST_DISK_FILENAME));
+        String f = DirectoryUploader.readStringFrom(new File(diskDir, LAST_DISK_FILENAME));
         if(f == null) {
             if(diskDir.list().length == 0) {
                 System.err.println("Directory "+diskDir+" is empty. Nothing to merge.");
@@ -314,7 +314,7 @@ class DirectoryUploader implements Runnable {
         }
     }
 
-	private String readFileLine(final String filename) {
+	static String readFileLine(final String filename) {
 		File f = new File(filename);
 		FileInputStream fis;
 		try {
