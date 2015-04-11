@@ -80,7 +80,6 @@ final public class Merger {
     public static void main(String[] argv) {
         int exitStatus = 0;
 
-        System.out.println("Separate program started.");
         //if (!cwd.matches(".*/plugins")) {
         //    System.err.println("Should be started in the freenet directory.");
         //    System.exit(1);
@@ -89,84 +88,85 @@ final public class Merger {
         // Now we are in the Freenet directory. 
         // The rest of the work is done here.
         FcpConnection connection = null;
-
-        FcpAdapter closeListener = new FcpAdapter() {
-            public void connectionClosed(FcpConnection fcpConnection, Throwable throwable) {
-                System.out.println("Connection Closed - Aborting.");
-                System.exit(1);
-            }
-        };
+        FcpAdapter closeListener = null;
 
         try {
-            try {
-                connection = new FcpConnection("127.0.0.1");
-                connection.connect();
-            } catch (UnknownHostException e) {
-                System.err.println("Cannot connect to Node");
-                exitStatus = 1;
-                return;
-            } catch (IOException e) {
-                System.err.println("Cannot connect to Node");
-                exitStatus = 1;
-                return;
-            }
-            final String clientName = "SpiderMerger";
-            final FcpMessage hello = new ClientHello(clientName);
-            FcpAdapter helloListener = new FcpAdapter() {
-                    public void receivedNodeHello(FcpConnection c, NodeHello nh) {
-                        synchronized (hello) {
-                            hello.notify();
-                        }
-                    }
-
-                    public void receivedCloseConnectionDuplicateClientName(FcpConnection fcpConnection, CloseConnectionDuplicateClientName closeConnectionDuplicateClientName) {
-                        System.out.println("Another " + clientName + " connected - Aborting.");
-                        System.exit(1);
-                    }
-                };
-            connection.addFcpListener(helloListener);
-
-            connection.addFcpListener(closeListener);
-
-            synchronized (hello) {
-                try {
-                    connection.sendMessage(hello);
-                    hello.wait();
-                } catch (InterruptedException e) {
-                    System.err.println("Waiting for connection interrupted.");
-                    exitStatus = 1;
-                    return;
-                } catch (IOException e) {
-                    System.err.println("Hello cannot write.");
-                    exitStatus = 1;
-                    return;
-                } finally {
-                	connection.removeFcpListener(helloListener);
-                }
-            }
-            helloListener = null;
-            System.out.println("Connected");
-
-            UploaderLibrary.init(connection);
-            FactoryRegister.register(UploaderLibrary.getInstance());
-            
-            final String[] dirsToMerge;
-            File directory = new File(".");
-                        dirsToMerge = directory.list(new FilenameFilter() {
-                                
-                    public boolean accept(File arg0, String arg1) {
-                        if(!(arg1.toLowerCase().startsWith(UploaderPaths.DISK_DIR_PREFIX))) return false;
-                        return true;
-                    }
-                                
-                });
-
-            System.out.println("There are " + dirsToMerge.length + " old directories to merge.");
-            if (dirsToMerge.length > 0) {
-                System.out.println("Merging the first one.");
-                new DirectoryUploader(connection, 
-                                      new File(directory, dirsToMerge[0])).run();
-                return;
+	        final String[] dirsToMerge;
+	        File directory = new File(".");
+	                    dirsToMerge = directory.list(new FilenameFilter() {
+	                            
+	                public boolean accept(File arg0, String arg1) {
+	                    if(!(arg1.toLowerCase().startsWith(UploaderPaths.DISK_DIR_PREFIX))) return false;
+	                    return true;
+	                }
+	                            
+	            });
+	
+	        if (dirsToMerge.length > 0) {
+	            System.out.println("Merging directory " + dirsToMerge[0]);
+		        closeListener = new FcpAdapter() {
+		            public void connectionClosed(FcpConnection fcpConnection, Throwable throwable) {
+		                System.out.println("Connection Closed - Aborting.");
+		                System.exit(1);
+		            }
+		        };
+	
+	            try {
+	                connection = new FcpConnection("127.0.0.1");
+	                connection.connect();
+	            } catch (UnknownHostException e) {
+	                System.err.println("Cannot connect to Node");
+	                exitStatus = 1;
+	                return;
+	            } catch (IOException e) {
+	                System.err.println("Cannot connect to Node");
+	                exitStatus = 1;
+	                return;
+	            }
+	            final String clientName = "SpiderMerger";
+	            final FcpMessage hello = new ClientHello(clientName);
+	            FcpAdapter helloListener = new FcpAdapter() {
+	                    public void receivedNodeHello(FcpConnection c, NodeHello nh) {
+	                        synchronized (hello) {
+	                            hello.notify();
+	                        }
+	                    }
+	
+	                    public void receivedCloseConnectionDuplicateClientName(FcpConnection fcpConnection, CloseConnectionDuplicateClientName closeConnectionDuplicateClientName) {
+	                        System.out.println("Another " + clientName + " connected - Aborting.");
+	                        System.exit(1);
+	                    }
+	                };
+	            connection.addFcpListener(helloListener);
+	
+	            connection.addFcpListener(closeListener);
+	
+	            synchronized (hello) {
+	                try {
+	                    connection.sendMessage(hello);
+	                    hello.wait();
+	                } catch (InterruptedException e) {
+	                    System.err.println("Waiting for connection interrupted.");
+	                    exitStatus = 1;
+	                    return;
+	                } catch (IOException e) {
+	                    System.err.println("Hello cannot write.");
+	                    exitStatus = 1;
+	                    return;
+	                } finally {
+	                	connection.removeFcpListener(helloListener);
+	                }
+	            }
+	            helloListener = null;
+	            System.out.println("Connected");
+	
+	            UploaderLibrary.init(connection);
+	            FactoryRegister.register(UploaderLibrary.getInstance());
+	            
+	            new DirectoryUploader(connection, 
+	                                  new File(directory, dirsToMerge[0])).run();
+	            System.out.println("Upload completed.");
+	            return;
             }
 
             // Calculate the next name
@@ -244,12 +244,13 @@ final public class Merger {
 			e.printStackTrace();
 			return;
 		} finally {
-            connection.removeFcpListener(closeListener);
+			if (closeListener != null) {
+				connection.removeFcpListener(closeListener);
+			}
             if (connection != null) {
                 connection.close();
             }
         }
-        System.out.println("Upload completed.");
         System.exit(exitStatus);
     }
 }

@@ -22,11 +22,16 @@ class DirectoryCreator {
 	private int countTerms;
 	private ProtoIndexSerialiser srlDisk;
 	private File newIndexDir;
+	private String nextIndexDirName;
 
 	DirectoryCreator(File directory) {
-        int nextIndexDirNumber = 1;
-        String nextIndexDirName = UploaderPaths.DISK_DIR_PREFIX + nextIndexDirNumber;
-        newIndexDir = new File(directory, nextIndexDirName);
+        int nextIndexDirNumber = 0;
+        do {
+        	nextIndexDirNumber ++;
+        	nextIndexDirName = UploaderPaths.DISK_DIR_PREFIX + nextIndexDirNumber;
+        	newIndexDir = new File(directory, nextIndexDirName);
+        } while (newIndexDir.exists());
+        System.out.println("Writing into directory " + nextIndexDirName);
         newIndexDir.mkdir();
         srlDisk = ProtoIndexSerialiser.forIndex(newIndexDir);
         LiveArchiver<Map<String,Object>, SimpleProgress> archiver = 
@@ -86,10 +91,9 @@ class DirectoryCreator {
 		PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idxDisk);
 		srlDisk.push(task4);
 		String uri = (String) task4.meta;
-		System.out.println("Created new directory, file root at " + uri +
-				" with " + countTerms + " terms.");
 		writeStringTo(new File(newIndexDir, UploaderPaths.LAST_DISK_FILENAME), uri);
+		System.out.println("Created new directory " + nextIndexDirName + 
+				", file root at " + uri +
+				" with " + countTerms + " terms.");
 	}
-
-
 }

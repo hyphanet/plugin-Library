@@ -50,12 +50,12 @@ class DirectoryUploader implements Runnable {
     }
         
     public void run() {
-	mergeToFreenet(directory);
+    	mergeToFreenet(directory);
     }
         
     private String lastUploadURI;
     private boolean uskUploadDone;
-        
+
     static final int MAX_HANDLING_COUNT = 5; 
     // When pushing is broken, allow max handling to reach this level
     // before stalling forever to prevent running out of disk space.
@@ -182,7 +182,7 @@ class DirectoryUploader implements Runnable {
         String f = DirectoryUploader.readStringFrom(new File(diskDir, LAST_DISK_FILENAME));
         if(f == null) {
             if(diskDir.list().length == 0) {
-                System.err.println("Directory "+diskDir+" is empty. Nothing to merge.");
+                System.err.println("Directory " + diskDir + " is empty - removing. Nothing to merge.");
                 diskDir.delete();
                 return;
             }
@@ -214,7 +214,7 @@ class DirectoryUploader implements Runnable {
      * *very sure* there is no important data below it! */
     private static boolean removeAll(File wd) {
         if(!wd.isDirectory()) {
-            System.err.println("DELETING FILE "+wd);
+            System.out.println("DELETING FILE "+wd);
             if(!wd.delete() && wd.exists()) {
                 System.err.println("Could not delete file: " + wd);
                 return false;
@@ -240,7 +240,6 @@ class DirectoryUploader implements Runnable {
      * @param diskDir The folder the on-disk index is stored in.
      */
     protected void mergeToFreenet(ProtoIndex diskToMerge, File diskDir) {
-        System.out.println("Merging on-disk index to Freenet: "+diskDir);
         if (lastUploadURI == null) {
             lastUploadURI = readStringFrom(new File(LAST_URL_FILENAME));
         }
