@@ -40,7 +40,6 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 	private String mimeType;
 	private int size;
 	private Priority priorityLevel;
-	private String identifier;
 
 	/**
 	 * Before synchronizing on stillRunning, be sure to synchronize
@@ -50,10 +49,6 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			new HashMap<String, PushAdapter>();
 	private Thread cleanupThread;
 	
-	private static int identifierCounter = 0;
-	private static String getNewIdentifier() {
-		return "FcpWriter" + (++identifierCounter);
-	}
 
 	public FcpArchiver(FcpConnection fcpConnection, 
 					   File directory,
@@ -67,7 +62,6 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 		mimeType = mime;
 		size = s;
 		priorityLevel = pl;
-		identifier = getNewIdentifier();
 	}
 	
 	private net.pterodactylus.fcp.Priority getPriority() {
@@ -300,6 +294,9 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 	@Override
 	public void pushLive(freenet.library.io.serial.Serialiser.PushTask<T> task,
 			SimpleProgress progress) throws TaskAbortException {
+		if (connection == null) {
+			throw new IllegalArgumentException("No connection.");
+		}
 		final String identifier = "FcpArchiver" + counter;
 		final String token = "FcpArchiverPushLive" + counter;
 		counter++;
