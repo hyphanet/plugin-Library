@@ -174,10 +174,6 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			if (!identifier.equals(ps.getIdentifier()))
 				return;
 			System.out.println("receivedPutSuccessful for " + token);
-			System.out.println("Storing " + progressTotal + 
-					" took " + 
-					((ps.getCompletionTime() - ps.getStartupTime()) / 1000) + "s");
-			
 			markDone();
     	}
     	
