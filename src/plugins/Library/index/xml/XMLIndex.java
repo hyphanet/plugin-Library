@@ -12,8 +12,6 @@ import plugins.Library.search.InvalidSearchException;
 import plugins.Library.util.exec.Execution;
 import plugins.Library.util.exec.TaskAbortException;
 
-import com.db4o.ObjectContainer;
-
 import freenet.support.Fields;
 import freenet.support.Logger;
 import freenet.support.api.Bucket;
@@ -68,7 +66,7 @@ import java.util.HashMap;
  * The xml index format
  * @author MikeB
  */
-public class XMLIndex implements Index, ClientGetCallback, RequestClient{
+public class XMLIndex implements Index, ClientGetCallback {
 
 	final public static String MIME_TYPE = "application/xml";
 	final public static String DEFAULT_FILE = "index.xml";
@@ -172,10 +170,6 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			FindRequest.updateWithEvent(waitingOnMainIndex, ce);
 //			Logger.normal(this, "Updated with event : "+ce.getDescription());
 		}
-
-		public void onRemoveEventProducer(ObjectContainer container){
-			throw new UnsupportedOperationException();
-		}
 	};
 
 	/**
@@ -214,16 +208,6 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			findRequest.setError(new TaskAbortException("Failure fetching rootindex of "+toString(), e));
 		}
 		Logger.error(this, "Fetch failed on "+toString() + " -- state = "+state, e);
-	}
-
-	public void onMajorProgress(ObjectContainer container){}
-
-	public boolean persistent() {
-		return false;
-	}
-
-	public void removeFrom(ObjectContainer container) {
-		throw new UnsupportedOperationException();
 	}
 
 	/**
@@ -404,9 +388,6 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 			public void receive(ClientEvent ce, ClientContext context){
 				FindRequest.updateWithEvent(waitingOnSubindex, ce);
 //				Logger.normal(this, "Updated with event : "+ce.getDescription());
-			}
-			public void onRemoveEventProducer(ObjectContainer container){
-				throw new UnsupportedOperationException();
 			}
 		};
 
@@ -865,10 +846,6 @@ public class XMLIndex implements Index, ClientGetCallback, RequestClient{
 
 		}
 		
-	}
-
-	public boolean realTimeFlag() {
-		return true;
 	}
 
     @Override

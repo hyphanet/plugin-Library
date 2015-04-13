@@ -28,8 +28,6 @@ import plugins.Library.io.serial.Serialiser.PullTask;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.util.exec.TaskAbortException;
 
-import com.db4o.ObjectContainer;
-
 import freenet.client.FetchContext;
 import freenet.client.FetchException;
 import freenet.client.FetchException.FetchExceptionMode;
@@ -67,7 +65,7 @@ final public class Library implements URLUpdateHook {
 	public static final String BOOKMARK_PREFIX = "bookmark:";
 	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "liberty-of-information" + " " + BOOKMARK_PREFIX + "free-market-free-people" + " " +
 	    BOOKMARK_PREFIX + "gotcha" + " " + BOOKMARK_PREFIX + "wanna" + " " + BOOKMARK_PREFIX + "wanna.old" + " " + BOOKMARK_PREFIX + "gogo";
-	private static int version = 35;
+	private static int version = 36;
 	public static final String plugName = "Library " + getVersion();
 
 	public static String getPlugName() {
@@ -291,7 +289,6 @@ final public class Library implements URLUpdateHook {
 				
 				final Class<?>[] c = new Class[1];
 				hlsc.addEventHook(new ClientEventListener() {
-					/*@Override**/ public void onRemoveEventProducer(){ }
 					/*@Override**/ public void receive(ClientEvent ce, ClientContext context) {
 						if (!(ce instanceof ExpectedMIMEEvent)) { return; }
 						synchronized(c) {
@@ -529,10 +526,6 @@ final public class Library implements URLUpdateHook {
 
 		public boolean persistent() {
 			return false;
-		}
-
-		public void removeFrom(ObjectContainer container) {
-			// Ignore
 		}
 
 		public boolean realTimeFlag() {

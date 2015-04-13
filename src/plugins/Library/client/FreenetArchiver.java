@@ -18,8 +18,6 @@ import plugins.Library.util.exec.ProgressParts;
 import plugins.Library.util.exec.SimpleProgress;
 import plugins.Library.util.exec.TaskAbortException;
 
-import com.db4o.ObjectContainer;
-
 import freenet.client.ClientMetadata;
 import freenet.client.FetchException;
 import freenet.client.FetchException.FetchExceptionMode;
@@ -65,7 +63,7 @@ import freenet.support.io.ResumeFailedException;
 ** @author infinity0
 */
 public class FreenetArchiver<T>
-implements LiveArchiver<T, SimpleProgress>, RequestClient {
+implements LiveArchiver<T, SimpleProgress> {
 
 	final protected NodeClientCore core;
 	final protected ObjectStreamReader reader;
@@ -498,6 +496,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			notifyAll();
 		}
 
+		@Override
 		public void onSuccess(BaseClientPutter state) {
 			synchronized(FreenetArchiver.this) {
 				if(semiAsyncPushes.remove(this))
@@ -509,10 +508,6 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				ib.free();
 //			if(progress != null) progress.addPartKnown(0, true);
 
-		}
-
-		public void onMajorProgress(ObjectContainer container) {
-			// Ignore
 		}
 
 		@Override
@@ -552,8 +547,6 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		public SimpleProgressUpdater(SimpleProgress prog) {
 			progress = prog;
 		}
-
-		/*@Override*/ public void onRemoveEventProducer() { }
 
 		@Override public void receive(ClientEvent ce, ClientContext context) {
 			progress.setStatus(ce.getDescription());
@@ -611,17 +604,4 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 		}
 	}
 	
-
-	public boolean persistent() {
-		return false;
-	}
-
-	public void removeFrom(ObjectContainer container) {
-		throw new UnsupportedOperationException();
-	}
-
-	public boolean realTimeFlag() {
-		return realTimeFlag;
-	}
-
 }
