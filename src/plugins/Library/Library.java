@@ -32,12 +32,13 @@ import com.db4o.ObjectContainer;
 
 import freenet.client.FetchContext;
 import freenet.client.FetchException;
+import freenet.client.FetchException.FetchExceptionMode;
 import freenet.client.FetchResult;
 import freenet.client.FetchWaiter;
 import freenet.client.HighLevelSimpleClient;
 import freenet.client.async.ClientContext;
 import freenet.client.async.ClientGetter;
-import freenet.client.async.DatabaseDisabledException;
+import freenet.client.async.PersistenceDisabledException;
 import freenet.client.async.USKCallback;
 import freenet.client.async.USKManager;
 import freenet.client.async.USKRetriever;
@@ -95,6 +96,20 @@ final public class Library implements URLUpdateHook {
 
 	static volatile boolean logMINOR;
 	static volatile boolean logDEBUG;
+	
+	public static final RequestClient REQUEST_CLIENT = new RequestClient() {
+
+        @Override
+        public boolean persistent() {
+            return false;
+        }
+
+        @Override
+        public boolean realTimeFlag() {
+            return false;
+        }
+	    
+	};
 
 	static {
 		Logger.registerClass(Library.class);
@@ -115,7 +130,7 @@ final public class Library implements URLUpdateHook {
 			this.exec = pr.getNode().executor;
 			try {
 				ps = pr.getStore();
-			} catch (DatabaseDisabledException e) {
+			} catch (PersistenceDisabledException e) {
 				ps = null;
 			}
 		} else {
@@ -215,7 +230,7 @@ final public class Library implements URLUpdateHook {
 		try {
 			pr.putStore(store);
 			if(logMINOR) Logger.minor(this, "Stored state to database");
-		} catch (DatabaseDisabledException e) {
+		} catch (PersistenceDisabledException e) {
 			// Not much we can do...
 		}
 	}
@@ -270,21 +285,21 @@ final public class Library implements URLUpdateHook {
 			for(int i=0;i<5;i++) {
 				ClientContext cctx = core.clientContext;
 				FetchContext fctx = hlsc.getFetchContext();
-				FetchWaiter fw = new FetchWaiter();
-				final ClientGetter gu = hlsc.fetch(uri, 0x10000, (RequestClient)hlsc, fw, fctx);
-				gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx, null);
+				FetchWaiter fw = new FetchWaiter(REQUEST_CLIENT);
+				final ClientGetter gu = hlsc.fetch(uri, 0x10000, fw, fctx);
+				gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx);
 				
 				final Class<?>[] c = new Class[1];
 				hlsc.addEventHook(new ClientEventListener() {
-					/*@Override**/ public void onRemoveEventProducer(ObjectContainer container){ }
-					/*@Override**/ public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
+					/*@Override**/ public void onRemoveEventProducer(){ }
+					/*@Override**/ public void receive(ClientEvent ce, ClientContext context) {
 						if (!(ce instanceof ExpectedMIMEEvent)) { return; }
 						synchronized(c) {
 							String type = ((ExpectedMIMEEvent)ce).expectedMIMEType;
 							System.out.println("Expected type in index: "+type);
 							try {
 								c[0] = getIndexTypeFromMIME(type);
-								gu.cancel(null, context);
+								gu.cancel(context);
 							} catch (UnsupportedOperationException e) {
 								// Ignore
 							}
@@ -297,7 +312,7 @@ final public class Library implements URLUpdateHook {
 					return getIndexTypeFromMIME(res.getMimeType());
 					
 				} catch (FetchException e) {
-					if (e.getMode() == FetchException.CANCELLED) {
+					if (e.getMode() == FetchExceptionMode.CANCELLED) {
 						synchronized(c) {
 							if(c[0] != null)
 								return c[0];
@@ -551,7 +566,7 @@ final public class Library implements URLUpdateHook {
 			if(logMINOR) Logger.minor(this, "Bookmark "+bookmarkName+" : fetching edition "+edition);
 		}
 
-		public void onFoundEdition(long l, USK key, ObjectContainer container, ClientContext context, boolean metadata, short codec, byte[] data, boolean newKnownGood, boolean newSlotToo) {
+		public void onFoundEdition(long l, USK key, ClientContext context, boolean metadata, short codec, byte[] data, boolean newKnownGood, boolean newSlotToo) {
 			if(l < origEdition) {
 				Logger.error(this, "Wrong edition: "+l+" less than "+origEdition);
 				return;

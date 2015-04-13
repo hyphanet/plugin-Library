@@ -33,7 +33,7 @@ public class Util {
 		// try local file first
 		File file = new File(uri);
 		if (file.exists() && file.canRead()) 
-			return new FileBucket(file, true, false, false, false, false);
+			return new FileBucket(file, true, false, false, false);
 		else if (hlsc==null)
 			throw new NullPointerException("No client or file "+uri+" found");
 		

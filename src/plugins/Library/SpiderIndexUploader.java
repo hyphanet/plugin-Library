@@ -838,7 +838,7 @@ public class SpiderIndexUploader {
 					synchronized(freenetMergeSync) {
 						for(String filename : oldToMerge) {
 							File f = new File(filename);
-							toMergeToDisk.add(new FileBucket(f, true, false, false, false, true));
+							toMergeToDisk.add(new FileBucket(f, true, false, false, true));
 						}
 					}
 					wrapMergeToDisk();
@@ -904,7 +904,7 @@ public class SpiderIndexUploader {
 		}
 		
 		final File pushFile = new File(BASE_FILENAME_PUSH_DATA+pn);
-		Bucket output = new FileBucket(pushFile, false, false, false, false, true);
+		Bucket output = new FileBucket(pushFile, false, false, false, true);
 		try {
 			BucketTools.copy(data, output);
 			data.free();

@@ -10,6 +10,7 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 
+import plugins.Library.Library;
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
 import plugins.Library.io.serial.LiveArchiver;
@@ -21,6 +22,7 @@ import com.db4o.ObjectContainer;
 
 import freenet.client.ClientMetadata;
 import freenet.client.FetchException;
+import freenet.client.FetchException.FetchExceptionMode;
 import freenet.client.FetchResult;
 import freenet.client.HighLevelSimpleClient;
 import freenet.client.InsertBlock;
@@ -30,7 +32,7 @@ import freenet.client.async.BaseClientPutter;
 import freenet.client.async.ClientContext;
 import freenet.client.async.ClientPutCallback;
 import freenet.client.async.ClientPutter;
-import freenet.client.async.DatabaseDisabledException;
+import freenet.client.async.PersistenceDisabledException;
 import freenet.client.events.ClientEvent;
 import freenet.client.events.ClientEventListener;
 import freenet.client.events.SplitfileProgressEvent;
@@ -45,9 +47,11 @@ import freenet.support.Logger;
 import freenet.support.SimpleReadOnlyArrayBucket;
 import freenet.support.SizeUtil;
 import freenet.support.api.Bucket;
+import freenet.support.api.RandomAccessBucket;
 import freenet.support.io.BucketTools;
 import freenet.support.io.Closer;
 import freenet.support.io.FileBucket;
+import freenet.support.io.ResumeFailedException;
 
 /**
 ** Converts between a map of {@link String} to {@link Object}, and a freenet
@@ -163,7 +167,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				if(cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
 					File cached = new File(cacheDir, cacheKey);
 					if(cached.exists() && cached.length() != 0) {
-						tempB = new FileBucket(cached, true, false, false, false, false);
+						tempB = new FileBucket(cached, true, false, false, false);
 						System.out.println("Fetching block for FreenetArchiver from disk cache: "+cacheKey);
 					}
 				}
@@ -224,7 +228,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				is.close();
 
 			} catch (FetchException e) {
-				if(e.mode == FetchException.PERMANENT_REDIRECT && e.newURI != null) {
+				if(e.mode == FetchExceptionMode.PERMANENT_REDIRECT && e.newURI != null) {
 					u = e.newURI;
 					continue;
 				}
@@ -262,7 +266,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 	*/
 	/*@Override**/ public void pushLive(PushTask<T> task, final SimpleProgress progress) throws TaskAbortException {
 		HighLevelSimpleClient hlsc = core.makeClient(priorityClass, false, false);
-		Bucket tempB = null; OutputStream os = null;
+		RandomAccessBucket tempB = null; OutputStream os = null;
 
 		
 		try {
@@ -307,6 +311,9 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				// unlimited for push/merge
 				InsertContext ctx = hlsc.getInsertContext(false);
 				ctx.maxInsertRetries = -1;
+                // Early encode is normally a security risk.
+                // Hopefully it isn't here.
+				ctx.earlyEncode = true;
 				
 				String cacheKey = null;
 				
@@ -328,14 +335,12 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 					cb = new PushCallback(progress, ib);
 					putter = new ClientPutter(cb, ib.getData(), FreenetURI.EMPTY_CHK_URI, ib.clientMetadata,
 							ctx, priorityClass,
-							false, false, this, null, false, core.clientContext, null, insertAsMetadata ? CHKBlock.DATA_LENGTH : -1);
+							false, null, false, core.clientContext, null, insertAsMetadata ? CHKBlock.DATA_LENGTH : -1);
 					cb.setPutter(putter);
 					long tStart = System.currentTimeMillis();
 					try {
-						// Early encode is normally a security risk.
-						// Hopefully it isn't here.
-						core.clientContext.start(putter, true);
-					} catch (DatabaseDisabledException e) {
+						core.clientContext.start(putter);
+					} catch (PersistenceDisabledException e) {
 						// Impossible
 					}
 					WAIT_STATUS status = cb.waitFor();
@@ -369,7 +374,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				
 				if(cacheKey != null && cacheDir != null && cacheDir.exists() && cacheDir.canRead()) {
 					File cached = new File(cacheDir, cacheKey);
-					Bucket cachedBucket = new FileBucket(cached, false, false, false, false, false);
+					Bucket cachedBucket = new FileBucket(cached, false, false, false, false);
 					BucketTools.copy(tempB, cachedBucket);
 				}
 				
@@ -465,7 +470,8 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			return generatedMetadata;
 		}
 
-		public void onFailure(InsertException e, BaseClientPutter state, ObjectContainer container) {
+		@Override
+		public void onFailure(InsertException e, BaseClientPutter state) {
 			System.out.println("Failed background insert ("+generatedURI+"), now running: "+semiAsyncPushes.size()+" ("+SizeUtil.formatSize(totalBytesPushing)+").");
 			synchronized(this) {
 				failed = e;
@@ -478,19 +484,21 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				FreenetArchiver.this.notifyAll();
 			}
 			if(ib != null)
-				ib.free(null);
+				ib.free();
 		}
 
-		public void onFetchable(BaseClientPutter state, ObjectContainer container) {
+		@Override
+		public void onFetchable(BaseClientPutter state) {
 			// Ignore
 		}
 
-		public synchronized void onGeneratedURI(FreenetURI uri, BaseClientPutter state, ObjectContainer container) {
+		@Override
+		public synchronized void onGeneratedURI(FreenetURI uri, BaseClientPutter state) {
 			generatedURI = uri;
 			notifyAll();
 		}
 
-		public void onSuccess(BaseClientPutter state, ObjectContainer container) {
+		public void onSuccess(BaseClientPutter state) {
 			synchronized(FreenetArchiver.this) {
 				if(semiAsyncPushes.remove(this))
 					totalBytesPushing -= size;
@@ -498,7 +506,7 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 				FreenetArchiver.this.notifyAll();
 			}
 			if(ib != null)
-				ib.free(null);
+				ib.free();
 //			if(progress != null) progress.addPartKnown(0, true);
 
 		}
@@ -509,10 +517,20 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 
 		@Override
 		public synchronized void onGeneratedMetadata(Bucket metadata,
-				BaseClientPutter state, ObjectContainer container) {
+				BaseClientPutter state) {
 			generatedMetadata = metadata;
 			notifyAll();
 		}
+
+        @Override
+        public void onResume(ClientContext context) throws ResumeFailedException {
+            // Ignore.
+        }
+
+        @Override
+        public RequestClient getRequestClient() {
+            return Library.REQUEST_CLIENT;
+        }
 
 	}
 
@@ -535,9 +553,9 @@ implements LiveArchiver<T, SimpleProgress>, RequestClient {
 			progress = prog;
 		}
 
-		/*@Override**/ public void onRemoveEventProducer(ObjectContainer container) { }
+		/*@Override*/ public void onRemoveEventProducer() { }
 
-		/*@Override**/ public void receive(ClientEvent ce, ObjectContainer maybeContainer, ClientContext context) {
+		@Override public void receive(ClientEvent ce, ClientContext context) {
 			progress.setStatus(ce.getDescription());
 			if (!(ce instanceof SplitfileProgressEvent)) { return; }
 
