@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.net.UnknownHostException;
+import java.text.Format;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -91,17 +92,28 @@ final public class Merger {
         FcpAdapter closeListener = null;
 
         try {
-	        final String[] dirsToMerge;
+	        String[] dirsToMerge = null;
 	        File directory = new File(".");
-	                    dirsToMerge = directory.list(new FilenameFilter() {
-	                            
-	                public boolean accept(File arg0, String arg1) {
-	                    if(!(arg1.toLowerCase().startsWith(UploaderPaths.DISK_DIR_PREFIX))) return false;
-	                    return true;
-	                }
-	                            
-	            });
-	
+	        for (String arg : argv) {
+	        	if (new File(directory, arg).isDirectory()) {
+	        		dirsToMerge = new String[1];
+	        		dirsToMerge[0] = arg;
+	        	} else {
+	        		System.out.println("No such directory " + arg);
+	        	}
+        		break;
+	        }
+	        if (dirsToMerge == null) {
+		        dirsToMerge = directory.list(new FilenameFilter() {
+		                            
+		        	public boolean accept(File arg0, String arg1) {
+		        		if(!(arg1.toLowerCase().startsWith(UploaderPaths.DISK_DIR_PREFIX))) return false;
+		        		return true;
+		        	}
+		                            
+		        });
+	        }
+
 	        if (dirsToMerge.length > 0) {
 	            System.out.println("Merging directory " + dirsToMerge[0]);
 		        closeListener = new FcpAdapter() {
@@ -163,8 +175,8 @@ final public class Merger {
 	            UploaderLibrary.init(connection);
 	            FactoryRegister.register(UploaderLibrary.getInstance());
 	            
-	            new DirectoryUploader(connection, 
-	                                  new File(directory, dirsToMerge[0])).run();
+	            File directoryToMerge = new File(directory, dirsToMerge[0]);
+				new DirectoryUploader(connection, directoryToMerge).run();
 	            System.out.println("Upload completed.");
 	            return;
             }
@@ -198,6 +210,10 @@ final public class Merger {
             for (int i = 0; i < filesToMerge2.length; i++, pos++) {
             	filesToMerge[pos] = filesToMerge2[i];
             }
+
+            int totalTerms = 0;
+            int movedTerms = 0;
+
             for (String s : filesToMerge) {
                 System.out.println("File: " + s);
 				File file = new File(s);
@@ -213,8 +229,10 @@ final public class Merger {
 				Iterator<TermEntry> iterator = teri.iterator();
 				while (iterator.hasNext()) {
 					TermEntry tt = iterator.next();
+					totalTerms ++;
 					if (peeker.include(tt.subj)) {
 						creator.putEntry(tt);
+						movedTerms ++;
 						continue;
 					}
 					
@@ -240,9 +258,14 @@ final public class Merger {
 				System.out.println("Removing file " + file);
             	file.delete();
             }
+            double percentage = new Double(movedTerms).doubleValue() / new Double(totalTerms).doubleValue() * 100.0;
+            System.out.format("Processed %d/%d terms (%.2f%%).%n",
+            				  movedTerms,
+            				  totalTerms,
+            				  percentage);
         } catch (TaskAbortException e) {
 			e.printStackTrace();
-			return;
+			exitStatus = 1;
 		} finally {
 			if (closeListener != null) {
 				connection.removeFcpListener(closeListener);

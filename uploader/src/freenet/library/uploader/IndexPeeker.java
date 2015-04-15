@@ -5,6 +5,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import freenet.library.index.TermEntry;
@@ -16,14 +18,16 @@ class IndexPeeker {
 	private File directory;
 	private LinkedHashMap<String, Object> topTtab;
 	private Set<String> topElements;
-	private boolean selected = false;
-	private String before;
-	private String after;
+	private List<ChoosenSection> activeSections = null;
+	private int maxSections;
 
 	private static final SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> newtrees =
 			new SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>>(12);
 
 	IndexPeeker(File dir) {
+		this(dir, 1);
+	}
+	IndexPeeker(File dir, int sections) {
 		directory = dir;
 		String lastCHK = DirectoryUploader.readStringFrom(new File(directory, UploaderPaths.LAST_URL_FILENAME));
 		String rootFilename = directory + "/" + UploaderPaths.LIBRARY_CACHE + "/" + lastCHK;
@@ -36,10 +40,41 @@ class IndexPeeker {
 			System.exit(1);
 		}
 		topElements = new HashSet<String>(topTtab.keySet());
+		activeSections = new LinkedList<ChoosenSection>();
+		maxSections = sections;
 	}
 
 	private static int compare(String a, String b) {
 		return SkeletonBTreeMap.compare(a, b, newtrees.comparator());
+	}
+	
+	class ChoosenSection {
+		String before;
+		String after;
+		
+		ChoosenSection(String subj) {
+			System.out.println("Grouping around " + subj);
+			String previous = null;
+			String next = null;
+			for (String iter : topTtab.keySet()) {
+				next = iter;
+				if (compare(subj, next) < 0) {
+					break;
+				}
+				previous = iter;
+				next = null;
+			}
+			before = previous;
+			after = next;
+		}
+
+		boolean include(String subj) {
+			if ((before == null || compare(before, subj) < 0) &&
+					(after == null || compare(subj, after) < 0)) {
+				return true;
+			}
+			return false;
+		}
 	}
 	
 	/**
@@ -56,25 +91,13 @@ class IndexPeeker {
 		if (topElements.contains(subj)) {
 			return true;
 		}
-		if (!selected) {
-			System.out.println("Grouping around " + subj);
-			String previous = null;
-			String next = null;
-			for (String iter : topTtab.keySet()) {
-				next = iter;
-				if (compare(subj, next) < 0) {
-					break;
-				}
-				previous = iter;
-				next = null;
+		for (ChoosenSection section : activeSections) {
+			if (section.include(subj)) {
+				return true;
 			}
-			before = previous;
-			after = next;
-			selected = true;
-			topTtab = null;
 		}
-		if ((before == null || compare(before, subj) < 0) &&
-				(after == null || compare(subj, after) < 0)) {
+		if (activeSections.size() < maxSections) {
+			activeSections.add(new ChoosenSection(subj));
 			return true;
 		}
 		return false;

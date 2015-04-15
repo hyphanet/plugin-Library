@@ -22,7 +22,6 @@ class TermEntryReaderIterator implements Iterable<TermEntry> {
         do {
             try {
 				line = is.readLine();
-	            System.out.println("Line: " + line);
 	            String[] parts = line.split("=", 2);
 	            if (parts.length >= 2) {
 	            	header.put(parts[0], parts[1]);
