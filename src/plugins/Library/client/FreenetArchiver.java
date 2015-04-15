@@ -352,6 +352,7 @@ implements LiveArchiver<T, SimpleProgress> {
 					} else {
 						Bucket data = cb.getGeneratedMetadata();
 						byte[] buf = BucketTools.toByteArray(data);
+						data.free();
 						task.meta = buf;
 						cacheKey = Base64.encode(SHA256.digest(buf));
 						System.out.println("Got generated metadata ("+buf.length+" bytes) for asynchronous insert size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
