@@ -38,7 +38,9 @@ class SpiderIndexURIs {
 			try {
 				fis = new FileInputStream(f);
 				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
-				privURI = new FreenetURI(br.readLine()).setDocName("index.yml"); // Else InsertableClientSSK doesn't like it.
+                String tmpURI = br.readLine();
+                String tmpDoc = tmpURI.substring(tmpURI.lastIndexOf("/")+1);
+				privURI = new FreenetURI(tmpURI).setDocName(tmpDoc); // Else InsertableClientSSK doesn't like it.
 				privkey = InsertableClientSSK.create(privURI);
 				System.out.println("Read old privkey");
 				this.pubURI = privkey.getURI();
@@ -106,13 +108,13 @@ class SpiderIndexURIs {
 	}
 
 	synchronized FreenetURI getPrivateUSK() {
-		return loadSSKURIs().setKeyType("USK").setDocName(SpiderIndexUploader.INDEX_DOCNAME).setSuggestedEdition(edition);
+		return loadSSKURIs().setKeyType("USK").setSuggestedEdition(edition);
 	}
 
 	/** Will return edition -1 if no successful uploads so far, otherwise the correct edition. */
 	synchronized FreenetURI getPublicUSK() {
 		loadSSKURIs();
-		return pubURI.setKeyType("USK").setDocName(SpiderIndexUploader.INDEX_DOCNAME).setSuggestedEdition(getLastUploadedEdition());
+		return pubURI.setKeyType("USK").setSuggestedEdition(getLastUploadedEdition());
 	}
 
 	private synchronized long getLastUploadedEdition() {
