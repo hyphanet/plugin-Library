@@ -57,6 +57,6 @@ class TermEntryFileWriter {
     }
 
 	public boolean isFull() {
-		return counter >= 300000;
+		return counter >= 1000000;
 	}
 }
