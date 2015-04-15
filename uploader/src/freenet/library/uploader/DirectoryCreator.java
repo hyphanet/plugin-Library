@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import freenet.library.index.ProtoIndex;
 import freenet.library.index.ProtoIndexComponentSerialiser;
@@ -68,7 +69,6 @@ class DirectoryCreator {
 	}
 	
 	public void putEntry(TermEntry tt) throws TaskAbortException {
-		// TODO Auto-generated method stub
 		SkeletonBTreeSet<TermEntry> tree;
 		if (idxDisk.ttab.containsKey(tt.subj)) {
 			// merge
@@ -78,14 +78,19 @@ class DirectoryCreator {
 			leafsrlDisk.setSerialiserFor(tree);
 		}
 		tree.add(tt);
-		tree.deflate();
-		assert(tree.isBare());
+		// tree.deflate();
+		// assert(tree.isBare());
 		idxDisk.ttab.put(tt.subj, tree);
 		countTerms++;
 	}
 
 	public void done() throws TaskAbortException {
-		// TODO Auto-generated method stub
+		for (Entry<String, SkeletonBTreeSet<TermEntry>> entry : idxDisk.ttab.entrySet()) {
+			SkeletonBTreeSet<TermEntry> tree = entry.getValue();
+			tree.deflate();
+			assert(tree.isBare());
+			idxDisk.ttab.put(entry.getKey(), tree);
+		}
 		idxDisk.ttab.deflate();
 		assert(idxDisk.ttab.isBare());
 		PushTask<ProtoIndex> task4 = new PushTask<ProtoIndex>(idxDisk);
