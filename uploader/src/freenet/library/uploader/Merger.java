@@ -207,9 +207,11 @@ final public class Merger {
 			e.printStackTrace();
 			exitStatus = 1;
 		} finally {
-			session.close();
-			if (exitStatus == 0) {
-				exitStatus = session.getStatus();
+			if (session != null) {
+				session.close();
+				if (exitStatus == 0) {
+					exitStatus = session.getStatus();
+				}
 			}
         }
         System.exit(exitStatus);
