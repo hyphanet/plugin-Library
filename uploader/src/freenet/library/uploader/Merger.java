@@ -6,22 +6,13 @@ package freenet.library.uploader;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.io.DataInputStream;
+import java.io.FilenameFilter;import java.io.DataInputStream;
 import java.io.FileInputStream;
-import java.net.UnknownHostException;
-import java.text.Format;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-import net.pterodactylus.fcp.ClientHello;
-import net.pterodactylus.fcp.CloseConnectionDuplicateClientName;
-import net.pterodactylus.fcp.FcpAdapter;
 import net.pterodactylus.fcp.FcpConnection;
-import net.pterodactylus.fcp.FcpMessage;
-import net.pterodactylus.fcp.NodeHello;
 
 import freenet.library.FactoryRegister;
 import freenet.library.index.TermEntry;
@@ -54,6 +45,10 @@ import freenet.library.util.exec.TaskAbortException;
  */
 final public class Merger {
 	
+	private static FcpSession session;
+
+
+
 	static String[] getMatchingFiles(File directory,
 			final String baseFilename) {
 		return directory.list(new FilenameFilter() {
@@ -89,7 +84,6 @@ final public class Merger {
         // Now we are in the Freenet directory. 
         // The rest of the work is done here.
         FcpConnection connection = null;
-        FcpAdapter closeListener = null;
 
         try {
 	        String[] dirsToMerge = null;
@@ -116,62 +110,8 @@ final public class Merger {
 
 	        if (dirsToMerge.length > 0) {
 	            System.out.println("Merging directory " + dirsToMerge[0]);
-		        closeListener = new FcpAdapter() {
-		            public void connectionClosed(FcpConnection fcpConnection, Throwable throwable) {
-		                System.out.println("Connection Closed - Aborting.");
-		                System.exit(1);
-		            }
-		        };
-	
-	            try {
-	                connection = new FcpConnection("127.0.0.1");
-	                connection.connect();
-	            } catch (UnknownHostException e) {
-	                System.err.println("Cannot connect to Node");
-	                exitStatus = 1;
-	                return;
-	            } catch (IOException e) {
-	                System.err.println("Cannot connect to Node");
-	                exitStatus = 1;
-	                return;
-	            }
-	            final String clientName = "SpiderMerger";
-	            final FcpMessage hello = new ClientHello(clientName);
-	            FcpAdapter helloListener = new FcpAdapter() {
-	                    public void receivedNodeHello(FcpConnection c, NodeHello nh) {
-	                        synchronized (hello) {
-	                            hello.notify();
-	                        }
-	                    }
-	
-	                    public void receivedCloseConnectionDuplicateClientName(FcpConnection fcpConnection, CloseConnectionDuplicateClientName closeConnectionDuplicateClientName) {
-	                        System.out.println("Another " + clientName + " connected - Aborting.");
-	                        System.exit(1);
-	                    }
-	                };
-	            connection.addFcpListener(helloListener);
-	
-	            connection.addFcpListener(closeListener);
-	
-	            synchronized (hello) {
-	                try {
-	                    connection.sendMessage(hello);
-	                    hello.wait();
-	                } catch (InterruptedException e) {
-	                    System.err.println("Waiting for connection interrupted.");
-	                    exitStatus = 1;
-	                    return;
-	                } catch (IOException e) {
-	                    System.err.println("Hello cannot write.");
-	                    exitStatus = 1;
-	                    return;
-	                } finally {
-	                	connection.removeFcpListener(helloListener);
-	                }
-	            }
-	            helloListener = null;
-	            System.out.println("Connected");
-	
+	            session = new FcpSession();
+	            connection = session.getConnection();
 	            UploaderLibrary.init(connection);
 	            FactoryRegister.register(UploaderLibrary.getInstance());
 	            
@@ -267,12 +207,10 @@ final public class Merger {
 			e.printStackTrace();
 			exitStatus = 1;
 		} finally {
-			if (closeListener != null) {
-				connection.removeFcpListener(closeListener);
+			session.close();
+			if (exitStatus == 0) {
+				exitStatus = session.getStatus();
 			}
-            if (connection != null) {
-                connection.close();
-            }
         }
         System.exit(exitStatus);
     }
