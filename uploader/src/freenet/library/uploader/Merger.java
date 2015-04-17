@@ -8,14 +8,20 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;import java.io.DataInputStream;
 import java.io.FileInputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import net.pterodactylus.fcp.FcpConnection;
 
 import freenet.library.FactoryRegister;
 import freenet.library.index.TermEntry;
+import freenet.library.util.BTreeMap.PairIterable;
 import freenet.library.util.exec.TaskAbortException;
 
 /**
@@ -47,7 +53,9 @@ final public class Merger {
 	
 	private static FcpSession session;
 
-
+	private static final String SELECTED = UploaderPaths.BASE_FILENAME_DATA + "selected.";
+	private static final String FILTERED = UploaderPaths.BASE_FILENAME_DATA + "filtered.";
+	private static final String PROCESSED = UploaderPaths.BASE_FILENAME_DATA + "processed.";
 
 	static String[] getMatchingFiles(File directory,
 			final String baseFilename) {
@@ -121,88 +129,7 @@ final public class Merger {
 	            return;
             }
 
-            // Calculate the next name
-            int lastFoundFiltered = 0;
-            String[] filesToMerge1 = getMatchingFiles(directory, UploaderPaths.BASE_FILENAME_FILTERED_DATA);
-            System.out.println("There is " + filesToMerge1.length + " old files to merge.");
-			for (String filename : filesToMerge1) {
-            	int numberFound = Integer.parseInt(filename.substring(UploaderPaths.BASE_FILENAME_FILTERED_DATA.length()));
-            	if (numberFound > lastFoundFiltered) {
-            		lastFoundFiltered = numberFound;
-            	}
-            }
-            System.out.println("Last found: " + lastFoundFiltered);
-
-            String[] filesToMerge2 = getMatchingFiles(directory, UploaderPaths.BASE_FILENAME_PUSH_DATA);
-
-            System.out.println("There is " + filesToMerge2.length + " new files to merge.");
-
-            DirectoryCreator creator = new DirectoryCreator(directory);
-            IndexPeeker peeker = new IndexPeeker(directory);
-
-			Set<File> toBeRemoved = new HashSet<File>();
-            TermEntryFileWriter notMerged = null;
-            String[] filesToMerge = new String[filesToMerge1.length + filesToMerge2.length];
-            int pos = 0;
-            for (; pos < filesToMerge1.length; pos++) {
-            	filesToMerge[pos] = filesToMerge1[pos];
-            }
-            for (int i = 0; i < filesToMerge2.length; i++, pos++) {
-            	filesToMerge[pos] = filesToMerge2[i];
-            }
-
-            int totalTerms = 0;
-            int movedTerms = 0;
-
-            for (String s : filesToMerge) {
-                System.out.println("File: " + s);
-				File file = new File(s);
-            	FileInputStream fileInputStream;
-				try {
-					fileInputStream = new FileInputStream(file);
-				} catch (FileNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-					return;
-				}
-				TermEntryReaderIterator teri = new TermEntryReaderIterator(new DataInputStream(fileInputStream));
-				Iterator<TermEntry> iterator = teri.iterator();
-				while (iterator.hasNext()) {
-					TermEntry tt = iterator.next();
-					totalTerms ++;
-					if (peeker.include(tt.subj)) {
-						creator.putEntry(tt);
-						movedTerms ++;
-						continue;
-					}
-					
-					if (notMerged == null) {
-						lastFoundFiltered ++;
-			            String filteredFilename = UploaderPaths.BASE_FILENAME_FILTERED_DATA + lastFoundFiltered;
-						notMerged = new TermEntryFileWriter(teri.getHeader(), new File(directory, filteredFilename));
-					}
-					notMerged.write(tt);
-					if (notMerged.isFull()) {
-						notMerged.close();
-						notMerged = null;
-					}
-				}
-				toBeRemoved.add(file);
-            }
-            if (notMerged != null) {
-            	notMerged.close();
-            	notMerged = null;
-            }
-			creator.done();
-            for (File file : toBeRemoved) {
-				System.out.println("Removing file " + file);
-            	file.delete();
-            }
-            double percentage = new Double(movedTerms).doubleValue() / new Double(totalTerms).doubleValue() * 100.0;
-            System.out.format("Processed %d/%d terms (%.2f%%).%n",
-            				  movedTerms,
-            				  totalTerms,
-            				  percentage);
+	        createMergeDirectory(directory);
         } catch (TaskAbortException e) {
 			e.printStackTrace();
 			exitStatus = 1;
@@ -216,4 +143,140 @@ final public class Merger {
         }
         System.exit(exitStatus);
     }
+
+
+	private static void createMergeDirectory(File directory) throws TaskAbortException {
+        String[] selectedFilesToMerge = getMatchingFiles(directory, SELECTED);
+        System.out.println("There is " + selectedFilesToMerge.length + " selected files.");
+
+        String [] filteredFilesToMerge = getMatchingFiles(directory, FILTERED);
+        System.out.println("There is " + filteredFilesToMerge.length + " filtered files.");
+
+        String [] processedFilesToMerge = getMatchingFiles(directory, PROCESSED);
+        System.out.println("There is " + processedFilesToMerge.length + " processed files.");
+
+        String[] newFilesToMerge = getMatchingFiles(directory, UploaderPaths.BASE_FILENAME_PUSH_DATA);
+        System.out.println("There is " + newFilesToMerge.length + " new files.");
+
+        // Calculate the next number of filtered and processed files.
+        int lastFoundNumber = 0;
+		for (String filename : filteredFilesToMerge) {
+        	int numberFound = Integer.parseInt(filename.substring(FILTERED.length()));
+        	if (numberFound > lastFoundNumber) {
+        		lastFoundNumber = numberFound;
+        	}
+        }
+		for (String filename : processedFilesToMerge) {
+        	int numberFound = Integer.parseInt(filename.substring(PROCESSED.length()));
+        	if (numberFound > lastFoundNumber) {
+        		lastFoundNumber = numberFound;
+        	}
+        }
+        System.out.println("Last found: " + lastFoundNumber);
+
+        int lastSelected = 0;
+        
+        DirectoryCreator creator = new DirectoryCreator(directory);
+
+        Map<IndexPeeker, TermEntryFileWriter> writers =
+        		new HashMap<IndexPeeker, TermEntryFileWriter>();
+        IndexPeeker peeker = new IndexPeeker(directory);
+
+		Set<File> toBeRemoved = new HashSet<File>();
+		List<String> filesToMerge = new ArrayList<String>();
+		String restBase;
+		if (selectedFilesToMerge.length > 0) {
+			filesToMerge.add(selectedFilesToMerge[0]);
+			restBase = PROCESSED;
+        } else {
+            for (int i = 0; i < filteredFilesToMerge.length; i++) {
+            	filesToMerge.add(filteredFilesToMerge[i]);
+            }
+            restBase = FILTERED;
+        }
+        for (int i = 0; i < processedFilesToMerge.length; i++) {
+        	filesToMerge.add(processedFilesToMerge[i]);
+        }
+        for (int i = 0; i < newFilesToMerge.length; i++) {
+        	filesToMerge.add(newFilesToMerge[i]);
+        }
+        TermEntryFileWriter notMerged = null;
+
+        int totalTerms = 0;
+        int movedTerms = 0;
+
+        for (String s : filesToMerge) {
+            System.out.println("File: " + s);
+			File file = new File(s);
+        	FileInputStream fileInputStream;
+			try {
+				fileInputStream = new FileInputStream(file);
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+				return;
+			}
+			TermEntryReaderIterator teri = new TermEntryReaderIterator(new DataInputStream(fileInputStream));
+			Iterator<TermEntry> iterator = teri.iterator();
+			while (iterator.hasNext()) {
+				TermEntry tt = iterator.next();
+				totalTerms ++;
+				if (peeker.include(tt.subj)) {
+					creator.putEntry(tt);
+					movedTerms ++;
+					continue;
+				}
+				
+				if (selectedFilesToMerge.length == 0) {
+					// They are all to be sorted.
+					boolean found = false;
+					for (Map.Entry<IndexPeeker, TermEntryFileWriter> entry : writers.entrySet()) {
+						if (entry.getKey().include(tt.subj)) {
+							entry.getValue().write(tt);
+							found = true;
+							break;
+						}
+					}
+					if (found) {
+						continue;						
+					} else if (writers.size() < 50) {
+						lastSelected ++;
+			            String selectedFilename = SELECTED + lastSelected;
+			            IndexPeeker p = new IndexPeeker(directory);
+			            TermEntryFileWriter t = new TermEntryFileWriter(teri.getHeader(),
+			            		new File(directory, selectedFilename));
+			            if (p.include(tt.subj)) {
+				            writers.put(p, t);
+				            t.write(tt);
+			            }
+						continue;
+					}
+				}
+				if (notMerged == null) {
+					lastFoundNumber ++;
+		            String restFilename = restBase + lastFoundNumber;
+					notMerged = new TermEntryFileWriter(teri.getHeader(), new File(directory, restFilename));
+				}
+				notMerged.write(tt);
+				if (notMerged.isFull()) {
+					notMerged.close();
+					notMerged = null;
+				}
+			}
+			toBeRemoved.add(file);
+        }
+        if (notMerged != null) {
+        	notMerged.close();
+        	notMerged = null;
+        }
+		creator.done();
+        for (File file : toBeRemoved) {
+			System.out.println("Removing file " + file);
+        	file.delete();
+        }
+        double percentage = new Double(movedTerms).doubleValue() / new Double(totalTerms).doubleValue() * 100.0;
+        System.out.format("Processed %d/%d terms (%.2f%%).%n",
+        				  movedTerms,
+        				  totalTerms,
+        				  percentage);
+	}
 }
