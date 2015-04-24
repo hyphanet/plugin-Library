@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FilenameFilter;import java.io.DataInputStream;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -130,7 +131,7 @@ final public class Merger {
             }
 
 	        createMergeDirectory(directory);
-        } catch (TaskAbortException e) {
+        } catch (TaskAbortException | IllegalStateException | IOException e) {
 			e.printStackTrace();
 			exitStatus = 1;
 		} finally {

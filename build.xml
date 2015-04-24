@@ -6,8 +6,8 @@
 	<property name="freenet-ext.location" location="../fred/lib/freenet/freenet-ext.jar"/>
 	<property name="fcp.location" location="../no-infocalypse/lib-jFCPLib/classes"/>
 
-	<property name="source-version" value="1.6"/>
-	<property name="target-version" value="1.6"/>
+	<property name="source-version" value="1.7"/>
+	<property name="target-version" value="1.7"/>
 
 	<property name="build" location="build"/>
 	<property name="build-shared" location="${build}/shared"/>

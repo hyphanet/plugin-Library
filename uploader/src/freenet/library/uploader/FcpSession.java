@@ -1,7 +1,6 @@
 package freenet.library.uploader;
 
 import java.io.IOException;
-import java.net.UnknownHostException;
 
 import net.pterodactylus.fcp.ClientHello;
 import net.pterodactylus.fcp.CloseConnectionDuplicateClientName;
@@ -16,7 +15,11 @@ public class FcpSession {
 	private FcpConnection connection;
 	private int exitStatus;
 
-	public FcpSession() {
+	public FcpSession() throws IllegalStateException, IOException {
+		this("SpiderMerger");
+	}
+	
+	public FcpSession(final String clientName) throws IllegalStateException, IOException {
 		exitStatus = 0;
 
 		closeListener = new FcpAdapter() {
@@ -26,19 +29,8 @@ public class FcpSession {
             }
         };
 
-        try {
-            connection = new FcpConnection("127.0.0.1");
-            connection.connect();
-        } catch (UnknownHostException e) {
-            System.err.println("Cannot connect to Node");
-            exitStatus = 1;
-            return;
-        } catch (IOException e) {
-            System.err.println("Cannot connect to Node");
-            exitStatus = 1;
-            return;
-        }
-        final String clientName = "SpiderMerger";
+        connection = new FcpConnection("127.0.0.1");
+        connection.connect();
         final FcpMessage hello = new ClientHello(clientName);
         FcpAdapter helloListener = new FcpAdapter() {
                 public void receivedNodeHello(FcpConnection c, NodeHello nh) {
@@ -64,17 +56,12 @@ public class FcpSession {
                 System.err.println("Waiting for connection interrupted.");
                 exitStatus = 1;
                 return;
-            } catch (IOException e) {
-                System.err.println("Hello cannot write.");
-                exitStatus = 1;
-                return;
             } finally {
             	connection.removeFcpListener(helloListener);
             }
         }
         helloListener = null;
         System.out.println("Connected");
-
 	}
 	
 	public void close() {
