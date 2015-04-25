@@ -10,6 +10,8 @@ import java.io.FilenameFilter;import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -57,10 +59,64 @@ final public class Merger {
 	private static final String SELECTED = UploaderPaths.BASE_FILENAME_DATA + "selected.";
 	private static final String FILTERED = UploaderPaths.BASE_FILENAME_DATA + "filtered.";
 	private static final String PROCESSED = UploaderPaths.BASE_FILENAME_DATA + "processed.";
+	
+	static final Comparator<String> comparator = new StringNumberComparator();
+	
+	static class StringNumberComparator implements Comparator<String> {
+		@Override
+		public int compare(String a, String b) {
+			int ai;
+			int bi;
+			for (ai = 0, bi = 0; ai < a.length() && bi < b.length(); ai++, bi++) {
+				if (a.substring(ai, ai + 1).matches("[0-9]")
+						&& a.substring(bi, bi + 1).matches("[0-9]")) {
+					int aii;
+					for (aii = ai + 1; aii < a.length(); aii++) {
+						if (!a.substring(aii, aii + 1).matches("[0-9]")) {
+							break;
+						}
+					}
+					int bii;
+					for (bii = bi + 1; bii < b.length(); bii++) {
+						if (!b.substring(bii, bii + 1).matches("[0-9]")) {
+							break;
+						}
+					}
+					try {
+						int ret = Integer.valueOf(a.substring(ai, aii)).compareTo(
+										  Integer.valueOf(b.substring(bi, bii)));
+						if (ret != 0) {
+							return ret;
+						}
+						
+						ai = aii - 1;
+						bi = bii - 1;
+						continue;
+					} catch (NumberFormatException e) {
+						continue;
+					}
+				}
+				int ret = a.charAt(ai) - b.charAt(bi);
+				if (ret != 0) {
+					return ret;
+				}
+			}
+			if (ai < a.length()) {
+				return 1;
+			}
+			if (bi < b.length()) {
+				return -1;
+			}
+			return 0;
+		}
+	}
 
+	/**
+	 * Return an array with the filenames in order.
+	 */
 	static String[] getMatchingFiles(File directory,
 			final String baseFilename) {
-		return directory.list(new FilenameFilter() {
+		String[] array = directory.list(new FilenameFilter() {
 		                    
 		        public boolean accept(File arg0, String arg1) {
 					if (!(arg1.toLowerCase().startsWith(baseFilename))) {
@@ -76,10 +132,10 @@ final public class Merger {
 		            }
 		            return true;
 		        }
-		                    
 		    });
+		Arrays.sort(array, comparator);
+		return array;
 	}
-
 
 
     public static void main(String[] argv) {
@@ -176,6 +232,12 @@ final public class Merger {
         System.out.println("Last found: " + lastFoundNumber);
 
         int lastSelected = 0;
+		for (String filename : selectedFilesToMerge) {
+        	int numberFound = Integer.parseInt(filename.substring(SELECTED.length()));
+        	if (numberFound > lastSelected) {
+        		lastSelected = numberFound;
+        	}
+        }
         
         DirectoryCreator creator = new DirectoryCreator(directory);
 
@@ -186,10 +248,24 @@ final public class Merger {
 		Set<File> toBeRemoved = new HashSet<File>();
 		List<String> filesToMerge = new ArrayList<String>();
 		String restBase;
+		boolean createSelectedFiles = false;
 		if (selectedFilesToMerge.length > 0) {
-			filesToMerge.add(selectedFilesToMerge[0]);
-			restBase = PROCESSED;
+			if (processedFilesToMerge.length > 1
+					&& processedFilesToMerge.length * selectedFilesToMerge.length > filteredFilesToMerge.length) {
+				createSelectedFiles = true;
+	            for (int i = 0; i < selectedFilesToMerge.length; i++) {
+	            	filesToMerge.add(selectedFilesToMerge[i]);
+	            }
+	            for (int i = 0; i < filteredFilesToMerge.length; i++) {
+	            	filesToMerge.add(filteredFilesToMerge[i]);
+	            }
+	            restBase = FILTERED;
+			} else {
+				filesToMerge.add(selectedFilesToMerge[0]);
+				restBase = PROCESSED;
+			}
         } else {
+			createSelectedFiles = true;
             for (int i = 0; i < filteredFilesToMerge.length; i++) {
             	filesToMerge.add(filteredFilesToMerge[i]);
             }
@@ -227,7 +303,7 @@ final public class Merger {
 					continue;
 				}
 				
-				if (selectedFilesToMerge.length == 0) {
+				if (createSelectedFiles) {
 					// They are all to be sorted.
 					boolean found = false;
 					for (Map.Entry<IndexPeeker, TermEntryFileWriter> entry : writers.entrySet()) {
@@ -239,7 +315,7 @@ final public class Merger {
 					}
 					if (found) {
 						continue;						
-					} else if (writers.size() < 50) {
+					} else if (writers.size() < 10 * (filteredFilesToMerge.length + processedFilesToMerge.length)) {
 						lastSelected ++;
 			            String selectedFilename = SELECTED + lastSelected;
 			            IndexPeeker p = new IndexPeeker(directory);
