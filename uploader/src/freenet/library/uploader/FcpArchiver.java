@@ -78,6 +78,8 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 				cacheKey = (String) task.meta;
 			} else if (task.meta instanceof byte[]) {
 				cacheKey = Base64.encode(SHA256.digest((byte[]) task.meta));
+			} else {
+				throw new IllegalArgumentException("Cannot understand task.meta: " + task.meta);						
 			}
 
 			try {
@@ -89,7 +91,11 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 						InputStream is = new FileInputStream(cached);
 						task.data = (T) reader.readObject(is);
 						is.close();
+					} else {
+						throw new RuntimeException("Failed to read content from " + cached);						
 					}
+				} else {
+					throw new RuntimeException("Failed to read content from " + cacheDir);						
 				}
 					
 				if (progress != null) {
@@ -98,7 +104,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			} catch (IOException e) {
 				System.out.println("IOException:");
 				e.printStackTrace();
-				throw new TaskAbortException("Failed to read content from local tempbucket", e, true);
+				throw new TaskAbortException("Failed to read content from " + cacheKey, e, true);
 			}
 			return;
 		}
@@ -163,8 +169,6 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 
         // Moving file.
         file.renameTo(new File(cacheDir, putterListener.getURI()));
-
-		startCleanupThread();        
 	}
 
 

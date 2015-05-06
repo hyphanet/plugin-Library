@@ -37,6 +37,12 @@ class FileClientPutter {
 	protected net.pterodactylus.fcp.Priority getPriority() {
 		return net.pterodactylus.fcp.Priority.bulkSplitfile;		
 	}
+	
+	int getQueuedSize() {
+		synchronized (stillRunning) {
+			return stillRunning.size();
+		}
+	}
 
 	protected class PushAdapter extends FcpAdapter {
     	private ClientPut putter;
@@ -71,7 +77,7 @@ class FileClientPutter {
 					total += entry.getValue().progressTotal;
 					completed += entry.getValue().progressCompleted;
 				}
-				System.out.println("Outstanding " + stillRunning.size() + " jobs " +
+				System.out.println("Outstanding " + stillRunning.size() + " ClientPut jobs " +
 						"(" + completed + "/" + total + ")");
 			}
 		}
@@ -218,10 +224,13 @@ class FileClientPutter {
         
         connection.sendMessage(putter);
         in.close();
+
+		startCleanupThread();        
+
 		return putterListener;
 	}
 
-	protected synchronized void startCleanupThread() {
+	private synchronized void startCleanupThread() {
 		if (cleanupThread == null) {
 			cleanupThread = new Thread(
 		        new Runnable() {
