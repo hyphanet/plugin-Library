@@ -6,7 +6,8 @@ package freenet.library.uploader;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FilenameFilter;import java.io.DataInputStream;
+import java.io.FilenameFilter;
+import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,8 +49,12 @@ import freenet.library.util.exec.TaskAbortException;
  * <ol> Fetch the index top to get the top fan-out.
  * <ol> Get the first term in the first and create an index with all
  *      the contents from all the files with all terms from the same index.
- *      Rewrite all files with the rest of the terms.
+ * <ol> While processing, group into some selected files. The rest goes
+ *      into the filtered files.
  * <ol> Merge that index.
+ * <ol> If there are selected files, get the first term from the first one of them instead.
+ * <ol> If there is room for more in the same go, get the next selected file.
+ * <ol> Rewrite all not filtered files getting the matched terms.
  * <ol> Done.
  */
 final public class Merger {
@@ -59,6 +64,8 @@ final public class Merger {
 	private static final String SELECTED = UploaderPaths.BASE_FILENAME_DATA + "selected.";
 	private static final String FILTERED = UploaderPaths.BASE_FILENAME_DATA + "filtered.";
 	private static final String PROCESSED = UploaderPaths.BASE_FILENAME_DATA + "processed.";
+
+	private static int MIN_MOVED_TERMS = 40000;
 	
 	static final Comparator<String> comparator = new StringNumberComparator();
 	
@@ -203,19 +210,19 @@ final public class Merger {
 
 
 	private static void createMergeDirectory(File directory) throws TaskAbortException {
-        String[] selectedFilesToMerge = getMatchingFiles(directory, SELECTED);
+		final String[] selectedFilesToMerge = getMatchingFiles(directory, SELECTED);
         System.out.println("There is " + selectedFilesToMerge.length + " selected files.");
 
-        String [] filteredFilesToMerge = getMatchingFiles(directory, FILTERED);
+        final String [] filteredFilesToMerge = getMatchingFiles(directory, FILTERED);
         System.out.println("There is " + filteredFilesToMerge.length + " filtered files.");
 
-        String [] processedFilesToMerge = getMatchingFiles(directory, PROCESSED);
+        final String [] processedFilesToMerge = getMatchingFiles(directory, PROCESSED);
         System.out.println("There is " + processedFilesToMerge.length + " processed files.");
 
-        String[] newFilesToMerge = getMatchingFiles(directory, UploaderPaths.BASE_FILENAME_PUSH_DATA);
+        final String[] newFilesToMerge = getMatchingFiles(directory, UploaderPaths.BASE_FILENAME_PUSH_DATA);
         System.out.println("There is " + newFilesToMerge.length + " new files.");
 
-        // Calculate the next number of filtered and processed files.
+        // Calculate the last number of filtered and processed files.
         int lastFoundNumber = 0;
 		for (String filename : filteredFilesToMerge) {
         	int numberFound = Integer.parseInt(filename.substring(FILTERED.length()));
@@ -243,46 +250,106 @@ final public class Merger {
 
         Map<IndexPeeker, TermEntryFileWriter> writers =
         		new HashMap<IndexPeeker, TermEntryFileWriter>();
-        IndexPeeker peeker = new IndexPeeker(directory);
+        IndexPeeker creatorPeeker = new IndexPeeker(directory);
 
 		Set<File> toBeRemoved = new HashSet<File>();
-		List<String> filesToMerge = new ArrayList<String>();
-		String restBase;
-		boolean createSelectedFiles = false;
-		if (selectedFilesToMerge.length > 0) {
-			if (processedFilesToMerge.length > 1
-					&& processedFilesToMerge.length * selectedFilesToMerge.length > filteredFilesToMerge.length) {
-				createSelectedFiles = true;
-	            for (int i = 0; i < selectedFilesToMerge.length; i++) {
-	            	filesToMerge.add(selectedFilesToMerge[i]);
+		
+		class ProcessedFilenames implements Iterator<String> {
+			String restBase;
+			boolean createSelectedFiles = false;
+			boolean processingSelectedFile = false;
+	        int movedTerms = 0;
+	        private boolean doSelected = false;
+	        private boolean doAllSelected = false;
+	        private boolean doFiltered = false;
+	        private boolean doProcessed = false;
+	        private boolean doNew = true;
+	        private int nextSelected = 0;
+	        private int nextFiltered = 0;
+	        private int nextProcessed = 0;
+	        private int nextNew = 0;
+
+	        ProcessedFilenames() {
+	    		if (selectedFilesToMerge.length > 0) {
+	    			if (processedFilesToMerge.length > 1
+	    					&& processedFilesToMerge.length * selectedFilesToMerge.length > filteredFilesToMerge.length) {
+	    				createSelectedFiles = true;
+	    				doAllSelected = true;
+	    				doFiltered = true;
+	    	            restBase = FILTERED;
+	    			} else {
+	    				doSelected = true;
+	    				restBase = PROCESSED;
+	    			}
+	            } else {
+	    			createSelectedFiles = true;
+	    			doFiltered = true;
+	                restBase = FILTERED;
 	            }
-	            for (int i = 0; i < filteredFilesToMerge.length; i++) {
-	            	filesToMerge.add(filteredFilesToMerge[i]);
-	            }
-	            restBase = FILTERED;
-			} else {
-				filesToMerge.add(selectedFilesToMerge[0]);
-				restBase = PROCESSED;
+	    		doProcessed = true;
+	    		doNew = true;
+	        }
+	        
+	        @Override
+			public boolean hasNext() {
+	        	if (doAllSelected && nextSelected < selectedFilesToMerge.length) {
+	        		return true;
+	        	}
+	        	if (doSelected && 
+	        			nextSelected < selectedFilesToMerge.length &&
+	        			movedTerms < MIN_MOVED_TERMS) {
+	        		return true;
+	        	}
+	        	if (doFiltered && nextFiltered < filteredFilesToMerge.length) {
+	        		return true;
+	        	}
+	        	if (doProcessed && nextProcessed < processedFilesToMerge.length) {
+	        		return true;
+	        	}
+	        	if (doNew && nextNew < newFilesToMerge.length) {
+	        		return true;
+	        	}
+				return false;
 			}
-        } else {
-			createSelectedFiles = true;
-            for (int i = 0; i < filteredFilesToMerge.length; i++) {
-            	filesToMerge.add(filteredFilesToMerge[i]);
-            }
-            restBase = FILTERED;
-        }
-        for (int i = 0; i < processedFilesToMerge.length; i++) {
-        	filesToMerge.add(processedFilesToMerge[i]);
-        }
-        for (int i = 0; i < newFilesToMerge.length; i++) {
-        	filesToMerge.add(newFilesToMerge[i]);
-        }
+
+			@Override
+			public String next() {
+				processingSelectedFile = false;
+				if (doAllSelected && nextSelected < selectedFilesToMerge.length) {
+	        		return selectedFilesToMerge[nextSelected++];
+	        	} else if (doSelected && 
+	        			nextSelected < selectedFilesToMerge.length &&
+	        			movedTerms < MIN_MOVED_TERMS) {
+	        		processingSelectedFile = true;
+	        		System.out.println("So far " + movedTerms + " terms are moved.");
+	        		return selectedFilesToMerge[nextSelected++];
+	        	} else if (doFiltered && nextFiltered < filteredFilesToMerge.length) {
+	        		return filteredFilesToMerge[nextFiltered++];
+	        	} else if (doProcessed && nextProcessed < processedFilesToMerge.length) {
+	        		return processedFilesToMerge[nextProcessed++];
+	        	} else if (doNew && nextNew < newFilesToMerge.length) {
+	        		return newFilesToMerge[nextNew++];
+	        	} else {
+	        		throw new IllegalArgumentException("next() called after hasNext() returned false.");
+	        	}
+			}
+
+			@Override
+			public void remove() {
+				throw new IllegalArgumentException("Not implemented");
+			}
+		};
+		final ProcessedFilenames processedFilenames = new ProcessedFilenames();
         TermEntryFileWriter notMerged = null;
 
         int totalTerms = 0;
-        int movedTerms = 0;
 
-        for (String s : filesToMerge) {
+        for (String s : new Iterable<String>() {
+        	@Override
+        	public Iterator<String> iterator() {
+        		return processedFilenames;
+        	}
+        }) {
             System.out.println("File: " + s);
 			File file = new File(s);
         	FileInputStream fileInputStream;
@@ -297,13 +364,18 @@ final public class Merger {
 			while (iterator.hasNext()) {
 				TermEntry tt = iterator.next();
 				totalTerms ++;
-				if (peeker.include(tt.subj)) {
+				if (processedFilenames.processingSelectedFile) {
+					creatorPeeker.roomForOne();
+				} else {
+					creatorPeeker.roomForNone();
+				}
+				if (creatorPeeker.include(tt.subj)) {
 					creator.putEntry(tt);
-					movedTerms ++;
+					processedFilenames.movedTerms ++;
 					continue;
 				}
 				
-				if (createSelectedFiles) {
+				if (processedFilenames.createSelectedFiles) {
 					// They are all to be sorted.
 					boolean found = false;
 					for (Map.Entry<IndexPeeker, TermEntryFileWriter> entry : writers.entrySet()) {
@@ -330,7 +402,7 @@ final public class Merger {
 				}
 				if (notMerged == null) {
 					lastFoundNumber ++;
-		            String restFilename = restBase + lastFoundNumber;
+		            String restFilename = processedFilenames.restBase + lastFoundNumber;
 					notMerged = new TermEntryFileWriter(teri.getHeader(), new File(directory, restFilename));
 				}
 				notMerged.write(tt);
@@ -350,9 +422,9 @@ final public class Merger {
 			System.out.println("Removing file " + file);
         	file.delete();
         }
-        double percentage = new Double(movedTerms).doubleValue() / new Double(totalTerms).doubleValue() * 100.0;
+        double percentage = new Double(processedFilenames.movedTerms).doubleValue() / new Double(totalTerms).doubleValue() * 100.0;
         System.out.format("Processed %d/%d terms (%.2f%%).%n",
-        				  movedTerms,
+        				  processedFilenames.movedTerms,
         				  totalTerms,
         				  percentage);
 	}

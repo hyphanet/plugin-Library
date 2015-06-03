@@ -102,4 +102,12 @@ class IndexPeeker {
 		}
 		return false;
 	}
+	
+	void roomForOne() {
+		maxSections = activeSections.size() + 1;
+	}
+
+	void roomForNone() {
+		maxSections = activeSections.size();
+	}
 }
