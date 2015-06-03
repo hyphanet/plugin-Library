@@ -10,19 +10,19 @@ import net.pterodactylus.fcp.FcpMessage;
 import net.pterodactylus.fcp.NodeHello;
 
 public class FcpSession {
-	
-	private FcpAdapter closeListener;
-	private FcpConnection connection;
-	private int exitStatus;
+    
+    private FcpAdapter closeListener;
+    private FcpConnection connection;
+    private int exitStatus;
 
-	public FcpSession() throws IllegalStateException, IOException {
-		this("SpiderMerger");
-	}
-	
-	public FcpSession(final String clientName) throws IllegalStateException, IOException {
-		exitStatus = 0;
+    public FcpSession() throws IllegalStateException, IOException {
+        this("SpiderMerger");
+    }
+    
+    public FcpSession(final String clientName) throws IllegalStateException, IOException {
+        exitStatus = 0;
 
-		closeListener = new FcpAdapter() {
+        closeListener = new FcpAdapter() {
             public void connectionClosed(FcpConnection fcpConnection, Throwable throwable) {
                 System.out.println("Connection Closed - Aborting.");
                 System.exit(1);
@@ -57,27 +57,29 @@ public class FcpSession {
                 exitStatus = 1;
                 return;
             } finally {
-            	connection.removeFcpListener(helloListener);
+                connection.removeFcpListener(helloListener);
             }
         }
         helloListener = null;
         System.out.println("Connected");
-	}
-	
-	public void close() {
-		if (closeListener != null) {
-			connection.removeFcpListener(closeListener);
-		}
+    }
+    
+    public void close() {
+        if (closeListener != null) {
+            connection.removeFcpListener(closeListener);
+            closeListener = null;
+        }
         if (connection != null) {
             connection.close();
+            connection = null;
         }
-	}
+    }
 
-	public FcpConnection getConnection() {
-		return connection;
-	}
+    public FcpConnection getConnection() {
+        return connection;
+    }
 
-	public int getStatus() {
-		return exitStatus;
-	}
+    public int getStatus() {
+        return exitStatus;
+    }
 }
