@@ -191,11 +191,17 @@ public class DownloadAll {
         private Set<FetchedPage> children = new HashSet<FetchedPage>();
         
         private String uri;
+        int level;
         private boolean succeeded;
         private boolean failed;
         
         FetchedPage(String u) {
+            this(u, 0);
+        }
+        
+        FetchedPage(String u, int l) {
             uri = u;
+            level = l;
         }
         
         void addParent(FetchedPage fp) {
@@ -207,7 +213,7 @@ public class DownloadAll {
         }
         
         FetchedPage newChild(String u) {
-            FetchedPage child = new FetchedPage(u);
+            FetchedPage child = new FetchedPage(u, level + 1);
             child.addParent(this);
             addChild(child);
             return child;
@@ -234,6 +240,18 @@ public class DownloadAll {
                 size += child.getTreeSize();
             }
             return size;
+        }
+        
+        void addPerLevel(Map<Integer, Integer> result) {
+        	if (!result.containsKey(level)) {
+        		result.put(level, 0);
+        	}
+        	if (!succeeded && !failed) {
+        		result.put(level, result.get(level) + 1);
+        	}
+        	for (FetchedPage child : children) {
+        		child.addPerLevel(result);
+        	}
         }
 
         int getTreeSizeSucceeded() {
@@ -312,6 +330,47 @@ public class DownloadAll {
             }
         }
     }
+    
+    
+    class StatisticsAccumulator {
+    	private int count = 0;
+    	private int sum = 0;
+
+    	void addSample(int found) {
+    		count++;
+    		sum += found;
+    	}
+
+    	double getMean() {
+    		return 1.0 * sum / count;
+    	}
+    }
+    
+    private Map<Integer, StatisticsAccumulator> statistics = new HashMap<Integer, StatisticsAccumulator>();
+    private void addFoundChildren(int level, int foundChildren) {
+    	if (!statistics.containsKey(level)) {
+    		statistics.put(level, new StatisticsAccumulator());
+    	}
+    	statistics.get(level).addSample(foundChildren);
+	}
+    
+    private double getEstimatedPagesLeft(FetchedPage page) {
+    	double estimate = 0.0;
+    	double extra = 0.0;
+    	Map<Integer, Integer> pagesPerLevel = new HashMap<Integer, Integer>();
+    	page.addPerLevel(pagesPerLevel);
+    	for (int level = 1; pagesPerLevel.containsKey(level); level++) {
+    		if (!statistics.containsKey(level)) {
+    			return Double.POSITIVE_INFINITY;
+    		}
+    		extra += pagesPerLevel.get(level);
+    		estimate += extra;
+    		extra = extra * statistics.get(level).getMean();
+    	}
+    	return estimate;
+    }
+    
+
 
     private class GetAdapter extends FcpAdapter {
         private ClientGet getter;
@@ -363,18 +422,19 @@ public class DownloadAll {
             showProgress();
         }
         
-        private void processUri(String uri) {
+        private boolean processUri(String uri) {
         	synchronized (roots) {
         		for (FetchedPage root : roots) {
         			FetchedPage foundChild = root.findUri(uri);
         			if (foundChild != null) {
         				page.addChild(foundChild);
         				foundChild.addParent(page);
-        				return;
+        				return false;
                     }
                 }
             }
             objectQueue.offer(page.newChild(uri));
+            return true;
         }
         
         @Override
@@ -387,6 +447,7 @@ public class DownloadAll {
             System.out.println("receivedAllData for " + token +
                     " adding to the " + objectQueue.size() + " elements in the queue.");
             page.didSucceed();
+            int foundChildren = 0;
             try {
                 try {
                     Map<String, Object> map =
@@ -401,7 +462,10 @@ public class DownloadAll {
                             for (BinInfo value : entries.values()) {
                             	try {
                             		String u = (String) value.getID();
-                            		processUri(u);
+                            		if (processUri(u)) {
+                            			foundChildren ++;
+                            		}
+                            		
                             	} catch (ClassCastException e) {
                             		System.out.println("Cannot process " + value.getID());
                             	}
@@ -409,7 +473,9 @@ public class DownloadAll {
                             Map<String, Object> subnodes =
                                     (Map<String, Object>) map2.get("subnodes");
                             for (String key : subnodes.keySet()) {
-                                processUri(key);
+                                if (processUri(key)) {
+                                	foundChildren ++;
+                                }
                             }
                             return;
                         }
@@ -423,7 +489,9 @@ public class DownloadAll {
                         for (BinInfo value : entries.values()) {
                         	try {
                         		String u = (String) value.getID();
-                        		processUri(u);
+                        		if (processUri(u)) {
+                        			foundChildren ++;
+                        		}
                         	} catch (ClassCastException e) {
                         		System.out.println("Cannot process " + value.getID());
                         	}
@@ -446,6 +514,7 @@ public class DownloadAll {
                     System.exit(1);
                 }
             } finally {
+            	addFoundChildren(page.level, foundChildren);
                 markDone();
                 System.out.println("receivedAllData for " + token + " done.");
                 successful ++;
@@ -455,7 +524,7 @@ public class DownloadAll {
             }
         }
 
-        @Override
+		@Override
         public void receivedGetFailed(FcpConnection c, GetFailed gf) {
             assert c == connection;
             assert gf != null;
@@ -716,22 +785,23 @@ public class DownloadAll {
                 }
                 String edition = root.getURI().substring(uri.length());
                 sb.append(edition);
-                int treeSize = root.getTreeSize();
                 int succeeded = root.getTreeSizeSucceeded();
                 int failed = root.getTreeSizeFailed();
                 if (failed > 0) {
                 	sb.append(new Formatter().format(" FAILED: %.2f%%.", 100.0 * failed / (failed + succeeded)));
                 }
-                sb.append(new Formatter().format(" Fetched: %.2f%%.", 100.0 * (failed + succeeded) / treeSize));
+                double estimate = getEstimatedPagesLeft(root);
+                if (estimate < Double.POSITIVE_INFINITY) {
+                    sb.append(new Formatter().format(" Fetched: %.2f%%.",
+                    		100.0 * (failed + succeeded) / (estimate + failed + succeeded)));
+                }
                 sb.append(" (");
                 sb.append(succeeded);
-                sb.append("/");
-                sb.append(treeSize);
     
                 if (failed > 0) {
-                    sb.append(" (and ");
+                    sb.append(" and ");
                     sb.append(failed);
-                    sb.append(" failed)");
+                    sb.append(" failed");
                 }
                 
                 sb.append(")");
@@ -742,7 +812,7 @@ public class DownloadAll {
     }
     
     public static void main(String[] argv) {
-        new DownloadAll(argv[1]).doit();
+        new DownloadAll(argv[0]).doit();
     }
 
     public void waitForSlot() {
