@@ -64,6 +64,7 @@ public class DownloadAll {
     private int successfulBlocks = 0;
     private long successfulBytes = 0;
     private int failed = 0;
+    private int recreated = 0;
     private int avoidFetching = 0;
     
     private Random rand = new Random();
@@ -223,13 +224,6 @@ public class DownloadAll {
             return uri;
         }
         
-        String getPath() {
-            for (FetchedPage parent : parents) {
-                return parent.getPath() + "->" + uri;
-            }
-            return uri;
-        }
-
         boolean hasParent() {
             return !parents.isEmpty();
         }
@@ -543,6 +537,7 @@ public class DownloadAll {
             upload(page.getURI(), new Runnable() {
             	public void run() {
             		objectQueue.offer(page);
+            		recreated ++;
             	}
             });
         }
@@ -775,6 +770,7 @@ public class DownloadAll {
                 " blocks: " + successfulBlocks +
                 " bytes: " + successfulBytes +
                 " Failed: " + failed +
+                " Recreated: " + recreated +
                 " Avoided: " + avoidFetching + ".");
 
         StringBuilder sb = new StringBuilder();
@@ -793,7 +789,7 @@ public class DownloadAll {
                 double estimate = getEstimatedPagesLeft(root);
                 if (estimate < Double.POSITIVE_INFINITY) {
                     sb.append(new Formatter().format(" Fetched: %.2f%%.",
-                    		100.0 * (failed + succeeded) / (estimate + failed + succeeded)));
+                    		100.0 * (failed + succeeded) / (estimate + succeeded)));
                 }
                 sb.append(" (");
                 sb.append(succeeded);
