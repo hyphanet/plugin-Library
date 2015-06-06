@@ -78,10 +78,12 @@ class DirectoryCreator {
 			leafsrlDisk.setSerialiserFor(tree);
 		}
 		tree.add(tt);
-		// tree.deflate();
-		// assert(tree.isBare());
 		idxDisk.ttab.put(tt.subj, tree);
 		countTerms++;
+	}
+	
+	public int size() {
+		return idxDisk.ttab.size();
 	}
 
 	public void done() throws TaskAbortException {
