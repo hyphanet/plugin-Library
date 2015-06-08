@@ -5,6 +5,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/fred"/>
 	<classpathentry kind="lib" path="/usr/share/java/junit.jar"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/shared"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/library-shared"/>
 	<classpathentry kind="output" path="build"/>
 </classpath>

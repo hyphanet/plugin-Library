@@ -3,8 +3,8 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="test"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/lib-jFCPLib"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/shared"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/3"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/jFCPlib"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/library-shared"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

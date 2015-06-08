@@ -3,8 +3,8 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="test"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry exported="true" kind="lib" path="projects/freenet/plugin-Library/lib/snakeyaml-1.5.jar" sourcepath="/library-plugin/lib/snakeyaml-1.5-sources.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/junit"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/3"/>
+	<classpathentry kind="lib" path="/library-plugin/lib/snakeyaml-1.5.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
