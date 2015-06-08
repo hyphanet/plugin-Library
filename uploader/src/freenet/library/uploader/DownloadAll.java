@@ -299,7 +299,8 @@ public class DownloadAll {
         @Override
         public void receivedSubscribedUSKUpdate(FcpConnection fcpConnection, SubscribedUSKUpdate subscribedUSKUpdate) {
             assert fcpConnection == connection;
-            if (subscribedUSKUpdate.getNewKnownGood()) {
+            if (subscribedUSKUpdate.isNewKnownGood() &&
+            		subscribedUSKUpdate.getEdition() > edition) {
                 updated = true;
                 newUri = subscribedUSKUpdate.getURI();
                 edition = subscribedUSKUpdate.getEdition();
@@ -413,7 +414,6 @@ public class DownloadAll {
                 System.out.println("Outstanding " + stillRunning.size() + " ClientGet jobs " +
                         "(" + completed + "/" + required + "/" + total + ") ");
             }
-            showProgress();
         }
         
         private boolean processUri(String uri) {
@@ -510,7 +510,6 @@ public class DownloadAll {
             } finally {
             	addFoundChildren(page.level, foundChildren);
                 markDone();
-                System.out.println("receivedAllData for " + token + " done.");
                 successful ++;
                 successfulBlocks += progressCompleted;
                 successfulBytes += ad.getDataLength();
@@ -528,7 +527,7 @@ public class DownloadAll {
             synchronized (getter) {
                 getter.notify();
             }
-            System.out.println("receivedGetFailed for " + token + " (" + page + ").");
+            System.out.println("receivedGetFailed for " + token + " (" + page.getURI() + ").");
             // System.exit(1);
             page.didFail();
             markDone();
@@ -593,6 +592,7 @@ public class DownloadAll {
             }
             uploadStarter.execute(new Runnable() {
                 public void run() {
+        			System.out.println("Ressurrecting " + filename);
                     uploadCounter++;
                     final String identifier = "Upload" + uploadCounter;
                     ongoingUploads.put(identifier, new AbstractMap.SimpleImmutableEntry<String, Runnable>(filename, callback));
@@ -766,11 +766,15 @@ public class DownloadAll {
 
 
     private void showProgress() {
+    	String recreatedMessage = "";
+    	if (recreated > 0) {
+    		recreatedMessage = " Recreated: " + recreated;
+    	}
         System.out.println("Fetches: Successful: " + successful + 
                 " blocks: " + successfulBlocks +
                 " bytes: " + successfulBytes +
                 " Failed: " + failed +
-                " Recreated: " + recreated +
+                recreatedMessage +
                 " Avoided: " + avoidFetching + ".");
 
         StringBuilder sb = new StringBuilder();
