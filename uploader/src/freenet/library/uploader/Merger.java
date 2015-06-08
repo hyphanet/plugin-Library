@@ -288,7 +288,7 @@ final public class Merger {
                 return nextSelected < 20 &&
                         creator.size() < 10000 &&
                         movedTerms < 200000 &&
-                        nextSelected * 8 + movedTerms * 0.001 + creator.size() * 0.0001 - 6 < 100;
+                        nextSelected * 2.687 + movedTerms * 0.001097 + creator.size() * 0.0 - 1.6463 < 100;
             }
 
             @Override
