@@ -14,11 +14,9 @@ import java.util.Set;
 import net.pterodactylus.fcp.ClientPut;
 import net.pterodactylus.fcp.FcpAdapter;
 import net.pterodactylus.fcp.FcpConnection;
-import net.pterodactylus.fcp.FinishedCompression;
 import net.pterodactylus.fcp.PutFailed;
 import net.pterodactylus.fcp.PutFetchable;
 import net.pterodactylus.fcp.PutSuccessful;
-import net.pterodactylus.fcp.StartedCompression;
 import net.pterodactylus.fcp.URIGenerated;
 import net.pterodactylus.fcp.Verbosity;
 import freenet.copied.Base64;
@@ -37,8 +35,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 	private File cacheDir;
 	private ObjectStreamReader<T> reader;
 	private ObjectStreamWriter<T> writer;
-	private String mimeType;
-	private int size;
+	private int totalBlocksStillUploading = 0;
 	private Priority priorityLevel;
 
 	/**
@@ -59,8 +56,6 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 		cacheDir = directory;
 		reader = rw;
 		writer = rw;
-		mimeType = mime;
-		size = s;
 		priorityLevel = pl;
 	}
 	
@@ -162,6 +157,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 					total += entry.getValue().progressTotal;
 					completed += entry.getValue().progressCompleted;
 				}
+				totalBlocksStillUploading = total - completed;
 				System.out.println("Outstanding " + stillRunning.size() + " jobs " +
 						"(" + completed + "/" + total + ")");
 			}
@@ -221,26 +217,6 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 					sp.getSucceeded() + "/" + sp.getTotal());
 			printLeft();
     	}
-    	
-    	@Override
-    	public void receivedStartedCompression(FcpConnection c, 
-    			StartedCompression startedCompression) {
-    		assert c == connection;
-			assert startedCompression != null;
-			if (!identifier.equals(startedCompression.getIdentifier()))
-				return;
-			System.out.println("receivedStartedCompression for " + token);
-    	}
-
-    	@Override
-    	public void receviedFinishedCompression(FcpConnection c, 
-    			FinishedCompression finishedCompression) {
-    		assert c == connection;
-			assert finishedCompression != null;
-			if (!identifier.equals(finishedCompression.getIdentifier()))
-				return;
-			System.out.println("receivedFinishedCompression for " + token);
-    	}
 
     	public void receivedURIGenerated(FcpConnection c, URIGenerated uriGenerated) {
     		assert c == connection;
@@ -290,6 +266,12 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 	@Override
 	public void pushLive(freenet.library.io.serial.Serialiser.PushTask<T> task,
 			SimpleProgress progress) throws TaskAbortException {
+		// Slow down the build up of the queue.
+		try {
+			Thread.sleep(1 + totalBlocksStillUploading * totalBlocksStillUploading);
+		} catch (InterruptedException e1) {
+			throw new RuntimeException("Unexpected interrupt");
+		}
 		if (connection == null) {
 			throw new IllegalArgumentException("No connection.");
 		}
