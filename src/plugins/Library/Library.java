@@ -203,6 +203,12 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 				callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rcBulk);
 			}
 		}
+		if (!bookmarks.containsKey("debbies-library-development-index")) {
+		    addBookmark("debbies-library-development-index", 
+		    			"USK@E0jWjfYUfJqESuiM~5ZklhTZXKCWapxl~CRj1jmZ-~I,gl48QSprqZC1mASLbE9EOhQoBa~PheO8r-q9Lqj~uXA,AQACAAE/index.yml/966");
+		    migrated = true;
+			Logger.normal(this, "Added new default index");
+		}
 		if(bookmarks.isEmpty() || needNewWanna || !bookmarks.containsKey("gotcha") || 
 		        !bookmarks.containsKey("liberty-of-information") ||
 		        !bookmarks.containsKey("free-market-free-people")) {
