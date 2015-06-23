@@ -339,6 +339,10 @@ public class DownloadAll {
     	double getMean() {
     		return 1.0 * sum / count;
     	}
+    	
+    	public String toString() {
+    		return "" + getMean() + " (" + count + ")";
+    	}
     }
     
     private Map<Integer, StatisticsAccumulator> statistics = new HashMap<Integer, StatisticsAccumulator>();
@@ -477,20 +481,31 @@ public class DownloadAll {
                     if (map.containsKey("lkey") &&
                             map.containsKey("rkey") &&
                             map.containsKey("entries")) {
+                    	// Must separate map and array!
                         System.out.println("Contains entries");
-                        Map<String, BinInfo> entries =
-                                (Map<String, Packer.BinInfo>) map.get("entries");
-                        for (BinInfo value : entries.values()) {
-                        	try {
-                        		String u = (String) value.getID();
-                        		if (processUri(u)) {
-                        			foundChildren ++;
-                        		}
-                        	} catch (ClassCastException e) {
-                        		System.out.println("Cannot process " + value.getID());
-                        	}
+                        if (map.containsKey("subnodes")) {
+                        	throw new RuntimeException("This parsing is not complex enough to handle subnodes for terms for " +
+                        							   page.getURI());
                         }
-                        return;
+                        if (map.get("entries") instanceof Map) {
+	                        Map<String, BinInfo> entries =
+	                                (Map<String, Packer.BinInfo>) map.get("entries");
+	                        for (BinInfo value : entries.values()) {
+	                        	try {
+	                        		String u = (String) value.getID();
+	                        		if (processUri(u)) {
+	                        			foundChildren ++;
+	                        		}
+	                        	} catch (ClassCastException e) {
+	                        		System.out.println("Cannot process " + value.getID());
+	                        	}
+	                        }
+	                        return;
+                        }
+                        if (map.get("entries") instanceof ArrayList) {
+                        	// Assuming this is a list of TermPageEntries.
+	                        return;
+                        }
                     }
                     Entry<String, Object> entry = map.entrySet().iterator().next();
                     if (entry.getValue() instanceof Map) {
@@ -498,6 +513,21 @@ public class DownloadAll {
                         if (map2.containsKey("node_min")
                                 && map2.containsKey("size")
                                 && map2.containsKey("entries")) {
+                        	System.out.println("Is an entry. Searching for subnodes.");
+                        	for (Object contents : map.values()) {
+                        		if (contents instanceof Map) {
+                        			Map<String, Object> map3 = (Map<String, Object>) contents;
+                        			if (map3.containsKey("subnodes")) {
+	                        			Map<String, Object> subnodes =
+	                        					(Map<String, Object>) map3.get("subnodes");
+	                        			for (String key : subnodes.keySet()) {
+	                        				if (processUri(key)) {
+	                        					foundChildren ++;
+	                                        }
+	                        			}
+                        			}
+                        		}
+                        	}
                             return;
                         }
                     }
