@@ -23,6 +23,8 @@ import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import net.pterodactylus.fcp.AllData;
 import net.pterodactylus.fcp.ClientGet;
@@ -45,6 +47,10 @@ import freenet.library.io.serial.Packer.BinInfo;
  */
 public class DownloadAll {
     private static final int PARALLEL_JOBS = 10;
+
+	/** Logger. */
+	private static final Logger logger = Logger.getLogger(DownloadAll.class.getName());
+    
     public final Map<FetchedPage, GetAdapter> stillRunning = new HashMap<FetchedPage, GetAdapter>();
     private String uri;
     private String newUri;
@@ -313,7 +319,7 @@ public class DownloadAll {
         public void restart() {
             if (updated) {
                 updated = false;
-                System.out.println("Found: " + newUri + " Edition: " + edition);
+                logger.info("Found: " + newUri + " Edition: " + edition);
                 FetchedPage rootPage = new FetchedPage(newUri);
                 synchronized (roots) {
                     roots.add(rootPage);
@@ -406,18 +412,20 @@ public class DownloadAll {
          * Show the amount of outstanding work.
          */
         void printLeft() {
-            int total = 0;
-            int required = 0;
-            int completed = 0;
-            synchronized (stillRunning) {
-                for (GetAdapter value : stillRunning.values()) {
-                    total += value.progressTotal;
-                    required += value.progressRequired;
-                    completed += value.progressCompleted;
-                }
-                System.out.println("Outstanding " + stillRunning.size() + " ClientGet jobs " +
-                        "(" + completed + "/" + required + "/" + total + ") ");
-            }
+        	if (logger.isLoggable(Level.FINE)) {
+	            int total = 0;
+	            int required = 0;
+	            int completed = 0;
+	            synchronized (stillRunning) {
+	                for (GetAdapter value : stillRunning.values()) {
+	                    total += value.progressTotal;
+	                    required += value.progressRequired;
+	                    completed += value.progressCompleted;
+	                }
+	                logger.fine("Outstanding " + stillRunning.size() + " ClientGet jobs " +
+	                        "(" + completed + "/" + required + "/" + total + ") ");
+	            }
+        	}
         }
         
         private boolean processUri(String uri) {
@@ -442,7 +450,9 @@ public class DownloadAll {
             if (!token.equals(ad.getIdentifier())) {
                 return;
             }
-            System.out.println("receivedAllData for " + token +
+            logger.entering(GetAdapter.class.toString(),
+            		"receivedAllData",
+            		"receivedAllData for " + token +
                     " adding to the " + objectQueue.size() + " elements in the queue.");
             page.didSucceed();
             int foundChildren = 0;
@@ -454,7 +464,7 @@ public class DownloadAll {
                     if (map.containsKey("ttab")) {
                         Map<String, Object> map2 = (Map<String, Object>) map.get("ttab");
                         if (map2.containsKey("entries")) {
-                            System.out.println("Contains ttab.entries");
+                            logger.finer("Contains ttab.entries");
                             Map<String, BinInfo> entries =
                                     (Map<String, Packer.BinInfo>) map2.get("entries");
                             for (BinInfo value : entries.values()) {
@@ -465,7 +475,7 @@ public class DownloadAll {
                             		}
                             		
                             	} catch (ClassCastException e) {
-                            		System.out.println("Cannot process " + value.getID());
+                            		logger.warning("Cannot process " + value.getID());
                             	}
                             }
                             Map<String, Object> subnodes =
@@ -482,7 +492,7 @@ public class DownloadAll {
                             map.containsKey("rkey") &&
                             map.containsKey("entries")) {
                     	// Must separate map and array!
-                        System.out.println("Contains entries");
+                        logger.finer("Contains entries");
                         if (map.containsKey("subnodes")) {
                         	throw new RuntimeException("This parsing is not complex enough to handle subnodes for terms for " +
                         							   page.getURI());
@@ -497,7 +507,7 @@ public class DownloadAll {
 	                        			foundChildren ++;
 	                        		}
 	                        	} catch (ClassCastException e) {
-	                        		System.out.println("Cannot process " + value.getID());
+	                        		logger.warning("Cannot process " + value.getID());
 	                        	}
 	                        }
 	                        return;
@@ -513,7 +523,7 @@ public class DownloadAll {
                         if (map2.containsKey("node_min")
                                 && map2.containsKey("size")
                                 && map2.containsKey("entries")) {
-                        	System.out.println("Is an entry. Searching for subnodes.");
+                        	logger.finer("Is an entry. Searching for subnodes.");
                         	for (Object contents : map.values()) {
                         		if (contents instanceof Map) {
                         			Map<String, Object> map3 = (Map<String, Object>) contents;
@@ -531,7 +541,7 @@ public class DownloadAll {
                             return;
                         }
                     }
-                    System.out.println("Cannot understand contents: " + map);
+                    logger.severe("Cannot understand contents: " + map);
                     System.exit(1);
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -544,6 +554,7 @@ public class DownloadAll {
                 successfulBlocks += progressCompleted;
                 successfulBytes += ad.getDataLength();
                 showProgress();
+                logger.exiting(GetAdapter.class.toString(), "receivedAllData");
             }
         }
 
@@ -557,8 +568,7 @@ public class DownloadAll {
             synchronized (getter) {
                 getter.notify();
             }
-            System.out.println("receivedGetFailed for " + token + " (" + page.getURI() + ").");
-            // System.exit(1);
+            logger.warning("receivedGetFailed for " + token + " (" + page.getURI() + ").");
             page.didFail();
             markDone();
             failed ++;
@@ -586,7 +596,7 @@ public class DownloadAll {
             }
             final File file = new File(dir, filename);
             if (!file.canRead()) {
-                System.err.println("Cannot find " + file + " in the cache.");
+                logger.warning("Cannot find " + file + " in the cache.");
                 return false;
             }
             if (uploadStarter == null) {
@@ -601,7 +611,7 @@ public class DownloadAll {
 		            			String identifier = uriGenerated.getIdentifier();
 		            			String chk = ongoingUploads.get(identifier).getKey();
 								if (!uriGenerated.getURI().equals(chk)) {
-		            				System.err.println("Were supposed to upload " + chk +
+		            				logger.severe("Were supposed to upload " + chk +
 		            						" but calculated to " + uriGenerated.getURI());
 		            				System.exit(1);
 		            			}
@@ -622,7 +632,7 @@ public class DownloadAll {
             }
             uploadStarter.execute(new Runnable() {
                 public void run() {
-        			System.out.println("Ressurrecting " + filename);
+        			logger.fine("Ressurrecting " + filename);
                     uploadCounter++;
                     final String identifier = "Upload" + uploadCounter;
                     ongoingUploads.put(identifier, new AbstractMap.SimpleImmutableEntry<String, Runnable>(filename, callback));
@@ -641,7 +651,7 @@ public class DownloadAll {
                         in = null;
                     } catch (IOException e) {
                         e.printStackTrace();
-                        System.err.println("Upload failed for " + file);
+                        logger.warning("Upload failed for " + file);
                     }
                 }
             });
@@ -727,9 +737,9 @@ public class DownloadAll {
                 if (moreJobs) {
                     synchronized (stillRunning) {
                         try {
-                            System.out.println("Queue empty. " +
-                                               "Still running " +
-                                               stillRunning.size() + ".");
+                            logger.fine("Queue empty. " +
+                            			"Still running " +
+                            			stillRunning.size() + ".");
                             stillRunning.wait(20000);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
@@ -768,7 +778,7 @@ public class DownloadAll {
                                     taken = objectQueue.take();
                                 }
                             }
-                            System.out.println("Rotated " + rotateLaps);
+                            logger.finer("Rotated " + rotateLaps);
                             if (taken == null) {
                                 break;
                             }
@@ -800,7 +810,7 @@ public class DownloadAll {
     	if (recreated > 0) {
     		recreatedMessage = " Recreated: " + recreated;
     	}
-        System.out.println("Fetches: Successful: " + successful + 
+        logger.fine("Fetches: Successful: " + successful + 
                 " blocks: " + successfulBlocks +
                 " bytes: " + successfulBytes +
                 " Failed: " + failed +
