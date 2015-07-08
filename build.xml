@@ -122,7 +122,8 @@
 	<target name="compile" depends="mkdir,build-dep,setver">
 		<tstamp/>
 
-		<javac srcdir="shared/src/" destdir="${build-shared}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
+		<javac srcdir="shared/src/" destdir="${build-shared}" debug="on" optimize="on" source="${source-version}" target="${target-version}"
+		       includeantruntime="false">
 			<classpath>
 				<path refid="shared.path"/>
 			</classpath>
@@ -130,11 +131,13 @@
 			<exclude name="**/package-info.java"/>
 		</javac>
 
-		<javac srcdir="${build-plugin}" destdir="${build-plugin}" debug="on" optimize="on" source="1.5" target="1.5">
+		<javac srcdir="${build-plugin}" destdir="${build-plugin}" debug="on" optimize="on" source="1.5" target="1.5"
+		       includeantruntime="false">
 			<include name="${version.src}"/>
 		</javac>
 
-		<javac srcdir="src/" destdir="${build-plugin}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
+		<javac srcdir="src/" destdir="${build-plugin}" debug="on" optimize="on" source="${source-version}" target="${target-version}"
+		       includeantruntime="false">
 			<!--<compilerarg value="-Xlint"/>-->
 			<sourcepath>
 				<pathelement location="${build-plugin}"/>
@@ -148,7 +151,8 @@
 			<exclude name="${version.src}"/>
 		</javac>
 
-		<javac srcdir="uploader/src/" destdir="${build-uploader}" debug="on" optimize="on" source="${source-version}" target="${target-version}">
+		<javac srcdir="uploader/src/" destdir="${build-uploader}" debug="on" optimize="on" source="${source-version}" target="${target-version}"
+		       includeantruntime="false">
 			<classpath>
 				<path refid="uploader.path"/>
 			</classpath>
@@ -168,7 +172,8 @@
 		<delete dir="${build-test}"/>
 
 		<mkdir dir="${build-test-shared}"/>
-		<javac srcdir="shared/test/" destdir="${build-test-shared}" debug="on" optimize="on" source="1.5">
+		<javac srcdir="shared/test/" destdir="${build-test-shared}" debug="on" optimize="on" source="1.5"
+		       includeantruntime="false">
 			<classpath>
 				<path refid="shared.path"/>
 				<pathelement path="${build-shared}"/>
