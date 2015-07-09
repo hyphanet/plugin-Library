@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -73,6 +74,8 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 	    BOOKMARK_PREFIX + "gotcha" + " " + BOOKMARK_PREFIX + "wanna" + " " + BOOKMARK_PREFIX + "wanna.old" + " " + BOOKMARK_PREFIX + "gogo";
 	private static int version = 36;
 	public static final String plugName = "Library " + getVersion();
+
+
 
 	public static String getPlugName() {
 		return plugName;
@@ -254,6 +257,9 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 	private Map<String, String> bookmarks = new HashMap<String, String>();
 
 	private Map<String, BookmarkCallback> bookmarkCallbacks = new HashMap<String, BookmarkCallback>();
+
+	/** Set of all the enabled indices */
+	public Set<String> selectedIndices = new HashSet<String>();
 
 	/**
 	** Get the index type giving a {@code FreenetURI}. This must not contain
