@@ -265,6 +265,7 @@ final public class Merger {
 
             ProcessedFilenames() {
                 if (selectedFilesToMerge.length > 0) {
+                    doSelected = true;
                     if (processedFilesToMerge.length > 1
                             && processedFilesToMerge.length * selectedFilesToMerge.length > filteredFilesToMerge.length) {
                         createSelectedFiles = true;
@@ -272,7 +273,6 @@ final public class Merger {
                         doFiltered = true;
                         restBase = FILTERED;
                     } else {
-                        doSelected = true;
                         restBase = PROCESSED;
                     }
                 } else {
@@ -285,20 +285,24 @@ final public class Merger {
             }
             
             private boolean addAnotherSelectedFile() {
-                return nextSelected < 20 &&
-                        creator.size() < 10000 &&
-                        movedTerms < 200000 &&
-                        nextSelected * 2.687 + movedTerms * 0.001097 + creator.size() * 0.0 - 1.6463 < 90;
+            	return false;
+//                return nextSelected < 20 &&
+//                        creator.size() < 10000 &&
+//                        movedTerms < 200000 &&
+//                        nextSelected * 2.687 + movedTerms * 0.001097 + creator.size() * 0.0 - 1.6463 < 90;
             }
 
             @Override
             public boolean hasNext() {
-                if (doAllSelected && nextSelected < selectedFilesToMerge.length) {
+                if (doSelected && 
+                        nextSelected < selectedFilesToMerge.length) {
+                	return true;
+                }
+                if (addAnotherSelectedFile() &&
+                		nextSelected < selectedFilesToMerge.length) {
                     return true;
                 }
-                if (doSelected && 
-                        nextSelected < selectedFilesToMerge.length &&
-                        addAnotherSelectedFile()) {
+                if (doAllSelected && nextSelected < selectedFilesToMerge.length) {
                     return true;
                 }
                 if (doFiltered && nextFiltered < filteredFilesToMerge.length) {
@@ -317,8 +321,12 @@ final public class Merger {
             public String next() {
                 processingSelectedFile = false;
                 if (doSelected && 
-                        nextSelected < selectedFilesToMerge.length &&
-                        addAnotherSelectedFile()) {
+                        nextSelected < selectedFilesToMerge.length) {
+                    processingSelectedFile = true;
+                    doSelected = false;
+                    return selectedFilesToMerge[nextSelected++];
+                } else if (addAnotherSelectedFile() &&
+                		nextSelected < selectedFilesToMerge.length) {
                     processingSelectedFile = true;
                     return selectedFilesToMerge[nextSelected++];
                 } else if (doAllSelected && nextSelected < selectedFilesToMerge.length) {
