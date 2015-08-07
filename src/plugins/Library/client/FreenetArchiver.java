@@ -166,16 +166,16 @@ implements LiveArchiver<T, SimpleProgress> {
 					File cached = new File(cacheDir, cacheKey);
 					if(cached.exists() && cached.length() != 0) {
 						tempB = new FileBucket(cached, true, false, false, false);
-						System.out.println("Fetching block for FreenetArchiver from disk cache: "+cacheKey);
+						Logger.debug(this, "Fetching block for FreenetArchiver from disk cache: "+cacheKey);
 					}
 				}
 				
 				if(tempB == null) {
 					
 					if(initialMetadata != null)
-						System.out.println("Fetching block for FreenetArchiver from metadata ("+cacheKey+")");
+						Logger.debug(this, "Fetching block for FreenetArchiver from metadata ("+cacheKey+")");
 					else
-						System.out.println("Fetching block for FreenetArchiver from network: "+u);
+						Logger.debug(this, "Fetching block for FreenetArchiver from network: "+u);
 					
 					if (progress != null) {
 						hlsc.addEventHook(new SimpleProgressUpdater(progress));
@@ -220,7 +220,7 @@ implements LiveArchiver<T, SimpleProgress> {
 					}
 				}
 				long endTime = System.currentTimeMillis();
-				System.out.println("Fetched block for FreenetArchiver in "+(endTime-startTime)+"ms.");
+				Logger.debug(this, "Fetched block for FreenetArchiver in "+(endTime-startTime)+"ms.");
 				is = tempB.getInputStream();
 				task.data = (T)reader.readObject(is);
 				is.close();
@@ -289,7 +289,7 @@ implements LiveArchiver<T, SimpleProgress> {
 				}
 				InsertBlock ib = new InsertBlock(tempB, new ClientMetadata(default_mime), target);
 
-				System.out.println("Inserting block for FreenetArchiver...");
+				Logger.debug(this, "Inserting block for FreenetArchiver...");
 				long startTime = System.currentTimeMillis();
 				
 				// code for async insert - maybe be useful elsewhere
@@ -348,14 +348,14 @@ implements LiveArchiver<T, SimpleProgress> {
 						FreenetURI uri = cb.getURI();
 						task.meta = uri;
 						cacheKey = uri.toString(false, true);
-						System.out.println("Got URI for asynchronous insert: "+uri+" size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
+						Logger.debug(this, "Got URI for asynchronous insert: "+uri+" size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
 					} else {
 						Bucket data = cb.getGeneratedMetadata();
 						byte[] buf = BucketTools.toByteArray(data);
 						data.free();
 						task.meta = buf;
 						cacheKey = Base64.encode(SHA256.digest(buf));
-						System.out.println("Got generated metadata ("+buf.length+" bytes) for asynchronous insert size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
+						Logger.debug(this, "Got generated metadata ("+buf.length+" bytes) for asynchronous insert size "+tempB.size()+" in "+(System.currentTimeMillis() - cb.startTime));
 					}
 					if(progress != null)
 						progress.addPartDone();
@@ -440,7 +440,7 @@ implements LiveArchiver<T, SimpleProgress> {
 			synchronized(FreenetArchiver.this) {
 				if(semiAsyncPushes.add(this))
 					totalBytesPushing += size;
-				System.out.println("Pushing "+totalBytesPushing+" bytes on "+semiAsyncPushes.size()+" inserters");
+				Logger.debug(this, "Pushing "+totalBytesPushing+" bytes on "+semiAsyncPushes.size()+" inserters");
 			}
 		}
 
@@ -471,7 +471,7 @@ implements LiveArchiver<T, SimpleProgress> {
 
 		@Override
 		public void onFailure(InsertException e, BaseClientPutter state) {
-			System.out.println("Failed background insert ("+generatedURI+"), now running: "+semiAsyncPushes.size()+" ("+SizeUtil.formatSize(totalBytesPushing)+").");
+			Logger.error(this, "Failed background insert ("+generatedURI+"), now running: "+semiAsyncPushes.size()+" ("+SizeUtil.formatSize(totalBytesPushing)+").");
 			synchronized(this) {
 				failed = e;
 				notifyAll();
@@ -502,7 +502,7 @@ implements LiveArchiver<T, SimpleProgress> {
 			synchronized(FreenetArchiver.this) {
 				if(semiAsyncPushes.remove(this))
 					totalBytesPushing -= size;
-				System.out.println("Completed background insert ("+generatedURI+") in "+(System.currentTimeMillis()-startTime)+"ms, now running: "+semiAsyncPushes.size()+" ("+SizeUtil.formatSize(totalBytesPushing)+").");
+				Logger.debug(this, "Completed background insert ("+generatedURI+") in "+(System.currentTimeMillis()-startTime)+"ms, now running: "+semiAsyncPushes.size()+" ("+SizeUtil.formatSize(totalBytesPushing)+").");
 				FreenetArchiver.this.notifyAll();
 			}
 			if(ib != null)
@@ -592,10 +592,10 @@ implements LiveArchiver<T, SimpleProgress> {
 					throw new TaskAbortException("Failed to insert content", pushesFailed.remove(0), true);
 				}
 				if(semiAsyncPushes.isEmpty()) {
-					System.out.println("Asynchronous inserts completed.");
+					Logger.debug(this, "Asynchronous inserts completed.");
 					return; // Completed all pushes.
 				}
-				System.out.println("Waiting for "+semiAsyncPushes.size()+" asynchronous inserts ("+SizeUtil.formatSize(totalBytesPushing)+")...");
+				Logger.debug(this, "Waiting for "+semiAsyncPushes.size()+" asynchronous inserts ("+SizeUtil.formatSize(totalBytesPushing)+")...");
 				try {
 					wait();
 				} catch (InterruptedException e) {
