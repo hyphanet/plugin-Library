@@ -287,7 +287,7 @@ public class SpiderIndexUploader {
         synchronized(freenetMergeSync) {
             while(freenetMergeRunning) {
                 if(pushBroken) return;
-                Logger.error(this, "Need to merge to Freenet, but last merge not finished yet. Waiting...");
+                Logger.normal(this, "Need to merge to Freenet, but last merge not finished yet. Waiting...");
                 try {
                     freenetMergeSync.wait();
                 } catch (InterruptedException e) {
@@ -846,7 +846,7 @@ public class SpiderIndexUploader {
 					synchronized(freenetMergeSync) {
 						while(freenetMergeRunning) {
 							if(pushBroken) return;
-							Logger.error(this, "Need to merge to Freenet, but last merge not finished yet. Waiting...");
+							Logger.normal(this, "Need to merge to Freenet, but last merge not finished yet. Waiting...");
 							try {
 								freenetMergeSync.wait();
 							} catch (InterruptedException e) {
