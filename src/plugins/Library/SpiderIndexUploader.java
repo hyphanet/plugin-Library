@@ -196,7 +196,7 @@ public class SpiderIndexUploader {
 		long entriesAdded = readTermsFrom(data);
 		
 		if(terms.size() == 0) {
-			System.out.println("Nothing to merge");
+			Logger.debug(this, "Nothing to merge");
 			synchronized(this) {
 				newtrees = null;
 				terms = null;
@@ -218,7 +218,7 @@ public class SpiderIndexUploader {
 				Closure<Map.Entry<String, SkeletonBTreeSet<TermEntry>>, TaskAbortException> clo =
 				    createMergeFromNewtreesClosure(maxDiskEntrySizeExceeded);
 				assert(idxDisk.ttab.isBare());
-				System.out.println("Merging "+terms.size()+" terms, tree.size = "+idxDisk.ttab.size()+" from "+data+"...");
+				Logger.debug(this, "Merging "+terms.size()+" terms, tree.size = "+idxDisk.ttab.size()+" from "+data+"...");
 				idxDisk.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
 			
 			}		
@@ -232,11 +232,11 @@ public class SpiderIndexUploader {
 			srlDisk.push(task4);
 			
 			long mergeEndTime = System.currentTimeMillis();
-			System.out.print(entriesAdded + " entries merged to disk in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta + ", ");
+			Logger.debug(this, entriesAdded + " entries merged to disk in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta + ", ");
 			// FileArchiver produces a String, which is a filename not including the prefix or suffix.
 			String uri = (String)task4.meta;
 			lastDiskIndexName = uri;
-			System.out.println("Pushed new index to file "+uri);
+			Logger.normal(this, "Pushed new index to file "+uri);
 			if(writeStringTo(new File(LAST_DISK_FILENAME), uri) &&
 			        writeStringTo(new File(idxDiskDir, LAST_DISK_FILENAME), uri)) {
 			    // Successfully uploaded and written new status. Can delete the incoming data.
@@ -245,8 +245,7 @@ public class SpiderIndexUploader {
 			
 			maybeMergeToFreenet(maxDiskEntrySizeExceeded);
 		} catch (TaskAbortException e) {
-			Logger.error(this, "Failed to upload index for spider: "+e, e);
-			System.err.println("Failed to upload index for spider: "+e);
+			Logger.error(this, "Failed to upload index for spider: ", e);
 			e.printStackTrace();
 			synchronized(freenetMergeSync) {
 				pushBroken = true;
@@ -276,7 +275,7 @@ public class SpiderIndexUploader {
             
             final ProtoIndex diskToMerge = idxDisk;
             final File dir = idxDiskDir;
-            System.out.println("Exceeded threshold, starting new disk index and starting merge from disk to Freenet...");
+            Logger.debug(this, "Exceeded threshold, starting new disk index and starting merge from disk to Freenet...");
             mergedToDisk = 0;
             lastMergedToFreenet = -1;
             idxDisk = null;
@@ -288,7 +287,7 @@ public class SpiderIndexUploader {
         synchronized(freenetMergeSync) {
             while(freenetMergeRunning) {
                 if(pushBroken) return;
-                System.err.println("Need to merge to Freenet, but last merge not finished yet. Waiting...");
+                Logger.normal(this, "Need to merge to Freenet, but last merge not finished yet. Waiting...");
                 try {
                     freenetMergeSync.wait();
                 } catch (InterruptedException e) {
@@ -305,8 +304,7 @@ public class SpiderIndexUploader {
                 try {
                     mergeToFreenet(diskToMerge, dir);
                 } catch (Throwable t) {
-                    Logger.error(this, "Merge to Freenet failed: "+t, t);
-                    System.err.println("Merge to Freenet failed: "+t);
+                    Logger.error(this, "Merge to Freenet failed: ", t);
                     t.printStackTrace();
                     synchronized(freenetMergeSync) {
                         pushBroken = true;
@@ -324,7 +322,7 @@ public class SpiderIndexUploader {
         };
         pr.getNode().executor.execute(r, "Library: Merge data from disk to Freenet");
         } else {
-            System.out.println("Not merging to Freenet yet: "+idxDisk.ttab.size()+" terms in index, "+mergedToDisk+" merges, "+(lastMergedToFreenet <= 0 ? "never merged to Freenet" : ("last merged to Freenet "+TimeUtil.formatTime(System.currentTimeMillis() - lastMergedToFreenet))+"ago"));
+            Logger.debug(this, "Not merging to Freenet yet: "+idxDisk.ttab.size()+" terms in index, "+mergedToDisk+" merges, "+(lastMergedToFreenet <= 0 ? "never merged to Freenet" : ("last merged to Freenet "+TimeUtil.formatTime(System.currentTimeMillis() - lastMergedToFreenet))+"ago"));
         }
     }
 
@@ -343,7 +341,6 @@ public class SpiderIndexUploader {
             return true;
         } catch (IOException e) {
             Logger.error(this, "Failed to write to "+filename+" : "+uri, e);
-            System.out.println("Failed to write to "+filename+" : "+uri+" : "+e);
             return false;
         } finally {
             Closer.close(fos);
@@ -394,9 +391,9 @@ public class SpiderIndexUploader {
                 SkeletonBTreeSet<TermEntry> tree = entry.getValue();
                 if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
                 if(tree != null)
-                    System.out.println("Merging data (on disk) in term "+key);
+                    Logger.debug(this, "Merging data (on disk) in term "+key);
                 else
-                    System.out.println("Adding new term to disk index:  "+key);
+                    Logger.debug(this, "Adding new term to disk index:  "+key);
                 //System.out.println("handling " + key + ((tree == null)? " (new)":" (old)"));
                 if (tree == null) {
                     entry.setValue(tree = makeEntryTree(leafsrlDisk));
@@ -485,7 +482,7 @@ public class SpiderIndexUploader {
 	private boolean createDiskDir() {
         dirNumber++;
         idxDiskDir = new File(DISK_DIR_PREFIX + Integer.toString(dirNumber));
-        System.out.println("Created new disk dir for merging: "+idxDiskDir);
+        Logger.normal(this, "Created new disk dir for merging: "+idxDiskDir);
         if(!(idxDiskDir.mkdir() || idxDiskDir.isDirectory())) {
             Logger.error(this, "Unable to create new disk dir: "+idxDiskDir);
             synchronized(this) {
@@ -515,15 +512,14 @@ public class SpiderIndexUploader {
             } else {
                 try {
                     PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(lastDiskIndexName);
-                    System.out.println("Pulling previous index "+lastDiskIndexName+" from disk so can update it.");
+                    Logger.debug(this, "Pulling previous index "+lastDiskIndexName+" from disk so can update it.");
                     srlDisk.pull(pull);
-                    System.out.println("Pulled previous index "+lastDiskIndexName+" from disk - updating...");
+                    Logger.debug(this, "Pulled previous index "+lastDiskIndexName+" from disk - updating...");
                     idxDisk = pull.data;
                     if(idxDisk.getSerialiser().getLeafSerialiser() != archiver)
                         throw new IllegalStateException("Different serialiser: "+idxFreenet.getSerialiser()+" should be "+leafsrl);
                 } catch (TaskAbortException e) {
                     Logger.error(this, "Failed to download previous index for spider update: "+e, e);
-                    System.err.println("Failed to download previous index for spider update: "+e);
                     e.printStackTrace();
                     synchronized(freenetMergeSync) {
                         pushBroken = true;
@@ -549,29 +545,28 @@ public class SpiderIndexUploader {
 		String f = this.readStringFrom(new File(diskDir, LAST_DISK_FILENAME));
 		if(f == null) {
             if(diskDir.list().length == 0) {
-                System.err.println("Directory "+diskDir+" is empty. Nothing to merge.");
+                Logger.debug(this, "Directory "+diskDir+" is empty. Nothing to merge.");
                 diskDir.delete();
                 return;
             }
             // Ignore
-            System.err.println("Unable to merge old data "+diskDir);
+            Logger.error(this, "Unable to merge old data "+diskDir);
             return;
 		} else {
-            System.out.println("Continuing old bucket: "+f);
+            Logger.debug(this, "Continuing old bucket: "+f);
 		}
 
 		ProtoIndex idxDisk = null;
 		try {
 			PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(f);
-			System.out.println("Pulling previous index "+f+" from disk so can update it.");
+			Logger.debug(this, "Pulling previous index "+f+" from disk so can update it.");
 			s.pull(pull);
-			System.out.println("Pulled previous index "+f+" from disk - updating...");
+			Logger.debug(this, "Pulled previous index "+f+" from disk - updating...");
 			idxDisk = pull.data;
 			if(idxDisk.getSerialiser().getLeafSerialiser() != archiver)
 				throw new IllegalStateException("Different serialiser: "+idxDisk.getSerialiser()+" should be "+archiver);
 		} catch (TaskAbortException e) {
 			Logger.error(this, "Failed to download previous index for spider update: "+e, e);
-			System.err.println("Failed to download previous index for spider update: "+e);
 			e.printStackTrace();
 			synchronized(freenetMergeSync) {
 				pushBroken = true;
@@ -588,7 +583,7 @@ public class SpiderIndexUploader {
 	 * @param diskDir The folder the on-disk index is stored in.
 	 */
 	protected void mergeToFreenet(ProtoIndex diskToMerge, File diskDir) {
-	    System.out.println("Merging on-disk index to Freenet: "+diskDir);
+	    Logger.debug(this, "Merging on-disk index to Freenet: "+diskDir);
 		if(lastUploadURI == null) {
 		    lastUploadURI = readURIFrom(new File(LAST_URL_FILENAME));
 		}
@@ -612,7 +607,7 @@ public class SpiderIndexUploader {
 				diskToMerge.ttab.keySetAutoDeflate().iterator();
 			TreeSet<String> terms = new TreeSet<String>();
 			while(it.hasNext()) terms.add(it.next());
-			System.out.println("Merging "+terms.size()+" terms from disk to Freenet...");
+			Logger.debug(this, "Merging "+terms.size()+" terms from disk to Freenet...");
 			assert(terms.size() == diskToMerge.ttab.size());
 			assert(idxFreenet.ttab.isBare());
 			assert(diskToMerge.ttab.isBare());
@@ -635,15 +630,15 @@ public class SpiderIndexUploader {
 			arch.waitForAsyncInserts();
 			
 			long mergeEndTime = System.currentTimeMillis();
-			System.out.print(entriesAdded + " entries merged in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta + ", ");
+			Logger.debug(this, entriesAdded + " entries merged in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta + ", ");
 			FreenetURI uri = (FreenetURI)task4.meta;
 			lastUploadURI = uri;
-			System.out.println("Uploaded new index to "+uri);
+			Logger.debug(this, "Uploaded new index to "+uri);
 			if(writeURITo(new File(LAST_URL_FILENAME), uri)) {
                 newtrees.deflate();
                 diskToMerge = null;
                 terms = null;
-                System.out.println("Finished with disk index "+diskDir);
+                Logger.debug(this, "Finished with disk index "+diskDir);
                 FileUtil.removeAll(diskDir);
 			}
 			
@@ -652,7 +647,6 @@ public class SpiderIndexUploader {
 			
 		} catch (TaskAbortException e) {
 		    Logger.error(this, "Failed to upload index for spider: "+e, e);
-		    System.err.println("Failed to upload index for spider: "+e);
 		    e.printStackTrace();
 		    synchronized(freenetMergeSync) {
 		        pushBroken = true;
@@ -668,12 +662,11 @@ public class SpiderIndexUploader {
             synchronized(freenetMergeSync) {
                 ed = spiderIndexURIs.setEdition(tmp.getEdition()+1);
             }
-            System.out.println("Uploaded index as USK to "+tmp);
+            Logger.debug(this, "Uploaded index as USK to "+tmp);
             
             writeStringTo(new File(EDITION_FILENAME), Long.toString(ed));
             
         } catch (InsertException e) {
-            System.err.println("Failed to upload USK for index update: "+e);
             e.printStackTrace();
             Logger.error(this, "Failed to upload USK for index update", e);
         }
@@ -720,18 +713,17 @@ public class SpiderIndexUploader {
                 if(newTree) {
                     tree.addAll(data);
                     assert(tree.size() == data.size());
-                    System.out.println("Added data to Freenet for term "+key+" : "+data.size());
+                    Logger.debug(this, "Added data to Freenet for term "+key+" : "+data.size());
                 } else {
                     int oldSize = tree.size();
                     tree.update(data, null);
                     // Note that it is possible for data.size() + oldSize != tree.size(), because we might be merging data we've already merged.
                     // But most of the time it will add up.
-                    System.out.println("Merged data to Freenet in term "+key+" : "+data.size()+" + "+oldSize+" -> "+tree.size());
+                    Logger.debug(this, "Merged data to Freenet in term "+key+" : "+data.size()+" + "+oldSize+" -> "+tree.size());
                 }
                 tree.deflate();
                 assert(tree.isBare());
                 if(logMINOR) Logger.minor(this, "Updated: "+key+" : "+tree);
-                //System.out.println("handled " + key);
             }
         };
     }
@@ -764,15 +756,14 @@ public class SpiderIndexUploader {
             } else {
                 try {
                     PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(lastUploadURI);
-                    System.out.println("Pulling previous index "+lastUploadURI+" so can update it.");
+                    Logger.debug(this, "Pulling previous index "+lastUploadURI+" so can update it.");
                     srl.pull(pull);
-                    System.out.println("Pulled previous index "+lastUploadURI+" - updating...");
+                    Logger.debug(this, "Pulled previous index "+lastUploadURI+" - updating...");
                     idxFreenet = pull.data;
                     if(idxFreenet.getSerialiser().getLeafSerialiser() != archiver)
                         throw new IllegalStateException("Different serialiser: "+idxFreenet.getSerialiser()+" should be "+leafsrl);
                 } catch (TaskAbortException e) {
                     Logger.error(this, "Failed to download previous index for spider update: "+e, e);
-                    System.err.println("Failed to download previous index for spider update: "+e);
                     e.printStackTrace();
                     synchronized(freenetMergeSync) {
                         pushBroken = true;
@@ -831,7 +822,7 @@ public class SpiderIndexUploader {
 			});
 		}
 		if(oldToMerge != null && oldToMerge.length > 0) {
-			System.out.println("Found "+oldToMerge.length+" buckets of old index data to merge...");
+			Logger.debug(this, "Found "+oldToMerge.length+" buckets of old index data to merge...");
 			Runnable r = new Runnable() {
 
 				public void run() {
@@ -848,14 +839,14 @@ public class SpiderIndexUploader {
 			pr.getNode().executor.execute(r, "Library: handle index data from previous run");
 		}
 		if(dirsToMerge != null && dirsToMerge.length > 0) {
-			System.out.println("Found "+dirsToMerge.length+" disk trees of old index data to merge...");
+			Logger.debug(this, "Found "+dirsToMerge.length+" disk trees of old index data to merge...");
 			Runnable r = new Runnable() {
 
 				public void run() {
 					synchronized(freenetMergeSync) {
 						while(freenetMergeRunning) {
 							if(pushBroken) return;
-							System.err.println("Need to merge to Freenet, but last merge not finished yet. Waiting...");
+							Logger.normal(this, "Need to merge to Freenet, but last merge not finished yet. Waiting...");
 							try {
 								freenetMergeSync.wait();
 							} catch (InterruptedException e) {
@@ -890,7 +881,6 @@ public class SpiderIndexUploader {
 
 		if(data.size() == 0) {
 			Logger.error(this, "Bucket of data ("+data+") to push is empty", new Exception("error"));
-			System.err.println("Bucket of data ("+data+")to push from Spider is empty");
 			data.free();
 			return;
 		}
@@ -908,9 +898,8 @@ public class SpiderIndexUploader {
 		try {
 			BucketTools.copy(data, output);
 			data.free();
-			System.out.println("Written data to "+pushFile);
+			Logger.debug(this, "Written data to "+pushFile);
 		} catch (IOException e1) {
-			System.err.println("Unable to back up push data #"+pn+" : "+e1);
 			e1.printStackTrace();
 			Logger.error(this, "Unable to back up push data #"+pn, e1);
 			output = data;
@@ -977,7 +966,4 @@ public class SpiderIndexUploader {
 			// Race condition, ignore.
 		}
 	}
-
-
-
 }

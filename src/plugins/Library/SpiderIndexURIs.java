@@ -40,9 +40,9 @@ class SpiderIndexURIs {
 				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
 				privURI = new FreenetURI(br.readLine()).setDocName("index.yml"); // Else InsertableClientSSK doesn't like it.
 				privkey = InsertableClientSSK.create(privURI);
-				System.out.println("Read old privkey");
+				Logger.debug(this, "Read old privkey");
 				this.pubURI = privkey.getURI();
-				System.out.println("Recovered URI from disk, pubkey is "+pubURI);
+				Logger.debug(this, "Recovered URI from disk, pubkey is "+pubURI);
 				fis.close();
 				fis = null;
 			} catch (IOException e) {
@@ -55,7 +55,7 @@ class SpiderIndexURIs {
 				privURI = key.getInsertURI();
 				pubURI = key.getURI();
 				newPrivKey = true;
-				System.out.println("Created new keypair, pubkey is "+pubURI);
+				Logger.debug(this, "Created new keypair, pubkey is "+pubURI);
 			}
 			FileOutputStream fos = null;
 			if(newPrivKey) {
@@ -66,8 +66,7 @@ class SpiderIndexURIs {
 					osw.close();
 					fos = null;
 				} catch (IOException e) {
-					Logger.error(this, "Failed to write new private key");
-					System.out.println("Failed to write new private key : "+e);
+					Logger.error(this, "Failed to write new private key : ", e);
 				} finally {
 					Closer.close(fos);
 				}
@@ -80,7 +79,6 @@ class SpiderIndexURIs {
 				fos = null;
 			} catch (IOException e) {
 				Logger.error(this, "Failed to write new pubkey", e);
-				System.out.println("Failed to write new pubkey: "+e);
 			} finally {
 				Closer.close(fos);
 			}
@@ -92,7 +90,7 @@ class SpiderIndexURIs {
 				} catch (NumberFormatException e) {
 					edition = 0;
 				}
-				System.out.println("Edition: "+edition);
+				Logger.debug(this, "Edition: "+edition);
 				fis.close();
 				fis = null;
 			} catch (IOException e) {

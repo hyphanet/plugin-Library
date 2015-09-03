@@ -316,7 +316,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 							// FIXME NORM
 							// neither Executors.DEFAULT_EXECUTOR nor Freenet's in-built executors
 							// throw this, so this is not a high priority
-							System.out.println("REJECTED EXECUTION" + e);
+							Logger.error(this, "REJECTED EXECUTION", e);
 						}
 					}
 					try {

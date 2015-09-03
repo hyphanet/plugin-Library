@@ -293,7 +293,7 @@ final public class Library implements URLUpdateHook {
 						if (!(ce instanceof ExpectedMIMEEvent)) { return; }
 						synchronized(c) {
 							String type = ((ExpectedMIMEEvent)ce).expectedMIMEType;
-							System.out.println("Expected type in index: "+type);
+							Logger.normal(this, "Expected type in index: "+type);
 							try {
 								c[0] = getIndexTypeFromMIME(type);
 								gu.cancel(context);
