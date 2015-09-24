@@ -23,6 +23,7 @@ import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -584,10 +585,11 @@ public class DownloadAll {
         /**
          * We have detected that we cannot download a certain CHK.
          * 
-         * If we are running on the host where this CHK is actually cached,
-         * lets upload it from the cache in an attempt to repair.
+         * If we are running on a host where this CHK is actually cached,
+         * lets upload it from the cache in an attempt to repair the index.
          * 
          * @param filename of the file to upload.
+         * @param callback when the file is successfully uploaded.
          */
         public boolean upload(final String filename, final Runnable callback) {
         	final File dir = new File(".", UploaderPaths.LIBRARY_CACHE);
@@ -795,6 +797,14 @@ public class DownloadAll {
                     moreJobs = !stillRunning.isEmpty();
                 }
             } while (moreJobs);
+            if (uploadStarter != null) {
+            	uploadStarter.shutdown();
+            	try {
+					uploadStarter.awaitTermination(1, TimeUnit.HOURS);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+            }
             connection.removeFcpListener(subscriberListener);
         } finally {
             removeCleanupThread();
@@ -828,12 +838,12 @@ public class DownloadAll {
                 int succeeded = root.getTreeSizeSucceeded();
                 int failed = root.getTreeSizeFailed();
                 if (failed > 0) {
-                	sb.append(new Formatter().format(" FAILED: %.2f%%.", 100.0 * failed / (failed + succeeded)));
+                	sb.append(new Formatter().format(" FAILED: %.1f%%.", 100.0 * failed / (failed + succeeded)));
                 }
                 double estimate = getEstimatedPagesLeft(root);
                 if (estimate < Double.POSITIVE_INFINITY) {
-                    sb.append(new Formatter().format(" Fetched: %.2f%%.",
-                    		100.0 * (failed + succeeded) / (estimate + succeeded)));
+                    sb.append(new Formatter().format(" Fetched: %.1f%%.",
+                    		100.0 * succeeded / (estimate + succeeded)));
                 }
                 sb.append(" (");
                 sb.append(succeeded);
