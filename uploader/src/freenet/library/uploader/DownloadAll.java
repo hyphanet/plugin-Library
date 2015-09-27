@@ -749,12 +749,14 @@ public class DownloadAll {
                         }
                     }
                 }
+
                 boolean empty = true;
                 do {
                     if (!empty) {
                         try {
                             FetchedPage taken = objectQueue.take();
                             while (!taken.hasParent()) {
+                                logger.finer("Avoid fetching " + taken.getURI());
                                 taken = null;
                                 avoidFetching++;
                                 if (objectQueue.isEmpty()) {
