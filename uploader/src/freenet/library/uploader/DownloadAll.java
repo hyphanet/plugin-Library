@@ -324,9 +324,6 @@ public class DownloadAll {
                 FetchedPage rootPage = new FetchedPage(newUri);
                 synchronized (roots) {
                     roots.add(rootPage);
-                    while (roots.size() > 2) {
-                        roots.remove(0);
-                    }
                 }
                 new GetAdapter(rootPage.newChild(newUri));
             }
@@ -752,6 +749,14 @@ public class DownloadAll {
 
                 boolean empty = true;
                 do {
+                    synchronized (roots) {
+                        if (roots.size() > 1) {
+                            if (roots.get(roots.size() - 1).getTreeSize() > 100) {
+                                roots.remove(0);
+                            }
+                        }
+                    }
+
                     if (!empty) {
                         try {
                             FetchedPage taken = objectQueue.take();
