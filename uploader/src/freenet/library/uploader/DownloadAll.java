@@ -383,11 +383,14 @@ public class DownloadAll {
         private int progressRequired;
         private int progressCompleted;
         private boolean done;
+        int waitingLaps;
+        public static final int WAITING_FACTOR = 50;
 
         public GetAdapter(FetchedPage u) {
             page = u;
             getterCounter ++;
             token = "Getter" + getterCounter;
+            waitingLaps = 0;
             getter = new ClientGet(page.getURI(), token);
             getter.setPriority(Priority.prefetch);
             getter.setVerbosity(Verbosity.ALL);
@@ -407,6 +410,27 @@ public class DownloadAll {
         }
 
         /**
+         * Called when nothing has happened for a while with this request.
+         * @param key The page.
+         */
+        public void hasBeenWaiting(FetchedPage key) {
+            waitingLaps++;
+            if (waitingLaps > WAITING_FACTOR * PARALLEL_JOBS) {
+                connection.removeFcpListener(this);
+                getter = null;
+                synchronized (stillRunning) {
+                    stillRunning.remove(key);
+                }
+                if (key.hasParent()) {
+                    logger.warning("Restarting fetch for " + key.getURI());
+                    new GetAdapter(key);
+                } else {
+                    logger.finer("Avoid refetching " + key.getURI());
+                }
+            }
+        }
+
+		/**
          * Show the amount of outstanding work.
          */
         void printLeft() {
@@ -749,6 +773,10 @@ public class DownloadAll {
 
                 boolean empty = true;
                 do {
+                    for (Entry<FetchedPage, GetAdapter> entry :
+                        new HashSet<Entry<FetchedPage, GetAdapter>>(stillRunning.entrySet())) {
+                        entry.getValue().hasBeenWaiting(entry.getKey());
+                    }
                     synchronized (roots) {
                         if (roots.size() > 1) {
                             if (roots.get(roots.size() - 1).getTreeSize() > 100) {
