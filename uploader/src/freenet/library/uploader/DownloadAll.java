@@ -478,11 +478,11 @@ public class DownloadAll {
                     " adding to the " + objectQueue.size() + " elements in the queue.");
             page.didSucceed();
             int foundChildren = 0;
+            Object readObject;
             try {
                 try {
-                    Map<String, Object> map =
-                            (LinkedHashMap<String, Object>) 
-                            new YamlReaderWriter().readObject(ad.getPayloadInputStream());
+                	readObject = new YamlReaderWriter().readObject(ad.getPayloadInputStream()); 
+                    Map<String, Object> map = ((LinkedHashMap<String, Object>) readObject);
                     if (map.containsKey("ttab")) {
                         Map<String, Object> map2 = (Map<String, Object>) map.get("ttab");
                         if (map2.containsKey("entries")) {
