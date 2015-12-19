@@ -8,12 +8,12 @@ import plugins.Library.index.*;
 import plugins.Library.util.*;
 import plugins.Library.*;
 
-import freenet.keys.FreenetURI;
 import freenet.library.Priority;
 import freenet.library.index.ProtoIndex;
 import freenet.library.index.ProtoIndexComponentSerialiser;
 import freenet.library.index.ProtoIndexSerialiser;
 import freenet.library.index.TermEntry;
+import freenet.library.io.FreenetURI;
 import freenet.library.io.YamlReaderWriter;
 import freenet.library.io.serial.LiveArchiver;
 import freenet.library.io.serial.Serialiser.*;
@@ -158,7 +158,11 @@ public class Tester {
 				Random rand = new Random();
 
 				@Override public void run() {
-					idx = new ProtoIndex("CHK@", "test", null, null, 0);
+					try {
+						idx = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0);
+					} catch (java.net.MalformedURLException e) {
+						throw new AssertionError(e);
+					}
 					ProtoIndexComponentSerialiser.get().setSerialiserFor(idx);
 
 					for (String key: push_index_words) {
@@ -238,7 +242,12 @@ public class Tester {
 				Random rand = new Random();
 
 				@Override public void run() {
-					idx = new ProtoIndex("CHK@", "test", null, null, 0);
+					
+					try {
+						idx = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0);
+					} catch (java.net.MalformedURLException e) {
+						throw new AssertionError(e);
+					}
 					ProtoIndexComponentSerialiser.get().setSerialiserFor(idx);
 
 					try {

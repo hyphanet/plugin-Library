@@ -5,7 +5,7 @@ package plugins.Library.index.xml;
 
 
 import freenet.support.Logger;
-import freenet.keys.FreenetURI;
+import freenet.library.io.FreenetURI;
 import freenet.library.index.TermPageEntry;
 
 import org.xml.sax.Attributes;
@@ -228,8 +228,7 @@ public class LibrarianHandler extends DefaultHandler {
 					//if(logMINOR) Logger.minor(this, "Set relevance of "+pageEntry.getTitle()+" to "+pageEntry.rel+" - "+pageEntry.toString());
 				}
 
-				TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), relevance, 
-															inFileURI.intern().toString(), inFileTitle, termpositions);
+				TermPageEntry pageEntry = new TermPageEntry(match.getSubject(), relevance, inFileURI, inFileTitle, termpositions);
 				result.add(pageEntry);
 				//if(logMINOR) Logger.minor(this, "added "+inFileURI+ " to "+ match);
 			}

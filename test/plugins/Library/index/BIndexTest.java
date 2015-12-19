@@ -90,7 +90,11 @@ public class BIndexTest extends TestCase {
 	));
 
 	protected void newTestSkeleton() {
-		idx = new ProtoIndex("CHK@yeah", "test", null, null, 0);
+		try {
+			idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0);
+		} catch (java.net.MalformedURLException e) {
+			assertTrue(false);
+		}
 		csrl.setSerialiserFor(idx);
 		timeDiff();
 	}

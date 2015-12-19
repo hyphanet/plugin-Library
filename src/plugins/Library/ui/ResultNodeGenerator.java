@@ -4,15 +4,14 @@
 package plugins.Library.ui;
 
 
-import freenet.keys.FreenetURI;
 import freenet.library.index.TermEntry;
 import freenet.library.index.TermIndexEntry;
 import freenet.library.index.TermPageEntry;
 import freenet.library.index.TermTermEntry;
+import freenet.library.io.FreenetURI;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;
 
-import java.net.MalformedURLException;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -64,10 +63,7 @@ public class ResultNodeGenerator implements Runnable {
 			generatePageEntryNode();
 		}catch(RuntimeException e){
 			exception = e;	// Exeptions thrown here are stored in case this is being run in a thread, in this case it is thrown in isDone() or iterator()
-			throw exception;
-		} catch (MalformedURLException e) {
-			exception = new RuntimeException(e);
-			throw exception;
+			throw e;
 		}
 		done = true;
 		result = null;
@@ -95,9 +91,8 @@ public class ResultNodeGenerator implements Runnable {
 
 	/**
 	 * Parse result into generator
-	 * @throws MalformedURLException 
 	 */
-	private void parseResult() throws MalformedURLException{
+	private void parseResult(){
 		groupmap = new TreeMap();
 		if(!groupusk)
 			pageset = new TreeMap(RelevanceComparator.comparator);
@@ -113,7 +108,8 @@ public class ResultNodeGenerator implements Runnable {
 				String sitebase;
 				long uskEdition = Long.MIN_VALUE;
 				// Get the key and name
-				FreenetURI uri = new FreenetURI(pageEntry.page);
+				FreenetURI uri;
+				uri = pageEntry.page;
 				// convert usk's
 				if(uri.isSSKForUSK()){
 					uri = uri.uskForSSK();
@@ -168,9 +164,8 @@ public class ResultNodeGenerator implements Runnable {
 
 	/**
 	 * Generate node of page results from this generator
-	 * @throws MalformedURLException 
 	 */
-	private void generatePageEntryNode() throws MalformedURLException{
+	private void generatePageEntryNode(){
 		pageEntryNode = new HTMLNode("div", "id", "results");
 
 		int results = 0;
@@ -243,12 +238,11 @@ public class ResultNodeGenerator implements Runnable {
 	 * Returns an {@link HTMLNode} representation of a {@link TermPageEntry} for display in a browser
 	 * @param entry
 	 * @param newestVersion	if set, the result is shown in full brightness, if unset the result is greyed out
-	 * @throws MalformedURLException 
 	 */
-	private HTMLNode termPageEntryNode(TermPageEntry entry,boolean newestVersion) throws MalformedURLException {
-		FreenetURI uri = new FreenetURI(entry.page);
+	private HTMLNode termPageEntryNode(TermPageEntry entry,boolean newestVersion) {
+		FreenetURI uri = entry.page;
 		String showtitle = entry.title;
-		String showurl = uri.toShortString();
+		String showurl = uri.toString();
 		if (showtitle == null || showtitle.trim().length() == 0) {
 			showtitle = showurl;
 		}

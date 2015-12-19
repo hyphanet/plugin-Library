@@ -3,6 +3,8 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package freenet.library.index;
 
+import freenet.library.io.FreenetURI;
+
 /**
 ** A {@link TermEntry} that associates a subject term with another index.
 **
@@ -13,14 +15,14 @@ public class TermIndexEntry extends TermEntry {
 	/**
 	** Index target of this entry.
 	*/
-	final public String index;
+	final public FreenetURI index;
 
-	public TermIndexEntry(String s, float r, String i) {
+	public TermIndexEntry(String s, float r, FreenetURI i) {
 		super(s, r);
 		if (i == null) {
 			throw new IllegalArgumentException("can't have a null index");
 		}
-		index = i;
+		index = i.intern();
 	}
 
 	/*========================================================================
@@ -36,7 +38,7 @@ public class TermIndexEntry extends TermEntry {
 		int a = super.compareTo(o);
 		if (a != 0) { return a; }
 		// OPT NORM make a more efficient way of comparing these
-		return index.compareTo(((TermIndexEntry)o).index);
+		return index.toString().compareTo(((TermIndexEntry)o).index.toString());
 	}
 
 	@Override public boolean equals(Object o) {

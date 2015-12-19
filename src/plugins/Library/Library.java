@@ -39,13 +39,13 @@ import freenet.client.async.USKRetrieverCallback;
 import freenet.client.events.ClientEvent;
 import freenet.client.events.ClientEventListener;
 import freenet.client.events.ExpectedMIMEEvent;
-import freenet.keys.FreenetURI;
 import freenet.keys.USK;
 import freenet.library.ArchiverFactory;
 import freenet.library.FactoryRegister;
 import freenet.library.index.Index;
 import freenet.library.index.ProtoIndex;
 import freenet.library.index.ProtoIndexSerialiser;
+import freenet.library.io.FreenetURI;
 import freenet.library.io.ObjectStreamReader;
 import freenet.library.io.ObjectStreamWriter;
 import freenet.library.io.serial.LiveArchiver;
@@ -189,18 +189,23 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 				Logger.error(this, "Invalid bookmark URI: "+target+" for "+name, e);
 				continue;
 			}
-			if(uri.isUSK()) {
-				BookmarkCallback callback = new BookmarkCallback(name, uri.getAllMetaStrings(), edition);
-				bookmarkCallbacks.put(name, callback);
-				USK u;
-				try {
-					u = USK.create(uri);
-				} catch (MalformedURLException e) {
-					Logger.error(this, "Invalid bookmark USK: "+target+" for "+name, e);
-					continue;
+			try {
+				if(uri.isUSK()) {
+					BookmarkCallback callback = new BookmarkCallback(name, uri.getAllMetaStrings(), edition);
+					bookmarkCallbacks.put(name, callback);
+					USK u;
+					try {
+						u = USK.create(new freenet.keys.FreenetURI(uri.toString()));
+					} catch (MalformedURLException e) {
+						Logger.error(this, "Invalid bookmark USK: "+target+" for "+name, e);
+						continue;
+					}
+					uskManager.subscribe(u, callback, false, rcBulk);
+					callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rcBulk);
 				}
-				uskManager.subscribe(u, callback, false, rcBulk);
-				callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rcBulk);
+			} catch (MalformedURLException e) {
+				Logger.error(this, "Invalid URI: " + target + " for " + name, e);
+				continue;
 			}
 		}
 		if (!bookmarks.containsKey("debbies-library-development-index")) {
@@ -270,8 +275,9 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 	/**
 	** Get the index type giving a {@code FreenetURI}. This must not contain
 	** a metastring (end with "/") or be a USK.
+	 * @throws MalformedURLException 
 	*/
-	public Class<?> getIndexType(FreenetURI indexuri) throws FetchException {
+	public Class<?> getIndexType(FreenetURI indexuri) throws FetchException, MalformedURLException {
 		if(indexuri.lastMetaString()!=null && indexuri.lastMetaString().equals(XMLIndex.DEFAULT_FILE))
 			return XMLIndex.class;
 		if(indexuri.lastMetaString()!=null && indexuri.lastMetaString().equals(ProtoIndex.DEFAULT_FILE))
@@ -293,7 +299,7 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 				ClientContext cctx = core.clientContext;
 				FetchContext fctx = hlsc.getFetchContext();
 				FetchWaiter fw = new FetchWaiter(REQUEST_CLIENT);
-				final ClientGetter gu = hlsc.fetch(uri, 0x10000, fw, fctx);
+				final ClientGetter gu = hlsc.fetch(new freenet.keys.FreenetURI(uri.toString()), 0x10000, fw, fctx);
 				gu.setPriorityClass(RequestStarter.INTERACTIVE_PRIORITY_CLASS, cctx);
 				
 				final Class<?>[] c = new Class[1];
@@ -326,7 +332,7 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 								throw new UnsupportedOperationException("Unable to get mime type or got an invalid mime type for index");
 						}
 					} else if(e.newURI != null) {
-						uri = e.newURI;
+						uri = new FreenetURI(e.newURI.toASCIIString());
 						continue;
 					}
 				}
@@ -390,7 +396,7 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 		try {
 			u = new FreenetURI(uri);
 			if(u.isUSK()) {
-				uskNew = USK.create(u);
+				uskNew = USK.create(new freenet.keys.FreenetURI(u.toString()));
 				edition = uskNew.suggestedEdition;
 			}
 		} catch (MalformedURLException e) {
@@ -413,7 +419,7 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 			try {
 				FreenetURI uold = new FreenetURI(old);
 				if(uold.isUSK()) {
-					USK usk = USK.create(uold);
+					USK usk = USK.create(new freenet.keys.FreenetURI(uold.toString()));
 					if(!(uskNew != null && usk.equals(uskNew, false))) {
 						uskManager.unsubscribe(usk, callback);
 						uskManager.unsubscribeContent(usk, callback.ret, true);
@@ -567,7 +573,6 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 				if(uri.isUSK())
 					edition = uri.getEdition();
 				indextype = getIndexType(uri);
-				indexkey = uri.toASCIIString();
 			} else {
 				throw new AssertionError();
 			}

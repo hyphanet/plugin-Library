@@ -21,11 +21,11 @@ import freenet.client.HighLevelSimpleClient;
 import freenet.client.FetchResult;
 import freenet.node.RequestStarter;
 import freenet.node.RequestClient;
-import freenet.keys.FreenetURI;
 import freenet.library.index.Index;
 import freenet.library.index.TermEntry;
 import freenet.library.index.TermPageEntry;
 import freenet.library.index.URIEntry;
+import freenet.library.io.FreenetURI;
 import freenet.library.util.exec.Execution;
 import freenet.library.util.exec.TaskAbortException;
 
@@ -234,12 +234,12 @@ public class XMLIndex implements Index, ClientGetCallback {
 		FreenetURI u = new FreenetURI(uri);
 		while (true) {
 			try {
-				rootGetter = hlsc.fetch(u, -1, this, hlsc.getFetchContext().clone());
+				rootGetter = hlsc.fetch(new freenet.keys.FreenetURI(u.toString()), -1, this, hlsc.getFetchContext().clone());
 				Logger.normal(this, "Fetch started : "+toString());
 				break;
 			} catch (FetchException e) {
 				if (e.newURI != null) {
-					u = e.newURI;
+					u = new FreenetURI(e.newURI.toASCIIString());
 					if(logMINOR) Logger.minor(this, "New URI: "+uri);
 					continue;
 				} else
@@ -829,7 +829,7 @@ public class XMLIndex implements Index, ClientGetCallback {
 										if(logDEBUG) Logger.debug(this, "Set relevance of "+title+" to "+relevance+" - "+key);
 									}
 									
-									TermPageEntry pageEntry = new TermPageEntry(req.getSubject(), relevance, key, title, match.termpositions);
+									TermPageEntry pageEntry = new TermPageEntry(req.getSubject(), relevance, new FreenetURI(key), title, match.termpositions);
 									result.add(pageEntry);
 									//Logger.minor(this, "added "+inFileURI+ " to "+ match);
 								}

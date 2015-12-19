@@ -12,6 +12,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import freenet.library.io.FreenetURI;
+
 /**
 ** A {@link TermEntry} that associates a subject term with a final target
 ** {@link FreenetURI} that satisfies the term.
@@ -23,7 +25,7 @@ public class TermPageEntry extends TermEntry {
 	/**
 	** URI of the target
 	*/
-	final public String page;
+	final public FreenetURI page;
 
 	/** 
 	 * Positions where the term occurs. May be null if we don't have that data.
@@ -54,7 +56,7 @@ public class TermPageEntry extends TermEntry {
 	** @param p Map of positions (where the term appears) to context (fragment
 	**          surrounding it).
 	*/
-	public TermPageEntry(String s, float r, String u, Map<Integer, String> p) {
+	public TermPageEntry(String s, float r, FreenetURI u, Map<Integer, String> p) {
 		this(s, r, u, (String)null, p);
 	}
 
@@ -69,12 +71,12 @@ public class TermPageEntry extends TermEntry {
 	** @param p Map of positions (where the term appears) to context (fragment
 	**          surrounding it).
 	*/
-	public TermPageEntry(String s, float r, String u, String t, Map<Integer, String> p) {
+	public TermPageEntry(String s, float r, FreenetURI u, String t, Map<Integer, String> p) {
 		super(s, r);
 		if (u == null) {
 			throw new IllegalArgumentException("can't have a null page");
 		}
-		page = u;
+		page = u.intern(); // OPT LOW make the translator use the same URI object as from the URI table?
 		title = t == null ? null : t.intern();
 		if(p == null) {
 			posFragments = null;
@@ -88,12 +90,12 @@ public class TermPageEntry extends TermEntry {
 	/**
 	** For serialisation.
 	*/
-	public TermPageEntry(String s, float r, String u, String t, Set<Integer> pos, Map<Integer, String> frags) {
+	public TermPageEntry(String s, float r, FreenetURI u, String t, Set<Integer> pos, Map<Integer, String> frags) {
 		super(s, r);
 		if (u == null) {
 			throw new IllegalArgumentException("can't have a null page");
 		}
-		page = u;
+		page = u.intern(); // OPT LOW make the translator use the same URI object as from the URI table?
 		title = t;
 		if(pos != null) {
 			positions = new TreeSet<Integer>(pos);

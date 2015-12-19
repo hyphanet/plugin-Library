@@ -34,6 +34,7 @@ import freenet.library.index.TermIndexEntry;
 import freenet.library.index.TermPageEntry;
 import freenet.library.index.TermTermEntry;
 import freenet.library.io.serial.Packer;
+import freenet.library.io.FreenetURI;
 
 
 /**
@@ -116,11 +117,11 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	public static class ExtendedRepresenter extends Representer {
 
 		public ExtendedRepresenter() {
-			//			this.representers.put(FreenetURI.class, new Represent() {
-			//				/*@Override**/ public Node representData(Object data) {
-			//					return representScalar("!FreenetURI", data.toString());
-			//				}
-			//			});
+			this.representers.put(FreenetURI.class, new Represent() {
+					/*@Override**/ public Node representData(Object data) {
+						return representScalar("!FreenetURI", data.toString());
+				}
+			});
 			this.representers.put(Packer.BinInfo.class, new Represent() {
 				/*@Override**/ public Node representData(Object data) {
 					Packer.BinInfo inf = (Packer.BinInfo)data;
@@ -160,7 +161,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 			this.yamlConstructors.put("!FreenetURI", new AbstractConstruct() {
 				/*@Override**/ public Object construct(Node node) {
 					String uri = (String) constructScalar((ScalarNode)node);
-					return uri;
+					return new FreenetURI(uri);
 				}
 			});
 			this.yamlConstructors.put("!BinInfo", new AbstractConstruct() {

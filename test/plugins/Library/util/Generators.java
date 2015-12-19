@@ -7,8 +7,8 @@ import junit.framework.TestCase;
 
 import plugins.Library.index.*;
 
-import freenet.keys.FreenetURI;
 import freenet.library.index.TermPageEntry;
+import freenet.library.io.FreenetURIForTest;
 
 import java.util.UUID;
 import java.util.Random;
@@ -38,7 +38,7 @@ final public class Generators {
 	}
 
 	public static TermPageEntry rndEntry(String key) {
-		return new TermPageEntry(key, (float)Math.random(), FreenetURI.generateRandomCHK(rand).toString(), null);
+		return new TermPageEntry(key, (float)Math.random(), FreenetURIForTest.generateRandomCHK(rand), null);
 	}
 
 }

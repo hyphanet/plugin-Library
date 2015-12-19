@@ -7,6 +7,7 @@ package freenet.library.index;
 import freenet.library.io.DataFormatException;
 import freenet.library.io.ObjectStreamReader;
 import freenet.library.io.ObjectStreamWriter;
+import freenet.library.io.FreenetURI;
 import freenet.copied.Base64;
 
 import java.util.Map;
@@ -146,9 +147,9 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 		case TERM:
 			return new TermTermEntry(subj, rel, dis.readUTF());
 		case INDEX:
-			return new TermIndexEntry(subj, rel, readFreenetURI(dis));
+			return new TermIndexEntry(subj, rel, FreenetURI.readFullBinaryKeyWithLength(dis));
 		case PAGE:
-			String page = readFreenetURI(dis);
+			FreenetURI page = FreenetURI.readFullBinaryKeyWithLength(dis);
 			int size = dis.readInt();
 			String title = null;
 			if (size < 0) {
@@ -196,13 +197,11 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 			dos.writeUTF(((TermTermEntry)en).term);
 			return;
 		case INDEX:
-			dos.writeShort(0);
-			dos.writeUTF(((TermIndexEntry)en).index);
+			((TermIndexEntry)en).index.writeFullBinaryKeyWithLength(dos);
 			return;
 		case PAGE:
 			TermPageEntry enn = (TermPageEntry)en;
-			dos.writeShort(0);
-			dos.writeUTF(enn.page);
+			enn.page.writeFullBinaryKeyWithLength(dos);
 			int size = enn.hasPositions() ? enn.positionsSize() : 0;
 			if(enn.title == null)
 				dos.writeInt(size);
