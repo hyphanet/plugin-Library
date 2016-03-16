@@ -6,9 +6,13 @@ package plugins.Library.index;
 import junit.framework.TestCase;
 
 
-import plugins.Library.io.YamlReaderWriter;
-
 import freenet.keys.FreenetURI;
+import freenet.library.index.TermEntry;
+import freenet.library.index.TermEntryReaderWriter;
+import freenet.library.index.TermIndexEntry;
+import freenet.library.index.TermPageEntry;
+import freenet.library.index.TermTermEntry;
+import freenet.library.io.YamlReaderWriter;
 import freenet.library.io.serial.FileArchiver;
 import freenet.library.io.serial.Packer;
 import freenet.library.io.serial.Serialiser.*;
@@ -35,9 +39,9 @@ public class TermEntryTest extends TestCase {
 	final static TermPageEntry v;
 	static {
 		try {
-			x = new TermIndexEntry("test", 0.8f, new FreenetURI("CHK@MIh5-viJQrPkde5gmRZzqjBrqOuh~Wbjg02uuXJUzgM,rKDavdwyVF9Z0sf5BMRZsXj7yiWPFUuewoe0CPesvXE,AAIC--8"));
-			z = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), null);
-			v = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), "title", null);
+			x = new TermIndexEntry("test", 0.8f, new freenet.library.io.FreenetURI("CHK@MIh5-viJQrPkde5gmRZzqjBrqOuh~Wbjg02uuXJUzgM,rKDavdwyVF9Z0sf5BMRZsXj7yiWPFUuewoe0CPesvXE,AAIC--8"));
+			z = new TermPageEntry("lol", 0.8f, new freenet.library.io.FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), null);
+			v = new TermPageEntry("lol", 0.8f, new freenet.library.io.FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), "title", null);
 		} catch (MalformedURLException e) {
 			throw new AssertionError();
 		}

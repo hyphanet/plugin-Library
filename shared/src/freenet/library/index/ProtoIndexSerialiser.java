@@ -4,12 +4,14 @@
 package freenet.library.index;
 
 import java.io.File;
+import java.net.MalformedURLException;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import freenet.library.FactoryRegister;
 import freenet.library.io.DataFormatException;
+import freenet.library.io.FreenetURI;
 import freenet.library.io.YamlReaderWriter;
 import freenet.library.io.serial.Archiver;
 import freenet.library.io.serial.FileArchiver;
@@ -183,7 +185,17 @@ implements Archiver<ProtoIndex>,
 				try {
 					// FIXME yet more hacks related to the lack of proper asynchronous FreenetArchiver...
 					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"), subsrl);
-					String reqID = (String)map.get("reqID");
+					Object reqIDObject = map.get("reqID");
+					FreenetURI reqID;
+					if (reqIDObject instanceof FreenetURI) {
+						reqID = (FreenetURI) reqIDObject;
+					} else {
+						try {
+							reqID = new FreenetURI((String) reqIDObject);
+						} catch (MalformedURLException e) {
+							throw new DataFormatException("Badly formatted URI", e, null);
+						}
+					}
 					String name = (String)map.get("name");
 					String ownerName = (String)map.get("ownerName");
 					String ownerEmail = (String)map.get("ownerEmail");

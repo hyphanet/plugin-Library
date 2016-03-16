@@ -8,12 +8,14 @@ import plugins.Library.index.*;
 import plugins.Library.util.*;
 import plugins.Library.*;
 
+import freenet.keys.FreenetURI;
+import freenet.node.RequestStarter;
+
 import freenet.library.Priority;
 import freenet.library.index.ProtoIndex;
 import freenet.library.index.ProtoIndexComponentSerialiser;
 import freenet.library.index.ProtoIndexSerialiser;
 import freenet.library.index.TermEntry;
-import freenet.library.io.FreenetURI;
 import freenet.library.io.YamlReaderWriter;
 import freenet.library.io.serial.LiveArchiver;
 import freenet.library.io.serial.Serialiser.*;
@@ -23,7 +25,6 @@ import freenet.library.util.exec.ProgressParts;
 import freenet.library.util.exec.SimpleProgress;
 import freenet.library.util.exec.TaskAbortException;
 import freenet.library.util.func.Closure;
-import freenet.node.RequestStarter;
 
 import java.util.*;
 import java.io.*;
@@ -159,7 +160,7 @@ public class Tester {
 
 				@Override public void run() {
 					try {
-						idx = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0);
+						idx = new ProtoIndex(new freenet.library.io.FreenetURI("CHK@"), "test", null, null, 0);
 					} catch (java.net.MalformedURLException e) {
 						throw new AssertionError(e);
 					}
@@ -244,7 +245,7 @@ public class Tester {
 				@Override public void run() {
 					
 					try {
-						idx = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0);
+						idx = new ProtoIndex(new freenet.library.io.FreenetURI("CHK@"), "test", null, null, 0);
 					} catch (java.net.MalformedURLException e) {
 						throw new AssertionError(e);
 					}

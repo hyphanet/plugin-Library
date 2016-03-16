@@ -6,7 +6,7 @@ import java.net.MalformedURLException;
 
 public class FreenetURI {
 
-	public FreenetURI(String uri) {
+	public FreenetURI(String uri) throws MalformedURLException {
 		throw new RuntimeException("Not implemented yet.");
 	}
 

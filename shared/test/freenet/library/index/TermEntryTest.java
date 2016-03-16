@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
 import java.io.*;
+import java.net.MalformedURLException;
 
 /**
 ** @author infinity0
@@ -33,9 +34,13 @@ public class TermEntryTest extends TestCase {
 	final static TermPageEntry z;
 	final static TermPageEntry v;
 	static {
-		x = new TermIndexEntry("test", 0.8f, new FreenetURI("CHK@MIh5-viJQrPkde5gmRZzqjBrqOuh~Wbjg02uuXJUzgM,rKDavdwyVF9Z0sf5BMRZsXj7yiWPFUuewoe0CPesvXE,AAIC--8"));
-		z = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), null);
-		v = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), "title", null);
+		try {
+			x = new TermIndexEntry("test", 0.8f, new FreenetURI("CHK@MIh5-viJQrPkde5gmRZzqjBrqOuh~Wbjg02uuXJUzgM,rKDavdwyVF9Z0sf5BMRZsXj7yiWPFUuewoe0CPesvXE,AAIC--8"));
+			z = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), null);
+			v = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), "title", null);
+		} catch (MalformedURLException e) {
+			throw new AssertionError();
+		}
 	}
 	final static TermTermEntry y  = new TermTermEntry("test", 0.8f, "lol2");
 

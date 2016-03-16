@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.MalformedURLException;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -11,6 +12,7 @@ import freenet.library.index.ProtoIndex;
 import freenet.library.index.ProtoIndexComponentSerialiser;
 import freenet.library.index.ProtoIndexSerialiser;
 import freenet.library.index.TermEntry;
+import freenet.library.io.FreenetURI;
 import freenet.library.io.serial.LiveArchiver;
 import freenet.library.io.serial.Serialiser.PushTask;
 import freenet.library.util.SkeletonBTreeSet;
@@ -38,7 +40,11 @@ class DirectoryCreator {
         LiveArchiver<Map<String,Object>, SimpleProgress> archiver = 
         		(LiveArchiver<Map<String,Object>, SimpleProgress>) srlDisk.getChildSerialiser();
         leafsrlDisk = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, archiver);
-        idxDisk = new ProtoIndex("CHK@", "test", null, null, 0L);
+        try {
+			idxDisk = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0L);
+		} catch (MalformedURLException e) {
+			throw new AssertionError(e);
+		}
         leafsrlDisk.setSerialiserFor(idxDisk);
 
 		countTerms = 0;

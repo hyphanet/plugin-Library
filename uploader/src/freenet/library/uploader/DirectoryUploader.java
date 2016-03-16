@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -21,6 +22,7 @@ import freenet.library.index.ProtoIndex;
 import freenet.library.index.ProtoIndexComponentSerialiser;
 import freenet.library.index.ProtoIndexSerialiser;
 import freenet.library.index.TermEntry;
+import freenet.library.io.FreenetURI;
 import freenet.library.io.serial.LiveArchiver;
 import freenet.library.io.serial.Serialiser.PullTask;
 import freenet.library.io.serial.Serialiser.PushTask;
@@ -521,7 +523,11 @@ class DirectoryUploader implements Runnable {
                 (LiveArchiver<Map<String,Object>,SimpleProgress>)(srl.getChildSerialiser());
             leafsrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_DEFAULT, archiver);
             if(lastUploadURI == null) {
-                idxFreenet = new ProtoIndex("CHK@", "test", null, null, 0L);
+                try {
+					idxFreenet = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0L);
+				} catch (MalformedURLException e) {
+					throw new AssertionError(e);
+				}
                 // FIXME more hacks: It's essential that we use the
                 // same FreenetArchiver instance here.
                 leafsrl.setSerialiserFor(idxFreenet);

@@ -27,6 +27,7 @@ import java.io.OutputStreamWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
+import java.net.MalformedURLException;
 
 /* class definitions added to the extended Yaml processor */
 import freenet.library.index.TermEntry;
@@ -161,7 +162,11 @@ implements ObjectStreamReader, ObjectStreamWriter {
 			this.yamlConstructors.put("!FreenetURI", new AbstractConstruct() {
 				/*@Override**/ public Object construct(Node node) {
 					String uri = (String) constructScalar((ScalarNode)node);
-					return new FreenetURI(uri);
+					try {
+						return new FreenetURI(uri);
+					} catch (java.net.MalformedURLException e) {
+						throw new ConstructorException("while constructing a FreenetURI", node.getStartMark(), "found malformed URI " + uri, null);
+					}
 				}
 			});
 			this.yamlConstructors.put("!BinInfo", new AbstractConstruct() {
