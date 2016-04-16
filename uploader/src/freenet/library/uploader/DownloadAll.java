@@ -436,7 +436,7 @@ public class DownloadAll {
     		return started;
     	}
 
-    	String getFilename() {
+    	String getKey() {
 			return filename;
 		}
 
@@ -491,6 +491,7 @@ public class DownloadAll {
     }
 
     interface UriProcessor {
+    	public FetchedPage getPage();
     	public boolean processUri(String uri);
     }
 
@@ -515,13 +516,15 @@ public class DownloadAll {
                     		}
                     		
                     	} catch (ClassCastException e) {
-                    		throw new RuntimeException("Cannot process BinInfo value " + value.getID() + " for " + page_uri, e);
+                    		throw new RuntimeException("Cannot process BinInfo value " + value.getID() +
+                    				" for " + uriProcessor.getPage().getURI(),
+                    				e);
                     	}
                     }
                     Map<String, Object> subnodes =
                             (Map<String, Object>) map2.get("subnodes");
                     logger.log(Level.FINER, "Contains ttab.entries (level {0}) with {1} subnodes", new Object[] {
-                    		page_level,
+                    		uriProcessor.getPage().level,
                     		subnodes.size(),
                     });
                     for (String key : subnodes.keySet()) {
@@ -538,7 +541,7 @@ public class DownloadAll {
             	// Must separate map and array!
                 if (map.containsKey("subnodes")) {
                 	throw new RuntimeException("This parsing is not complex enough to handle subnodes for terms for " +
-                							   page_uri);
+                							   uriProcessor.getPage().getURI());
                 }
                 if (map.get("entries") instanceof Map) {
                     Map<String, BinInfo> entries =
@@ -546,7 +549,7 @@ public class DownloadAll {
                     logger.log(Level.FINE,
                     		"Contains from {1} to {2} (level {0}) with {3} entries.",
                     		new Object[] {
-                    			page_level,
+                    			uriProcessor.getPage().level,
                     			map.get("lkey"),
                     			map.get("rkey"),
                     			entries.size()
@@ -558,7 +561,8 @@ public class DownloadAll {
                     			foundChildren ++;
                     		}
                     	} catch (ClassCastException e) {
-                    		throw new RuntimeException("Cannot process BinInfo (2) " + value.getID() + " for " + page_uri);
+                    		throw new RuntimeException("Cannot process BinInfo (2) " + value.getID() +
+                    				" for " + uriProcessor.getPage().getURI());
                     	}
                     }
                     return;
@@ -568,7 +572,7 @@ public class DownloadAll {
                     logger.log(Level.FINE,
                     		"Contains from {1} to {2} (level {0}) with page entries.",
                     		new Object[] {
-                    			page_level,
+                    			uriProcessor.getPage().level,
                     			map.get("lkey"),
                     			map.get("rkey")
                     });
@@ -582,7 +586,7 @@ public class DownloadAll {
                         && map2.containsKey("size")
                         && map2.containsKey("entries")) {
                 	logger.log(Level.FINER, "Starts with entry for {1} (level {0}). Searching for subnodes.", new Object[] {
-                			page_level,
+                			uriProcessor.getPage().level,
                 			entry.getKey(),
                 	});
                 	String first = null;
@@ -598,7 +602,7 @@ public class DownloadAll {
                     			Map<String, Object> subnodes =
                     					(Map<String, Object>) map3.get("subnodes");
                     			logger.log(Level.FINER, "Entry for {1} (level {0}) contains {2} subnodes.", new Object[] {
-                    					page_level,
+                    					uriProcessor.getPage().level,
                     					contents.getKey(),
                     					subnodes.size(),
                     			});
@@ -611,10 +615,11 @@ public class DownloadAll {
                 			}
                 			continue;
                 		}
-                		throw new RuntimeException("Cannot process entries. Entry for " + contents.getKey() + " is not String=Map for " + page_uri);
+                		throw new RuntimeException("Cannot process entries. Entry for " + contents.getKey() + " is not String=Map for " +
+                				uriProcessor.getPage().getURI());
                 	}
                 	logger.log(Level.FINER, "Starts with entry for {1} and ended with entry {2} (level {0}).", new Object[] {
-                			page_level,
+                			uriProcessor.getPage().level,
                 			first,
                 			last,
                 	});
@@ -720,7 +725,12 @@ public class DownloadAll {
                     "(max " + maxObjectQueueSize + ").");
             page.didSucceed();
             UriProcessor uriProcessor = new UriProcessor() {
-				@Override
+            	@Override
+            	public FetchedPage getPage() {
+            		return page;
+            	}
+
+            	@Override
 				public boolean processUri(String uri) {
 					return processAnUri(uri);
 				}
@@ -797,7 +807,7 @@ public class DownloadAll {
 		                		assert c == connection;
 		            			assert uriGenerated != null;
 		            			String identifier = uriGenerated.getIdentifier();
-		            			String chk = ongoingUploads.get(identifier).getFilename();
+		            			String chk = ongoingUploads.get(identifier).getKey();
 								if (!uriGenerated.getURI().equals(chk)) {
 		            				logger.severe("Were supposed to resurrect " + chk +
 		            						" but the URI calculated to " + uriGenerated.getURI() + ". " +
@@ -814,7 +824,7 @@ public class DownloadAll {
 		            			assert putSuccessful != null;
 		            			String identifier = putSuccessful.getIdentifier();
 		            			final OngoingUpload foundUpload = ongoingUploads.get(identifier);
-								String chk = foundUpload.getFilename();
+								String chk = foundUpload.getKey();
 								if (!putSuccessful.getURI().equals(chk)) {
 		            				logger.severe("Uploaded " + putSuccessful.getURI() +
 		            						" while supposed to upload " + chk +
@@ -834,7 +844,7 @@ public class DownloadAll {
 		            			assert putFailed != null;
 		            			String identifier = putFailed.getIdentifier();
 		            			final OngoingUpload foundUpload = ongoingUploads.get(identifier);
-								String chk = foundUpload.getFilename();
+								String chk = foundUpload.getKey();
 								logger.severe("Uploaded " + chk + " failed.");
 		            			failedRecreated++;
 		            			ongoingUploads.remove(identifier);
@@ -849,6 +859,7 @@ public class DownloadAll {
             }
             uploadStarter.execute(new Runnable() {
                 public void run() {
+        			logger.fine("Ressurrecting " + filename);
                     uploadCounter++;
                     final String identifier = "Upload" + uploadCounter;
                     ongoingUploads.put(identifier, new OngoingUpload(filename, callback));
@@ -1170,6 +1181,11 @@ public class DownloadAll {
 			try {
 				readAndProcessYamlData(inputStream,
 						new UriProcessor() {
+							@Override
+							public FetchedPage getPage() {
+								return finalPage;
+							}
+
 							Set<String> seen = new HashSet<String>();
 							@Override
 							public boolean processUri(String uri) {
