@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
 import java.util.Formatter;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -73,8 +75,10 @@ public class DownloadAll {
     private int failed = 0;
     private int recreated = 0;
     private int avoidFetching = 0;
+    private int wrongChkCounterForUpload = 0;
     
     private Random rand = new Random();
+    private Date started = new Date();
 
     public DownloadAll(String u) {
         uri = u;
@@ -235,7 +239,26 @@ public class DownloadAll {
             return !parents.isEmpty();
         }
     
-        int getTreeSize() {
+        /**
+         * fetchedPage is an ancestor, any number of levels, to this
+         * page.
+         * 
+         * @param fetchedPage the ancestor to search for.
+         * @return
+         */
+		public boolean hasParent(FetchedPage fetchedPage) {
+			if (parents.contains(fetchedPage)) {
+				return true;
+			}
+			for (FetchedPage parent : parents) {
+				if (parent.hasParent(fetchedPage)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		int getTreeSize() {
             int size = 1;
             for (FetchedPage child : children) {
                 size += child.getTreeSize();
@@ -444,8 +467,13 @@ public class DownloadAll {
 	                    required += value.progressRequired;
 	                    completed += value.progressCompleted;
 	                }
+	                String ongoingUploadsMessage = "";
+	                if (ongoingUploads != null && ongoingUploads.size() > 0) {
+	                	ongoingUploadsMessage = " and " + ongoingUploads.size() + " uploads.";
+	                }
 	                logger.fine("Outstanding " + stillRunning.size() + " ClientGet jobs " +
-	                        "(" + completed + "/" + required + "/" + total + ") ");
+	                        "(" + completed + "/" + required + "/" + total + ")" +
+	                		ongoingUploadsMessage);
 	            }
         	}
         }
@@ -680,8 +708,11 @@ public class DownloadAll {
 		            			String chk = ongoingUploads.get(identifier).getKey();
 								if (!uriGenerated.getURI().equals(chk)) {
 		            				logger.severe("Were supposed to upload " + chk +
-		            						" but calculated to " + uriGenerated.getURI());
-		            				System.exit(1);
+		            						" but calculated to " + uriGenerated.getURI() + ". " +
+		            						"Will upload anyway.");
+		            				wrongChkCounterForUpload++;
+		            			} else {
+		            				logger.fine("Uploading " + chk);
 		            			}
 		                	}
 		                	
@@ -690,7 +721,14 @@ public class DownloadAll {
 		            			assert c == connection;
 		            			assert putSuccessful != null;
 		            			String identifier = putSuccessful.getIdentifier();
-		            			ongoingUploads.get(identifier).getValue().run();
+		            			String chk = ongoingUploads.get(identifier).getKey();
+								if (!putSuccessful.getURI().equals(chk)) {
+		            				logger.severe("Uploaded " + putSuccessful.getURI() +
+		            						" while supposed to upload " + chk +
+		            						". ");
+		            			} else {
+		            				ongoingUploads.get(identifier).getValue().run();
+		            			}
 		            			ongoingUploads.remove(identifier);
 		            		};
 		            	});
@@ -823,11 +861,18 @@ public class DownloadAll {
                         entry.getValue().hasBeenWaiting(entry.getKey());
                     }
                     synchronized (roots) {
-                        if (roots.size() > 1) {
-                            if (roots.get(roots.size() - 1).getTreeSize() > 100) {
+                        final int roots_size = roots.size();
+						if (roots_size > 1) {
+							int roots_distance = roots_size - 1;
+                            if (roots.get(1).getTreeSizeSucceeded() >= roots.get(0).getTreeSizeSucceeded() - roots_distance * roots_distance * roots_distance) {
                                 roots.remove(0);
                             }
                         }
+                    }
+
+                    FetchedPage lastRoot;
+                    synchronized (roots) {
+                    	lastRoot = roots.get(roots.size() - 1);
                     }
 
                     if (!empty) {
@@ -847,20 +892,24 @@ public class DownloadAll {
                             if (maxLaps == 0) {
                                 maxLaps = 1;
                             }
-                            int rotateLaps = rand.nextInt(maxLaps);
-                            for (int i = 0; i < rotateLaps; i++) {
+                            int toRotate = rand.nextInt(maxLaps);
+                            int rotated = 0;
+                            assert taken.level > 0;
+                            for (int i = 0; i < toRotate; i += taken.hasParent(lastRoot) ? taken.level * taken.level * taken.level : 1) {
                                 objectQueue.offer(taken);
                                 taken = objectQueue.take();
-                                while (!taken.hasParent()) {
+								while (!taken.hasParent()) {
                                     taken = null;
                                     avoidFetching++;
                                     if (objectQueue.isEmpty()) {
                                         break;
                                     }
                                     taken = objectQueue.take();
+                                    assert taken.level > 0;
                                 }
+                                rotated++;
                             }
-                            logger.finer("Rotated " + rotateLaps);
+                            logger.finer("Rotated " + rotated + " (count to " + toRotate + ").");
                             if (taken == null) {
                                 break;
                             }
@@ -900,42 +949,62 @@ public class DownloadAll {
     	if (recreated > 0) {
     		recreatedMessage = " Recreated: " + recreated;
     	}
+    	String wrongChkCounterForUploadMessage = "";
+    	if (wrongChkCounterForUpload > 0) {
+    		wrongChkCounterForUploadMessage = " WrongChkUploaded: " + wrongChkCounterForUpload;
+    	}
         logger.fine("Fetches: Successful: " + successful + 
                 " blocks: " + successfulBlocks +
                 " bytes: " + successfulBytes +
                 " Failed: " + failed +
                 recreatedMessage +
+                wrongChkCounterForUploadMessage +
                 " Avoided: " + avoidFetching + ".");
 
         StringBuilder sb = new StringBuilder();
+        List<FetchedPage> copiedRoots;
         synchronized (roots) {
-            for (FetchedPage root : roots) {
-                if (sb.length() > 0) {
-                    sb.append(", ");
-                }
-                String edition = root.getURI().substring(uri.length());
-                sb.append(edition);
-                int succeeded = root.getTreeSizeSucceeded();
-                int failed = root.getTreeSizeFailed();
-                if (failed > 0) {
-                	sb.append(new Formatter().format(" FAILED: %.1f%%.", 100.0 * failed / (failed + succeeded)));
-                }
-                double estimate = getEstimatedPagesLeft(root);
-                if (estimate < Double.POSITIVE_INFINITY) {
-                    sb.append(new Formatter().format(" Fetched: %.1f%%.",
-                    		100.0 * succeeded / (estimate + succeeded)));
-                }
-                sb.append(" (");
-                sb.append(succeeded);
-    
-                if (failed > 0) {
-                    sb.append(" and ");
-                    sb.append(failed);
-                    sb.append(" failed");
-                }
-                
-                sb.append(")");
+            copiedRoots = new ArrayList<FetchedPage>(roots);
+        }
+        Collections.reverse(copiedRoots);
+        boolean first = true;
+		for (FetchedPage root : copiedRoots) {
+            if (sb.length() > 0) {
+                sb.append(", ");
             }
+            String edition = root.getURI().substring(uri.length());
+            sb.append(edition);
+            int succeeded = root.getTreeSizeSucceeded();
+            int failed = root.getTreeSizeFailed();
+            if (failed > 0) {
+            	sb.append(new Formatter().format(" FAILED: %.1f%%.", 100.0 * failed / (failed + succeeded)));
+            }
+            double estimate = getEstimatedPagesLeft(root);
+            if (estimate < Double.POSITIVE_INFINITY) {
+                final double fractionDone = 1.0 * succeeded / (estimate + succeeded);
+				sb.append(new Formatter().format(" Fetched: %.1f%%.",
+                		100.0 * fractionDone));
+				if (first) {
+					logger.log(Level.FINER, "ETA: {0,date}, Started: {1,date}. Done {2,number,percent}.",
+							new Object[] {
+							new Date(new Double(1.0 / fractionDone * (new Date().getTime() - started.getTime())).longValue() +
+									 started.getTime()),
+							started,
+							fractionDone,
+					});
+					first = false;
+				}
+            }
+            sb.append(" (");
+            sb.append(succeeded);
+
+            if (failed > 0) {
+                sb.append(" and ");
+                sb.append(failed);
+                sb.append(" failed");
+            }
+            
+            sb.append(")");
         }
 
         System.out.println("Editions: " + sb.toString());
