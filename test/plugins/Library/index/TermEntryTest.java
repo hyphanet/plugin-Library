@@ -6,7 +6,7 @@ package plugins.Library.index;
 import junit.framework.TestCase;
 
 
-import freenet.keys.FreenetURI;
+import freenet.library.io.FreenetURI;
 import freenet.library.index.TermEntry;
 import freenet.library.index.TermEntryReaderWriter;
 import freenet.library.index.TermIndexEntry;
@@ -18,13 +18,10 @@ import freenet.library.io.serial.Packer;
 import freenet.library.io.serial.Serialiser.*;
 import freenet.library.util.exec.TaskAbortException;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.UUID;
 import java.net.MalformedURLException;
 import java.io.*;
 
@@ -48,7 +45,7 @@ public class TermEntryTest extends TestCase {
 	}
 	final static TermTermEntry y  = new TermTermEntry("test", 0.8f, "lol2");
 
-	public void testBasic() throws TaskAbortException {
+	public void testBasic() throws TaskAbortException, MalformedURLException {
 	    File f = new File("TermEntryTest");
 	    f.mkdir();
 		FileArchiver<Map<String, Object>> ym = new FileArchiver<Map<String, Object>>(new YamlReaderWriter(), "test", null, ".yml", f);
@@ -62,11 +59,8 @@ public class TermEntryTest extends TestCase {
 		l.add(y);
 		l.add(z);
 		map.put("test", l);
-		try {
-			map.put("test2", new Packer.BinInfo(new FreenetURI("http://127.0.0.1:8888/CHK@WtWIvOZXLVZkmDrY5929RxOZ-woRpRoMgE8rdZaQ0VU,rxH~D9VvOOuA7bCnVuzq~eux77i9RR3lsdwVHUgXoOY,AAIC--8/Library.jar"), 123));
-		} catch (java.net.MalformedURLException e) {
-			assert(false);
-		}
+
+		map.put("test2", new Packer.BinInfo(new FreenetURI("CHK@WtWIvOZXLVZkmDrY5929RxOZ-woRpRoMgE8rdZaQ0VU,rxH~D9VvOOuA7bCnVuzq~eux77i9RR3lsdwVHUgXoOY,AAIC--8/Library.jar"), 123));
 
 		ym.push(new PushTask<Map<String, Object>>(map));
 		PullTask<Map<String, Object>> pt = new PullTask<Map<String, Object>>("");

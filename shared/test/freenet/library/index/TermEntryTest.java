@@ -39,7 +39,7 @@ public class TermEntryTest extends TestCase {
 			z = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), null);
 			v = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), "title", null);
 		} catch (MalformedURLException e) {
-			throw new AssertionError();
+			throw new AssertionError(e);
 		}
 	}
 	final static TermTermEntry y  = new TermTermEntry("test", 0.8f, "lol2");
@@ -62,11 +62,8 @@ public class TermEntryTest extends TestCase {
 
 		ym.push(new PushTask<Map<String, Object>>(map));
 		PullTask<Map<String, Object>> pt = new PullTask<Map<String, Object>>("");
-		try{
+
 		ym.pull(pt);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 
 		assertTrue(pt.data instanceof Map);
 		Map<String, Object> m = pt.data;
@@ -109,9 +106,9 @@ public class TermEntryTest extends TestCase {
 	}
 
 	public static void assertEqualButNotIdentical(Object a, Object b) {
-		assertTrue(a != b);
-		assertTrue(a.equals(b));
-		assertTrue(a.hashCode() == b.hashCode());
+		assertTrue(a + " and " + b + " are identical.", a != b);
+		assertTrue(a + " and " + b + " not equal.", a.equals(b));
+		assertTrue(a + " and " + b + " not same hashCode.", a.hashCode() == b.hashCode());
 	}
 
 }
