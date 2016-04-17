@@ -1,6 +1,7 @@
 package freenet.library.uploader;
 
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -60,7 +61,11 @@ class TermEntryReaderIterator implements Iterable<TermEntry> {
             	}
                 try {
                     return TermEntryReaderWriter.getInstance().readObject(is);
+                } catch (EOFException e) {
+                	return null;
                 } catch (IOException e) {
+                	System.out.println("Cannot understand read file:");
+                	e.printStackTrace();
                     return null;
                 }
             }
