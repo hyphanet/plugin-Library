@@ -457,7 +457,7 @@ public class DownloadAll {
          * Show the amount of outstanding work.
          */
         void printLeft() {
-        	if (logger.isLoggable(Level.FINE)) {
+        	if (logger.isLoggable(Level.FINEST)) {
 	            int total = 0;
 	            int required = 0;
 	            int completed = 0;
@@ -471,7 +471,7 @@ public class DownloadAll {
 	                if (ongoingUploads != null && ongoingUploads.size() > 0) {
 	                	ongoingUploadsMessage = " and " + ongoingUploads.size() + " uploads.";
 	                }
-	                logger.fine("Outstanding " + stillRunning.size() + " ClientGet jobs " +
+	                logger.finest("Outstanding " + stillRunning.size() + " ClientGet jobs " +
 	                        "(" + completed + "/" + required + "/" + total + ")" +
 	                		ongoingUploadsMessage);
 	            }
@@ -707,12 +707,12 @@ public class DownloadAll {
 		            			String identifier = uriGenerated.getIdentifier();
 		            			String chk = ongoingUploads.get(identifier).getKey();
 								if (!uriGenerated.getURI().equals(chk)) {
-		            				logger.severe("Were supposed to upload " + chk +
-		            						" but calculated to " + uriGenerated.getURI() + ". " +
+		            				logger.severe("Were supposed to resurrect " + chk +
+		            						" but the URI calculated to " + uriGenerated.getURI() + ". " +
 		            						"Will upload anyway.");
 		            				wrongChkCounterForUpload++;
 		            			} else {
-		            				logger.fine("Uploading " + chk);
+		            				logger.fine("Resurrecting " + chk);
 		            			}
 		                	}
 		                	
@@ -738,7 +738,6 @@ public class DownloadAll {
             }
             uploadStarter.execute(new Runnable() {
                 public void run() {
-        			logger.fine("Ressurrecting " + filename);
                     uploadCounter++;
                     final String identifier = "Upload" + uploadCounter;
                     ongoingUploads.put(identifier, new AbstractMap.SimpleImmutableEntry<String, Runnable>(filename, callback));
