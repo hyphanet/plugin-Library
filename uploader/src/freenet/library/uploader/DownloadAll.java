@@ -6,6 +6,7 @@ package freenet.library.uploader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,7 +50,7 @@ import freenet.library.io.serial.Packer.BinInfo;
  * Class to download the entire index.
  */
 public class DownloadAll {
-    private static final int PARALLEL_JOBS = 10;
+    private static final int PARALLEL_JOBS = 30;
 
 	/** Logger. */
 	private static final Logger logger = Logger.getLogger(DownloadAll.class.getName());
@@ -67,7 +68,7 @@ public class DownloadAll {
     private List<FetchedPage> roots = new ArrayList<FetchedPage>();
     
     private ExecutorService uploadStarter = null;
-    private Map<String, Map.Entry<String, Runnable>> ongoingUploads = null;
+    private Map<String, OngoingUpload> ongoingUploads = null;
             
     private int successful = 0;
     private int successfulBlocks = 0;
@@ -397,6 +398,38 @@ public class DownloadAll {
     }
     
 
+    private static class OngoingUpload {
+    	private final Date started = new Date();
+    	private final String filename;
+    	private final Runnable callback;
+    	
+    	public OngoingUpload(String fname, Runnable cback) {
+    		filename = fname;
+    		callback = cback;
+    	}
+
+    	Date getStarted() {
+    		return started;
+    	}
+
+    	String getFilename() {
+			return filename;
+		}
+
+		void complete() {
+			final long millis = new Date().getTime() - started.getTime();
+			final long seconds = millis / 1000;
+			final long minutes = seconds / 60;
+			final long hours = minutes / 60;
+			logger.log(Level.FINE, "Upload completed after {0,number}:{1,number,00}:{2,number,00}.",
+					new Object[] {
+					hours,
+					minutes % 60,
+					seconds % 60,
+			});
+			callback.run();
+		}
+    }
 
     private class GetAdapter extends FcpAdapter {
         private ClientGet getter;
@@ -468,8 +501,18 @@ public class DownloadAll {
 	                    completed += value.progressCompleted;
 	                }
 	                String ongoingUploadsMessage = "";
-	                if (ongoingUploads != null && ongoingUploads.size() > 0) {
-	                	ongoingUploadsMessage = " and " + ongoingUploads.size() + " uploads.";
+	                if (logger.isLoggable(Level.FINEST) && ongoingUploadsSize() > 0) {
+	                	Date oldest = null;
+	                	for (Map.Entry<String, OngoingUpload> entry : ongoingUploads.entrySet()) {
+	                		if (oldest == null || oldest.compareTo(entry.getValue().getStarted()) > 0) {
+	                			oldest = entry.getValue().getStarted();
+	                		}
+	                	}
+	                	ongoingUploadsMessage = " and " + ongoingUploads.size() + " uploads";
+	                	if (oldest != null && new Date().getTime() - oldest.getTime() > TimeUnit.HOURS.toMillis(5)) {
+	                		ongoingUploadsMessage += new MessageFormat(", oldest from {0,date,long}").format(new Object[] { oldest });
+	                	}
+	                	ongoingUploadsMessage += ".";
 	                }
 	                logger.finest("Outstanding " + stillRunning.size() + " ClientGet jobs " +
 	                        "(" + completed + "/" + required + "/" + total + ")" +
@@ -705,7 +748,7 @@ public class DownloadAll {
 		                		assert c == connection;
 		            			assert uriGenerated != null;
 		            			String identifier = uriGenerated.getIdentifier();
-		            			String chk = ongoingUploads.get(identifier).getKey();
+		            			String chk = ongoingUploads.get(identifier).getFilename();
 								if (!uriGenerated.getURI().equals(chk)) {
 		            				logger.severe("Were supposed to resurrect " + chk +
 		            						" but the URI calculated to " + uriGenerated.getURI() + ". " +
@@ -721,26 +764,30 @@ public class DownloadAll {
 		            			assert c == connection;
 		            			assert putSuccessful != null;
 		            			String identifier = putSuccessful.getIdentifier();
-		            			String chk = ongoingUploads.get(identifier).getKey();
+		            			final OngoingUpload foundUpload = ongoingUploads.get(identifier);
+								String chk = foundUpload.getFilename();
 								if (!putSuccessful.getURI().equals(chk)) {
 		            				logger.severe("Uploaded " + putSuccessful.getURI() +
 		            						" while supposed to upload " + chk +
 		            						". ");
 		            			} else {
-		            				ongoingUploads.get(identifier).getValue().run();
+		            				foundUpload.complete();
 		            			}
 		            			ongoingUploads.remove(identifier);
+		            			synchronized (stillRunning) {
+		            				stillRunning.notifyAll();
+		            			}
 		            		};
 		            	});
             		}
             	});
-            	ongoingUploads = new HashMap<String, Map.Entry<String, Runnable>>();
+            	ongoingUploads = new HashMap<String, OngoingUpload>();
             }
             uploadStarter.execute(new Runnable() {
                 public void run() {
                     uploadCounter++;
                     final String identifier = "Upload" + uploadCounter;
-                    ongoingUploads.put(identifier, new AbstractMap.SimpleImmutableEntry<String, Runnable>(filename, callback));
+                    ongoingUploads.put(identifier, new OngoingUpload(filename, callback));
                     final ClientPut putter = new ClientPut("CHK@", identifier);
                     putter.setEarlyEncode(true);
                     putter.setPriority(net.pterodactylus.fcp.Priority.bulkSplitfile);
@@ -887,7 +934,7 @@ public class DownloadAll {
                                 taken = objectQueue.take();
                             }
                             // Randomize the order by rotating the queue
-                            int maxLaps = objectQueue.size() / PARALLEL_JOBS;
+                            int maxLaps = objectQueue.size();
                             if (maxLaps == 0) {
                                 maxLaps = 1;
                             }
@@ -1013,11 +1060,21 @@ public class DownloadAll {
         new DownloadAll(argv[0]).doit();
     }
 
+    private int ongoingUploadsSize() {
+    	if (ongoingUploads == null) {
+    		return 0;
+    	}
+
+    	synchronized (ongoingUploads) {
+    		return ongoingUploads.size();
+    	}
+    }
+
     public void waitForSlot() {
         startCleanupThread();
         synchronized (stillRunning) {
             try {
-                while (stillRunning.size() >= PARALLEL_JOBS) {
+                while (stillRunning.size() + ongoingUploadsSize() * ongoingUploadsSize() >= PARALLEL_JOBS) {
                     stillRunning.wait();
                 }
             } catch (InterruptedException e) {
