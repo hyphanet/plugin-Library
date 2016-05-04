@@ -77,6 +77,7 @@ public class DownloadAll {
     private int recreated = 0;
     private int avoidFetching = 0;
     private int wrongChkCounterForUpload = 0;
+    private int maxObjectQueueSize = 0;
     
     private Random rand = new Random();
     private Date started = new Date();
@@ -200,8 +201,8 @@ public class DownloadAll {
          * This is really a Set but there is no WeakSet so we use the keys
          * and let all values be TOKEN.
          */
-        private Set<FetchedPage> parents = new WeakHashSet<FetchedPage>();
-        private Set<FetchedPage> children = new HashSet<FetchedPage>();
+        private Set<FetchedPage> parents = Collections.synchronizedSet(new WeakHashSet<FetchedPage>());
+        private Set<FetchedPage> children = Collections.synchronizedSet(new HashSet<FetchedPage>());
         
         private String uri;
         int level;
@@ -543,10 +544,15 @@ public class DownloadAll {
             if (!token.equals(ad.getIdentifier())) {
                 return;
             }
-            logger.entering(GetAdapter.class.toString(),
+            final int objectQueueSize = objectQueue.size();
+            if (objectQueueSize > maxObjectQueueSize) {
+            	maxObjectQueueSize = objectQueueSize;
+            }
+			logger.entering(GetAdapter.class.toString(),
             		"receivedAllData",
             		"receivedAllData for " + token +
-                    " adding to the " + objectQueue.size() + " elements in the queue.");
+                    " adding to the " + objectQueueSize + " elements in the queue " +
+                    "(max " + maxObjectQueueSize + ").");
             page.didSucceed();
             int foundChildren = 0;
             Object readObject;
@@ -1074,6 +1080,7 @@ public class DownloadAll {
         startCleanupThread();
         synchronized (stillRunning) {
             try {
+            	stillRunning.wait(TimeUnit.SECONDS.toMillis(1));
                 while (stillRunning.size() + ongoingUploadsSize() * ongoingUploadsSize() >= PARALLEL_JOBS) {
                     stillRunning.wait();
                 }
