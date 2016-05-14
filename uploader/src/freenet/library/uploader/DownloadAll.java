@@ -37,6 +37,7 @@ import net.pterodactylus.fcp.FcpAdapter;
 import net.pterodactylus.fcp.FcpConnection;
 import net.pterodactylus.fcp.GetFailed;
 import net.pterodactylus.fcp.Priority;
+import net.pterodactylus.fcp.PutFailed;
 import net.pterodactylus.fcp.PutSuccessful;
 import net.pterodactylus.fcp.SubscribeUSK;
 import net.pterodactylus.fcp.SubscribedUSKUpdate;
@@ -75,6 +76,7 @@ public class DownloadAll {
     private long successfulBytes = 0;
     private int failed = 0;
     private int recreated = 0;
+    private int failedRecreated = 0;
     private int avoidFetching = 0;
     private int wrongChkCounterForUpload = 0;
     private int maxObjectQueueSize = 0;
@@ -784,6 +786,21 @@ public class DownloadAll {
 		            				stillRunning.notifyAll();
 		            			}
 		            		};
+		            		
+		            		@Override
+		            		public void receivedPutFailed(FcpConnection c, PutFailed putFailed) {
+		            			assert c == connection;
+		            			assert putFailed != null;
+		            			String identifier = putFailed.getIdentifier();
+		            			final OngoingUpload foundUpload = ongoingUploads.get(identifier);
+								String chk = foundUpload.getFilename();
+								logger.severe("Uploaded " + chk + " failed.");
+		            			failedRecreated++;
+		            			ongoingUploads.remove(identifier);
+		            			synchronized (stillRunning) {
+		            				stillRunning.notifyAll();
+		            			}
+		            		}
 		            	});
             		}
             	});
@@ -1000,6 +1017,9 @@ public class DownloadAll {
     	String recreatedMessage = "";
     	if (recreated > 0) {
     		recreatedMessage = " Recreated: " + recreated;
+    	}
+    	if (failedRecreated > 0) {
+    		recreatedMessage += " Recreation failed: " + failedRecreated;
     	}
     	String wrongChkCounterForUploadMessage = "";
     	if (wrongChkCounterForUpload > 0) {
