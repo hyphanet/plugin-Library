@@ -6,6 +6,7 @@ package freenet.library.uploader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.MessageFormat;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -434,6 +435,182 @@ public class DownloadAll {
 		}
     }
 
+	/**
+     * Show the amount of outstanding work.
+     */
+    void printLeft() {
+    	if (logger.isLoggable(Level.FINEST)) {
+            int total = 0;
+            int required = 0;
+            int completed = 0;
+            synchronized (stillRunning) {
+                for (GetAdapter value : stillRunning.values()) {
+                    total += value.progressTotal;
+                    required += value.progressRequired;
+                    completed += value.progressCompleted;
+                }
+                String ongoingUploadsMessage = "";
+                if (logger.isLoggable(Level.FINEST) && ongoingUploadsSize() > 0) {
+                	Date oldest = null;
+                	for (Map.Entry<String, OngoingUpload> entry : ongoingUploads.entrySet()) {
+                		if (oldest == null || oldest.compareTo(entry.getValue().getStarted()) > 0) {
+                			oldest = entry.getValue().getStarted();
+                		}
+                	}
+                	ongoingUploadsMessage = " and " + ongoingUploads.size() + " uploads";
+                	if (oldest != null && new Date().getTime() - oldest.getTime() > TimeUnit.HOURS.toMillis(5)) {
+                		ongoingUploadsMessage += new MessageFormat(", oldest from {0,date,long}").format(new Object[] { oldest });
+                	}
+                	ongoingUploadsMessage += ".";
+                }
+                logger.finest("Outstanding " + stillRunning.size() + " ClientGet jobs " +
+                        "(" + completed + "/" + required + "/" + total + ")" +
+                		ongoingUploadsMessage);
+            }
+    	}
+    }
+
+    interface UriProcessor {
+    	public boolean processUri(String uri);
+    }
+
+    private void readAndProcessYamlData(InputStream inputStream, UriProcessor uriProcessor, String page_uri, int page_level)
+    		throws IOException {
+        int foundChildren = 0;
+        try {
+			Object readObject = new YamlReaderWriter().readObject(inputStream); 
+            Map<String, Object> map = ((LinkedHashMap<String, Object>) readObject);
+            if (map.containsKey("ttab") &&
+            		map.containsKey("utab") &&
+            		map.containsKey("totalPages")) {
+                Map<String, Object> map2 = (Map<String, Object>) map.get("ttab");
+                if (map2.containsKey("entries")) {
+                    Map<String, BinInfo> entries =
+                            (Map<String, Packer.BinInfo>) map2.get("entries");
+                    for (BinInfo value : entries.values()) {
+                    	try {
+                    		String u = (String) value.getID();
+                    		if (uriProcessor.processUri(u)) {
+                    			foundChildren ++;
+                    		}
+                    		
+                    	} catch (ClassCastException e) {
+                    		throw new RuntimeException("Cannot process BinInfo value " + value.getID() + " for " + page_uri, e);
+                    	}
+                    }
+                    Map<String, Object> subnodes =
+                            (Map<String, Object>) map2.get("subnodes");
+                    logger.log(Level.FINER, "Contains ttab.entries (level {0}) with {1} subnodes", new Object[] {
+                    		page_level,
+                    		subnodes.size(),
+                    });
+                    for (String key : subnodes.keySet()) {
+                        if (uriProcessor.processUri(key)) {
+                        	foundChildren ++;
+                        }
+                    }
+                    return;
+                }
+            }
+            if (map.containsKey("lkey") &&
+                    map.containsKey("rkey") &&
+                    map.containsKey("entries")) {
+            	// Must separate map and array!
+                if (map.containsKey("subnodes")) {
+                	throw new RuntimeException("This parsing is not complex enough to handle subnodes for terms for " +
+                							   page_uri);
+                }
+                if (map.get("entries") instanceof Map) {
+                    Map<String, BinInfo> entries =
+                            (Map<String, Packer.BinInfo>) map.get("entries");
+                    logger.log(Level.FINE,
+                    		"Contains from {1} to {2} (level {0}) with {3} entries.",
+                    		new Object[] {
+                    			page_level,
+                    			map.get("lkey"),
+                    			map.get("rkey"),
+                    			entries.size()
+                    });
+                    for (BinInfo value : entries.values()) {
+                    	try {
+                    		String u = (String) value.getID();
+                    		if (uriProcessor.processUri(u)) {
+                    			foundChildren ++;
+                    		}
+                    	} catch (ClassCastException e) {
+                    		throw new RuntimeException("Cannot process BinInfo (2) " + value.getID() + " for " + page_uri);
+                    	}
+                    }
+                    return;
+                }
+                if (map.get("entries") instanceof ArrayList) {
+                	// Assuming this is a list of TermPageEntries.
+                    logger.log(Level.FINE,
+                    		"Contains from {1} to {2} (level {0}) with page entries.",
+                    		new Object[] {
+                    			page_level,
+                    			map.get("lkey"),
+                    			map.get("rkey")
+                    });
+                    return;
+                }
+            }
+            Entry<String, Object> entry = map.entrySet().iterator().next();
+            if (entry.getValue() instanceof Map) {
+                Map<String, Object> map2 = (Map<String, Object>) entry.getValue();
+                if (map2.containsKey("node_min")
+                        && map2.containsKey("size")
+                        && map2.containsKey("entries")) {
+                	logger.log(Level.FINER, "Starts with entry for {1} (level {0}). Searching for subnodes.", new Object[] {
+                			page_level,
+                			entry.getKey(),
+                	});
+                	String first = null;
+                	String last = null;
+                	for (Entry<String, Object> contents : map.entrySet()) {
+                		if (contents.getValue() instanceof Map) {
+                			if (first == null) {
+                				first = contents.getKey();
+                			}
+                			last = contents.getKey();
+                			Map<String, Object> map3 = (Map<String, Object>) contents.getValue();
+                			if (map3.containsKey("subnodes")) {
+                    			Map<String, Object> subnodes =
+                    					(Map<String, Object>) map3.get("subnodes");
+                    			logger.log(Level.FINER, "Entry for {1} (level {0}) contains {2} subnodes.", new Object[] {
+                    					page_level,
+                    					contents.getKey(),
+                    					subnodes.size(),
+                    			});
+                    			
+                    			for (String key : subnodes.keySet()) {
+                    				if (uriProcessor.processUri(key)) {
+                    					foundChildren ++;
+                                    }
+                    			}
+                			}
+                			continue;
+                		}
+                		throw new RuntimeException("Cannot process entries. Entry for " + contents.getKey() + " is not String=Map for " + page_uri);
+                	}
+                	logger.log(Level.FINER, "Starts with entry for {1} and ended with entry {2} (level {0}).", new Object[] {
+                			page_level,
+                			first,
+                			last,
+                	});
+                    return;
+                }
+            }
+            logger.severe("Cannot understand contents: " + map);
+            System.exit(1);
+        } finally {
+        	addFoundChildren(page_level, foundChildren);
+            logger.exiting(GetAdapter.class.toString(),
+            		"receivedAllData added " + foundChildren + " to the queue.");
+        }
+
+    }
+    
     private class GetAdapter extends FcpAdapter {
         private ClientGet getter;
         private String token;
@@ -489,42 +666,8 @@ public class DownloadAll {
             }
         }
 
-		/**
-         * Show the amount of outstanding work.
-         */
-        void printLeft() {
-        	if (logger.isLoggable(Level.FINEST)) {
-	            int total = 0;
-	            int required = 0;
-	            int completed = 0;
-	            synchronized (stillRunning) {
-	                for (GetAdapter value : stillRunning.values()) {
-	                    total += value.progressTotal;
-	                    required += value.progressRequired;
-	                    completed += value.progressCompleted;
-	                }
-	                String ongoingUploadsMessage = "";
-	                if (logger.isLoggable(Level.FINEST) && ongoingUploadsSize() > 0) {
-	                	Date oldest = null;
-	                	for (Map.Entry<String, OngoingUpload> entry : ongoingUploads.entrySet()) {
-	                		if (oldest == null || oldest.compareTo(entry.getValue().getStarted()) > 0) {
-	                			oldest = entry.getValue().getStarted();
-	                		}
-	                	}
-	                	ongoingUploadsMessage = " and " + ongoingUploads.size() + " uploads";
-	                	if (oldest != null && new Date().getTime() - oldest.getTime() > TimeUnit.HOURS.toMillis(5)) {
-	                		ongoingUploadsMessage += new MessageFormat(", oldest from {0,date,long}").format(new Object[] { oldest });
-	                	}
-	                	ongoingUploadsMessage += ".";
-	                }
-	                logger.finest("Outstanding " + stillRunning.size() + " ClientGet jobs " +
-	                        "(" + completed + "/" + required + "/" + total + ")" +
-	                		ongoingUploadsMessage);
-	            }
-        	}
-        }
         
-        private boolean processUri(String uri) {
+        private boolean processAnUri(String uri) {
         	synchronized (roots) {
         		for (FetchedPage root : roots) {
         			FetchedPage foundChild = root.findUri(uri);
@@ -556,134 +699,15 @@ public class DownloadAll {
                     " adding to the " + objectQueueSize + " elements in the queue " +
                     "(max " + maxObjectQueueSize + ").");
             page.didSucceed();
-            int foundChildren = 0;
-            Object readObject;
+            UriProcessor uriProcessor = new UriProcessor() {
+				@Override
+				public boolean processUri(String uri) {
+					return processAnUri(uri);
+				}
+            };
+        	final InputStream inputStream = ad.getPayloadInputStream();
             try {
-            	readObject = new YamlReaderWriter().readObject(ad.getPayloadInputStream()); 
-                Map<String, Object> map = ((LinkedHashMap<String, Object>) readObject);
-                if (map.containsKey("ttab") &&
-                		map.containsKey("utab") &&
-                		map.containsKey("totalPages")) {
-                    Map<String, Object> map2 = (Map<String, Object>) map.get("ttab");
-                    if (map2.containsKey("entries")) {
-                        Map<String, BinInfo> entries =
-                                (Map<String, Packer.BinInfo>) map2.get("entries");
-                        for (BinInfo value : entries.values()) {
-                        	try {
-                        		String u = (String) value.getID();
-                        		if (processUri(u)) {
-                        			foundChildren ++;
-                        		}
-                        		
-                        	} catch (ClassCastException e) {
-                        		throw new RuntimeException("Cannot process BinInfo value " + value.getID() + " for " + page.getURI(), e);
-                        	}
-                        }
-                        Map<String, Object> subnodes =
-                                (Map<String, Object>) map2.get("subnodes");
-                        logger.log(Level.FINER, "Contains ttab.entries (level {0}) with {1} subnodes", new Object[] {
-                        		page.level,
-                        		subnodes.size(),
-                        });
-                        for (String key : subnodes.keySet()) {
-                            if (processUri(key)) {
-                            	foundChildren ++;
-                            }
-                        }
-                        return;
-                    }
-                }
-                if (map.containsKey("lkey") &&
-                        map.containsKey("rkey") &&
-                        map.containsKey("entries")) {
-                	// Must separate map and array!
-                    if (map.containsKey("subnodes")) {
-                    	throw new RuntimeException("This parsing is not complex enough to handle subnodes for terms for " +
-                    							   page.getURI());
-                    }
-                    if (map.get("entries") instanceof Map) {
-                        Map<String, BinInfo> entries =
-                                (Map<String, Packer.BinInfo>) map.get("entries");
-                        logger.log(Level.FINE,
-                        		"Contains from {1} to {2} (level {0}) with {3} entries.",
-                        		new Object[] {
-                        			page.level,
-                        			map.get("lkey"),
-                        			map.get("rkey"),
-                        			entries.size()
-                        });
-                        for (BinInfo value : entries.values()) {
-                        	try {
-                        		String u = (String) value.getID();
-                        		if (processUri(u)) {
-                        			foundChildren ++;
-                        		}
-                        	} catch (ClassCastException e) {
-                        		throw new RuntimeException("Cannot process BinInfo (2) " + value.getID() + " for " + page.getURI());
-                        	}
-                        }
-                        return;
-                    }
-                    if (map.get("entries") instanceof ArrayList) {
-                    	// Assuming this is a list of TermPageEntries.
-                        logger.log(Level.FINE,
-                        		"Contains from {1} to {2} (level {0}) with page entries.",
-                        		new Object[] {
-                        			page.level,
-                        			map.get("lkey"),
-                        			map.get("rkey")
-                        });
-                        return;
-                    }
-                }
-                Entry<String, Object> entry = map.entrySet().iterator().next();
-                if (entry.getValue() instanceof Map) {
-                    Map<String, Object> map2 = (Map<String, Object>) entry.getValue();
-                    if (map2.containsKey("node_min")
-                            && map2.containsKey("size")
-                            && map2.containsKey("entries")) {
-                    	logger.log(Level.FINER, "Starts with entry for {1} (level {0}). Searching for subnodes.", new Object[] {
-                    			page.level,
-                    			entry.getKey(),
-                    	});
-                    	String first = null;
-                    	String last = null;
-                    	for (Entry<String, Object> contents : map.entrySet()) {
-                    		if (contents.getValue() instanceof Map) {
-                    			if (first == null) {
-                    				first = contents.getKey();
-                    			}
-                    			last = contents.getKey();
-                    			Map<String, Object> map3 = (Map<String, Object>) contents.getValue();
-                    			if (map3.containsKey("subnodes")) {
-                        			Map<String, Object> subnodes =
-                        					(Map<String, Object>) map3.get("subnodes");
-                        			logger.log(Level.FINER, "Entry for {1} (level {0}) contains {2} subnodes.", new Object[] {
-                        					page.level,
-                        					contents.getKey(),
-                        					subnodes.size(),
-                        			});
-                        			
-                        			for (String key : subnodes.keySet()) {
-                        				if (processUri(key)) {
-                        					foundChildren ++;
-                                        }
-                        			}
-                    			}
-                    			continue;
-                    		}
-                    		throw new RuntimeException("Cannot process entries. Entry for " + contents.getKey() + " is not String=Map for " + page.getURI());
-                    	}
-                    	logger.log(Level.FINER, "Starts with entry for {1} and ended with entry {2} (level {0}).", new Object[] {
-                    			page.level,
-                    			first,
-                    			last,
-                    	});
-                        return;
-                    }
-                }
-                logger.severe("Cannot understand contents: " + map);
-                System.exit(1);
+            	readAndProcessYamlData(inputStream, uriProcessor, page.getURI(), page.level);
             } catch (IOException e) {
             	logger.log(Level.SEVERE, "Cannot unpack.", e);
                 e.printStackTrace();
@@ -693,14 +717,11 @@ public class DownloadAll {
             	cce.printStackTrace();
             	System.exit(1);
             } finally {
-            	addFoundChildren(page.level, foundChildren);
                 markDone();
                 successful ++;
                 successfulBlocks += progressCompleted;
                 successfulBytes += ad.getDataLength();
                 showProgress();
-                logger.exiting(GetAdapter.class.toString(),
-                		"receivedAllData added " + foundChildren + " to the queue.");
             }
         }
 
