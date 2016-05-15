@@ -52,7 +52,7 @@ import freenet.library.io.serial.Packer.BinInfo;
  * Class to download the entire index.
  */
 public class DownloadAll {
-    private static final int PARALLEL_JOBS = 30;
+    private static final int PARALLEL_JOBS = 10;
 
 	/** Logger. */
 	private static final Logger logger = Logger.getLogger(DownloadAll.class.getName());
