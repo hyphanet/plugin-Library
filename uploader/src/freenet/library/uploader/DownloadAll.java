@@ -7,8 +7,9 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.MessageFormat;
-import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -897,7 +898,7 @@ public class DownloadAll {
     };
 
 
-    public void doit() {
+    public void doDownload() {
         FcpSession session;
         try {
             session = new FcpSession("DownloaderFor" + uri);
@@ -1102,9 +1103,71 @@ public class DownloadAll {
 
         System.out.println("Editions: " + sb.toString());
     }
+
+    public void doMove() {
+    	int count = 0;
+    	File toDirectory = new File("../" + UploaderPaths.LIBRARY_CACHE + ".new");
+    	if (!toDirectory.mkdir()) {
+    		System.err.println("Could not create the directory " + toDirectory);
+    		System.exit(1);
+    	}
+    	final FetchedPage fetchedPage = new FetchedPage(uri);
+		roots.add(fetchedPage);
+		objectQueue.add(fetchedPage);
+		while (objectQueue.size() > 0) {
+			FetchedPage page;
+			try {
+				page = objectQueue.take();
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				System.exit(1);
+				return;
+			}
+			final FetchedPage finalPage = page;
+			FileInputStream inputStream;
+			try {
+				Files.createLink(Paths.get(toDirectory.getPath(), page.uri), Paths.get(page.uri));
+				inputStream = new FileInputStream(page.uri);
+				count++;
+				System.out.println("Read file " + count + " in " + page.uri + " level " + page.level + " left: " + objectQueue.size());
+			} catch (IOException e) {
+				System.out.println("Cannot find file " + page.uri);
+				e.printStackTrace();
+				System.exit(1);
+				return;
+			}
+			try {
+				readAndProcessYamlData(inputStream,
+						new UriProcessor() {
+							Set<String> seen = new HashSet<String>();
+							@Override
+							public boolean processUri(String uri) {
+								if (seen.contains(uri)) {
+									return false;
+					            }
+								seen.add(uri);
+								objectQueue.offer(finalPage.newChild(uri));
+								return true;
+							}
+					
+				}, page.getURI(), page.level);
+			} catch (IOException e) {
+				System.out.println("Cannot read file " + page.uri);
+				e.printStackTrace();
+				System.exit(1);
+				return;
+			}
+			
+		}
+    }
     
     public static void main(String[] argv) {
-        new DownloadAll(argv[0]).doit();
+    	if (argv.length > 1 && argv[0].equals("--move")) {
+    		new DownloadAll(argv[1]).doMove();
+    	} else {
+    		new DownloadAll(argv[0]).doDownload();
+    	}
     }
 
     private int ongoingUploadsSize() {
