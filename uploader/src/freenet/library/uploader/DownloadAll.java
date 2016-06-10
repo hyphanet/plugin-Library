@@ -1,6 +1,14 @@
 /*
  */
 
+/*
+ * Log levels used:
+ * None/Warning: Serious events and small problems.
+ * FINE: Stats for fetches and overview of contents of fetched keys. Minor events.
+ * FINER: Queue additions, length, ETA, rotations.
+ * FINEST: Really minor events.
+ */
+
 package freenet.library.uploader;
 
 import java.io.File;
@@ -245,6 +253,17 @@ public class DownloadAll {
             return !parents.isEmpty();
         }
     
+		private FetchedPage[] getParents() {
+			// Even though parents and children are synchronized we
+			// encountered some ConcurrentModificationException when
+			// fetching them through iterators so we avoid that.
+			return parents.toArray(new FetchedPage[0]);
+		}
+
+		private FetchedPage[] getChildren() {
+			return children.toArray(new FetchedPage[0]);
+		}
+
         /**
          * fetchedPage is an ancestor, any number of levels, to this
          * page.
@@ -256,8 +275,8 @@ public class DownloadAll {
 			if (parents.contains(fetchedPage)) {
 				return true;
 			}
-			for (FetchedPage parent : parents) {
-				if (parent.hasParent(fetchedPage)) {
+			for (FetchedPage parent : getParents()) {
+				if (parent != null && parent.hasParent(fetchedPage)) {
 					return true;
 				}
 			}
@@ -266,7 +285,7 @@ public class DownloadAll {
 
 		int getTreeSize() {
             int size = 1;
-            for (FetchedPage child : children) {
+            for (FetchedPage child : getChildren()) {
                 size += child.getTreeSize();
             }
             return size;
@@ -286,7 +305,7 @@ public class DownloadAll {
 
         int getTreeSizeSucceeded() {
             int size = succeeded ? 1 : 0;
-            for (FetchedPage child : children) {
+            for (FetchedPage child : getChildren()) {
                 size += child.getTreeSizeSucceeded();
             }
             return size;
@@ -294,7 +313,7 @@ public class DownloadAll {
 
         int getTreeSizeFailed() {
             int size = failed ? 1 : 0;
-            for (FetchedPage child : children) {
+            for (FetchedPage child : getChildren()) {
                 size += child.getTreeSizeFailed();
             }
             return size;
@@ -313,7 +332,7 @@ public class DownloadAll {
             if (u.equals(uri)) {
                 return this;
             }
-            for (FetchedPage child : children) {
+            for (FetchedPage child : getChildren()) {
                 FetchedPage found = child.findUri(u);
                 if (found != null) {
                     return found;
@@ -785,7 +804,7 @@ public class DownloadAll {
 		            						"Will upload anyway.");
 		            				wrongChkCounterForUpload++;
 		            			} else {
-		            				logger.fine("Resurrecting " + chk);
+		            				logger.finest("Resurrecting " + chk);
 		            			}
 		                	}
 		                	
@@ -846,7 +865,7 @@ public class DownloadAll {
                         connection.sendMessage(putter);
                         in.close();
                         in = null;
-                    } catch (IOException e) {
+                    } catch (IOException | NullPointerException e) {
                         e.printStackTrace();
                         logger.warning("Upload failed for " + file);
                     }
@@ -1000,7 +1019,7 @@ public class DownloadAll {
                                 }
                                 rotated++;
                             }
-                            logger.finer("Rotated " + rotated + " (count to " + toRotate + ").");
+                            logger.finest("Rotated " + rotated + " (count to " + toRotate + ").");
                             if (taken == null) {
                                 break;
                             }
@@ -1184,7 +1203,7 @@ public class DownloadAll {
         startCleanupThread();
         synchronized (stillRunning) {
             try {
-            	stillRunning.wait(TimeUnit.SECONDS.toMillis(1));
+            	stillRunning.wait(TimeUnit.SECONDS.toMillis(3));
                 while (stillRunning.size() + ongoingUploadsSize() * ongoingUploadsSize() >= PARALLEL_JOBS) {
                     stillRunning.wait();
                 }
@@ -1235,5 +1254,14 @@ public class DownloadAll {
     
     private synchronized void removeCleanupThread() {
         cleanupThread = null;
+
+        Set<GetAdapter> copy;
+        synchronized (stillRunning) {
+            copy = new HashSet<GetAdapter>(stillRunning.values());
+        }
+        for (GetAdapter ga : copy) {
+            ga.markDone();
+            ga.forgetAboutThis();
+        }
     }
 }
