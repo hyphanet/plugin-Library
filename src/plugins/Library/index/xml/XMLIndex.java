@@ -193,7 +193,7 @@ public class XMLIndex implements Index, ClientGetCallback {
 				} else {
 					if(logMINOR) Logger.minor(this, "Trying new URI: "+e.newURI+" : "+indexuri);
 					startFetch(true);
-					if(updateHook != null)
+					if(updateHook != null && updateContext != null)
 						updateHook.update(updateContext, indexuri);
 					return;
 				}
