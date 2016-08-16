@@ -916,6 +916,15 @@ public class DownloadAll {
         }
     };
 
+	private void ageRunning() {
+		final HashSet<Entry<FetchedPage, GetAdapter>> stillRunningCopy;
+		synchronized (stillRunning) {
+			stillRunningCopy = new HashSet<Entry<FetchedPage, GetAdapter>>(stillRunning.entrySet());
+		}
+		for (Entry<FetchedPage, GetAdapter> entry : stillRunningCopy) {
+		    entry.getValue().hasBeenWaiting(entry.getKey());
+		}
+	}
 
     public void doDownload() {
         FcpSession session;
@@ -966,10 +975,7 @@ public class DownloadAll {
 
                 boolean empty = true;
                 do {
-                    for (Entry<FetchedPage, GetAdapter> entry :
-                        new HashSet<Entry<FetchedPage, GetAdapter>>(stillRunning.entrySet())) {
-                        entry.getValue().hasBeenWaiting(entry.getKey());
-                    }
+                    ageRunning();
                     synchronized (roots) {
                         final int roots_size = roots.size();
 						if (roots_size > 1) {
