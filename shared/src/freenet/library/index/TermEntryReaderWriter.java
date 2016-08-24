@@ -11,6 +11,7 @@ import freenet.copied.Base64;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.regex.Pattern;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -19,6 +20,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
+
+import org.yaml.snakeyaml.reader.ReaderException;
 
 /**
 ** Reads and writes {@link TermEntry}s in binary form, for performance.
@@ -151,6 +154,9 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 			if (size < 0) {
 				title = dis.readUTF();
 				size = ~size;
+				if (!isValid(title)) {
+					title = clean(title);
+				}
 			}
 			Map<Integer, String> pos = new HashMap<Integer, String>(size<<1);
 			for (int i=0; i<size; ++i) {
@@ -167,6 +173,17 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 	/*@Override**/ public void writeObject(TermEntry en, OutputStream os) throws IOException {
 		writeObject(en, new DataOutputStream(os));
 	}
+
+    final static Pattern NON_PRINTABLE = Pattern
+            .compile("[^\t\n\r\u0020-\u007E\u0085\u00A0-\uD7FF\uE000-\uFFFC]");
+
+    private boolean isValid(String str) {
+        return !NON_PRINTABLE.matcher(str).find();
+	}
+    
+    private String clean(String str) {
+        return NON_PRINTABLE.matcher(str).replaceAll("");
+    }
 
 	public void writeObject(TermEntry en, DataOutputStream dos) throws IOException {
 		dos.writeLong(TermEntry.serialVersionUID);
@@ -190,6 +207,9 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 			if(enn.title == null)
 				dos.writeInt(size);
 			else {
+				if (!isValid(enn.title)) {
+					throw new RuntimeException("Invalid title " + enn.title);
+				}
 				dos.writeInt(~size); // invert bits to signify title is set
 				dos.writeUTF(enn.title);
 			}
