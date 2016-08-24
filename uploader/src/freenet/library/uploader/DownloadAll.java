@@ -1129,6 +1129,11 @@ public class DownloadAll {
         System.out.println("Editions: " + sb.toString());
     }
 
+    /**
+     * 1. chdir to the directory with all the files.
+     * 2. Give parameters --move CHK/filename
+     *    The CHK/filename is of the top file (in library.index.lastpushed.chk).
+     */
     public void doMove() {
     	int count = 0;
     	File toDirectory = new File("../" + UploaderPaths.LIBRARY_CACHE + ".new");
