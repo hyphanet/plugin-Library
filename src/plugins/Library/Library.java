@@ -63,8 +63,8 @@ import freenet.support.io.FileUtil;
 final public class Library implements URLUpdateHook {
 
 	public static final String BOOKMARK_PREFIX = "bookmark:";
-	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "liberty-of-information" + " " + BOOKMARK_PREFIX + "free-market-free-people" + " " +
-	    BOOKMARK_PREFIX + "gotcha" + " " + BOOKMARK_PREFIX + "wanna" + " " + BOOKMARK_PREFIX + "wanna.old" + " " + BOOKMARK_PREFIX + "gogo";
+	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "Enzo" + " " + BOOKMARK_PREFIX + "FrikiTitles" + " " +
+	    BOOKMARK_PREFIX + "FrikiSearch";
 	private static int version = 36;
 	public static final String plugName = "Library " + getVersion();
 
@@ -193,23 +193,17 @@ final public class Library implements URLUpdateHook {
 				callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rcBulk);
 			}
 		}
-		if(bookmarks.isEmpty() || needNewWanna || !bookmarks.containsKey("gotcha") || 
-		        !bookmarks.containsKey("liberty-of-information") ||
-		        !bookmarks.containsKey("free-market-free-people")) {
-		    if(!bookmarks.containsKey("liberty-of-information"))
-		        addBookmark("liberty-of-information", "USK@5YCPzcs60uab6VSdiKcyvo-G-r-ga2UWCyOzWHaPoYE,a1zEPCf0qkUFQxftFZK5xmxYdxt0JErDb2aJgwG8s~4,AQACAAE/index.yml/25");
-		    if(!bookmarks.containsKey("free-market-free-people"))
-		        addBookmark("free-market-free-people", "USK@X4lMQ51bXPSicAgbR~XdFzDyizYHYrvzStdeUrIFhes,0ze4TAqd~RdAMZMsshybHZFema3ZP3id4sgN3H8969g,AQACAAE/index.yml/4");
-		    if(!bookmarks.containsKey("gotcha"))
-		        addBookmark("gotcha", "USK@zcAnAgT-xp5LnnK28-Lc7Qt-GU7pNKnVdkmU4-HCCBc,s2jiTh8~O9MtnGdVqJqgnKGrXrosK8rArcZ8A49hprY,AQACAAE/index.yml/6");
-			if(!bookmarks.containsKey("wanna.old"))
-				addBookmark("wanna.old", "USK@5hH~39FtjA7A9~VXWtBKI~prUDTuJZURudDG0xFn3KA,GDgRGt5f6xqbmo-WraQtU54x4H~871Sho9Hz6hC-0RA,AQACAAE/Search/25/index.xml");
-			if(!bookmarks.containsKey("freenetindex"))
-				addBookmark("freenetindex", "USK@US6gHsNApDvyShI~sBHGEOplJ3pwZUDhLqTAas6rO4c,3jeU5OwV0-K4B6HRBznDYGvpu2PRUuwL0V110rn-~8g,AQACAAE/freenet-index/5/index.xml");
-			if(!bookmarks.containsKey("gogo"))
-				addBookmark("gogo", "USK@shmVvDhwivG1z1onSA5efRl3492Xyoov52hrC0tF6uI,wpMhseMpFHPLpXYbV8why1nfBXf2XdSQkzVaemFOEsA,AQACAAE/index.yml/51");
-			if(!bookmarks.containsKey("wanna"))
-				addBookmark("wanna", "USK@gxuHPaicqxlpPPagBKPVPraZ4bwLdMYBc5vipkWGh3E,08ExdmvZzB8Hfi6H6crbiuCd2~ikWDIpJ8dvr~tLp7k,AQACAAE/index.yml/82");
+		if(bookmarks.isEmpty() || needNewWanna || !bookmarks.containsKey("Enzo") || 
+           !bookmarks.containsKey("FrikiTitles") || !bookmarks.containsKey("FrikiSearch")) {
+		    if(!bookmarks.containsKey("Enzo")) {
+		        addBookmark("Enzo", "USK@XJZAi25dd5y7lrxE3cHMmM-xZ-c-hlPpKLYeLC0YG5I,8XTbR1bd9RBXlX6j-OZNednsJ8Cl6EAeBBebC3jtMFU,AQACAAE/search/0/index.xml");
+            }
+		    if(!bookmarks.containsKey("FrikiSearch")) {
+		        addBookmark("FrikiSearch", "USK@bt6o0REPxC8USh5IM1wg65p1DG-h8pqlZQFsdrkG6HU,1-YF9KPJiEPhktMFkfWZDYDSh2sWvqHm1bWbdloltP4,AQACAAE/mywiki/0/search.yml");
+            }
+		    if(!bookmarks.containsKey("FrikiTitles")) {
+		        addBookmark("FrikiTitles", "USK@bt6o0REPxC8USh5IM1wg65p1DG-h8pqlZQFsdrkG6HU,1-YF9KPJiEPhktMFkfWZDYDSh2sWvqHm1bWbdloltP4,AQACAAE/mywiki/0/title_search/index.xml");
+            }
 			migrated = true;
 			Logger.normal(this, "Added default indexes");
 		}
