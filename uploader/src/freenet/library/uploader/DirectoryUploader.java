@@ -55,7 +55,7 @@ class DirectoryUploader implements Runnable {
     	mergeToFreenet(directory);
     }
         
-    private String lastUploadURI;
+    private FreenetURI lastUploadURI;
     private boolean uskUploadDone;
 
     static final int MAX_HANDLING_COUNT = 5; 
@@ -243,7 +243,11 @@ class DirectoryUploader implements Runnable {
      */
     protected void mergeToFreenet(ProtoIndex diskToMerge, File diskDir) {
         if (lastUploadURI == null) {
-            lastUploadURI = readStringFrom(new File(LAST_URL_FILENAME));
+            try {
+				lastUploadURI = new FreenetURI(readStringFrom(new File(LAST_URL_FILENAME)));
+			} catch (MalformedURLException e) {
+				throw new RuntimeException("File contents of " + LAST_URL_FILENAME + " invalid.", e);
+			}
         }
         setupFreenetCacheDir();
                 
@@ -296,9 +300,16 @@ class DirectoryUploader implements Runnable {
                         
             long mergeEndTime = System.currentTimeMillis();
             System.out.println(entriesAdded + " entries merged in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta);
-            String uri = (String) task4.meta;
+            FreenetURI uri;
+            if (task4.meta instanceof FreenetURI) {
+            	uri = (FreenetURI) task4.meta;
+            } else if (task4.meta instanceof String){
+            	uri = new FreenetURI((String) task4.meta);
+            } else {
+            	throw new RuntimeException("Unknown uri " + task4.meta);
+            }
             lastUploadURI = uri;
-            if(writeStringTo(new File(LAST_URL_FILENAME), uri)) {
+            if(writeStringTo(new File(LAST_URL_FILENAME), uri.toString())) {
                 newtrees.deflate();
                 diskToMerge = null;
                 terms = null;
@@ -310,9 +321,10 @@ class DirectoryUploader implements Runnable {
             uploadUSKForFreenetIndex(uri);
                         
         } catch (TaskAbortException e) {
-            System.err.println("Failed to upload index for spider: "+e);
-            e.printStackTrace();
-        }
+			throw new RuntimeException(e);
+        } catch (MalformedURLException e) {
+			throw new RuntimeException(e);
+		}
     }
 
 	static String readFileLine(final String filename) {
@@ -344,8 +356,7 @@ class DirectoryUploader implements Runnable {
 					br.close();
 				}
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				throw new RuntimeException(e);
 			}
 		}
 		return line;
@@ -366,33 +377,28 @@ class DirectoryUploader implements Runnable {
 			bw = new BufferedWriter(new OutputStreamWriter(fos, "UTF-8"));
 			bw.write(string);
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			throw new RuntimeException();
+			throw new RuntimeException(e);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			throw new RuntimeException();
+			throw new RuntimeException(e);
 		} finally {
 			try {
 				if (bw != null) {
 					bw.close();
 				}
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				throw new RuntimeException(e);
 			}
 		}		
 	}
 
-    private void uploadUSKForFreenetIndex(String uri) {
+    private void uploadUSKForFreenetIndex(FreenetURI uri) {
     	String insertURI = readFileLine(PRIV_URI_FILENAME);
     	String keyPart = insertURI.substring("freenet:SSK@".length());
     	int lastEdition = Integer.parseInt(readFileLine(EDITION_FILENAME));
         final ClientPut usk = new ClientPut("USK@" + keyPart + "/" + (lastEdition + 1), 
         									"USKupload",
         									UploadFrom.redirect);
-        usk.setTargetURI(uri);
+        usk.setTargetURI(uri.toString());
         uskUploadDone = false;
         FcpAdapter fcpListener = new FcpAdapter() {
                 public void receivedPutFailed(FcpConnection fcpConnection, PutFailed result) {

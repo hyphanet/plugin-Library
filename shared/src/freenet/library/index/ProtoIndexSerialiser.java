@@ -60,8 +60,8 @@ implements Archiver<ProtoIndex>,
 //	srl_cls = new HashMap<Class<?>, ProtoIndexSerialiser>();
 
 	public static ProtoIndexSerialiser forIndex(Object o, Priority priorityLevel) {
-		if (o instanceof String) {
-			return forIndex((String)o, priorityLevel);
+		if (o instanceof FreenetURI) {
+			return forIndex((FreenetURI)o, priorityLevel);
 		} else if (o instanceof File) {
 			return forIndex((File)o);
 		} else {
@@ -69,7 +69,7 @@ implements Archiver<ProtoIndex>,
 		}
 	}
 
-	public static ProtoIndexSerialiser forIndex(String uri, Priority priorityLevel) {
+	public static ProtoIndexSerialiser forIndex(FreenetURI uri, Priority priorityLevel) {
 //		ProtoIndexSerialiser srl = srl_cls.get(FreenetURI.class);
 //		if (srl == null) {
 //			// java's type-inference isn't that smart, see
@@ -107,7 +107,7 @@ implements Archiver<ProtoIndex>,
 		PullTask<Map<String, Object>> serialisable = new PullTask<Map<String, Object>>(task.meta);
 		subsrl.pull(serialisable);
 		task.meta = serialisable.meta;
-		if (task.meta instanceof String) { // if not FreenetURI, skip this silently so we can test on local files
+		if (task.meta instanceof FreenetURI) { // if not FreenetURI, skip this silently so we can test on local files
 			serialisable.data.put("reqID", task.meta);
 		}
 		try {
@@ -137,9 +137,9 @@ implements Archiver<ProtoIndex>,
 		/**
 		** URI-table translator
 		*/
-		Translator<SkeletonBTreeMap<URIKey, SkeletonBTreeMap<String, URIEntry>>, Map<String, Object>> utrans = new
-		SkeletonBTreeMap.TreeTranslator<URIKey, SkeletonBTreeMap<String, URIEntry>>(null, new
-		ProtoIndexComponentSerialiser.TreeMapTranslator<URIKey, SkeletonBTreeMap<String, URIEntry>>(null));
+		Translator<SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>, Map<String, Object>> utrans = new
+		SkeletonBTreeMap.TreeTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null, new
+		ProtoIndexComponentSerialiser.TreeMapTranslator<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>>(null));
 
 		private LiveArchiver<Map<String, Object>, SimpleProgress> subsrl;
 		
@@ -185,17 +185,7 @@ implements Archiver<ProtoIndex>,
 				try {
 					// FIXME yet more hacks related to the lack of proper asynchronous FreenetArchiver...
 					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"), subsrl);
-					Object reqIDObject = map.get("reqID");
-					FreenetURI reqID;
-					if (reqIDObject instanceof FreenetURI) {
-						reqID = (FreenetURI) reqIDObject;
-					} else {
-						try {
-							reqID = new FreenetURI((String) reqIDObject);
-						} catch (MalformedURLException e) {
-							throw new DataFormatException("Badly formatted URI", e, null);
-						}
-					}
+					FreenetURI reqID = (FreenetURI) map.get("reqID");
 					String name = (String)map.get("name");
 					String ownerName = (String)map.get("ownerName");
 					String ownerEmail = (String)map.get("ownerEmail");
@@ -208,7 +198,7 @@ implements Archiver<ProtoIndex>,
 						totalPages = (Integer)o;
 					Date modified = (Date)map.get("modified");
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
-					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<String, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
+					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
 					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>)map.get("ttab"));
 
 					return cmpsrl.setSerialiserFor(new ProtoIndex(reqID, name, ownerName, ownerEmail, totalPages, modified, extra, utab, ttab));

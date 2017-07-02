@@ -109,7 +109,7 @@ public class ResultNodeGenerator implements Runnable {
 				long uskEdition = Long.MIN_VALUE;
 				// Get the key and name
 				FreenetURI uri;
-				uri = pageEntry.page;
+				uri = pageEntry.getPage();
 				// convert usk's
 				if(uri.isSSKForUSK()){
 					uri = uri.uskForSSK();
@@ -240,7 +240,7 @@ public class ResultNodeGenerator implements Runnable {
 	 * @param newestVersion	if set, the result is shown in full brightness, if unset the result is greyed out
 	 */
 	private HTMLNode termPageEntryNode(TermPageEntry entry,boolean newestVersion) {
-		FreenetURI uri = entry.page;
+		FreenetURI uri = entry.getPage();
 		String showtitle = entry.title;
 		String showurl = uri.toString();
 		if (showtitle == null || showtitle.trim().length() == 0) {

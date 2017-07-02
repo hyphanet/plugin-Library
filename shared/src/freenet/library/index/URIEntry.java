@@ -7,6 +7,8 @@ import java.util.Date;
 import java.util.Set;
 import java.util.HashSet;
 
+import freenet.library.io.FreenetURI;
+
 /**
 ** Data associated with a FreenetURI. DOCUMENT expand this...
 **
@@ -19,7 +21,7 @@ public class URIEntry {
 	/**
 	** Subject URI of this entry.
 	*/
-	protected String subject;
+	protected FreenetURI subject;
 
 	/**
 	** Quality rating. Must be in the closed interval [0,1].
@@ -37,17 +39,17 @@ public class URIEntry {
 	*/
 	protected Set<String> terms;
 
-	public URIEntry(String u) {
+	public URIEntry(FreenetURI u) {
 		subject = u;
 		date_checked = new Date();
 		terms = new HashSet<String>();
 	}
 
-	public String getSubject() {
+	public FreenetURI getSubject() {
 		return subject;
 	}
 
-	public void setSubject(String u) {
+	public void setSubject(FreenetURI u) {
 		subject = u;
 	}
 

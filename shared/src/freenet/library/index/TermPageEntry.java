@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package freenet.library.index;
 
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,9 +24,23 @@ import freenet.library.io.FreenetURI;
 public class TermPageEntry extends TermEntry {
 
 	/**
-	** URI of the target
+	** URI of the target.
+	*
+	* This should be a FreenetURI but there are cases where this is a String.
+	* Lets, be flexible here but attempt to convert them all.
 	*/
-	final public FreenetURI page;
+	public Object page;
+
+	public FreenetURI getPage() {
+		if (page instanceof String) {
+			try {
+				page = new FreenetURI((String) page);
+			} catch (MalformedURLException e) {
+				throw new RuntimeException(e);
+			} 
+		}
+		return (FreenetURI) page;
+	}
 
 	/** 
 	 * Positions where the term occurs. May be null if we don't have that data.
@@ -90,12 +105,20 @@ public class TermPageEntry extends TermEntry {
 	/**
 	** For serialisation.
 	*/
-	public TermPageEntry(String s, float r, FreenetURI u, String t, Set<Integer> pos, Map<Integer, String> frags) {
+	public TermPageEntry(String s, float r, Object u, String t, Set<Integer> pos, Map<Integer, String> frags) {
 		super(s, r);
 		if (u == null) {
 			throw new IllegalArgumentException("can't have a null page");
 		}
-		page = u.intern(); // OPT LOW make the translator use the same URI object as from the URI table?
+		if (u instanceof String) {
+			try {
+				page = new FreenetURI((String) u);
+			} catch (MalformedURLException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			page = ((FreenetURI) u).intern(); // OPT LOW make the translator use the same URI object as from the URI table?
+		}
 		title = t;
 		if(pos != null) {
 			positions = new TreeSet<Integer>(pos);

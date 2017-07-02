@@ -22,6 +22,7 @@ import net.pterodactylus.fcp.Verbosity;
 import freenet.copied.Base64;
 import freenet.copied.SHA256;
 import freenet.library.Priority;
+import freenet.library.io.FreenetURI;
 import freenet.library.io.ObjectStreamReader;
 import freenet.library.io.ObjectStreamWriter;
 import freenet.library.io.serial.LiveArchiver;
@@ -90,7 +91,9 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			SimpleProgress progress) throws TaskAbortException {
 		if (cacheDir.exists()) {
 			String cacheKey = null;
-			if (task.meta instanceof String) {
+			if (task.meta instanceof FreenetURI) {
+				cacheKey = task.meta.toString();
+			} else if (task.meta instanceof String) {
 				cacheKey = (String) task.meta;
 			} else if (task.meta instanceof byte[]) {
 				cacheKey = Base64.encode(SHA256.digest((byte[]) task.meta));

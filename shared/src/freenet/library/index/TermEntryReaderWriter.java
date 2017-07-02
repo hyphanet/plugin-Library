@@ -201,7 +201,7 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 			return;
 		case PAGE:
 			TermPageEntry enn = (TermPageEntry)en;
-			enn.page.writeFullBinaryKeyWithLength(dos);
+			enn.getPage().writeFullBinaryKeyWithLength(dos);
 			int size = enn.hasPositions() ? enn.positionsSize() : 0;
 			if(enn.title == null)
 				dos.writeInt(size);

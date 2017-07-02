@@ -330,7 +330,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 			}
 			// if this termentry has any positions remaining, add it
 			if(positions != null && positions.size() > 0)
-				addInternal(new TermPageEntry(subject, termPageEntry.rel, termPageEntry.page, termPageEntry.title, positions));
+				addInternal(new TermPageEntry(subject, termPageEntry.rel, termPageEntry.getPage(), termPageEntry.title, positions));
 		}
 	}
 
@@ -343,7 +343,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 		if (termEntry instanceof TermTermEntry)
 			entry = new TermTermEntry(subject, rel, ((TermTermEntry)termEntry).term );
 		else if (termEntry instanceof TermPageEntry)
-			entry = new TermPageEntry(subject, rel, ((TermPageEntry)termEntry).page, ((TermPageEntry)termEntry).title, ((TermPageEntry)termEntry).positionsMap() );
+			entry = new TermPageEntry(subject, rel, ((TermPageEntry)termEntry).getPage(), ((TermPageEntry)termEntry).title, ((TermPageEntry)termEntry).positionsMap() );
 		else if (termEntry instanceof TermIndexEntry)
 			entry = new TermIndexEntry(subject, rel, ((TermIndexEntry)termEntry).index );
 		else
@@ -373,7 +373,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 		if(combination instanceof TermIndexEntry){
 			combination = new TermIndexEntry(subject, entries[0].rel, ((TermIndexEntry)combination).index);
 		} else if(combination instanceof TermPageEntry){
-			combination = new TermPageEntry(subject, entries[0].rel, ((TermPageEntry)combination).page, ((TermPageEntry)combination).title, ((TermPageEntry)combination).positionsMap());
+			combination = new TermPageEntry(subject, entries[0].rel, ((TermPageEntry)combination).getPage(), ((TermPageEntry)combination).title, ((TermPageEntry)combination).positionsMap());
 		} else if(combination instanceof TermTermEntry){
 			combination = new TermTermEntry(subject, entries[0].rel, ((TermTermEntry)combination).term);
 		} else
@@ -405,7 +405,7 @@ public class ResultSet implements Set<TermEntry>, Runnable{
 				if(pageentry2.hasPositions())
 					newPos.putAll(pageentry2.positionsMap());
 			}
-			return new TermPageEntry(pageentry1.subj, newRel, pageentry1.page, (pageentry1.title!=null)?pageentry1.title:pageentry2.title, newPos);
+			return new TermPageEntry(pageentry1.subj, newRel, pageentry1.getPage(), (pageentry1.title!=null)?pageentry1.title:pageentry2.title, newPos);
 
 		} else if(entry1 instanceof TermIndexEntry){
 			TermIndexEntry castEntry = (TermIndexEntry) entry1;
