@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
@@ -53,6 +54,7 @@ import net.pterodactylus.fcp.SubscribeUSK;
 import net.pterodactylus.fcp.SubscribedUSKUpdate;
 import net.pterodactylus.fcp.URIGenerated;
 import net.pterodactylus.fcp.Verbosity;
+import freenet.library.io.FreenetURI;
 import freenet.library.io.YamlReaderWriter;
 import freenet.library.io.serial.Packer;
 import freenet.library.io.serial.Packer.BinInfo;
@@ -67,8 +69,8 @@ public class DownloadAll {
 	private static final Logger logger = Logger.getLogger(DownloadAll.class.getName());
     
     public final Map<FetchedPage, GetAdapter> stillRunning = new HashMap<FetchedPage, GetAdapter>();
-    private String uri;
-    private String newUri;
+    private FreenetURI uri;
+    private FreenetURI newUri;
     private int edition;
     private FcpConnection connection;
     private static int getterCounter = 0;
@@ -94,7 +96,7 @@ public class DownloadAll {
     private Random rand = new Random();
     private Date started = new Date();
 
-    public DownloadAll(String u) {
+    public DownloadAll(FreenetURI u) {
         uri = u;
     }
     
@@ -216,16 +218,16 @@ public class DownloadAll {
         private Set<FetchedPage> parents = Collections.synchronizedSet(new WeakHashSet<FetchedPage>());
         private Set<FetchedPage> children = Collections.synchronizedSet(new HashSet<FetchedPage>());
         
-        private String uri;
+        private FreenetURI uri;
         int level;
         private boolean succeeded;
         private boolean failed;
         
-        FetchedPage(String u) {
+        FetchedPage(FreenetURI u) {
             this(u, 0);
         }
         
-        FetchedPage(String u, int l) {
+        FetchedPage(FreenetURI u, int l) {
             uri = u;
             level = l;
         }
@@ -238,14 +240,14 @@ public class DownloadAll {
             children.add(fp);
         }
         
-        FetchedPage newChild(String u) {
+        FetchedPage newChild(FreenetURI u) {
             FetchedPage child = new FetchedPage(u, level + 1);
             child.addParent(this);
             addChild(child);
             return child;
         }
         
-        String getURI() {
+        FreenetURI getURI() {
             return uri;
         }
         
@@ -328,7 +330,7 @@ public class DownloadAll {
             succeeded = true;
         }
 
-        public FetchedPage findUri(String u) {
+        public FetchedPage findUri(FreenetURI u) {
             if (u.equals(uri)) {
                 return this;
             }
@@ -357,7 +359,11 @@ public class DownloadAll {
             if (subscribedUSKUpdate.isNewKnownGood() &&
             		subscribedUSKUpdate.getEdition() > edition) {
                 updated = true;
-                newUri = subscribedUSKUpdate.getURI();
+                try {
+                	newUri = new FreenetURI(subscribedUSKUpdate.getURI());
+                } catch (MalformedURLException e) {
+                	throw new RuntimeException(e);
+                }
                 edition = subscribedUSKUpdate.getEdition();
                 synchronized (subscriber) {
                     subscriber.notify();
@@ -424,11 +430,11 @@ public class DownloadAll {
 
     private static class OngoingUpload {
     	private final Date started = new Date();
-    	private final String filename;
+    	private final FreenetURI freenetURI;
     	private final Runnable callback;
     	
-    	public OngoingUpload(String fname, Runnable cback) {
-    		filename = fname;
+    	public OngoingUpload(FreenetURI fname, Runnable cback) {
+    		freenetURI = fname;
     		callback = cback;
     	}
 
@@ -436,8 +442,8 @@ public class DownloadAll {
     		return started;
     	}
 
-    	String getKey() {
-			return filename;
+    	FreenetURI getKey() {
+			return freenetURI;
 		}
 
 		void complete() {
@@ -490,12 +496,72 @@ public class DownloadAll {
     	}
     }
 
+    /**
+     * Convert an object from the yaml to a FreenetURI.
+     * 
+     * The object can be a FreenetURI already (new style) or a string.
+     *
+     * @param obj
+     * @return a FreenetURI
+     * @throws MalformedURLException
+     */
+	private static FreenetURI getFreenetURI(Object obj) throws MalformedURLException {
+		FreenetURI u;
+		if (obj instanceof FreenetURI) {
+			u = (FreenetURI) obj;
+		} else {
+			u = new FreenetURI((String) obj);
+			logger.finest("String URI found: " + (String) obj);
+		}
+		return u;
+	}
+
     interface UriProcessor {
     	public FetchedPage getPage();
-    	public boolean processUri(String uri);
+    	public boolean processUri(FreenetURI uri);
     }
 
-    private void readAndProcessYamlData(InputStream inputStream, UriProcessor uriProcessor, String page_uri, int page_level)
+	private int processBinInfoValues(Map<String, BinInfo> entries, UriProcessor uriProcessor)
+			throws MalformedURLException {
+		int foundChildren = 0;
+		for (BinInfo value : entries.values()) {
+			try {
+				if (uriProcessor.processUri(getFreenetURI(value.getID()))) {
+					foundChildren ++;
+				}
+
+			} catch (ClassCastException e) {
+				throw new RuntimeException("Cannot process BinInfo value " + value.getID() + " for " + uriProcessor.getPage().getURI(), e);
+			}
+		}
+		return foundChildren;
+	}
+
+	private int processSubnodes(Map<String, Object> map, UriProcessor uriProcessor)
+			throws MalformedURLException {
+		int foundChildren = 0; 
+		Map<Object, Object> subnodes1 =
+		        (Map<Object, Object>) map.get("subnodes");
+		Map<FreenetURI, Object> subnodes;
+		if (subnodes1.keySet().iterator().next() instanceof FreenetURI) {
+			subnodes = (Map<FreenetURI, Object>) map.get("subnodes");
+		} else {
+			subnodes = new LinkedHashMap<FreenetURI, Object>();
+			for (Map.Entry<Object, Object> entry : subnodes1.entrySet()) {
+				subnodes.put(new FreenetURI((String) entry.getKey()), entry.getValue());
+			}
+			logger.finest("String URIs found in subnodes of: " + uriProcessor.getPage());
+		}
+	
+		for (FreenetURI key : subnodes.keySet()) {
+		    if (uriProcessor.processUri(key)) {
+		    	foundChildren ++;
+		    }
+		}
+		return foundChildren;
+	}
+    
+    private void readAndProcessYamlData(InputStream inputStream, UriProcessor uriProcessor, int page_level)
     		throws IOException {
         int foundChildren = 0;
         try {
@@ -508,30 +574,14 @@ public class DownloadAll {
                 if (map2.containsKey("entries")) {
                     Map<String, BinInfo> entries =
                             (Map<String, Packer.BinInfo>) map2.get("entries");
-                    for (BinInfo value : entries.values()) {
-                    	try {
-                    		String u = (String) value.getID();
-                    		if (uriProcessor.processUri(u)) {
-                    			foundChildren ++;
-                    		}
-                    		
-                    	} catch (ClassCastException e) {
-                    		throw new RuntimeException("Cannot process BinInfo value " + value.getID() +
-                    				" for " + uriProcessor.getPage().getURI(),
-                    				e);
-                    	}
-                    }
+                    foundChildren += processBinInfoValues(entries, uriProcessor);
                     Map<String, Object> subnodes =
                             (Map<String, Object>) map2.get("subnodes");
                     logger.log(Level.FINER, "Contains ttab.entries (level {0}) with {1} subnodes", new Object[] {
                     		uriProcessor.getPage().level,
                     		subnodes.size(),
                     });
-                    for (String key : subnodes.keySet()) {
-                        if (uriProcessor.processUri(key)) {
-                        	foundChildren ++;
-                        }
-                    }
+                    foundChildren += processSubnodes(map2, uriProcessor);
                     return;
                 }
             }
@@ -554,17 +604,7 @@ public class DownloadAll {
                     			map.get("rkey"),
                     			entries.size()
                     });
-                    for (BinInfo value : entries.values()) {
-                    	try {
-                    		String u = (String) value.getID();
-                    		if (uriProcessor.processUri(u)) {
-                    			foundChildren ++;
-                    		}
-                    	} catch (ClassCastException e) {
-                    		throw new RuntimeException("Cannot process BinInfo (2) " + value.getID() +
-                    				" for " + uriProcessor.getPage().getURI());
-                    	}
-                    }
+                    foundChildren += processBinInfoValues(entries, uriProcessor);
                     return;
                 }
                 if (map.get("entries") instanceof ArrayList) {
@@ -606,12 +646,7 @@ public class DownloadAll {
                     					contents.getKey(),
                     					subnodes.size(),
                     			});
-                    			
-                    			for (String key : subnodes.keySet()) {
-                    				if (uriProcessor.processUri(key)) {
-                    					foundChildren ++;
-                                    }
-                    			}
+                    			foundChildren += processSubnodes(map3, uriProcessor);
                 			}
                 			continue;
                 		}
@@ -652,7 +687,7 @@ public class DownloadAll {
             getterCounter ++;
             token = "Getter" + getterCounter;
             waitingLaps = 0;
-            getter = new ClientGet(page.getURI(), token);
+            getter = new ClientGet(page.getURI().toString(), token);
             getter.setPriority(Priority.prefetch);
             getter.setVerbosity(Verbosity.ALL);
  
@@ -692,7 +727,7 @@ public class DownloadAll {
         }
 
         
-        private boolean processAnUri(String uri) {
+        private boolean processAnUri(FreenetURI uri) {
         	synchronized (roots) {
         		for (FetchedPage root : roots) {
         			FetchedPage foundChild = root.findUri(uri);
@@ -731,13 +766,13 @@ public class DownloadAll {
             	}
 
             	@Override
-				public boolean processUri(String uri) {
+				public boolean processUri(FreenetURI uri) {
 					return processAnUri(uri);
 				}
             };
         	final InputStream inputStream = ad.getPayloadInputStream();
             try {
-            	readAndProcessYamlData(inputStream, uriProcessor, page.getURI(), page.level);
+            	readAndProcessYamlData(inputStream, uriProcessor, page.level);
             } catch (IOException e) {
             	logger.log(Level.SEVERE, "Cannot unpack.", e);
                 e.printStackTrace();
@@ -784,15 +819,15 @@ public class DownloadAll {
          * If we are running on a host where this CHK is actually cached,
          * lets upload it from the cache in an attempt to repair the index.
          * 
-         * @param filename of the file to upload.
+         * @param freenetURI of the file to upload.
          * @param callback when the file is successfully uploaded.
          */
-        public boolean upload(final String filename, final Runnable callback) {
+        public boolean upload(final FreenetURI freenetURI, final Runnable callback) {
         	final File dir = new File(".", UploaderPaths.LIBRARY_CACHE);
             if (!dir.canRead()) {
                 return false;
             }
-            final File file = new File(dir, filename);
+            final File file = new File(dir, freenetURI.toString());
             if (!file.canRead()) {
                 logger.warning("Cannot find " + file + " in the cache.");
                 return false;
@@ -807,8 +842,18 @@ public class DownloadAll {
 		                		assert c == connection;
 		            			assert uriGenerated != null;
 		            			String identifier = uriGenerated.getIdentifier();
-		            			String chk = ongoingUploads.get(identifier).getKey();
-								if (!uriGenerated.getURI().equals(chk)) {
+		            			FreenetURI chk = ongoingUploads.get(identifier).getKey();
+		            			FreenetURI generatedURI;
+								try {
+									generatedURI = new FreenetURI(uriGenerated.getURI());
+								} catch (MalformedURLException e) {
+									logger.severe("Were supposed to resurrect " + chk +
+											" but the URI calculated to " + uriGenerated.getURI() +
+											" that is not possible to convert to an URI. Will upload anyway.");
+									wrongChkCounterForUpload++;
+									return;
+								}
+								if (!generatedURI.equals(chk)) {
 		            				logger.severe("Were supposed to resurrect " + chk +
 		            						" but the URI calculated to " + uriGenerated.getURI() + ". " +
 		            						"Will upload anyway.");
@@ -824,14 +869,23 @@ public class DownloadAll {
 		            			assert putSuccessful != null;
 		            			String identifier = putSuccessful.getIdentifier();
 		            			final OngoingUpload foundUpload = ongoingUploads.get(identifier);
-								String chk = foundUpload.getKey();
-								if (!putSuccessful.getURI().equals(chk)) {
-		            				logger.severe("Uploaded " + putSuccessful.getURI() +
-		            						" while supposed to upload " + chk +
-		            						". ");
-		            			} else {
-		            				foundUpload.complete();
-		            			}
+								FreenetURI chk = foundUpload.getKey();
+		            			FreenetURI generatedURI = null;
+								try {
+									generatedURI = new FreenetURI(putSuccessful.getURI());
+								} catch (MalformedURLException e) {
+									logger.severe("Uploaded " + putSuccessful.getURI() +
+											" that is not possible to convert to an URI.");
+								}
+								if (generatedURI != null) {
+									if (!generatedURI.equals(chk)) {
+			            				logger.severe("Uploaded " + putSuccessful.getURI() +
+			            						" while supposed to upload " + chk +
+			            						". ");
+			            			} else {
+			            				foundUpload.complete();
+			            			}
+								}
 		            			ongoingUploads.remove(identifier);
 		            			synchronized (stillRunning) {
 		            				stillRunning.notifyAll();
@@ -844,7 +898,7 @@ public class DownloadAll {
 		            			assert putFailed != null;
 		            			String identifier = putFailed.getIdentifier();
 		            			final OngoingUpload foundUpload = ongoingUploads.get(identifier);
-								String chk = foundUpload.getKey();
+								FreenetURI chk = foundUpload.getKey();
 								logger.severe("Uploaded " + chk + " failed.");
 		            			failedRecreated++;
 		            			ongoingUploads.remove(identifier);
@@ -859,10 +913,10 @@ public class DownloadAll {
             }
             uploadStarter.execute(new Runnable() {
                 public void run() {
-        			logger.fine("Ressurrecting " + filename);
+        			logger.fine("Ressurrecting " + freenetURI.toString());
                     uploadCounter++;
                     final String identifier = "Upload" + uploadCounter;
-                    ongoingUploads.put(identifier, new OngoingUpload(filename, callback));
+                    ongoingUploads.put(identifier, new OngoingUpload(freenetURI, callback));
                     final ClientPut putter = new ClientPut("CHK@", identifier);
                     putter.setEarlyEncode(true);
                     putter.setPriority(net.pterodactylus.fcp.Priority.bulkSplitfile);
@@ -1102,7 +1156,7 @@ public class DownloadAll {
             if (sb.length() > 0) {
                 sb.append(", ");
             }
-            String edition = root.getURI().substring(uri.length());
+            long edition = root.getURI().getEdition();
             sb.append(edition);
             int succeeded = root.getTreeSizeSucceeded();
             int failed = root.getTreeSizeFailed();
@@ -1147,7 +1201,7 @@ public class DownloadAll {
      */
     public void doMove() {
     	int count = 0;
-    	File toDirectory = new File("../" + UploaderPaths.LIBRARY_CACHE + ".new");
+    	File toDirectory = new File("../" + UploaderPaths.LIBRARY_CACHE + ".new2");
     	if (!toDirectory.mkdir()) {
     		System.err.println("Could not create the directory " + toDirectory);
     		System.exit(1);
@@ -1168,8 +1222,8 @@ public class DownloadAll {
 			final FetchedPage finalPage = page;
 			FileInputStream inputStream;
 			try {
-				Files.createLink(Paths.get(toDirectory.getPath(), page.uri), Paths.get(page.uri));
-				inputStream = new FileInputStream(page.uri);
+				Files.createLink(Paths.get(toDirectory.getPath(), page.uri.toString()), Paths.get(page.uri.toString()));
+				inputStream = new FileInputStream(page.uri.toString());
 				count++;
 				System.out.println("Read file " + count + " in " + page.uri + " level " + page.level + " left: " + objectQueue.size());
 			} catch (IOException e) {
@@ -1186,9 +1240,9 @@ public class DownloadAll {
 								return finalPage;
 							}
 
-							Set<String> seen = new HashSet<String>();
+							Set<FreenetURI> seen = new HashSet<FreenetURI>();
 							@Override
-							public boolean processUri(String uri) {
+							public boolean processUri(FreenetURI uri) {
 								if (seen.contains(uri)) {
 									return false;
 					            }
@@ -1197,7 +1251,7 @@ public class DownloadAll {
 								return true;
 							}
 					
-				}, page.getURI(), page.level);
+				}, page.level);
 			} catch (IOException e) {
 				System.out.println("Cannot read file " + page.uri);
 				e.printStackTrace();
@@ -1210,9 +1264,19 @@ public class DownloadAll {
     
     public static void main(String[] argv) {
     	if (argv.length > 1 && argv[0].equals("--move")) {
-    		new DownloadAll(argv[1]).doMove();
+    		try {
+				new DownloadAll(new FreenetURI(argv[1])).doMove();
+			} catch (MalformedURLException e) {
+				e.printStackTrace();
+				System.exit(2);
+			}
     	} else {
-    		new DownloadAll(argv[0]).doDownload();
+    		try {
+				new DownloadAll(new FreenetURI(argv[0])).doDownload();
+			} catch (MalformedURLException e) {
+				e.printStackTrace();
+				System.exit(2);
+			}
     	}
     }
 

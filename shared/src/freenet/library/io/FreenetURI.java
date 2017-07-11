@@ -9,6 +9,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URLEncoder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import freenet.copied.Base64;
 
@@ -36,6 +38,10 @@ public class FreenetURI {
 				) {
 			throw new MalformedURLException("Unhandled keytype: " + uri);
 		}
+		if (contents.startsWith("KSK@")) {
+			return;
+		}
+ 
 		if (!contents.matches("^.*@(.*,.*,A.*|)$")) {
 			throw new MalformedURLException("Cannot find cryptoKey and routingKey structure: " + uri);
 		}
@@ -146,10 +152,8 @@ public class FreenetURI {
 	}
 
 	public boolean isUSK()
-	throws MalformedURLException {
-		// TODO Auto-generated method stub
-		throw new RuntimeException("Not implemented yet.");
-		// return false;
+			throws MalformedURLException {
+		return contents.startsWith("USK@");
 	}
 
 	public FreenetURI sskForUSK() {
@@ -170,9 +174,21 @@ public class FreenetURI {
 		// return null;
 	}
 
+	private static final Pattern FIND_EDITION_PATTERN = Pattern.compile("[^/]*/[^/]*/([---0-9]*)(/.*)?$");
 	public long getEdition() {
-		// TODO Auto-generated method stub
-		throw new RuntimeException("Not implemented yet.");
+		try {
+			if (isUSK()) {
+				Matcher m = FIND_EDITION_PATTERN.matcher(contents);
+				if (m.matches()) {
+					return Long.parseLong(m.group(1));
+				} else {
+					throw new RuntimeException("Edition not found in " + contents + ".");
+				}
+			}
+		} catch (MalformedURLException e) {
+			throw new RuntimeException("Malformed key " + contents + ".");
+		}
+		throw new RuntimeException("Not an USK.");
 		// return 0;
 	}
 
