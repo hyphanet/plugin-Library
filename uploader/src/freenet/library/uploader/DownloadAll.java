@@ -87,6 +87,8 @@ public class DownloadAll {
     private int successfulBlocks = 0;
     private long successfulBytes = 0;
     private int failed = 0;
+    private long uriUrisSeen = 0;
+    private long stringUrisSeen = 0;
     private int recreated = 0;
     private int failedRecreated = 0;
     private int avoidFetching = 0;
@@ -505,13 +507,14 @@ public class DownloadAll {
      * @return a FreenetURI
      * @throws MalformedURLException
      */
-	private static FreenetURI getFreenetURI(Object obj) throws MalformedURLException {
+	private FreenetURI getFreenetURI(Object obj) throws MalformedURLException {
 		FreenetURI u;
 		if (obj instanceof FreenetURI) {
 			u = (FreenetURI) obj;
+			uriUrisSeen ++;
 		} else {
 			u = new FreenetURI((String) obj);
-			logger.finest("String URI found: " + (String) obj);
+			stringUrisSeen ++;
 		}
 		return u;
 	}
@@ -1133,6 +1136,10 @@ public class DownloadAll {
     	if (failedRecreated > 0) {
     		recreatedMessage += " Recreation failed: " + failedRecreated;
     	}
+    	String urisSeenMessage = "";
+    	if (uriUrisSeen > 0 || stringUrisSeen > 0) {
+    		urisSeenMessage = " URIUrisSeen: " + uriUrisSeen + "/" + (uriUrisSeen + stringUrisSeen);
+    	}
     	String wrongChkCounterForUploadMessage = "";
     	if (wrongChkCounterForUpload > 0) {
     		wrongChkCounterForUploadMessage = " WrongChkUploaded: " + wrongChkCounterForUpload;
@@ -1141,6 +1148,7 @@ public class DownloadAll {
                 " blocks: " + successfulBlocks +
                 " bytes: " + successfulBytes +
                 " Failed: " + failed +
+                urisSeenMessage +
                 recreatedMessage +
                 wrongChkCounterForUploadMessage +
                 " Avoided: " + avoidFetching + ".");
