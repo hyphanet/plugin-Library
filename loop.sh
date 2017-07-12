@@ -2,8 +2,6 @@
 
 while test -f library.continue.loop
 do
-    # tail wrapper.log
-    # ls -ltr library.index.*
-    java -jar ../projects/freenet/github/plugin-Library/dist/uploader.jar
+    java -jar `dirname $0`/dist/uploader.jar
     sleep 60
 done
