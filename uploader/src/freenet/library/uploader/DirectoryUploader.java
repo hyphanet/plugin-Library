@@ -191,8 +191,6 @@ class DirectoryUploader implements Runnable {
             // Ignore
             System.err.println("Unable to merge old data "+diskDir);
             return;
-        } else {
-            System.out.println("Continuing old bucket: "+f);
         }
 
         ProtoIndex idxDisk = null;
