@@ -1302,7 +1302,9 @@ public class DownloadAll {
         startCleanupThread();
         synchronized (stillRunning) {
             try {
-            	stillRunning.wait(TimeUnit.SECONDS.toMillis(3));
+            	stillRunning.wait(TimeUnit.SECONDS.toMillis(1));
+            	stillRunning.wait(1 + TimeUnit.SECONDS.toMillis(ongoingUploadsSize() * ongoingUploadsSize()));
+            	stillRunning.wait(1 + TimeUnit.SECONDS.toMillis(stillRunning.size() * stillRunning.size()));
                 while (stillRunning.size() + ongoingUploadsSize() * ongoingUploadsSize() >= PARALLEL_JOBS) {
                     stillRunning.wait();
                 }
