@@ -19,7 +19,6 @@ class IndexPeeker {
 	private LinkedHashMap<String, Object> topTtab;
 	private Set<String> topElements;
 	private List<ChoosenSection> activeSections = null;
-	private int maxSections;
 
 	private static final SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> newtrees =
 			new SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>>(12);
@@ -38,7 +37,6 @@ class IndexPeeker {
 		}
 		topElements = new HashSet<String>(topTtab.keySet());
 		activeSections = new LinkedList<ChoosenSection>();
-		maxSections = 1;
 	}
 
 	private static int compare(String a, String b) {
@@ -93,18 +91,10 @@ class IndexPeeker {
 				return true;
 			}
 		}
-		if (activeSections.size() < maxSections) {
+		if (activeSections.size() < 1) {
 			activeSections.add(new ChoosenSection(subj));
 			return true;
 		}
 		return false;
-	}
-	
-	void roomForOne() {
-		maxSections = activeSections.size() + 1;
-	}
-
-	void roomForNone() {
-		maxSections = activeSections.size();
 	}
 }

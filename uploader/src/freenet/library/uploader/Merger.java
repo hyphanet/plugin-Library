@@ -356,11 +356,6 @@ final public class Merger {
             while (iterator.hasNext()) {
                 TermEntry tt = iterator.next();
                 totalTerms ++;
-                if (processedFilenames.processingSelectedFile) {
-                    creatorPeeker.roomForOne();
-                } else {
-                    creatorPeeker.roomForNone();
-                }
                 if (creatorPeeker.include(tt.subj)) {
                     creator.putEntry(tt);
                     processedFilenames.movedTerms ++;
