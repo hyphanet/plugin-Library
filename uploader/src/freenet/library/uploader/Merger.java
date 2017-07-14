@@ -283,24 +283,12 @@ final public class Merger {
                 doProcessed = true;
                 doNew = true;
             }
-            
-            private boolean addAnotherSelectedFile() {
-            	return false;
-//                return nextSelected < 20 &&
-//                        creator.size() < 10000 &&
-//                        movedTerms < 200000 &&
-//                        nextSelected * 2.687 + movedTerms * 0.001097 + creator.size() * 0.0 - 1.6463 < 90;
-            }
 
             @Override
             public boolean hasNext() {
                 if (doSelected && 
                         nextSelected < selectedFilesToMerge.length) {
                 	return true;
-                }
-                if (addAnotherSelectedFile() &&
-                		nextSelected < selectedFilesToMerge.length) {
-                    return true;
                 }
                 if (doAllSelected && nextSelected < selectedFilesToMerge.length) {
                     return true;
@@ -324,10 +312,6 @@ final public class Merger {
                         nextSelected < selectedFilesToMerge.length) {
                     processingSelectedFile = true;
                     doSelected = false;
-                    return selectedFilesToMerge[nextSelected++];
-                } else if (addAnotherSelectedFile() &&
-                		nextSelected < selectedFilesToMerge.length) {
-                    processingSelectedFile = true;
                     return selectedFilesToMerge[nextSelected++];
                 } else if (doAllSelected && nextSelected < selectedFilesToMerge.length) {
                     return selectedFilesToMerge[nextSelected++];
