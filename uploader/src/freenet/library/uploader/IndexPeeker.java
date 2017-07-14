@@ -35,6 +35,20 @@ class IndexPeeker {
 			e.printStackTrace();
 			System.exit(1);
 		}
+		if (topTtab.size() < 1000) {
+			// So far the growth of the index and the growth of the elements
+			// in the top node has gone hand in hand keeping the amount of 
+			// pages to update for each merger low. When the amount of terms
+			// will exceed 1500 x 2048 the B-tree index will suddenly be
+			// rebuilt with just two entries on top that will share all the 
+			// terms between them. This means that this logic of splitting
+			// on the top level only will split into two piles instead of 
+			// over a thousand and there is a risk that way too much will be
+			// included in each update. This code needs to be improved to 
+			// handle this.
+			throw new IllegalArgumentException("This version of the script does not handle multi-level tree.");
+		}
+
 		topElements = new HashSet<String>(topTtab.keySet());
 		activeSections = new LinkedList<ChoosenSection>();
 	}
