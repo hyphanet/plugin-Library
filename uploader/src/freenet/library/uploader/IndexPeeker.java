@@ -25,9 +25,6 @@ class IndexPeeker {
 			new SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>>(12);
 
 	IndexPeeker(File dir) {
-		this(dir, 1);
-	}
-	IndexPeeker(File dir, int sections) {
 		directory = dir;
 		String lastCHK = DirectoryUploader.readStringFrom(new File(directory, UploaderPaths.LAST_URL_FILENAME));
 		String rootFilename = directory + "/" + UploaderPaths.LIBRARY_CACHE + "/" + lastCHK;
@@ -41,7 +38,7 @@ class IndexPeeker {
 		}
 		topElements = new HashSet<String>(topTtab.keySet());
 		activeSections = new LinkedList<ChoosenSection>();
-		maxSections = sections;
+		maxSections = 1;
 	}
 
 	private static int compare(String a, String b) {
