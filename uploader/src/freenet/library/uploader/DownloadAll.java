@@ -480,12 +480,14 @@ public class DownloadAll {
                 String ongoingUploadsMessage = "";
                 if (logger.isLoggable(Level.FINEST) && ongoingUploadsSize() > 0) {
                 	Date oldest = null;
-                	for (Map.Entry<String, OngoingUpload> entry : ongoingUploads.entrySet()) {
-                		if (oldest == null || oldest.compareTo(entry.getValue().getStarted()) > 0) {
-                			oldest = entry.getValue().getStarted();
-                		}
+                	synchronized (ongoingUploads) {
+	                	for (Map.Entry<String, OngoingUpload> entry : ongoingUploads.entrySet()) {
+	                		if (oldest == null || oldest.compareTo(entry.getValue().getStarted()) > 0) {
+	                			oldest = entry.getValue().getStarted();
+	                		}
+	                	}
                 	}
-                	ongoingUploadsMessage = " and " + ongoingUploads.size() + " uploads";
+                	ongoingUploadsMessage = " and " + ongoingUploadsSize() + " uploads";
                 	if (oldest != null && new Date().getTime() - oldest.getTime() > TimeUnit.HOURS.toMillis(5)) {
                 		ongoingUploadsMessage += new MessageFormat(", oldest from {0,date,long}").format(new Object[] { oldest });
                 	}
@@ -845,7 +847,10 @@ public class DownloadAll {
 		                		assert c == connection;
 		            			assert uriGenerated != null;
 		            			String identifier = uriGenerated.getIdentifier();
-		            			FreenetURI chk = ongoingUploads.get(identifier).getKey();
+		            			FreenetURI chk;
+		            			synchronized (ongoingUploads) {
+		            				chk = ongoingUploads.get(identifier).getKey();
+		            			}
 		            			FreenetURI generatedURI;
 								try {
 									generatedURI = new FreenetURI(uriGenerated.getURI());
@@ -871,7 +876,11 @@ public class DownloadAll {
 		            			assert c == connection;
 		            			assert putSuccessful != null;
 		            			String identifier = putSuccessful.getIdentifier();
-		            			final OngoingUpload foundUpload = ongoingUploads.get(identifier);
+		            			OngoingUpload ongoingUpload;
+		            			synchronized (ongoingUploads) {
+		            				ongoingUpload = ongoingUploads.get(identifier);
+		            			}
+								final OngoingUpload foundUpload = ongoingUpload;
 								FreenetURI chk = foundUpload.getKey();
 		            			FreenetURI generatedURI = null;
 								try {
@@ -889,7 +898,9 @@ public class DownloadAll {
 			            				foundUpload.complete();
 			            			}
 								}
-		            			ongoingUploads.remove(identifier);
+								synchronized (ongoingUploads) {
+									ongoingUploads.remove(identifier);
+								}
 		            			synchronized (stillRunning) {
 		            				stillRunning.notifyAll();
 		            			}
@@ -900,11 +911,17 @@ public class DownloadAll {
 		            			assert c == connection;
 		            			assert putFailed != null;
 		            			String identifier = putFailed.getIdentifier();
-		            			final OngoingUpload foundUpload = ongoingUploads.get(identifier);
+		            			OngoingUpload ongoingUpload;
+		            			synchronized (ongoingUploads) {
+		            				ongoingUpload = ongoingUploads.get(identifier);
+		            			}
+								final OngoingUpload foundUpload = ongoingUpload;
 								FreenetURI chk = foundUpload.getKey();
 								logger.severe("Uploaded " + chk + " failed.");
 		            			failedRecreated++;
-		            			ongoingUploads.remove(identifier);
+								synchronized (ongoingUploads) {
+									ongoingUploads.remove(identifier);
+								}
 		            			synchronized (stillRunning) {
 		            				stillRunning.notifyAll();
 		            			}
@@ -919,7 +936,9 @@ public class DownloadAll {
         			logger.fine("Ressurrecting " + freenetURI.toString());
                     uploadCounter++;
                     final String identifier = "Upload" + uploadCounter;
-                    ongoingUploads.put(identifier, new OngoingUpload(freenetURI, callback));
+					synchronized (ongoingUploads) {
+						ongoingUploads.put(identifier, new OngoingUpload(freenetURI, callback));
+					}
                     final ClientPut putter = new ClientPut("CHK@", identifier);
                     putter.setEarlyEncode(true);
                     putter.setPriority(net.pterodactylus.fcp.Priority.bulkSplitfile);
