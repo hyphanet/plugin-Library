@@ -1078,49 +1078,40 @@ public class DownloadAll {
                     	lastRoot = roots.get(roots.size() - 1);
                     }
 
-                    if (!empty) {
-                        try {
-                            FetchedPage taken = objectQueue.take();
-                            while (!taken.hasParent()) {
-                                logger.finer("Avoid fetching " + taken.getURI());
-                                taken = null;
-                                avoidFetching++;
-                                if (objectQueue.isEmpty()) {
-                                    break;
-                                }
-                                taken = objectQueue.take();
-                            }
-                            // Randomize the order by rotating the queue
-                            int maxLaps = objectQueue.size();
-                            if (maxLaps == 0) {
-                                maxLaps = 1;
-                            }
-                            int toRotate = rand.nextInt(maxLaps);
-                            int rotated = 0;
-                            assert taken.level > 0;
-                            for (int i = 0; i < toRotate; i += taken.hasParent(lastRoot) ? taken.level * taken.level * taken.level : 1) {
-                                objectQueue.offer(taken);
-                                taken = objectQueue.take();
-								while (!taken.hasParent()) {
-                                    taken = null;
-                                    avoidFetching++;
-                                    if (objectQueue.isEmpty()) {
-                                        break;
-                                    }
-                                    taken = objectQueue.take();
-                                    assert taken.level > 0;
-                                }
-                                rotated++;
-                            }
-                            logger.finest("Rotated " + rotated + " (count to " + toRotate + ").");
-                            if (taken == null) {
-                                break;
-                            }
-                            new GetAdapter(taken);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                            System.exit(1);
+                    // Randomize the order by rotating the queue
+                    int maxLaps = objectQueue.size();
+                    if (maxLaps == 0) {
+                        maxLaps = 1;
+                    }
+                    int toRotate = rand.nextInt(maxLaps);
+                    int rotated = 0;
+                    int counted = 0;
+
+                    while (!objectQueue.isEmpty()) {
+                    	FetchedPage taken;
+                    	try {
+                    		taken = objectQueue.take();
+                    	} catch (InterruptedException e) {
+                    		e.printStackTrace();
+                    		System.exit(1);
+                    		continue;
+                    	}
+                        if (!taken.hasParent()) {
+                            logger.finer("Avoid fetching " + taken.getURI());
+                            taken = null;
+                            avoidFetching++;
+                            continue;
                         }
+                        
+                        counted += taken.level * taken.level * taken.level;
+                        if (counted < toRotate) {
+                            rotated++;
+                            objectQueue.offer(taken);
+                            continue;
+                        }
+                        logger.finest("Rotated " + rotated + " (count to " + toRotate + ").");
+                        new GetAdapter(taken);
+                        break;
                     }
                     subscriberListener.restart();
                     empty = objectQueue.isEmpty();
