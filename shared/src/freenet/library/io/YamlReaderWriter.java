@@ -120,7 +120,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		public ExtendedRepresenter() {
 			this.representers.put(FreenetURI.class, new Represent() {
 					/*@Override**/ public Node representData(Object data) {
-						return representScalar("!FreenetURI", data.toString());
+						return representScalar("!FreenetURI", ((FreenetURI) data).toString());
 				}
 			});
 			this.representers.put(Packer.BinInfo.class, new Represent() {
