@@ -7,6 +7,7 @@ import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.util.regex.Matcher;
@@ -19,7 +20,12 @@ import freenet.copied.Base64;
  * 
  * It has part of the interface in the same way but it is simpler and local to the Library.
  */
-public class FreenetURI {
+public class FreenetURI implements Cloneable, Serializable {
+    /**
+     * For Serializable.
+     */
+    private static transient final long serialVersionUID = 1L;
+
 	private String contents;
 
 	public FreenetURI(String uri) throws MalformedURLException {
