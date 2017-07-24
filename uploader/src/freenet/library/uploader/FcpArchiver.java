@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -133,7 +134,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
     	private ClientPut putter;
     	private String identifier;
 		private String token;
-		private String uri;
+		private FreenetURI uri;
 		private int progressTotal;
 		private int progressCompleted;
 		private boolean done;
@@ -238,7 +239,14 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 				sinceTime = " (" + (System.currentTimeMillis() - lastUriMillis) + "ms since last URI)";
 			}
 			System.out.println("receivedURIGenerated for " + token + at() + sinceTime);
-			uri = uriGenerated.getURI();
+			try {
+				uri = new FreenetURI(uriGenerated.getURI());
+			} catch (MalformedURLException e) {
+				System.err.println("receivedURIGenerated failed with URI: " + uriGenerated.getURI() +
+						" for " + token + at() + " aborting.");
+	    		markDone();
+	    		System.exit(1);
+			}
 			synchronized (this) {
 				this.notifyAll();
 			}
@@ -270,7 +278,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
     		return done;
     	}
     	
-    	String getURI() {
+    	FreenetURI getURI() {
     		return uri;
     	}
     };
@@ -360,7 +368,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
         task.meta = putterListener.getURI();
 
         // Moving file.
-        file.renameTo(new File(cacheDir, putterListener.getURI()));
+        file.renameTo(new File(cacheDir, putterListener.getURI().toString()));
 
 		startCleanupThread();        
 	}

@@ -553,7 +553,7 @@ public class DownloadAll {
 		} else {
 			subnodes = new LinkedHashMap<FreenetURI, Object>();
 			for (Map.Entry<Object, Object> entry : subnodes1.entrySet()) {
-				subnodes.put(new FreenetURI((String) entry.getKey()), entry.getValue());
+				subnodes.put(getFreenetURI(entry.getKey()), entry.getValue());
 			}
 			logger.finest("String URIs found in subnodes of: " + uriProcessor.getPage());
 		}
