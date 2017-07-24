@@ -127,6 +127,8 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 				" in the cache.");
 	}
 	
+	private static long lastUriMillis = 0;
+
 	private class PushAdapter extends FcpAdapter {
     	private ClientPut putter;
     	private String identifier;
@@ -135,6 +137,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 		private int progressTotal;
 		private int progressCompleted;
 		private boolean done;
+		private long started;
 
 		public PushAdapter(ClientPut p, String i, String t) {
     		putter = p;
@@ -147,6 +150,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
     			stillRunning.put(token, this);
 				printLeft();
     		}
+    		started = System.currentTimeMillis();
 		}
 
 		/**
@@ -165,14 +169,18 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 						"(" + completed + "/" + total + ")");
 			}
 		}
-		
+
+		private String at() {
+			return " took " + (System.currentTimeMillis() - started) + "ms";
+		}
+
 		@Override
         public void receivedPutSuccessful(FcpConnection c, PutSuccessful ps) {
 			assert c == connection;
 			assert ps != null;
 			if (!identifier.equals(ps.getIdentifier()))
 				return;
-			System.out.println("receivedPutSuccessful for " + token);
+			System.out.println("receivedPutSuccessful for " + token + at());
 			markDone();
     	}
     	
@@ -182,7 +190,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			assert pf != null;
 			if (!identifier.equals(pf.getIdentifier()))
 				return;
-			System.out.println("receivedPutFetchable for " + token);
+			System.out.println("receivedPutFetchable for " + token + at());
 			synchronized (this) {
 				this.notifyAll();
 			}
@@ -198,8 +206,9 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
             synchronized (putter) {
                 putter.notify();
             }
-			System.out.println("receivedPutFailed for " + token);
+			System.err.println("receivedPutFailed for " + token + at() + " aborting.");
     		markDone();
+    		System.exit(1);
         }
         
     	@Override
@@ -224,11 +233,16 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			assert uriGenerated != null;
 			if (!identifier.equals(uriGenerated.getIdentifier()))
 				return;
-			System.out.println("receivedURIGenerated for " + token);
+			String sinceTime = "";
+			if (lastUriMillis != 0) {
+				sinceTime = " (" + (System.currentTimeMillis() - lastUriMillis) + "ms since last URI)";
+			}
+			System.out.println("receivedURIGenerated for " + token + at() + sinceTime);
 			uri = uriGenerated.getURI();
 			synchronized (this) {
 				this.notifyAll();
 			}
+			lastUriMillis = System.currentTimeMillis();
     	}
 
     	private void markDone() {
@@ -269,7 +283,12 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			SimpleProgress progress) throws TaskAbortException {
 		// Slow down the build up of the queue.
 		try {
-			Thread.sleep(1 + totalBlocksStillUploading * totalBlocksStillUploading);
+			int stillRunningSize;
+			synchronized (stillRunning) {
+				stillRunningSize = stillRunning.size();
+			}
+			final int uploading = totalBlocksStillUploading + stillRunningSize;
+			Thread.sleep(1 + uploading * uploading);
 		} catch (InterruptedException e1) {
 			throw new RuntimeException("Unexpected interrupt");
 		}
