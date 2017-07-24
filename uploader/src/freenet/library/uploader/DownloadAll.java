@@ -1148,7 +1148,8 @@ public class DownloadAll {
     	}
     	String urisSeenMessage = "";
     	if (uriUrisSeen > 0 || stringUrisSeen > 0) {
-    		urisSeenMessage = " URIUrisSeen: " + uriUrisSeen + "/" + (uriUrisSeen + stringUrisSeen);
+    		urisSeenMessage = " StringUrisSeen: " + stringUrisSeen + "/" + (uriUrisSeen + stringUrisSeen);
+    		urisSeenMessage += new Formatter().format(" (%.1f%%)", 100.0 * stringUrisSeen / (uriUrisSeen + stringUrisSeen));
     	}
     	String wrongChkCounterForUploadMessage = "";
     	if (wrongChkCounterForUpload > 0) {
