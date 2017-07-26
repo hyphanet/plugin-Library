@@ -1,4 +1,4 @@
-#!/bin/sh -ex
+#!/bin/sh -x
 
 while test -f library.continue.loop
 do
