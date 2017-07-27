@@ -545,21 +545,10 @@ public class DownloadAll {
 	private int processSubnodes(Map<String, Object> map, UriProcessor uriProcessor)
 			throws MalformedURLException {
 		int foundChildren = 0; 
-		Map<Object, Object> subnodes1 =
+		Map<Object, Object> subnodes =
 		        (Map<Object, Object>) map.get("subnodes");
-		Map<FreenetURI, Object> subnodes;
-		if (subnodes1.keySet().iterator().next() instanceof FreenetURI) {
-			subnodes = (Map<FreenetURI, Object>) map.get("subnodes");
-		} else {
-			subnodes = new LinkedHashMap<FreenetURI, Object>();
-			for (Map.Entry<Object, Object> entry : subnodes1.entrySet()) {
-				subnodes.put(getFreenetURI(entry.getKey()), entry.getValue());
-			}
-			logger.finest("String URIs found in subnodes of: " + uriProcessor.getPage());
-		}
-	
-		for (FreenetURI key : subnodes.keySet()) {
-		    if (uriProcessor.processUri(key)) {
+		for (Object key : subnodes.keySet()) {
+		    if (uriProcessor.processUri(getFreenetURI(key))) {
 		    	foundChildren ++;
 		    }
 		}
@@ -580,12 +569,14 @@ public class DownloadAll {
                     Map<String, BinInfo> entries =
                             (Map<String, Packer.BinInfo>) map2.get("entries");
                     foundChildren += processBinInfoValues(entries, uriProcessor);
-                    Map<String, Object> subnodes =
-                            (Map<String, Object>) map2.get("subnodes");
-                    logger.log(Level.FINER, "Contains ttab.entries (level {0}) with {1} subnodes", new Object[] {
-                    		uriProcessor.getPage().level,
-                    		subnodes.size(),
-                    });
+                    if (logger.isLoggable(Level.FINER)) {
+                    	Map<Object, Object> subnodes =
+                    			(Map<Object, Object>) map2.get("subnodes");
+                    	logger.log(Level.FINER, "Contains ttab.entries (level {0}) with {1} subnodes", new Object[] {
+                    			uriProcessor.getPage().level,
+                    			subnodes.size(),
+                    	});
+                    }
                     foundChildren += processSubnodes(map2, uriProcessor);
                     return;
                 }
@@ -644,13 +635,15 @@ public class DownloadAll {
                 			last = contents.getKey();
                 			Map<String, Object> map3 = (Map<String, Object>) contents.getValue();
                 			if (map3.containsKey("subnodes")) {
-                    			Map<String, Object> subnodes =
-                    					(Map<String, Object>) map3.get("subnodes");
-                    			logger.log(Level.FINER, "Entry for {1} (level {0}) contains {2} subnodes.", new Object[] {
-                    					uriProcessor.getPage().level,
-                    					contents.getKey(),
-                    					subnodes.size(),
-                    			});
+                				if (logger.isLoggable(Level.FINER)) {
+	                    			Map<Object, Object> subnodes =
+	                    					(Map<Object, Object>) map3.get("subnodes");
+	                    			logger.log(Level.FINER, "Entry for {1} (level {0}) contains {2} subnodes.", new Object[] {
+	                    					uriProcessor.getPage().level,
+	                    					contents.getKey(),
+	                    					subnodes.size(),
+	                    			});
+                				}
                     			foundChildren += processSubnodes(map3, uriProcessor);
                 			}
                 			continue;
