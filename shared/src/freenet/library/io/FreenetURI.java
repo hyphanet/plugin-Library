@@ -53,12 +53,18 @@ public class FreenetURI implements Cloneable, Serializable {
 		}
 	}
 
+	public FreenetURI(boolean chk) {
+		contents = "CHK@";
+	}
+
 	static final byte CHK = 1;
 	static final byte SSK = 2;
 	static final byte KSK = 3;
 	static final byte USK = 4;
 	static final short ClientCHK_EXTRA_LENGTH = 5;
 	static final short ClientSSK_EXTRA_LENGTH = 5;
+
+	public static final FreenetURI EMPTY_CHK_URI = new FreenetURI(true);
 
 	/**
 	 * This method can read the traditional BinaryKey-coded data, from Spider
@@ -168,25 +174,31 @@ public class FreenetURI implements Cloneable, Serializable {
 		// return null;
 	}
 
+	private static final Pattern SSK_FOR_USK_PATTERN = Pattern.compile("^SSK@([^/]*/[^-/]*)-([0-9]*)(/.*)?$");
 	public boolean isSSKForUSK() {
-		// TODO Auto-generated method stub
-		throw new RuntimeException("Not implemented yet.");
-		// return false;
+		Matcher m = SSK_FOR_USK_PATTERN.matcher(contents);
+		return m.matches();
 	}
 
 	public FreenetURI uskForSSK() {
-		// TODO Auto-generated method stub
-		throw new RuntimeException("Not implemented yet.");
-		// return null;
+		Matcher m = SSK_FOR_USK_PATTERN.matcher(contents);
+		if (m.matches()) {
+			try {
+				return new FreenetURI("USK@" + m.group(1) + "/" + m.group(2) + m.group(3));
+			} catch (MalformedURLException e) {
+				// FALLTHRU
+			}
+		}
+		throw new RuntimeException("Cannot convert " + contents + " to USK.");
 	}
 
-	private static final Pattern FIND_EDITION_PATTERN = Pattern.compile("[^/]*/[^/]*/([---0-9]*)(/.*)?$");
+	private static final Pattern USK_PATTERN = Pattern.compile("^([^/]*)/([^/]*)/([---0-9]*)(/.*)?$");
 	public long getEdition() {
 		try {
 			if (isUSK()) {
-				Matcher m = FIND_EDITION_PATTERN.matcher(contents);
+				Matcher m = USK_PATTERN.matcher(contents);
 				if (m.matches()) {
-					return Long.parseLong(m.group(1));
+					return Long.parseLong(m.group(3));
 				} else {
 					throw new RuntimeException("Edition not found in " + contents + ".");
 				}
@@ -194,8 +206,24 @@ public class FreenetURI implements Cloneable, Serializable {
 		} catch (MalformedURLException e) {
 			throw new RuntimeException("Malformed key " + contents + ".");
 		}
-		throw new RuntimeException("Not an USK.");
+		throw new RuntimeException("Cannot find edition in assumed USK: " + contents);
 		// return 0;
+	}
+
+	private static final Pattern ROOT_PATTERN = Pattern.compile("^([^/]*)((/[^/]*).*)?$");
+	/**
+	 * Calculate the root of the key. I.e. the key and the document name.
+	 *
+	 * The key could be of any kind except an SSK that is really an USK.
+	 *
+	 * @return A String.
+	 */
+	public String getRoot() {
+		Matcher m = ROOT_PATTERN.matcher(contents);
+		if (m.matches()) {
+			return m.group(1) + m.group(3);
+		}
+		throw new RuntimeException("Cannot determine root: " + contents);
 	}
 
 	public FreenetURI setMetaString(Object object) {

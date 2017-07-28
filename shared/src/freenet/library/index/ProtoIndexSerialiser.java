@@ -65,7 +65,8 @@ implements Archiver<ProtoIndex>,
 		} else if (o instanceof File) {
 			return forIndex((File)o);
 		} else {
-			throw new UnsupportedOperationException("Don't know how to retrieve index for object " + o);
+			throw new UnsupportedOperationException("Don't know how to retrieve index for object " + o +
+					" (of type " + o.getClass().getName() + ")");
 		}
 	}
 

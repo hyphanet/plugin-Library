@@ -117,7 +117,7 @@ public class ResultNodeGenerator implements Runnable {
 					uskEdition = uri.getEdition();
 				}
 				// Get the site base name, key + documentname - uskversion
-				sitebase = uri.setMetaString(null).setSuggestedEdition(0).toString().replaceFirst("/0", "");
+				sitebase = uri.getRoot();
 				Logger.minor(this, sitebase);
 
 				// Add site

@@ -364,7 +364,7 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 			// return KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri); KEYEXPLORER
 			// OPT HIGH if it already ends with eg. *Index.DEFAULT_FILE, don't strip
 			// the MetaString, and have getIndexType behave accordingly
-			FreenetURI tempURI = new FreenetURI(indexuri);
+			freenet.library.io.FreenetURI tempURI = new freenet.library.io.FreenetURI(indexuri);
 			return tempURI;
 		} catch (MalformedURLException e) {
 			File file = new File(indexuri);
@@ -562,9 +562,9 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 		try {
 			if (indexkey instanceof File) {
 				indextype = getIndexType((File)indexkey);
-			} else if (indexkey instanceof FreenetURI) {
+			} else if (indexkey instanceof freenet.library.io.FreenetURI) {
 				// TODO HIGH make this non-blocking
-				FreenetURI uri = (FreenetURI)indexkey;
+				FreenetURI uri = new FreenetURI(indexkey.toString());
 				if(uri.isUSK())
 					edition = uri.getEdition();
 				indextype = getIndexType(uri);
@@ -589,11 +589,17 @@ final public class Library implements URLUpdateHook, ArchiverFactory {
 
 			return index;
 
+		} catch (MalformedURLException e) {
+			Logger.warning(this, "Failed to find index type", e);
+			throw new TaskAbortException("Failed to find index type " + indexuri+" : "+e, e, true);
 		} catch (FetchException e) {
+			Logger.warning(this, "Failed to find fetch index", e);
 			throw new TaskAbortException("Failed to fetch index " + indexuri+" : "+e, e, true);
 		} catch (UnsupportedOperationException e) {
+			Logger.warning(this, "Failed to find parse index", e);
 			throw new TaskAbortException("Failed to parse index  " + indexuri+" : "+e, e);
 		} catch (RuntimeException e) {
+			Logger.warning(this, "Failed to find load index", e);
 			throw new TaskAbortException("Failed to load index  " + indexuri+" : "+e, e);
 		}
 	}
