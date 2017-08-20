@@ -11,11 +11,13 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import freenet.library.Priority;
 import freenet.library.index.ProtoIndex;
@@ -45,10 +47,12 @@ class DirectoryUploader implements Runnable {
         
     FcpConnection connection;
     File directory;
+    boolean forceCreateUSK;
 
-    DirectoryUploader(FcpConnection c, File d) {
+    DirectoryUploader(FcpConnection c, File d, boolean fcu) {
         connection = c;
         directory = d;
+	forceCreateUSK = fcu;
     }
         
     public void run() {
@@ -95,6 +99,15 @@ class DirectoryUploader implements Runnable {
      * and not for the data on Freenet, which is pulled on
      * demand. SCALABILITY */
     static final int MAX_DISK_ENTRY_SIZE = 10000;
+
+    /** Time in hours without creating a new USK for the
+     * index. Creating the USK is in fact publishing the new version
+     * of the index. While not creating a new USK, the index could be
+     * updated with new CHKs several times without publishing. This is
+     * to avoid too many USKs created (saving time for the creation
+     * and for the clients).
+     */
+    private static final int MAX_TIME_WITHOUT_NEW_USK = 8;
 
     static final String DISK_DIR_PREFIX = "library-temp-index-";
     /** Directory the current idxDisk is saved in. */
@@ -233,6 +246,20 @@ class DirectoryUploader implements Runnable {
         return true;
     }
 
+    /**
+     * Create a new USK automatically if the old one is older than a
+     * specific time.
+     */
+    private static boolean createUSK() {
+	File editionFile = new File(EDITION_FILENAME);
+	long fileChanged = editionFile.lastModified();
+	if (new Date().getTime() - fileChanged > 
+	        TimeUnit.HOURS.toMillis(MAX_TIME_WITHOUT_NEW_USK)) {
+	    return true;
+	}
+	return false;
+    }
+
     private final Object inflateSync = new Object();
         
     /** Merge from an on-disk index to an on-Freenet index.
@@ -316,7 +343,9 @@ class DirectoryUploader implements Runnable {
             }
                         
             // Create the USK to redirect to the CHK at the top of the index.
-            uploadUSKForFreenetIndex(uri);
+	    if (forceCreateUSK || createUSK()) {
+		uploadUSKForFreenetIndex(uri);
+	    }
                         
         } catch (TaskAbortException e) {
 			throw new RuntimeException(e);

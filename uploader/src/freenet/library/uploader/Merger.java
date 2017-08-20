@@ -182,7 +182,7 @@ final public class Merger {
                 FactoryRegister.register(UploaderLibrary.getInstance());
                 
                 File directoryToMerge = new File(directory, dirsToMerge[0]);
-                new DirectoryUploader(connection, directoryToMerge).run();
+                new DirectoryUploader(connection, directoryToMerge, false).run();
                 System.out.println("Upload completed.");
                 return;
             }
