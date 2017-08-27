@@ -111,4 +111,28 @@ public class TermEntryTest extends TestCase {
 		assertTrue(a + " and " + b + " not same hashCode.", a.hashCode() == b.hashCode());
 	}
 
+	private TermEntry TE(String s) {
+		return new TermEntry(s, 0) {
+			@Override
+			public boolean equalsTarget(TermEntry entry) {
+				return false;
+			}
+			
+			@Override
+			public EntryType entryType() {
+				return null;
+			}
+		};
+	}
+
+	public void testToBeDropped() {
+		assertFalse(TE("").toBeDropped());
+		assertFalse(TE("1h1").toBeDropped());
+		assertTrue(TE("1hh1").toBeDropped());
+		assertFalse(TE("r2d2").toBeDropped());
+		assertFalse(TE("c3po").toBeDropped());
+		assertTrue(TE("a1b2c3d4e5").toBeDropped());
+		assertFalse(TE("conventional").toBeDropped());
+		assertTrue(TE("abcdef12345fedcba54321aabbee").toBeDropped());
+	}
 }

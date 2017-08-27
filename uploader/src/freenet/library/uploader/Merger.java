@@ -355,6 +355,10 @@ final public class Merger {
             Iterator<TermEntry> iterator = teri.iterator();
             while (iterator.hasNext()) {
                 TermEntry tt = iterator.next();
+                if (tt.toBeDropped()) {
+                	System.out.println("Ignoring term " + tt);
+                	continue;
+                }
                 totalTerms ++;
                 if (creatorPeeker.include(tt.subj)) {
                     creator.putEntry(tt);
