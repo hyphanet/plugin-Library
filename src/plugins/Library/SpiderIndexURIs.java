@@ -24,11 +24,6 @@ class SpiderIndexURIs {
 		this.pr = pr;
 	}
 	
-	synchronized long setEdition(long newEdition) {
-		if(newEdition < edition) return edition;
-		else return edition = newEdition;
-	}
-	
 	synchronized FreenetURI loadSSKURIs() {
 		if(privURI == null) {
 			File f = new File(SpiderIndexUploader.PRIV_URI_FILENAME);
@@ -84,29 +79,12 @@ class SpiderIndexURIs {
 			} finally {
 				Closer.close(fos);
 			}
-			try {
-				fis = new FileInputStream(new File(SpiderIndexUploader.EDITION_FILENAME));
-				BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
-				try {
-					edition = Long.parseLong(br.readLine());
-				} catch (NumberFormatException e) {
-					edition = 0;
-				}
-				System.out.println("Edition: "+edition);
-				fis.close();
-				fis = null;
-			} catch (IOException e) {
-				// Ignore
-				edition = 0;
-			} finally {
-				Closer.close(fis);
-			}
 		}
 		return privURI;
 	}
 
 	synchronized FreenetURI getPrivateUSK() {
-		return loadSSKURIs().setKeyType("USK").setDocName(SpiderIndexUploader.INDEX_DOCNAME).setSuggestedEdition(edition);
+		return loadSSKURIs().setKeyType("USK").setDocName(SpiderIndexUploader.INDEX_DOCNAME).setSuggestedEdition(getLastUploadedEdition());
 	}
 
 	/** Will return edition -1 if no successful uploads so far, otherwise the correct edition. */
@@ -116,7 +94,22 @@ class SpiderIndexURIs {
 	}
 
 	private synchronized long getLastUploadedEdition() {
-		/** If none uploaded, return -1, otherwise return the last uploaded version. */
+		FileInputStream fis = null;
+		try {
+			fis = new FileInputStream(new File(SpiderIndexUploader.EDITION_FILENAME));
+			BufferedReader br = new BufferedReader(new InputStreamReader(fis, "UTF-8"));
+			try {
+				edition = Long.parseLong(br.readLine());
+			} catch (NumberFormatException e) {
+				Logger.error(this, "Failed to parse edition", e);
+			}
+			fis.close();
+			fis = null;
+		} catch (IOException e) {
+			Logger.error(this, "Failed to read edition", e);
+		} finally {
+			Closer.close(fis);
+		}
 		return edition;
 	}
 
