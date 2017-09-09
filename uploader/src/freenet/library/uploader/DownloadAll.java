@@ -621,10 +621,6 @@ public class DownloadAll {
                 if (map2.containsKey("node_min")
                         && map2.containsKey("size")
                         && map2.containsKey("entries")) {
-                	logger.log(Level.FINER, "Starts with entry for {1} (level {0}). Searching for subnodes.", new Object[] {
-                			uriProcessor.getPage().level,
-                			entry.getKey(),
-                	});
                 	String first = null;
                 	String last = null;
                 	for (Entry<String, Object> contents : map.entrySet()) {
@@ -635,15 +631,6 @@ public class DownloadAll {
                 			last = contents.getKey();
                 			Map<String, Object> map3 = (Map<String, Object>) contents.getValue();
                 			if (map3.containsKey("subnodes")) {
-                				if (logger.isLoggable(Level.FINER)) {
-	                    			Map<Object, Object> subnodes =
-	                    					(Map<Object, Object>) map3.get("subnodes");
-	                    			logger.log(Level.FINER, "Entry for {1} (level {0}) contains {2} subnodes.", new Object[] {
-	                    					uriProcessor.getPage().level,
-	                    					contents.getKey(),
-	                    					subnodes.size(),
-	                    			});
-                				}
                     			foundChildren += processSubnodes(map3, uriProcessor);
                 			}
                 			continue;
