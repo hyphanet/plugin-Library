@@ -913,7 +913,6 @@ public class DownloadAll {
             }
             uploadStarter.execute(new Runnable() {
                 public void run() {
-        			logger.fine("Ressurrecting " + freenetURI.toString());
                     uploadCounter++;
                     final String identifier = "Upload" + uploadCounter;
 					synchronized (ongoingUploads) {
