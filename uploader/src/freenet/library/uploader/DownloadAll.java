@@ -64,6 +64,7 @@ import freenet.library.io.serial.Packer.BinInfo;
  */
 public class DownloadAll {
     private static final int PARALLEL_JOBS = 10;
+    private static final int PARALLEL_UPLOADS = 1;
 
 	/** Logger. */
 	private static final Logger logger = Logger.getLogger(DownloadAll.class.getName());
@@ -92,6 +93,7 @@ public class DownloadAll {
     private int recreated = 0;
     private int failedRecreated = 0;
     private int avoidFetching = 0;
+    private int avoidRecreate = 0;
     private int wrongChkCounterForUpload = 0;
     private int maxObjectQueueSize = 0;
     
@@ -790,7 +792,7 @@ public class DownloadAll {
             markDone();
             failed ++;
             showProgress();
-            upload(page.getURI(), new Runnable() {
+            upload(page, new Runnable() {
             	public void run() {
             		objectQueue.offer(page);
             		recreated ++;
@@ -801,18 +803,18 @@ public class DownloadAll {
         /**
          * We have detected that we cannot download a certain CHK.
          * 
-         * If we are running on a host where this CHK is actually cached,
-         * lets upload it from the cache in an attempt to repair the index.
+         * If this CHK is actually cached, lets upload it from
+         * the cache in an attempt to repair the index.
          * 
-         * @param freenetURI of the file to upload.
+         * @param page the URI to upload.
          * @param callback when the file is successfully uploaded.
          */
-        public boolean upload(final FreenetURI freenetURI, final Runnable callback) {
+        public boolean upload(final FetchedPage page, final Runnable callback) {
         	final File dir = new File(".", UploaderPaths.LIBRARY_CACHE);
             if (!dir.canRead()) {
                 return false;
             }
-            final File file = new File(dir, freenetURI.toString());
+            final File file = new File(dir, page.getURI().toString());
             if (!file.canRead()) {
                 logger.warning("Cannot find " + file + " in the cache.");
                 return false;
@@ -880,6 +882,7 @@ public class DownloadAll {
 								}
 								synchronized (ongoingUploads) {
 									ongoingUploads.remove(identifier);
+									ongoingUploads.notifyAll();
 								}
 		            			synchronized (stillRunning) {
 		            				stillRunning.notifyAll();
@@ -901,6 +904,7 @@ public class DownloadAll {
 		            			failedRecreated++;
 								synchronized (ongoingUploads) {
 									ongoingUploads.remove(identifier);
+									ongoingUploads.notifyAll();
 								}
 		            			synchronized (stillRunning) {
 		            				stillRunning.notifyAll();
@@ -913,10 +917,15 @@ public class DownloadAll {
             }
             uploadStarter.execute(new Runnable() {
                 public void run() {
+		    if (!page.hasParent()) {
+			avoidRecreate++;
+			return;
+		    }
                     uploadCounter++;
                     final String identifier = "Upload" + uploadCounter;
 					synchronized (ongoingUploads) {
-						ongoingUploads.put(identifier, new OngoingUpload(freenetURI, callback));
+						ongoingUploads.put(identifier, new OngoingUpload(page.getURI(), callback));
+						ongoingUploads.notifyAll();
 					}
                     final ClientPut putter = new ClientPut("CHK@", identifier);
                     putter.setEarlyEncode(true);
@@ -935,6 +944,18 @@ public class DownloadAll {
                         e.printStackTrace();
                         logger.warning("Upload failed for " + file);
                     }
+		    while (true) {
+			synchronized (ongoingUploads) {
+			    if (ongoingUploads.size() < PARALLEL_UPLOADS) {
+				break;
+			    }
+			    try {
+				ongoingUploads.wait(TimeUnit.SECONDS.toMillis(3));
+			    } catch (InterruptedException e) {
+				throw new RuntimeException("Waiting for upload slot terminated.");
+			    }
+			}
+		    }
                 }
             });
             return true;
@@ -1125,6 +1146,9 @@ public class DownloadAll {
     	if (failedRecreated > 0) {
     		recreatedMessage += " Recreation failed: " + failedRecreated;
     	}
+    	if (avoidRecreate > 0) {
+    		recreatedMessage += " Recreation avoided: " + avoidRecreate;
+    	}
     	String urisSeenMessage = "";
     	if (uriUrisSeen > 0 || stringUrisSeen > 0) {
     		urisSeenMessage = " StringUrisSeen: " + stringUrisSeen + "/" + (uriUrisSeen + stringUrisSeen);
@@ -1296,9 +1320,8 @@ public class DownloadAll {
             	for (int i = 0; i <  ongoingUploadsSize(); i++) {
             		stillRunning.wait(1 + TimeUnit.SECONDS.toMillis(ongoingUploadsSize()));
             	}
-            	stillRunning.wait(1 + TimeUnit.SECONDS.toMillis(stillRunning.size()));
                 while (stillRunning.size() + ongoingUploadsSize() * ongoingUploadsSize() >= PARALLEL_JOBS) {
-                    stillRunning.wait();
+                    stillRunning.wait(1 + TimeUnit.MINUTES.toMillis(2));
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
