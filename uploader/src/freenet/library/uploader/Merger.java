@@ -378,7 +378,8 @@ final public class Merger {
                     }
                     if (found) {
                         continue;                       
-                    } else if (writers.size() < 10 * (filteredFilesToMerge.length + processedFilesToMerge.length)) {
+                    } else if (writers.size() < 10 ||
+			       writers.size() < 10 * (filteredFilesToMerge.length + processedFilesToMerge.length)) {
                         lastSelected ++;
                         String selectedFilename = SELECTED + lastSelected;
                         IndexPeeker p = new IndexPeeker(directory);
