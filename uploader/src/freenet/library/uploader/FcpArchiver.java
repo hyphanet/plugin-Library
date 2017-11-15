@@ -296,7 +296,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 				stillRunningSize = stillRunning.size();
 			}
 			final int uploading = totalBlocksStillUploading + stillRunningSize;
-			Thread.sleep(1 + uploading * uploading);
+			Thread.sleep(1 + 10 * uploading * uploading);
 		} catch (InterruptedException e1) {
 			throw new RuntimeException("Unexpected interrupt");
 		}

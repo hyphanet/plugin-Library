@@ -10,11 +10,13 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.lang.Math;
 import java.net.MalformedURLException;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -100,14 +102,14 @@ class DirectoryUploader implements Runnable {
      * demand. SCALABILITY */
     static final int MAX_DISK_ENTRY_SIZE = 10000;
 
-    /** Time in hours without creating a new USK for the
+    /** Max time without creating a new USK for the
      * index. Creating the USK is in fact publishing the new version
      * of the index. While not creating a new USK, the index could be
      * updated with new CHKs several times without publishing. This is
      * to avoid too many USKs created (saving time for the creation
      * and for the clients).
      */
-    private static final int MAX_TIME_WITHOUT_NEW_USK = 8;
+    private static final int MAX_DAYS_WITHOUT_NEW_USK = 8;
 
     static final String DISK_DIR_PREFIX = "library-temp-index-";
     /** Directory the current idxDisk is saved in. */
@@ -254,7 +256,7 @@ class DirectoryUploader implements Runnable {
 	File editionFile = new File(EDITION_FILENAME);
 	long fileChanged = editionFile.lastModified();
 	if (new Date().getTime() - fileChanged > 
-	        TimeUnit.HOURS.toMillis(MAX_TIME_WITHOUT_NEW_USK)) {
+	    Math.abs(new Random().nextLong()) % TimeUnit.DAYS.toMillis(MAX_DAYS_WITHOUT_NEW_USK)) {
 	    return true;
 	}
 	return false;
