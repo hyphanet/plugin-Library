@@ -64,7 +64,7 @@ import freenet.library.io.serial.Packer.BinInfo;
  */
 public class DownloadAll {
     private static final int PARALLEL_JOBS = 10;
-    private static final int PARALLEL_UPLOADS = 1;
+    private static final int PARALLEL_UPLOADS = 3;
 
 	/** Logger. */
 	private static final Logger logger = Logger.getLogger(DownloadAll.class.getName());
@@ -93,6 +93,7 @@ public class DownloadAll {
     private int recreated = 0;
     private int failedRecreated = 0;
     private int avoidFetching = 0;
+    private int uploadsStarted = 0;
     private int avoidRecreate = 0;
     private int wrongChkCounterForUpload = 0;
     private int maxObjectQueueSize = 0;
@@ -915,6 +916,7 @@ public class DownloadAll {
             	});
             	ongoingUploads = new HashMap<String, OngoingUpload>();
             }
+            uploadsStarted++;
             uploadStarter.execute(new Runnable() {
                 public void run() {
 		    if (!page.hasParent()) {
@@ -1002,6 +1004,10 @@ public class DownloadAll {
             return done;
         }
     };
+
+    private int uploadsWaiting() {
+	return uploadsStarted - uploadCounter - avoidRecreate;
+    }
 
 	private void ageRunning() {
 		final HashSet<Entry<FetchedPage, GetAdapter>> stillRunningCopy;
@@ -1316,11 +1322,10 @@ public class DownloadAll {
         startCleanupThread();
         synchronized (stillRunning) {
             try {
-            	stillRunning.wait(TimeUnit.SECONDS.toMillis(1));
-            	for (int i = 0; i <  ongoingUploadsSize(); i++) {
-            		stillRunning.wait(1 + TimeUnit.SECONDS.toMillis(ongoingUploadsSize()));
+            	for (int i = 0; i < uploadsWaiting() + ongoingUploadsSize() + stillRunning.size(); i++) {
+		    stillRunning.wait(TimeUnit.SECONDS.toMillis(1 + uploadsWaiting() + uploadsWaiting()));
             	}
-                while (stillRunning.size() + ongoingUploadsSize() * ongoingUploadsSize() >= PARALLEL_JOBS) {
+                while (stillRunning.size() >= PARALLEL_JOBS) {
                     stillRunning.wait(1 + TimeUnit.MINUTES.toMillis(2));
                 }
             } catch (InterruptedException e) {
