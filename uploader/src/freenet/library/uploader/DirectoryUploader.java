@@ -253,13 +253,14 @@ class DirectoryUploader implements Runnable {
      * specific time.
      */
     private static boolean createUSK() {
-	File editionFile = new File(EDITION_FILENAME);
-	long fileChanged = editionFile.lastModified();
-	if (new Date().getTime() - fileChanged > 
-	    Math.abs(new Random().nextLong()) % TimeUnit.DAYS.toMillis(MAX_DAYS_WITHOUT_NEW_USK)) {
-	    return true;
-	}
-	return false;
+        File editionFile = new File(EDITION_FILENAME);
+        long fileChanged = editionFile.lastModified();
+        if (Long.valueOf(new Date().getTime() - fileChanged).doubleValue() /
+                Long.valueOf(TimeUnit.DAYS.toMillis(MAX_DAYS_WITHOUT_NEW_USK)).doubleValue()
+                > new Random(fileChanged).nextDouble()) {
+            return true;
+        }
+        return false;
     }
 
     private final Object inflateSync = new Object();
