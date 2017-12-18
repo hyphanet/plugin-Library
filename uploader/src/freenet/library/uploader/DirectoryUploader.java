@@ -130,7 +130,8 @@ class DirectoryUploader implements Runnable {
     static final String EDITION_FILENAME = "library.index.last-edition";
         
     static final String LAST_DISK_FILENAME = "library.index.lastpushed.disk";
-        
+    static final String REMOVED_TERMS_FILENAME = "terms.to.remove.disk";
+
     static final String BASE_FILENAME_PUSH_DATA = "library.index.data.";
         
     ProtoIndexSerialiser srlDisk = null;
@@ -197,7 +198,8 @@ class DirectoryUploader implements Runnable {
             (LiveArchiver<Map<String,Object>,SimpleProgress>)(s.getChildSerialiser());
         ProtoIndexComponentSerialiser leaf = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, archiver);
         String f = DirectoryUploader.readStringFrom(new File(diskDir, LAST_DISK_FILENAME));
-        if(f == null) {
+        String rf = DirectoryUploader.readStringFrom(new File(diskDir, REMOVED_TERMS_FILENAME));
+        if(f == null && rf == null) {
             if(diskDir.list().length == 0) {
                 System.err.println("Directory " + diskDir + " is empty - removing. Nothing to merge.");
                 diskDir.delete();
@@ -209,20 +211,38 @@ class DirectoryUploader implements Runnable {
         }
 
         ProtoIndex idxDisk = null;
-        try {
-            PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(f);
-            System.out.println("Pulling previous index "+f+" from disk so can update it.");
-            s.pull(pull);
-            System.out.println("Pulled previous index "+f+" from disk - updating...");
-            idxDisk = pull.data;
-            if(idxDisk.getSerialiser().getLeafSerialiser() != archiver)
-                throw new IllegalStateException("Different serialiser: "+idxDisk.getSerialiser()+" should be "+archiver);
-        } catch (TaskAbortException e) {
-            System.err.println("Failed to download previous index for spider update: "+e);
-            e.printStackTrace();
-            return;
+        if (f != null) {
+            try {
+                PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(f);
+                System.out.println("Pulling previous index "+f+" from disk so can update it.");
+                s.pull(pull);
+                idxDisk = pull.data;
+                if(idxDisk.getSerialiser().getLeafSerialiser() != archiver)
+                    throw new IllegalStateException("Different serialiser: "+idxDisk.getSerialiser()+" should be "+archiver);
+            } catch (TaskAbortException e) {
+                System.err.println("Failed to download previous index for spider update: "+e);
+                e.printStackTrace();
+                return;
+            }
         }
-        mergeToFreenet(idxDisk, diskDir);
+
+        ProtoIndex removeIdxDisk = null;
+        if (rf != null) {
+            try {
+                PullTask<ProtoIndex> pull = new PullTask<ProtoIndex>(rf);
+                System.out.println("Pulling index " + f + " with terms for removal from disk.");
+                s.pull(pull);
+                removeIdxDisk = pull.data;
+                if (removeIdxDisk.getSerialiser().getLeafSerialiser() != archiver)
+                    throw new IllegalStateException("Different serialiser: " + removeIdxDisk.getSerialiser() + " should be " + archiver);
+            } catch (TaskAbortException e) {
+                System.err.println("Failed to download previous index for spider update: " + e);
+                e.printStackTrace();
+                return;
+            }
+        }
+
+        mergeToFreenet(idxDisk, removeIdxDisk, diskDir);
     }
 
     /** Delete everything in a directory. Only use this when we are
@@ -265,11 +285,18 @@ class DirectoryUploader implements Runnable {
 
     private final Object inflateSync = new Object();
         
-    /** Merge from an on-disk index to an on-Freenet index.
-     * @param diskToMerge The on-disk index.
-     * @param diskDir The folder the on-disk index is stored in.
+    /**
+     * Merge from an on-disk index to an on-Freenet index.
+     * 
+     * @param diskToMerge
+     *            The on-disk index with new terms. None if null.
+     * @param removeIdxDisk
+     *            The on-disk index with terms to remove. None if null.
+     * @param diskDir
+     *            The folder the on-disk index is stored in.
      */
-    protected void mergeToFreenet(ProtoIndex diskToMerge, File diskDir) {
+    protected void mergeToFreenet(ProtoIndex diskToMerge, ProtoIndex removeIdxDisk, File diskDir) {
+        assert diskToMerge != null || removeIdxDisk != null;
         if (lastUploadURI == null) {
             try {
 				lastUploadURI = new FreenetURI(readStringFrom(new File(LAST_URL_FILENAME)));
@@ -281,9 +308,11 @@ class DirectoryUploader implements Runnable {
                 
         makeFreenetSerialisers();
                         
-        updateOverallMetadata(diskToMerge);
+        if (diskToMerge != null) {
+            updateOverallMetadata(diskToMerge);
+        }
                 
-        final SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> newtrees = diskToMerge.ttab;
+        final SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> newtrees = diskToMerge != null ? diskToMerge.ttab : new SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>>(12);
                 
         // Do the upload
                 
@@ -293,20 +322,19 @@ class DirectoryUploader implements Runnable {
         try {
             long mergeStartTime = System.currentTimeMillis();
             assert(idxFreenet.ttab.isBare());
-            Iterator<String> it =
-                diskToMerge.ttab.keySetAutoDeflate().iterator();
-            TreeSet<String> terms = new TreeSet<String>();
-            while(it.hasNext()) terms.add(it.next());
+            TreeSet<String> terms = getAllTerms(diskToMerge);
+            TreeSet<String> termsToRemove = getAllTerms(removeIdxDisk);
             System.out.println("Merging "
-                               + terms.size()
-                               + " terms from disk to Freenet...");
-            assert(terms.size() == diskToMerge.ttab.size());
+                    + terms.size()
+                    + " terms from disk to Freenet and removing "
+                    + termsToRemove.size()
+                    + " terms...");
             assert(idxFreenet.ttab.isBare());
-            assert(diskToMerge.ttab.isBare());
             long entriesAdded = terms.size();
+            long entriesRemoved = termsToRemove.size();
             // Run the actual merge.
             System.out.println("Start update");
-            idxFreenet.ttab.update(terms, null, clo, new TaskAbortExceptionConvertor());
+            idxFreenet.ttab.update(terms, termsToRemove, clo, new TaskAbortExceptionConvertor());
             assert(idxFreenet.ttab.isBare());
             // Deflate the main tree.
             System.out.println("Start deflate");
@@ -327,7 +355,7 @@ class DirectoryUploader implements Runnable {
             System.out.println("Done waiting");
                         
             long mergeEndTime = System.currentTimeMillis();
-            System.out.println(entriesAdded + " entries merged in " + (mergeEndTime-mergeStartTime) + " ms, root at " + task4.meta);
+            System.out.println(entriesAdded + " entries added and " + entriesRemoved + " entries removed in " + (mergeEndTime - mergeStartTime) + " ms, root at " + task4.meta);
             FreenetURI uri;
             if (task4.meta instanceof FreenetURI) {
             	uri = (FreenetURI) task4.meta;
@@ -341,6 +369,7 @@ class DirectoryUploader implements Runnable {
                 newtrees.deflate();
                 diskToMerge = null;
                 terms = null;
+                termsToRemove = null;
                 System.out.println("Finished with disk index "+diskDir);
                 removeAll(diskDir);
             }
@@ -355,6 +384,21 @@ class DirectoryUploader implements Runnable {
         } catch (MalformedURLException e) {
 			throw new RuntimeException(e);
 		}
+    }
+
+    private TreeSet<String> getAllTerms(ProtoIndex index) {
+        TreeSet<String> terms = new TreeSet<String>();
+        if (index != null) {
+            assert (index.ttab.isBare());
+            Iterator<String> it =
+                    index.ttab.keySetAutoDeflate().iterator();
+            while (it.hasNext()) {
+                terms.add(it.next());
+            }
+            assert (terms.size() == index.ttab.size());
+            assert (index.ttab.isBare());
+        }
+        return terms;
     }
 
 	static String readFileLine(final String filename) {
