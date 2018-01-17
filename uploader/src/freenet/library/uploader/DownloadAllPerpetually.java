@@ -980,7 +980,13 @@ class DownloadAllPerpetually extends AdHocDataReader {
                             objectQueue.offer(taken);
                             continue;
                         }
-                        logger.finest("Rotated " + rotated + " (count to " + toRotate + ").");
+
+			if (!taken.hasParent(lastRoot) && rand.nextInt(100) > 0) {
+			    objectQueue.offer(taken);
+			    continue;
+			}
+
+			logger.finest("Rotated " + rotated + " (count to " + toRotate + ").");
                         new GetAdapter(taken);
                         break;
                     }
