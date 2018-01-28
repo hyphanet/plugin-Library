@@ -2,7 +2,7 @@
 <!-- ant build file for Freenet -->
 
 <project name="plugins-Library" default="dist" basedir=".">
-	<property name="freenet-cvs-snapshot.location" location="../fred/dist/freenet.jar"/>
+	<property name="freenet-cvs-snapshot.location" location="../fred/build/libs/freenet.jar"/>
 	<property name="freenet-ext.location" location="../fred/lib/freenet/freenet-ext.jar"/>
 	<property name="source-version" value="1.6"/>
 	<property name="target-version" value="1.6"/>
@@ -64,9 +64,9 @@
 		<delete dir="${tmp}"/>
 	</target>
 
-	<property name="SnakeYAML.mirror" value="https://downloads.freenetproject.org/snakeyaml-1.5.jar" />
-	<property name="SnakeYAML.md5" value="1788db5d529a981b090632b8e49b8cd2" />
-	<property name="SnakeYAML.sha" value="a3654035d0b68db775034afa5425a62250de8184" />
+	<property name="SnakeYAML.mirror" value="https://repo1.maven.org/maven2/org/yaml/snakeyaml/1.5/snakeyaml-1.5.jar" />
+	<property name="SnakeYAML.md5" value="2c2b77fc691448c245359bcffe5edfbd" />
+	<property name="SnakeYAML.sha" value="7d393624a4914082e750f6e3888c1cc3f22b28c9" />
 	<available property="SnakeYAML.exist" classname="org.yaml.snakeyaml.Yaml" classpathref="lib.path"/>
 	<target name="SnakeYAML-get" unless="SnakeYAML.exist">
 		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/snakeyaml-1.5.jar" />
