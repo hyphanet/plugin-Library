@@ -222,7 +222,6 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			if (sp.getFailed() > 0 ||
 					sp.getFatallyFailed() > 0) {
 				System.out.println(token + "failed - aborted.");
-				markDone();
 			}
 			progressCompleted = sp.getSucceeded();
 			progressTotal = sp.getTotal();
