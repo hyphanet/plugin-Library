@@ -109,7 +109,7 @@ class DirectoryUploader implements Runnable {
      * to avoid too many USKs created (saving time for the creation
      * and for the clients).
      */
-    private static final int MAX_DAYS_WITHOUT_NEW_USK = 8;
+    private static final int MAX_DAYS_WITHOUT_NEW_USK = 4;
 
     static final String DISK_DIR_PREFIX = "library-temp-index-";
     /** Directory the current idxDisk is saved in. */
