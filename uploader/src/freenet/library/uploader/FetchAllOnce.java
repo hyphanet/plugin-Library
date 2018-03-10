@@ -62,12 +62,12 @@ import freenet.library.io.serial.Packer.BinInfo;
 /**
  * Class to download the entire index.
  */
-class DownloadAllPerpetually extends AdHocDataReader {
+class FetchAllOnce extends AdHocDataReader {
     private static final int PARALLEL_JOBS = 10;
     private static final int PARALLEL_UPLOADS = 3;
 
     /** Logger. */
-    private static final Logger logger = Logger.getLogger(DownloadAllPerpetually.class.getName());
+    private static final Logger logger = Logger.getLogger(FetchAllOnce.class.getName());
     
     public final Map<FetchedPage, GetAdapter> stillRunning = new HashMap<FetchedPage, GetAdapter>();
     private FreenetURI uri;
@@ -101,7 +101,7 @@ class DownloadAllPerpetually extends AdHocDataReader {
     private Random rand = new Random();
     private Date started = new Date();
 
-    public DownloadAllPerpetually(FreenetURI u) {
+    public FetchAllOnce(FreenetURI u) {
         uri = u;
     }
     

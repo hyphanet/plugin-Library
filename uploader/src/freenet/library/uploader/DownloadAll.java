@@ -22,14 +22,14 @@ public class DownloadAll {
     public static void main(String[] argv) {
     	if (argv.length > 1 && argv[0].equals("--move")) {
     		try {
-				new DownloadAllPerpetually(new FreenetURI(argv[1])).doMove();
+				new FetchAllOnce(new FreenetURI(argv[1])).doMove();
 			} catch (MalformedURLException e) {
 				e.printStackTrace();
 				System.exit(2);
 			}
     	} else {
     		try {
-				new DownloadAllPerpetually(new FreenetURI(argv[0])).doDownload();
+				new FetchAllOnce(new FreenetURI(argv[0])).doDownload();
 			} catch (MalformedURLException e) {
 				e.printStackTrace();
 				System.exit(2);
