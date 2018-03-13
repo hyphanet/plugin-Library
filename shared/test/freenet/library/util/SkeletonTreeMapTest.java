@@ -7,8 +7,10 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.UUID;
 
+import freenet.library.io.serial.MapSerialiser;
 import freenet.library.util.DataNotLoadedException;
 import freenet.library.util.SkeletonTreeMap;
+import freenet.library.util.exec.TaskAbortException;
 
 
 /**
@@ -131,6 +133,80 @@ public class SkeletonTreeMapTest extends SortedMapTestSkeleton {
 		fillSkelMap();
 		for (Integer en: skelmap.values()) {
 			assertTrue(skelmap.values().contains(en));
+		}
+	}
+
+	class SkelMapMapSerializer<T1, T2> implements MapSerialiser<String, Integer> {
+
+		@Override
+		public void pull(Map<String, PullTask<Integer>> tasks, Object mapmeta) throws TaskAbortException {
+			for (Map.Entry<String, PullTask<Integer>> en : tasks.entrySet()) {
+				// Simulate existing contents
+				en.getValue().data = 12;
+			}
+		}
+
+		@Override
+		public void push(Map<String, PushTask<Integer>> tasks, Object mapmeta) throws TaskAbortException {
+			// Simulate storage.
+		}
+
+	}
+
+	public void testInflateAndDeflate() throws TaskAbortException {
+		skelmap.setSerialiser(new SkelMapMapSerializer<String, Integer>());
+		assertFalse(skelmap.isLive());
+		assertTrue(skelmap.isBare());
+		skelmap.inflate();
+		assertTrue(skelmap.isLive());
+		assertFalse(skelmap.isBare());
+		for (Map.Entry<String, Integer> en : skelmap.entrySet()) {
+			assertTrue(skelmap.entrySet().contains(en));
+			assertNotNull(skelmap.get(en.getKey()));
+			assertEquals(skelmap.get(en.getKey()), new Integer(12));
+		}
+
+		assertTrue(skelmap.isLive());
+		assertFalse(skelmap.isBare());
+		skelmap.deflate();
+		assertFalse(skelmap.isLive());
+		assertTrue(skelmap.isBare());
+		for (Map.Entry<String, Integer> en : skelmap.entrySet()) {
+			try {
+				skelmap.entrySet().contains(en);
+			} catch (DataNotLoadedException e) {
+				continue;
+			}
+			fail("Data was loaded for " + en);
+		}
+	}
+
+	public void testSingleInflateAndDeflate() throws TaskAbortException {
+		skelmap.setSerialiser(new SkelMapMapSerializer<String, Integer>());
+		assertFalse(skelmap.isLive());
+		assertTrue(skelmap.isBare());
+		skelmap.inflate(skelmap.firstKey());
+		assertFalse(skelmap.isLive());
+		assertFalse(skelmap.isBare());
+		for (Map.Entry<String, Integer> en : skelmap.entrySet()) {
+			assertTrue(skelmap.entrySet().contains(en));
+			assertNotNull(skelmap.get(en.getKey()));
+			assertEquals(skelmap.get(en.getKey()), new Integer(12));
+			break;
+		}
+
+		assertFalse(skelmap.isLive());
+		assertFalse(skelmap.isBare());
+		skelmap.deflate(skelmap.firstKey());
+		assertFalse(skelmap.isLive());
+		assertTrue(skelmap.isBare());
+		for (Map.Entry<String, Integer> en : skelmap.entrySet()) {
+			try {
+				skelmap.entrySet().contains(en);
+			} catch (DataNotLoadedException e) {
+				continue;
+			}
+			fail("Data was loaded for " + en);
 		}
 	}
 
