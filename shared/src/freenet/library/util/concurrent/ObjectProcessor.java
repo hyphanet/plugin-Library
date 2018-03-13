@@ -301,7 +301,9 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 						try {
 							boolean o = proc.open;
 							while (proc.dispatchPoll());
-							if (!o) { it.remove(); }
+							if (!o) {
+								it.remove();
+							}
 						} catch (RejectedExecutionException e) {
 							// FIXME NORM
 							// neither Executors.DEFAULT_EXECUTOR nor Freenet's in-built executors
@@ -352,7 +354,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	/**
 	** Call {@link #auto()} and return {@code this}.
 	*/
-	public ObjectProcessor autostart() {
+	public ObjectProcessor<T, E, X> autostart() {
 		auto();
 		return this;
 	}
