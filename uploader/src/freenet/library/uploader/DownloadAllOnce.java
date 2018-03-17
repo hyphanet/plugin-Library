@@ -208,27 +208,43 @@ class DownloadAllOnce {
 	private RotatingQueue<Page> toRefetch = new RotatingQueue<Page>(random);
 	private AvoidRecentFetchesQueue toUploadUnfetchable = new AvoidRecentFetchesQueue(random);
 
-	private int counterParse = 0;
-	private int counterFetch = 0;
-	private int counterRefetchUnfetchable = 0;
-	private int counterRefetch = 0;
-	private int counterUploadUnfetchable = 0;
-	private int counterRefetchUpload = 0;
+	private int counterParseSuccess = 0;
+	private int counterParseFailed = 0;
+	private int counterFetchSuccess = 0;
+	private int counterFetchFailed = 0;
+	private int counterRefetchUnfetchableSuccess = 0;
+	private int counterRefetchUnfetchableFailed = 0;
+	private int counterRefetchSuccess = 0;
+	private int counterRefetchFailed = 0;
+	private int counterUploadUnfetchableSuccess = 0;
+	private int counterUploadUnfetchableFailed = 0;
+	private int counterRefetchUploadSuccess = 0;
+	private int counterRefetchUploadFailed = 0;
 
 
-	private static String STATISTICS_FORMAT_PREFIX = "%-21s%7d";
+	private static String STATISTICS_FORMAT_PREFIX = "%-21s%7d%7d%7d";
 
 	public synchronized final void logStatistics() {
 		StringBuffer sb = new StringBuffer();
-		sb.append(statisticsLine("toParse", counterParse, toParse));
-		sb.append(statisticsLine("toFetch", counterFetch, toFetch));
-		sb.append(statisticsLine("toRefetchUnfetchable", counterRefetchUnfetchable, toRefetchUnfetchable));
+		sb.append(statisticsLine("toParse", counterParseSuccess, counterParseFailed, toParse));
+		sb.append(statisticsLine("toFetch", counterFetchSuccess, counterFetchFailed, toFetch));
+		sb.append(statisticsLine("toRefetchUnfetchable", 
+					 counterRefetchUnfetchableSuccess, counterRefetchUnfetchableFailed, 
+					 toRefetchUnfetchable));
+		int counterRefetchUpload = counterRefetchUploadSuccess + counterRefetchUploadFailed;
 		if (counterRefetchUpload > 0) {
 			sb.append(new Formatter().format(STATISTICS_FORMAT_PREFIX, 
-							 "RefetchUpload", counterRefetchUpload)).append("\n");
+							 "RefetchUpload", 
+							 counterRefetchUpload,
+							 counterRefetchUploadSuccess,
+							 counterRefetchUploadFailed)).append("\n");
 		}
-		sb.append(statisticsLine("toRefetch", counterRefetch, toRefetch));
-		sb.append(statisticsLine("toUploadUnfetchable", counterUploadUnfetchable, toUploadUnfetchable));
+		sb.append(statisticsLine("toRefetch", 
+					 counterRefetchSuccess, counterRefetchFailed, 
+					 toRefetch));
+		sb.append(statisticsLine("toUploadUnfetchable", 
+					 counterUploadUnfetchableSuccess, counterUploadUnfetchableFailed, 
+					 toUploadUnfetchable));
 		if (allFiles.size() > 0) {
 			sb.append("Files left to remove: " + allFiles.size() + "\n");
 		}
@@ -240,14 +256,16 @@ class DownloadAllOnce {
 
 	private static String STATISTICS_FORMAT = STATISTICS_FORMAT_PREFIX + "%6d%5d%5d%6d%6d%5d%5d\n";
 
-	public final String statisticsLine(String r, int counter, RotatingQueue<Page> rqp) {
+	public final String statisticsLine(String r, int success, int failed, RotatingQueue<Page> rqp) {
+		int counter = success + failed;
 		if (rqp.size() > 0 || counter > 0) {
 			int arr[] = new int[12];
 			for (Page p : rqp) {
 				arr[p.level]++;
 			}
 			return new Formatter()
-					.format(STATISTICS_FORMAT, r, counter, rqp.size(), arr[0], arr[1], arr[2], arr[3], arr[4], arr[5])
+				.format(STATISTICS_FORMAT, r, counter, success, failed,
+					rqp.size(), arr[0], arr[1], arr[2], arr[3], arr[4], arr[5])
 					.toString();
 		}
 		return "";
@@ -495,34 +513,37 @@ class DownloadAllOnce {
 	}
 
 	private boolean doRefetchUnfetchable(Page page) {
-		counterRefetchUnfetchable++;
 		boolean result = fetch(page);
 		if (result) {
 			add(toParse, page);
+			counterRefetchUnfetchableSuccess++;
 		} else {
 			add(toRefetchUnfetchable, page);
+			counterRefetchUnfetchableFailed++;
 		}
 		return result;
 	}
 
 	private boolean doRefetchToUpload(Page page) {
-		counterRefetchUpload++;
 		boolean result = fetch(page);
 		if (result) {
 			add(toRefetch, page);
+			counterRefetchUploadSuccess++;
 		} else {
 			add(toUploadUnfetchable, page);
+			counterRefetchUploadFailed++;
 		}
 		return result;
 	}
 
 	private boolean doRefetch(Page page) {
-		counterRefetch++;
 		boolean result = fetch(page);
 		if (result) {
 			add(toRefetch, page);
+			counterRefetchSuccess++;
 		} else {
 			handleUnfetchable(page);
+			counterRefetchFailed++;
 		}
 		return result;
 	}
@@ -538,23 +559,25 @@ class DownloadAllOnce {
 	}
 
 	private boolean doFetch(Page page) {
-		counterFetch++;
 		boolean result = fetch(page);
 		if (result) {
 			add(toParse, page);
+			counterFetchSuccess++;
 		} else {
 			handleUnfetchable(page);
+			counterFetchFailed++;
 		}
 		return result;
 	}
 
 	private void doParse(Page page) {
-		counterParse++;
 		parse(page);
 		if (oldUploads.check(page.getURI())) {
 			add(toUploadUnfetchable, page);
+			counterParseFailed++;
 		} else {
 			add(toRefetch, page);
+			counterParseSuccess++;
 		}
 	}
 
@@ -567,9 +590,13 @@ class DownloadAllOnce {
 	}
 
 	private boolean doUploadUnfetchable(Page page) {
-		counterUploadUnfetchable++;
 		boolean result = upload(page);
 		add(toRefetch, page);
+		if (result) {
+			counterUploadUnfetchableSuccess++;
+		} else {
+			counterUploadUnfetchableFailed++;
+		}
 		return result;
 	}
 
