@@ -248,6 +248,9 @@ final public class Merger {
 
         Set<File> toBeRemoved = new HashSet<File>();
         
+		/**
+		 * All files to read through in the correct order.
+		 */
         class ProcessedFilenames implements Iterator<String> {
             String restBase;
             boolean createSelectedFiles = false;
@@ -266,8 +269,7 @@ final public class Merger {
             ProcessedFilenames() {
                 if (selectedFilesToMerge.length > 0) {
                     doSelected = true;
-                    if (processedFilesToMerge.length > 1
-                            && processedFilesToMerge.length * selectedFilesToMerge.length > filteredFilesToMerge.length) {
+					if (processedFilesToMerge.length > filteredFilesToMerge.length) {
                         createSelectedFiles = true;
                         doAllSelected = true;
                         doFiltered = true;
@@ -378,8 +380,7 @@ final public class Merger {
                     }
                     if (found) {
                         continue;                       
-                    } else if (writers.size() < 10 ||
-			       writers.size() < 10 * (filteredFilesToMerge.length + processedFilesToMerge.length)) {
+					} else if (writers.size() < 3 || writers.size() < 10 * (filteredFilesToMerge.length - 1)) {
                         lastSelected ++;
                         String selectedFilename = SELECTED + lastSelected;
                         IndexPeeker p = new IndexPeeker(directory);
