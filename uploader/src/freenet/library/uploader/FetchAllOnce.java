@@ -982,6 +982,7 @@ class FetchAllOnce extends AdHocDataReader {
                         }
 
 			if (!taken.hasParent(lastRoot) && rand.nextInt(100) > 0) {
+                            logger.finer("Defer fetching non-last " + taken.getURI());
 			    objectQueue.offer(taken);
 			    continue;
 			}
