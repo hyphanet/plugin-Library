@@ -750,7 +750,7 @@ class DownloadAllOnce {
 			Page page = toParse.poll();
 			if (page != null) {
 				doParse(page);
-				otherExecutors.schedule(this, 0, TimeUnit.SECONDS);
+				otherExecutors.schedule(this, 200, TimeUnit.MILLISECONDS);
 			} else {
 				otherExecutors.schedule(this, 10, TimeUnit.SECONDS);
 			}
