@@ -30,6 +30,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -739,6 +740,11 @@ class DownloadAllOnce {
 		public void run() {
 			try {
 				process();
+			} catch (RejectedExecutionException e) {
+				// Do nothing.
+				if (!closingDown) {
+					logger.log(Level.SEVERE, "Confusion in the executor or queue full.", e);
+				}
 			} catch (Exception e) {
 				logger.log(Level.SEVERE, "Class " + this + " threw exception: " + e, e);
 			}
