@@ -22,12 +22,15 @@ import java.nio.file.Files;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Formatter;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
@@ -67,7 +70,7 @@ class DownloadAllOnce {
 	private boolean closingDown = false;
 	private File directory;
 	private File morePagesDirectory;
-	private Set<File> allFiles = new HashSet<File>();
+	private CleanupOldFiles cleanUp = null;
 	private Uploads oldUploads = new Uploads();
 	private int getterCounter = 0;
 	private int uploadCounter = 0;
@@ -246,8 +249,8 @@ class DownloadAllOnce {
 		sb.append(statisticsLine("toUploadUnfetchable", 
 					 counterUploadUnfetchableSuccess, counterUploadUnfetchableFailed, 
 					 toUploadUnfetchable));
-		if (allFiles.size() > 0) {
-			sb.append("Files left to remove: " + allFiles.size() + "\n");
+		if (cleanUp != null) {
+			cleanUp.addLog(sb);
 		}
 		if (oldUploads.size() > 0) {
 			sb.append("Uploads from previous run: " + oldUploads.size() + "\n");
@@ -552,7 +555,9 @@ class DownloadAllOnce {
 	private void handleNew(Page page) {
 		if (page.getFile().exists()) {
 			page.getFile().setLastModified(System.currentTimeMillis());
-			allFiles.remove(page.getFile());
+			if (cleanUp != null) {
+				cleanUp.remove(page.getFile());
+			}
 			add(toParse, page);
 		} else {
 			add(toFetch, page);
@@ -607,20 +612,38 @@ class DownloadAllOnce {
 	}
 
 	private class CleanupOldFiles implements Runnable {
-		ScheduledFuture<?> handle = null;
+		private final Set<File> allFiles = new HashSet<File>();
+		private ScheduledFuture<?> handle = null;
+		private int count = 1;
+
+		public CleanupOldFiles() {
+			allFiles.addAll(Arrays.asList(directory.listFiles()));
+		}
 
 		public ScheduledFuture<?> setHandle(ScheduledFuture<?> h) {
 			handle = h;
 			return h;
 		}
 
+		public void addLog(StringBuffer sb) {
+			if (allFiles.size() > 0) {
+				sb.append("Files left to remove: " + allFiles.size() + "\n");
+			}
+		}
+
+		public void remove(File f) {
+			allFiles.remove(f);
+		}
+
 		public void run() {
 			if (toParse.size() > 0) {
 				// Don't delete anything if the parsing is not completed.
+				count = 1;
 				return;
 			}
 			if (toFetch.size() > 0) {
 				// Don't delete anything if the fetching is not completed.
+				count = 1;
 				return;
 			}
 			if (allFiles.size() == 0) {
@@ -630,32 +653,36 @@ class DownloadAllOnce {
 				}
 				return;
 			}
-			// Find the oldest one.
-			long oldestAge = Long.MAX_VALUE;
-			File oldestFile = null;
-			for (File f : allFiles) {
-				if (!f.exists()) {
-					allFiles.remove(f);
-					try {
-						oldUploads.check(new FreenetURI(f.getName()));
-					} catch (MalformedURLException e) {
-						logger.log(Level.WARNING, "File " + f + " was deleted", e);
+			// Sort in oldest order.
+			SortedSet<File> toRemove = new TreeSet<File>(new Comparator<File>() {
+				@Override
+				public int compare(File o1, File o2) {
+					int l = Long.compare(o1.lastModified(), o2.lastModified());
+					if (l != 0) {
+						return l;
 					}
-					return;
+					return o1.getName().compareTo(o2.getName());
 				}
-				if (f.lastModified() < oldestAge) {
-					oldestAge = f.lastModified();
-					oldestFile = f;
+			});
+			for (File f : allFiles) {
+				toRemove.add(f);
+				if (toRemove.size() > count) {
+					toRemove.remove(toRemove.last());
 				}
 			}
-			allFiles.remove(oldestFile);
-			try {
-				oldUploads.check(new FreenetURI(oldestFile.getName()));
-			} catch (MalformedURLException e) {
-				logger.log(Level.WARNING, "Deleting file " + oldestFile, e);
+			for (File f : toRemove) {
+				allFiles.remove(f);
+				try {
+					oldUploads.check(new FreenetURI(f.getName()));
+				} catch (MalformedURLException e) {
+					logger.log(Level.WARNING, "File " + f + " strange filename.", e);
+				}
+				if (f.exists()) {
+					logger.fine("Removing file " + f);
+					f.delete();
+				}
 			}
-			logger.fine("Removing file " + oldestFile);
-			oldestFile.delete();
+			count += 1 + count / 7;
 		}
 	}
 
@@ -869,9 +896,8 @@ class DownloadAllOnce {
 		directory = new File("library-download-all-once-db");
 		if (directory.exists()) {
 			oldUploads.load();
-			allFiles.addAll(Arrays.asList(directory.listFiles()));
-			CleanupOldFiles cleanUp = new CleanupOldFiles();
-			cleanUp.setHandle(otherExecutors.scheduleWithFixedDelay(cleanUp, 30000, 5, TimeUnit.SECONDS));
+			cleanUp = new CleanupOldFiles();
+			cleanUp.setHandle(otherExecutors.scheduleWithFixedDelay(cleanUp, 500, 1, TimeUnit.MINUTES));
 		} else {
 			directory.mkdir();
 		}
