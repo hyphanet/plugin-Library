@@ -26,7 +26,6 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.Formatter;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
@@ -80,6 +79,11 @@ class DownloadAllOnce {
 	private static final long OPERATION_GIVE_UP_TIME = TimeUnit.HOURS.toMillis(2);
 
 	class RotatingQueue<E> extends LinkedBlockingQueue<E> {
+		/**
+		 * Serializeable.
+		 */
+		private static final long serialVersionUID = -9157586651059771247L;
+
 		public RotatingQueue(Random r) {
 			random = r;
 		}
@@ -178,6 +182,11 @@ class DownloadAllOnce {
 	}
 
 	class AvoidRecentFetchesQueue extends RotatingQueue<Page> {
+		/**
+		 * Serializeable.
+		 */
+		private static final long serialVersionUID = 7608442014226987011L;
+
 		AvoidRecentFetchesQueue(Random r) {
 			super(r);
 		}
@@ -267,10 +276,12 @@ class DownloadAllOnce {
 			for (Page p : rqp) {
 				arr[p.level]++;
 			}
-			return new Formatter()
-				.format(STATISTICS_FORMAT, r, counter, success, failed,
-					rqp.size(), arr[0], arr[1], arr[2], arr[3], arr[4], arr[5])
+			Formatter formatter = new Formatter();
+			String line = formatter.format(STATISTICS_FORMAT, r, counter, success, failed,
+							rqp.size(), arr[0], arr[1], arr[2], arr[3], arr[4], arr[5])
 					.toString();
+			formatter.close();
+			return line;
 		}
 		return "";
 	}
@@ -864,26 +875,6 @@ class DownloadAllOnce {
 			if (page != null) {
 				boolean result = doRefetch(page);
 				logger.finer("Fetched Refetch" + (result ? "" : " failed") + ".");
-				return;
-			}
-		}
-	}
-
-	private class ProcessRefetchUnfetchable extends ProcessSomething {
-		protected void process() {
-			Page page = toRefetchUnfetchable.poll();
-			if (page != null) {
-				doRefetchUnfetchable(page);
-				return;
-			}
-		}
-	}
-
-	private class ProcessRefetch extends ProcessSomething {
-		protected void process() {
-			Page page = toRefetch.poll();
-			if (page != null) {
-				doRefetch(page);
 				return;
 			}
 		}
