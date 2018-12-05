@@ -70,7 +70,7 @@ class DownloadAllOnce {
 	private File directory;
 	private File morePagesDirectory;
 	private CleanupOldFiles cleanUp = null;
-	private Uploads oldUploads = new Uploads();
+	private Unfetchables unfetchables = new Unfetchables();
 	private int getterCounter = 0;
 	private int uploadCounter = 0;
 
@@ -130,7 +130,7 @@ class DownloadAllOnce {
 	 * A class to keep track of the Pages we work with.
 	 */
 	private class Page {
-		// private Page parent;
+		private final long START_DEFER_TIME = TimeUnit.HOURS.toMillis(4);
 
 		private FreenetURI uri;
 		private int level = 0;
@@ -139,12 +139,13 @@ class DownloadAllOnce {
 		private long timeToNextFetchAttempt;
 
 		Page(FreenetURI u, Page p) {
-			// parent = p,
 			uri = u;
 			if (p != null) {
 				level = p.level + 1;
 			}
-			fetchTimerReset();
+			nextFetchAttempt = new Date();
+			logAttempts = new StringBuffer();
+			timeToNextFetchAttempt = START_DEFER_TIME;
 		}
 
 		FreenetURI getURI() {
@@ -174,7 +175,7 @@ class DownloadAllOnce {
 		}
 
 		void fetchTimerReset() {
-			timeToNextFetchAttempt = TimeUnit.HOURS.toMillis(4);
+			timeToNextFetchAttempt = START_DEFER_TIME;
 			logAttempts = new StringBuffer();
 			logAttempts.append("Deferred to ").append(new Date()).append("\n");
 			calculateNextFetchAttempt();
@@ -261,8 +262,8 @@ class DownloadAllOnce {
 		if (cleanUp != null) {
 			cleanUp.addLog(sb);
 		}
-		if (oldUploads.size() > 0) {
-			sb.append("Uploads from previous run: " + oldUploads.size() + "\n");
+		if (unfetchables.size() > 0) {
+			sb.append("Unfetchables from previous run: " + unfetchables.size() + "\n");
 		}
 		logger.info("Statistics:\n" + sb.toString() + "End Statistics.");
 	}
@@ -570,6 +571,8 @@ class DownloadAllOnce {
 				cleanUp.remove(page.getFile());
 			}
 			add(toParse, page);
+		} else if (unfetchables.check(page.getURI())) {
+			add(toRefetchUnfetchable, page);
 		} else {
 			add(toFetch, page);
 		}
@@ -589,7 +592,7 @@ class DownloadAllOnce {
 
 	private void doParse(Page page) {
 		parse(page);
-		if (oldUploads.check(page.getURI())) {
+		if (unfetchables.check(page.getURI())) {
 			add(toUploadUnfetchable, page);
 			counterParseFailed++;
 		} else {
@@ -684,7 +687,7 @@ class DownloadAllOnce {
 			for (File f : toRemove) {
 				allFiles.remove(f);
 				try {
-					oldUploads.check(new FreenetURI(f.getName()));
+					unfetchables.check(new FreenetURI(f.getName()));
 				} catch (MalformedURLException e) {
 					logger.log(Level.WARNING, "File " + f + " strange filename.", e);
 				}
@@ -700,12 +703,14 @@ class DownloadAllOnce {
 	/**
 	 * Class to keep track of uploads from the previous run.
 	 */
-	private class Uploads {
+	private static class Unfetchables {
 		private Set<FreenetURI> fromPreviousRun = new HashSet<FreenetURI>();
-		private final static String OLD_UPLOADS_FILENAME = "old_uploads.saved";
+		private final static String UNFETCHABLES_FILENAME = "unfetchables.saved";
+		private File directory;
 
-		void load() {
-			File file = new File(directory, OLD_UPLOADS_FILENAME);
+		void load(File dir) {
+			directory = dir;
+			File file = new File(directory, UNFETCHABLES_FILENAME);
 			if (file.exists()) {
 				logger.finest("Reading file " + file);
 				try {
@@ -726,23 +731,28 @@ class DownloadAllOnce {
 		}
 
 		private void rotate() {
-			String OLD_FILENAME = OLD_UPLOADS_FILENAME + ".old";
+			String OLD_FILENAME = UNFETCHABLES_FILENAME + ".old";
 			File oldfile = new File(directory, OLD_FILENAME);
 			if (oldfile.exists()) {
 				oldfile.delete();
 			}
-			File file = new File(directory, OLD_UPLOADS_FILENAME);
+			File file = new File(directory, UNFETCHABLES_FILENAME);
 			if (file.exists()) {
 				file.renameTo(oldfile);
 			}
 		}
 
-		synchronized void save() {
+		synchronized void save(RotatingQueue<Page> toSave1, RotatingQueue<Page> toSave2) {
 			rotate();
-			File file = new File(directory, OLD_UPLOADS_FILENAME);
+			File file = new File(directory, UNFETCHABLES_FILENAME);
 			Set<FreenetURI> set = new HashSet<FreenetURI>();
-			for (Page p : toUploadUnfetchable) {
+			for (Page p : toSave1) {
 				set.add(p.getURI());
+			}
+			if (toSave2 != null) {
+				for (Page p : toSave2) {
+					set.add(p.getURI());
+				}
 			}
 			if (set.size() > 0) {
 				logger.finest("Writing file " + file);
@@ -886,7 +896,7 @@ class DownloadAllOnce {
 		otherExecutors = Executors.newScheduledThreadPool(1);
 		directory = new File("library-download-all-once-db");
 		if (directory.exists()) {
-			oldUploads.load();
+			unfetchables.load(directory);
 			cleanUp = new CleanupOldFiles();
 			cleanUp.setHandle(otherExecutors.scheduleWithFixedDelay(cleanUp, 500, 1, TimeUnit.MINUTES));
 		} else {
@@ -907,7 +917,7 @@ class DownloadAllOnce {
 		otherExecutors.schedule(new ProcessParse(), 2000, TimeUnit.MILLISECONDS);
 		otherExecutors.scheduleWithFixedDelay(new Runnable() {
 			public void run() {
-				oldUploads.save();
+				unfetchables.save(toUploadUnfetchable, toRefetchUnfetchable);
 			}
 		}, 100, 20, TimeUnit.MINUTES);
 		FcpSession session;
@@ -925,7 +935,7 @@ class DownloadAllOnce {
 			logger.info("Shutdown.");
 			FCPexecutors.shutdown();
 			otherExecutors.shutdown();
-			oldUploads.save();
+			unfetchables.save(toUploadUnfetchable, toRefetchUnfetchable);
 			waitTermination(TimeUnit.MINUTES.toMillis(1) + OPERATION_GIVE_UP_TIME);
 			logger.info("Shutdown now (after long wait).");
 			FCPexecutors.shutdownNow();
