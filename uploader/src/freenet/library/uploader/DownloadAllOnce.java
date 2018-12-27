@@ -936,15 +936,20 @@ class DownloadAllOnce {
 			FCPexecutors.shutdown();
 			otherExecutors.shutdown();
 			unfetchables.save(toUploadUnfetchable, toRefetchUnfetchable);
-			waitTermination(TimeUnit.MINUTES.toMillis(1) + OPERATION_GIVE_UP_TIME);
-			logger.info("Shutdown now (after long wait).");
-			FCPexecutors.shutdownNow();
+			if (!waitTermination(TimeUnit.MINUTES.toMillis(1) + OPERATION_GIVE_UP_TIME)) {
+				logger.info("Shutdown now (after long wait).");
+				FCPexecutors.shutdownNow();
+				otherExecutors.shutdownNow();
+				session.close();
+				if (!waitTermination(TimeUnit.MINUTES.toMillis(1))) {
+					logger.info("Shutdown now did not succeed to stop all jobs");
+				}
+			}
 			FCPexecutors = null;
-			otherExecutors.shutdownNow();
 			otherExecutors = null;
 			session.close();
 			session = null;
-			logger.info("Shutdown now completed.");
+			logger.info("Shutdown completed.");
 		}
 	}
 
@@ -995,13 +1000,16 @@ class DownloadAllOnce {
 		}
 	}
 
-	private void waitTermination(long ms) {
+	private boolean waitTermination(long ms) {
+		boolean t1 = false;
+		boolean t2 = false;
 		try {
-			FCPexecutors.awaitTermination(ms, TimeUnit.MILLISECONDS);
-			otherExecutors.awaitTermination(1 + ms / 10, TimeUnit.MILLISECONDS);
+			t1 = FCPexecutors.awaitTermination(ms, TimeUnit.MILLISECONDS);
+			t2 = otherExecutors.awaitTermination(1 + ms / 10, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
 			throw new RuntimeException("Waiting for jobs.");
 		}
+		return t1 && t2;
 	}
 
 	public static void main(String[] argv) throws InterruptedException {
