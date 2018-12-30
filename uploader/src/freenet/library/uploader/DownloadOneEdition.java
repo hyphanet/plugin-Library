@@ -55,13 +55,16 @@ import net.pterodactylus.fcp.URIGenerated;
 import net.pterodactylus.fcp.Verbosity;
 
 /**
- * Class to download the entire index.
+ * Class to download the entire index and save it.
  *
- * When a newer USK is seen, stop the processing and exit.
+ * When a newer USK is seen, stop the processing immediately and exit.
+ *
+ * If a non-downloadable part is encountered upload it from the saved parts or
+ * attempt to download later.
  */
-class DownloadAllOnce {
+class DownloadOneEdition {
 	/** Logger. */
-	private static final Logger logger = Logger.getLogger(DownloadAllOnce.class.getName());
+	private static final Logger logger = Logger.getLogger(DownloadOneEdition.class.getName());
 
 	private ScheduledExecutorService FCPexecutors;
 	private ScheduledExecutorService otherExecutors;
@@ -306,7 +309,7 @@ class DownloadAllOnce {
 				if (!token.equals(ad.getIdentifier())) {
 					return;
 				}
-				logger.entering(DownloadAllOnce.class.toString(), "receivedAllData", "receivedAllData for " + token);
+				logger.entering(DownloadOneEdition.class.toString(), "receivedAllData", "receivedAllData for " + token);
 				try {
 					Files.copy(ad.getPayloadInputStream(), page.getFile().toPath(),
 							StandardCopyOption.REPLACE_EXISTING);
@@ -1037,6 +1040,6 @@ class DownloadAllOnce {
 		    }
 		}
 
-		new DownloadAllOnce().run(u, morePagesDir);
+		new DownloadOneEdition().run(u, morePagesDir);
 	}
 }
