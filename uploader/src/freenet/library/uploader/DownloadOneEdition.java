@@ -834,7 +834,7 @@ class DownloadOneEdition {
 					} catch (IOException ioe) {
 						logger.log(Level.SEVERE, "Could not copy file " + fromFile + " to " + page.getFile() + ".", ioe);
 						if (page.getFile().exists()) {
-						    	page.getFile().delete();
+							page.getFile().delete();
 							logger.info("Deleted partial copy " + page.getFile());
 						}
 						toRefetchUnfetchable.offer(page);
@@ -1027,17 +1027,17 @@ class DownloadOneEdition {
 
 		File morePagesDir = null;
 		if (argv.length > 1) {
-		    morePagesDir = new File(argv[1]);
-		    if (!morePagesDir.exists()) {
-			logger.severe("Directory " + morePagesDir + " does not exist.");
-			System.exit(2);
-			return;
-		    }
-		    if (!morePagesDir.isDirectory()) {
-			logger.severe("File " + morePagesDir + " is not a directory.");
-			System.exit(2);
-			return;
-		    }
+			morePagesDir = new File(argv[1]);
+			if (!morePagesDir.exists()) {
+				logger.severe("Directory " + morePagesDir + " does not exist.");
+				System.exit(2);
+				return;
+			}
+			if (!morePagesDir.isDirectory()) {
+				logger.severe("File " + morePagesDir + " is not a directory.");
+				System.exit(2);
+				return;
+			}
 		}
 
 		new DownloadOneEdition().run(u, morePagesDir);
