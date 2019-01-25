@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.Date;
 import java.util.Formatter;
 import java.util.HashSet;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
@@ -197,8 +198,8 @@ class DownloadOneEdition {
 
 		public Page pollNotDeferred() {
 			int maxLaps = size();
-			if (maxLaps > 20) {
-				maxLaps = 10;
+			if (maxLaps > 10) {
+				maxLaps = 6;
 			}
 			do {
 				Page page = poll();
@@ -623,6 +624,30 @@ class DownloadOneEdition {
 		return result;
 	}
 
+	private void doCopyAndUploadUnfetchable(Page page) {
+		File fromFile = new File(morePagesDirectory, page.getFile().getName());
+		try {
+			Files.copy(fromFile.toPath(), page.getFile().toPath());
+			boolean result = doUploadUnfetchable(page);
+			logger.finer("Uploaded Unfetchable" + (result ? "" : "failed") + ".");
+		} catch (UnsupportedOperationException uoe) {
+			logger.log(Level.SEVERE, "Could not copy file " + fromFile + " to " + page.getFile() + ".", uoe);
+			toRefetchUnfetchable.offer(page);
+		} catch (FileAlreadyExistsException faee) {
+			logger.log(Level.SEVERE, "Could not copy file " + fromFile + " to " + page.getFile() + ".", faee);
+			toUploadUnfetchable.offer(page);
+		} catch (IOException ioe) {
+			logger.log(Level.SEVERE, "Could not copy file " + fromFile + " to " + page.getFile() + ".", ioe);
+			if (page.getFile().exists()) {
+				page.getFile().delete();
+				logger.info("Deleted partial copy " + page.getFile());
+			}
+			toRefetchUnfetchable.offer(page);
+		} catch (SecurityException se) {
+			logger.log(Level.SEVERE, "Could not copy file " + fromFile + " to " + page.getFile() + ".", se);
+			toRefetchUnfetchable.offer(page);
+		}
+	}
 
 	private void add(RotatingQueue<Page> whereto, Page p) {
 		whereto.offer(p);
@@ -711,6 +736,11 @@ class DownloadOneEdition {
 		private final static String UNFETCHABLES_FILENAME = "unfetchables.saved";
 		private File directory;
 
+		@SuppressWarnings("unchecked")
+		private Set<FreenetURI> extracted(ObjectInputStream ois) throws IOException, ClassNotFoundException {
+			return (Set<FreenetURI>) ois.readObject();
+		}
+
 		void load(File dir) {
 			directory = dir;
 			File file = new File(directory, UNFETCHABLES_FILENAME);
@@ -719,7 +749,7 @@ class DownloadOneEdition {
 				try {
 					FileInputStream f = new FileInputStream(file);
 					ObjectInputStream ois = new ObjectInputStream(f);
-					fromPreviousRun = (Set<FreenetURI>) ois.readObject();
+					fromPreviousRun = extracted(ois);
 					ois.close();
 				} catch (IOException e) {
 					logger.warning("Could not read the file " + file);
@@ -819,29 +849,8 @@ class DownloadOneEdition {
 			if (morePagesDirectory != null) {
 				Page page = toRefetchUnfetchable.poll();
 				if (page != null) {
-					File fromFile = new File(morePagesDirectory, page.getFile().getName());
-					try {
-						Files.copy(fromFile.toPath(), page.getFile().toPath());
-						boolean result = doUploadUnfetchable(page);
-						logger.finer("Uploaded Unfetchable" + (result ? "" : "failed") + ".");
-						return;
-					} catch (UnsupportedOperationException uoe) {
-						logger.log(Level.SEVERE, "Could not copy file " + fromFile + " to " + page.getFile() + ".", uoe);
-						toRefetchUnfetchable.offer(page);
-					} catch (FileAlreadyExistsException faee) {
-						logger.log(Level.SEVERE, "Could not copy file " + fromFile + " to " + page.getFile() + ".", faee);
-						toUploadUnfetchable.offer(page);
-					} catch (IOException ioe) {
-						logger.log(Level.SEVERE, "Could not copy file " + fromFile + " to " + page.getFile() + ".", ioe);
-						if (page.getFile().exists()) {
-							page.getFile().delete();
-							logger.info("Deleted partial copy " + page.getFile());
-						}
-						toRefetchUnfetchable.offer(page);
-					} catch (SecurityException se) {
-						logger.log(Level.SEVERE, "Could not copy file " + fromFile + " to " + page.getFile() + ".", se);
-						toRefetchUnfetchable.offer(page);
-					}
+					doCopyAndUploadUnfetchable(page);
+					return;
 				}
 			}
 
@@ -893,6 +902,29 @@ class DownloadOneEdition {
 		}
 	}
 
+	void shutdown(FcpSession session) {
+		waitTermination(TimeUnit.SECONDS.toMillis(1));
+		closingDown = true;
+		logger.info("Shutdown.");
+		FCPexecutors.shutdown();
+		otherExecutors.shutdown();
+		unfetchables.save(toUploadUnfetchable, toRefetchUnfetchable);
+		if (!waitTermination(TimeUnit.MINUTES.toMillis(1) + OPERATION_GIVE_UP_TIME)) {
+			logger.info("Shutdown now (after long wait).");
+			FCPexecutors.shutdownNow();
+			otherExecutors.shutdownNow();
+			session.close();
+			if (!waitTermination(TimeUnit.MINUTES.toMillis(1))) {
+				logger.info("Shutdown now did not succeed to stop all jobs");
+			}
+		}
+		FCPexecutors = null;
+		otherExecutors = null;
+		session.close();
+		session = null;
+		logger.info("Shutdown completed.");
+	}
+
 	private void run(FreenetURI u, File morePagesDir) {
 		morePagesDirectory = morePagesDir;
 		FCPexecutors = Executors.newScheduledThreadPool(10);
@@ -931,32 +963,288 @@ class DownloadOneEdition {
 			return;
 		}
 		try {
-			run2(session, u);
+			startAndBlockUntilUpdate(session, u);
 		} finally {
-			waitTermination(TimeUnit.SECONDS.toMillis(1));
-			closingDown = true;
-			logger.info("Shutdown.");
-			FCPexecutors.shutdown();
-			otherExecutors.shutdown();
-			unfetchables.save(toUploadUnfetchable, toRefetchUnfetchable);
-			if (!waitTermination(TimeUnit.MINUTES.toMillis(1) + OPERATION_GIVE_UP_TIME)) {
-				logger.info("Shutdown now (after long wait).");
-				FCPexecutors.shutdownNow();
-				otherExecutors.shutdownNow();
-				session.close();
-				if (!waitTermination(TimeUnit.MINUTES.toMillis(1))) {
-					logger.info("Shutdown now did not succeed to stop all jobs");
-				}
-			}
-			FCPexecutors = null;
-			otherExecutors = null;
-			session.close();
-			session = null;
-			logger.info("Shutdown completed.");
+			shutdown(session);
 		}
 	}
 
-	private void run2(FcpSession session, FreenetURI uri) {
+	private class ParseQueues implements Runnable {
+		private long count = 0;
+		private long sum = 0;
+
+		@Override
+		public void run() {
+			final Page page = toParse.poll();
+			if (page != null) {
+				otherExecutors.execute(new Runnable() {
+					@Override
+					public void run() {
+						Date start = new Date();
+						doParse(page);
+						count++;
+						sum += new Date().getTime() - start.getTime();
+					}
+				});
+
+				otherExecutors.execute(this);
+			} else {
+				otherExecutors.schedule(this, 10, TimeUnit.SECONDS);
+			}
+		}
+
+		long getMean() {
+			if (count == 0) {
+				return 1;
+			}
+			return sum / count;
+		}
+	}
+
+	private class QueueQueues implements Runnable {
+
+		private boolean startedFetch = false;
+		private boolean startedUpload = false;
+
+		private Random random = new Random();
+
+		private long nextLong(long l) {
+			if (l <= 0) {
+				l = 1L;
+			}
+			return (random.nextLong() >>> 1) % l;
+		}
+
+		private boolean shallUpload(int ql) {
+			if (!startedFetch) {
+				return true;
+			}
+			return nextLong(uploadTime.get() * (toFetch.size() + toRefetchUnfetchable.size()) / (1 + ql)
+					/ fetchTime.get()) == 0;
+		}
+
+		private class Mean {
+			private Queue<Long> whereToRead;
+			private long count;
+			private long sum;
+
+			Mean(Queue<Long> w) {
+				whereToRead = w;
+				count = 0L;
+				sum = 0L;
+			}
+
+			private void consume() {
+				boolean done = false;
+				do {
+					Long found = whereToRead.poll();
+					if (found != null) {
+						count += 1;
+						sum += found.longValue();
+					} else {
+						done = true;
+					}
+				} while (!done);
+			}
+
+			long get() {
+				consume();
+				if (count == 0) {
+					return 1;
+				}
+				return sum / count;
+			}
+		}
+
+		private final Queue<Long> fetchTimes = new LinkedBlockingQueue<Long>();
+		private final Mean fetchTime = new Mean(fetchTimes);
+		private final Queue<Long> uploadTimes = new LinkedBlockingQueue<Long>();
+		private final Mean uploadTime = new Mean(uploadTimes);
+
+		private class MeasureTime {
+			private Queue<Long> whereToPost;
+			private Date start;
+
+			MeasureTime(Queue<Long> w) {
+				whereToPost = w;
+				start = new Date();
+			}
+
+			void done() {
+				whereToPost.offer(new Date().getTime() - start.getTime());
+			}
+		}
+
+		private void queueFetch() {
+			{
+				final Page page = toFetch.poll();
+				if (page != null) {
+					FCPexecutors.execute(new Runnable() {
+						@Override
+						public void run() {
+							MeasureTime t = new MeasureTime(fetchTimes);
+							boolean result = doFetch(page);
+							t.done();
+							logger.finest("Fetched Fetch" + (result ? "" : " failed") + ".");
+						}
+					});
+					startedFetch = true;
+				}
+			}
+
+			if (!startedFetch) {
+				final Page page = toRefetchUnfetchable.pollNotDeferred();
+				if (page != null) {
+					FCPexecutors.execute(new Runnable() {
+						@Override
+						public void run() {
+							String log = page.logAttempts.toString();
+							MeasureTime t = new MeasureTime(fetchTimes);
+							boolean result = doRefetchUnfetchable(page);
+							t.done();
+							logger.finer(log + "Fetched RefetchUnfetchable" + (result ? "" : " failed") + ".");
+						}
+					});
+					startedFetch = true;
+				}
+			}
+
+			{
+				final Page page = toUploadUnfetchable.pollNotDeferred();
+				if (page != null) {
+					FCPexecutors.execute(new Runnable() {
+						@Override
+						public void run() {
+							String log = page.logAttempts.toString();
+							MeasureTime t = new MeasureTime(fetchTimes);
+							boolean result = doRefetchToUpload(page);
+							t.done();
+							logger.finer(log + "Fetched ToUpload" + (result ? "" : " failed") + ".");
+						}
+					});
+					startedFetch = true;
+				}
+			}
+
+			if (!startedFetch) {
+				final Page page = toRefetch.poll();
+				if (page != null) {
+					FCPexecutors.execute(new Runnable() {
+						@Override
+						public void run() {
+							MeasureTime t = new MeasureTime(fetchTimes);
+							boolean result = doRefetch(page);
+							t.done();
+							logger.finer("Fetched Refetch" + (result ? "" : " failed") + ".");
+						}
+					});
+				}
+			}
+		}
+
+		private void queueUpload() {
+			if (morePagesDirectory != null && shallUpload(toRefetchUnfetchable.size())) {
+				final Page page = toRefetchUnfetchable.poll();
+				if (page != null) {
+					FCPexecutors.execute(new Runnable() {
+						@Override
+						public void run() {
+							MeasureTime t = new MeasureTime(uploadTimes);
+							doCopyAndUploadUnfetchable(page);
+							t.done();
+						}
+					});
+					startedUpload = true;
+				}
+			}
+
+			if (shallUpload(toUploadUnfetchable.size())) {
+				final Page page = toUploadUnfetchable.poll();
+				if (page != null) {
+					FCPexecutors.execute(new Runnable() {
+						@Override
+						public void run() {
+							MeasureTime t = new MeasureTime(uploadTimes);
+							boolean result = doUploadUnfetchable(page);
+							t.done();
+							logger.finer("Uploaded Unfetchable" + (result ? "" : "failed") + ".");
+						}
+					});
+					startedUpload = true;
+				}
+			}
+		}
+
+		@Override
+		public void run() {
+			startedFetch = false;
+			startedUpload = false;
+
+			queueFetch();
+			queueUpload();
+
+			if (startedFetch || startedUpload) {
+				FCPexecutors.execute(this);
+			} else {
+				FCPexecutors.schedule(this, 10, TimeUnit.SECONDS);
+			}
+		}
+
+		public Object getFetchMean() {
+			return fetchTime.get();
+		}
+
+		public Object getUploadMean() {
+			return uploadTime.get();
+		}
+	}
+
+	private void run2(int numThreads, FreenetURI u, File morePagesDir) {
+		morePagesDirectory = morePagesDir;
+		FCPexecutors = Executors.newScheduledThreadPool(numThreads);
+		otherExecutors = Executors.newScheduledThreadPool(1);
+		directory = new File("library-download-all-once-db");
+		if (directory.exists()) {
+			unfetchables.load(directory);
+			cleanUp = new CleanupOldFiles();
+			cleanUp.setHandle(FCPexecutors.scheduleWithFixedDelay(cleanUp, 500, 1, TimeUnit.MINUTES));
+		} else {
+			directory.mkdir();
+		}
+
+		final ParseQueues pq = new ParseQueues();
+		otherExecutors.execute(pq);
+		final QueueQueues qq = new QueueQueues();
+		otherExecutors.scheduleWithFixedDelay(new Runnable() {
+			public void run() {
+				logStatistics();
+				logger.log(Level.INFO, "Parse time: {0} Fetch time: {1} Upload time: {2}",
+						new Object[] {
+								pq.getMean(), qq.getFetchMean(), qq.getUploadMean()
+						});
+			}
+		}, 1, 1, TimeUnit.MINUTES);
+		FCPexecutors.schedule(qq, 2, TimeUnit.SECONDS);
+		FCPexecutors.scheduleWithFixedDelay(new Runnable() {
+			public void run() {
+				unfetchables.save(toUploadUnfetchable, toRefetchUnfetchable);
+			}
+		}, 100, 20, TimeUnit.MINUTES);
+		FcpSession session;
+		try {
+			session = new FcpSession("DownloadOneEditionFor" + u);
+		} catch (IllegalStateException | IOException e1) {
+			logger.log(Level.SEVERE, "Exception", e1);
+			return;
+		}
+		try {
+			startAndBlockUntilUpdate(session, u);
+		} finally {
+			shutdown(session);
+		}
+	}
+
+	private void startAndBlockUntilUpdate(FcpSession session, FreenetURI uri) {
 		connection = session.getConnection();
 		if (connection == null) {
 			throw new IllegalArgumentException("No connection.");
@@ -1016,9 +1304,18 @@ class DownloadOneEdition {
 	}
 
 	public static void main(String[] argv) throws InterruptedException {
+		Integer numThreads;
+		try {
+			numThreads = new Integer(argv[0]);
+		} catch (NumberFormatException e) {
+			logger.log(Level.SEVERE, "First parameter must be a number, was " + argv[0] + ".", e);
+			System.exit(2);
+			return;
+		}
+
 		FreenetURI u;
 		try {
-			u = new FreenetURI(argv[0]);
+			u = new FreenetURI(argv[1]);
 		} catch (MalformedURLException e) {
 			logger.log(Level.SEVERE, "Exception", e);
 			System.exit(2);
@@ -1026,8 +1323,8 @@ class DownloadOneEdition {
 		}
 
 		File morePagesDir = null;
-		if (argv.length > 1) {
-			morePagesDir = new File(argv[1]);
+		if (argv.length > 2) {
+			morePagesDir = new File(argv[2]);
 			if (!morePagesDir.exists()) {
 				logger.severe("Directory " + morePagesDir + " does not exist.");
 				System.exit(2);
@@ -1040,6 +1337,11 @@ class DownloadOneEdition {
 			}
 		}
 
-		new DownloadOneEdition().run(u, morePagesDir);
+		if (numThreads.intValue() == 0) {
+			new DownloadOneEdition().run(u, morePagesDir);
+		} else {
+			logger.info("Running with " + numThreads.intValue() + " threads.");
+			new DownloadOneEdition().run2(numThreads.intValue(), u, morePagesDir);
+		}
 	}
 }
