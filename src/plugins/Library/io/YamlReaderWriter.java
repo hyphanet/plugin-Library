@@ -30,6 +30,7 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 
 /* class definitions added to the extended Yaml processor */
+import org.yaml.snakeyaml.resolver.Resolver;
 import plugins.Library.io.serial.Packer;
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermPageEntry;
@@ -93,7 +94,11 @@ public class YamlReaderWriter implements ObjectStreamReader<Object>, ObjectStrea
 		DumperOptions opt = new DumperOptions();
 		opt.setWidth(Integer.MAX_VALUE);
 		opt.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-		return new Yaml(new ExtendedConstructor(), new ExtendedRepresenter(), opt);
+		return new Yaml(new ExtendedConstructor(), new ExtendedRepresenter(), opt, new Resolver() {
+			@Override
+			protected void addImplicitResolvers() { // disable implicit resolvers
+			}
+		});
 	}
 
 	final public static ObjectBlueprint<TermTermEntry> tebp_term;
@@ -180,7 +185,7 @@ public class YamlReaderWriter implements ObjectStreamReader<Object>, ObjectStrea
 								"found incorrectly sized map data " + map, null);
 					}
 					for (Map.Entry<?, ?> en: map.entrySet()) {
-						return new Packer.BinInfo(en.getKey(), (Integer) en.getValue());
+						return new Packer.BinInfo(en.getKey(), Integer.parseInt((String) en.getValue()));
 					}
 					throw new AssertionError();
 				}
@@ -201,7 +206,7 @@ public class YamlReaderWriter implements ObjectStreamReader<Object>, ObjectStrea
 			@Override
 			public Object construct(Node node) {
 				Map<Object, Object> map = constructMapping((MappingNode)node);
-				map.put("rel", ((Double) map.get("rel")).floatValue());
+				map.put("rel", Float.valueOf((String) map.get("rel")));
 				try {
 					return blueprint.objectFromMap(map);
 				} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {

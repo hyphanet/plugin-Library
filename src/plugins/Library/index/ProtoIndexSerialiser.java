@@ -19,6 +19,8 @@ import plugins.Library.io.DataFormatException;
 
 import freenet.keys.FreenetURI;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.io.File;
 
@@ -109,7 +111,7 @@ implements Archiver<ProtoIndex>,
 			serialisable.data.put("reqID", task.meta);
 		}
 		try {
-			task.data = trans.rev(cast(serialisable.data /* FIXME: there Double and String keys */));
+			task.data = trans.rev(serialisable.data);
 		} catch (DataFormatException e) {
 			throw new TaskAbortException("Could not construct index from data", e);
 		}
@@ -120,23 +122,6 @@ implements Archiver<ProtoIndex>,
 		serialisable.meta = serialisable.data.remove("insID");
 		subsrl.push(serialisable);
 		task.meta = serialisable.meta;
-	}
-
-	// should be removed when the cause of the mixture of Double and String among the keys is eliminated
-	private static Map<String, Object> cast(Map map) {
-		List<Map.Entry<?, ?>> wrongEntries = new ArrayList<>();
-		for(Iterator<Map.Entry<?, ?>> it = map.entrySet().iterator(); it.hasNext(); ) {
-			Map.Entry<?, ?> entry = it.next();
-			if (entry.getKey() instanceof String) {
-				continue;
-			}
-			wrongEntries.add(entry);
-			it.remove();
-		}
-		for (Map.Entry<?, ?> entry : wrongEntries) {
-			map.put(String.valueOf(entry.getKey()), entry.getValue());
-		}
-		return (Map<String, Object>) map;
 	}
 
 	public static class IndexTranslator
@@ -204,20 +189,15 @@ implements Archiver<ProtoIndex>,
 					String name = (String)map.get("name");
 					String ownerName = (String)map.get("ownerName");
 					String ownerEmail = (String)map.get("ownerEmail");
-					// FIXME yaml idiocy??? It seems to give a Long if the number is big enough to need one, and an Integer otherwise.
-					long totalPages;
-					Object o = map.get("totalPages");
-					if(o instanceof Long)
-						totalPages = (Long)o;
-					else // Integer
-						totalPages = (Integer)o;
-					Date modified = (Date)map.get("modified");
+					long totalPages = Long.parseLong((String) map.get("totalPages"));
+					Date modified = null;
+					try {
+						modified = new SimpleDateFormat("yyyy-MM-dd").parse((String) map.get("modified"));
+					} catch (ParseException ignored) {
+					}
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
 					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
-
-					// FIXME: termTable has Double and String keys
-					Map<String, Object> termTable = ProtoIndexSerialiser.cast((Map) map.get("ttab"));
-					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev(termTable);
+					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>) map.get("ttab"));
 
 					return cmpsrl.setSerialiserFor(new ProtoIndex(reqID, name, ownerName, ownerEmail, totalPages, modified, extra, utab, ttab));
 
