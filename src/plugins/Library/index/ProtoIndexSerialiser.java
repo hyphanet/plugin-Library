@@ -9,7 +9,6 @@ import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.exec.SimpleProgress;
 import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.io.serial.LiveArchiver;
 import plugins.Library.io.serial.Serialiser;
 import plugins.Library.io.serial.Translator;
@@ -110,7 +109,7 @@ implements Archiver<ProtoIndex>,
 			serialisable.data.put("reqID", task.meta);
 		}
 		try {
-			task.data = trans.rev(serialisable.data);
+			task.data = trans.rev(cast(serialisable.data /* FIXME: there Double and String keys */));
 		} catch (DataFormatException e) {
 			throw new TaskAbortException("Could not construct index from data", e);
 		}
@@ -121,6 +120,23 @@ implements Archiver<ProtoIndex>,
 		serialisable.meta = serialisable.data.remove("insID");
 		subsrl.push(serialisable);
 		task.meta = serialisable.meta;
+	}
+
+	// should be removed when the cause of the mixture of Double and String among the keys is eliminated
+	private static Map<String, Object> cast(Map map) {
+		List<Map.Entry<?, ?>> wrongEntries = new ArrayList<>();
+		for(Iterator<Map.Entry<?, ?>> it = map.entrySet().iterator(); it.hasNext(); ) {
+			Map.Entry<?, ?> entry = it.next();
+			if (entry.getKey() instanceof String) {
+				continue;
+			}
+			wrongEntries.add(entry);
+			it.remove();
+		}
+		for (Map.Entry<?, ?> entry : wrongEntries) {
+			map.put(String.valueOf(entry.getKey()), entry.getValue());
+		}
+		return (Map<String, Object>) map;
 	}
 
 	public static class IndexTranslator
@@ -200,20 +216,8 @@ implements Archiver<ProtoIndex>,
 					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
 
 					// FIXME: termTable has Double and String keys
-					Map termTable = (Map) map.get("ttab");
-					List<Map.Entry> wrongEntries = new ArrayList<>();
-					for(Iterator<Map.Entry> it = termTable.entrySet().iterator(); it.hasNext(); ) {
-						Map.Entry entry = it.next();
-						if (entry.getKey() instanceof String) {
-							continue;
-						}
-						wrongEntries.add(entry);
-						it.remove();
-					}
-					for (Map.Entry entry : wrongEntries) {
-						termTable.put(String.valueOf(entry.getKey()), entry.getValue());
-					}
-					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>) termTable);
+					Map<String, Object> termTable = ProtoIndexSerialiser.cast((Map) map.get("ttab"));
+					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev(termTable);
 
 					return cmpsrl.setSerialiserFor(new ProtoIndex(reqID, name, ownerName, ownerEmail, totalPages, modified, extra, utab, ttab));
 
