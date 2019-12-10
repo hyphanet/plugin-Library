@@ -131,7 +131,7 @@
 		</javac>
 
 		<!-- Force compile of Version.java in case compile of ${src} didn't trigger it -->
-		<javac srcdir="${build}" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
+		<javac srcdir="${build}" destdir="${build}" debug="on" optimize="on" source="1.8" target="1.8">
 			<classpath>
 				<path refid="lib.path"/>
 			</classpath>
@@ -146,7 +146,7 @@
 	</target>
 
 	<target name="compile-tester" depends="compile" if="tester">
-		<javac srcdir="test/" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
+		<javac srcdir="test/" destdir="${build}" debug="on" optimize="on" source="1.8" target="1.8">
 			<classpath>
 				<path refid="lib.path"/>
 				<!-- Uses some code that uses junit -->
@@ -173,7 +173,7 @@
 
 	<!-- ================================================== -->
 	<target name="unit-build" depends="compile" if="junit.present" unless="skip_tests">
-		<javac srcdir="test/" destdir="${build-test}" debug="on" optimize="on" source="1.5">
+		<javac srcdir="test/" destdir="${build-test}" debug="on" optimize="on" source="1.8">
 			<classpath>
 				<path refid="lib.path"/>
 				<pathelement path="${build}"/>
