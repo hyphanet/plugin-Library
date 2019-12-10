@@ -6,19 +6,14 @@ package plugins.Library.io.serial;
 import junit.framework.TestCase;
 
 import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.error.YAMLException;
-import org.yaml.snakeyaml.Loader;
-import org.yaml.snakeyaml.Dumper;
 import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 import org.yaml.snakeyaml.representer.Represent;
 import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.nodes.ScalarNode;
-import org.yaml.snakeyaml.nodes.MappingNode;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.constructor.Construct;
-import org.yaml.snakeyaml.constructor.ConstructorException;
 
 import java.io.*;
 import java.util.*;
@@ -35,8 +30,7 @@ public class YamlMapTest extends TestCase {
 		data.put("key3", new Custom("test"));
 		data.put("key4", new Wrapper("test", new Custom("test")));
 
-		Yaml yaml = new Yaml(new Loader(new ExtendedConstructor()),
-			                new Dumper(new ExtendedRepresenter(), new DumperOptions()));
+		Yaml yaml = new Yaml(new ExtendedConstructor(), new ExtendedRepresenter(), new DumperOptions());
 		File file = new File("beantest.yml");
 
 		FileOutputStream os = new FileOutputStream(file);
@@ -100,7 +94,7 @@ public class YamlMapTest extends TestCase {
 
 		private class RepresentCustom implements Represent {
 			public Node representData(Object data) {
-				return representScalar("!Custom", ((Custom) data).toString());
+				return representScalar(new Tag("!Custom"), ((Custom) data).toString());
 			}
 		}
 	}
@@ -108,7 +102,7 @@ public class YamlMapTest extends TestCase {
 
 	public static class ExtendedConstructor extends Constructor {
 		public ExtendedConstructor() {
-			this.yamlConstructors.put("!Custom", new ConstructCustom());
+			this.yamlConstructors.put(new Tag("!Custom"), new ConstructCustom());
 		}
 
 		private class ConstructCustom implements Construct {

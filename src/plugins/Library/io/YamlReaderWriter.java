@@ -3,13 +3,11 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io;
 
-import plugins.Library.io.DataFormatException;
+import org.yaml.snakeyaml.nodes.Tag;
 
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.error.YAMLException;
 import org.yaml.snakeyaml.error.Mark;
-import org.yaml.snakeyaml.Loader;
-import org.yaml.snakeyaml.Dumper;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.representer.Representer;
 import org.yaml.snakeyaml.representer.Represent;
@@ -22,9 +20,7 @@ import org.yaml.snakeyaml.constructor.AbstractConstruct;
 import java.util.Collections;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.LinkedHashMap;
 import java.util.concurrent.Semaphore;
-import java.io.File;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.InputStream;
@@ -49,8 +45,6 @@ import freenet.keys.FreenetURI;
 ** java.io.ObjectOutput} but they have too many methods to bother with...)
 **
 ** @see Yaml
-** @see Loader
-** @see Dumper
 ** @author infinity0
 */
 public class YamlReaderWriter
@@ -95,8 +89,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		DumperOptions opt = new DumperOptions();
 		opt.setWidth(Integer.MAX_VALUE);
 		opt.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-		return new Yaml(new Loader(new ExtendedConstructor()),
-						new Dumper(new ExtendedRepresenter(), opt));
+		return new Yaml(new ExtendedConstructor(), new ExtendedRepresenter(), opt);
 	}
 
 	final public static ObjectBlueprint<TermTermEntry> tebp_term;
@@ -122,14 +115,14 @@ implements ObjectStreamReader, ObjectStreamWriter {
 		public ExtendedRepresenter() {
 			this.representers.put(FreenetURI.class, new Represent() {
 				/*@Override**/ public Node representData(Object data) {
-					return representScalar("!FreenetURI", ((FreenetURI) data).toString());
+					return representScalar(new Tag("!FreenetURI"), ((FreenetURI) data).toString());
 				}
 			});
 			this.representers.put(Packer.BinInfo.class, new Represent() {
 				/*@Override**/ public Node representData(Object data) {
 					Packer.BinInfo inf = (Packer.BinInfo)data;
 					Map<Object, Object> map = Collections.<Object, Object>singletonMap(inf.getID(), inf.getWeight());
-					return representMapping("!BinInfo", map, true);
+					return representMapping(new Tag("!BinInfo"), map, DumperOptions.FlowStyle.FLOW);
 				}
 			});
 			this.representers.put(TermTermEntry.class, new RepresentTermEntry(tebp_term));
@@ -148,7 +141,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 			}
 
 			/*@Override**/ public Node representData(Object data) {
-				return representMapping(tag, blueprint.objectAsMap((T)data), true);
+				return representMapping(new Tag(tag), blueprint.objectAsMap((T)data), DumperOptions.FlowStyle.FLOW);
 			}
 
 		}
@@ -161,7 +154,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 	*/
 	public static class ExtendedConstructor extends Constructor {
 		public ExtendedConstructor() {
-			this.yamlConstructors.put("!FreenetURI", new AbstractConstruct() {
+			this.yamlConstructors.put(new Tag("!FreenetURI"), new AbstractConstruct() {
 				/*@Override**/ public Object construct(Node node) {
 					String uri = (String) constructScalar((ScalarNode)node);
 					try {
@@ -171,7 +164,7 @@ implements ObjectStreamReader, ObjectStreamWriter {
 					}
 				}
 			});
-			this.yamlConstructors.put("!BinInfo", new AbstractConstruct() {
+			this.yamlConstructors.put(new Tag("!BinInfo"), new AbstractConstruct() {
 				/*@Override**/ public Object construct(Node node) {
 					Map<?, ?> map = (Map) constructMapping((MappingNode)node);
 					if (map.size() != 1) {
@@ -183,9 +176,9 @@ implements ObjectStreamReader, ObjectStreamWriter {
 					throw new AssertionError();
 				}
 			});
-			this.yamlConstructors.put("!TermTermEntry", new ConstructTermEntry(tebp_term));
-			this.yamlConstructors.put("!TermIndexEntry", new ConstructTermEntry(tebp_index));
-			this.yamlConstructors.put("!TermPageEntry", new ConstructTermEntry(tebp_page));
+			this.yamlConstructors.put(new Tag("!TermTermEntry"), new ConstructTermEntry(tebp_term));
+			this.yamlConstructors.put(new Tag("!TermIndexEntry"), new ConstructTermEntry(tebp_index));
+			this.yamlConstructors.put(new Tag("!TermPageEntry"), new ConstructTermEntry(tebp_page));
 		}
 
 		public class ConstructTermEntry<T extends TermEntry> extends AbstractConstruct {
