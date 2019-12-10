@@ -562,7 +562,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		final Queue<SkeletonNode> nodequeue = new PriorityQueue<SkeletonNode>();
 
-		Map<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ?>> ids = null;
+		Map<PullTask<SkeletonNode>, ProgressTracker<SkeletonNode, ? extends Progress>> ids = null;
 		ProgressTracker<SkeletonNode, ?> ntracker = null;;
 
 		if (nsrl instanceof Serialiser.Trackable) {
