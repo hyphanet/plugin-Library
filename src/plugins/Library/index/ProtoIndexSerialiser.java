@@ -20,16 +20,7 @@ import plugins.Library.io.DataFormatException;
 
 import freenet.keys.FreenetURI;
 
-import java.util.Collection;
-import java.util.Set;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.LinkedHashMap;
-import java.util.HashMap;
-import java.util.TreeSet;
-import java.util.TreeMap;
-import java.util.Date;
+import java.util.*;
 import java.io.File;
 
 /**
@@ -207,7 +198,22 @@ implements Archiver<ProtoIndex>,
 					Date modified = (Date)map.get("modified");
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
 					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
-					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>)map.get("ttab"));
+
+					// FIXME: termTable has Double and String keys
+					Map termTable = (Map) map.get("ttab");
+					List<Map.Entry> wrongEntries = new ArrayList<>();
+					for(Iterator<Map.Entry> it = termTable.entrySet().iterator(); it.hasNext(); ) {
+						Map.Entry entry = it.next();
+						if (entry.getKey() instanceof String) {
+							continue;
+						}
+						wrongEntries.add(entry);
+						it.remove();
+					}
+					for (Map.Entry entry : wrongEntries) {
+						termTable.put(String.valueOf(entry.getKey()), entry.getValue());
+					}
+					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>) termTable);
 
 					return cmpsrl.setSerialiserFor(new ProtoIndex(reqID, name, ownerName, ownerEmail, totalPages, modified, extra, utab, ttab));
 
