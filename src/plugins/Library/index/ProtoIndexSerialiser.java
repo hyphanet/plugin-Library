@@ -179,21 +179,48 @@ implements Archiver<ProtoIndex>,
 		}
 
 		/*@Override**/ public ProtoIndex rev(Map<String, Object> map) throws DataFormatException {
-			long magic = (Long)map.get("serialVersionUID");
+			Object serialVersionUID = map.get("serialVersionUID");
+			long magic;
+			if (serialVersionUID instanceof String) { // FIXME
+				magic = Long.parseLong((String) map.get("serialVersionUID"));
+			} else {
+				magic = (Long) serialVersionUID;
+			}
 
 			if (magic == ProtoIndex.serialVersionUID) {
 				try {
 					// FIXME yet more hacks related to the lack of proper asynchronous FreenetArchiver...
-					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"), subsrl);
+					Object serialFormatUIDObj = map.get("serialFormatUID");
+					int serialFormatUID;
+					if (serialFormatUIDObj instanceof String) { // FIXME
+						serialFormatUID = Integer.parseInt((String) map.get("serialFormatUID"));
+					} else {
+						serialFormatUID = (Integer) serialFormatUIDObj;
+					}
+					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get(serialFormatUID, subsrl);
 					FreenetURI reqID = (FreenetURI)map.get("reqID");
 					String name = (String)map.get("name");
 					String ownerName = (String)map.get("ownerName");
 					String ownerEmail = (String)map.get("ownerEmail");
-					long totalPages = Long.parseLong((String) map.get("totalPages"));
-					Date modified = null;
-					try {
-						modified = new SimpleDateFormat("yyyy-MM-dd").parse((String) map.get("modified"));
-					} catch (ParseException ignored) {
+					Object totalPagesObj = map.get("totalPages");
+					long totalPages;
+					if (totalPagesObj instanceof String) { // FIXME
+						totalPages = Long.parseLong((String) totalPagesObj);
+					} else if (totalPagesObj instanceof Long) { // FIXME yaml??? It seems to give a Long if the number
+						totalPages = (Long) totalPagesObj;      //  is big enough to need one, and an Integer otherwise.
+					} else {
+						totalPages = (Integer) totalPagesObj;
+					}
+					Object modifiedObj = map.get("modified");
+					Date modified;
+					if (modifiedObj instanceof String) { // FIXME
+						try {
+							modified = new SimpleDateFormat("yyyy-MM-dd").parse((String) modifiedObj);
+						} catch (ParseException ignored) {
+							modified = null;
+						}
+					} else {
+						modified = (Date) modifiedObj;
 					}
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
 					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));

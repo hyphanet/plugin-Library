@@ -1333,19 +1333,17 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			boolean progress = true;
 			int count = 0;
-			int ccount = 0;
-			
+
 			do {
-
-				//System.out.println(System.identityHashCode(this) + " " + proc_pull + " " + proc_push + " " + ((proc_val == null)? "": proc_val));
-
 				// Only sleep if we run out of jobs.
 				if((!progress) && (count++ > 10)) {
 					count = 0;
-//					if(ccount++ > 10) {
-						System.out.println(/*System.identityHashCode(this) + " " + */proc_val + " " + proc_pull + " " + proc_push+ " "+proc_deflate);
-//						ccount = 0;
-//					}
+					if (proc_val == null) {
+						Logger.debug(this, /*System.identityHashCode(this) + " " + */
+								proc_val + " " + proc_pull + " " + proc_push + " " + proc_deflate);
+					} else {
+						Logger.minor(this, proc_val + " " + proc_pull + " " + proc_push + " " + proc_deflate);
+					}
 					notifier.waitUpdate(1000);
 				}
 				progress = false;
@@ -1508,17 +1506,35 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				boolean notleaf = map.containsKey("subnodes");
 				List<GhostNode> gh = null;
 				if (notleaf) {
-					Map<Object, Integer> subnodes = (Map<Object, Integer>)map.get("subnodes");
-					gh = new ArrayList<GhostNode>(subnodes.size());
-					for (Map.Entry<Object, Integer> en: subnodes.entrySet()) {
-						GhostNode ghost = new GhostNode(null, null, null, en.getValue());
+					Map<Object, Object> subnodes = (Map<Object, Object>) map.get("subnodes");
+					gh = new ArrayList<>(subnodes.size());
+					for (Map.Entry<Object, Object> en: subnodes.entrySet()) {
+						Object sObj = en.getValue();
+						int s;
+						if (sObj instanceof String) { // FIXME
+							s = Integer.parseInt((String) sObj);
+						} else {
+							s = (Integer) sObj;
+						}
+						GhostNode ghost = new GhostNode(null, null, null, s);
 						ghost.setMeta(en.getKey());
 						gh.add(ghost);
 					}
 				}
+
+				// FIXME
+				Object lkey = map.get("lkey");
+				if ("null".equals(lkey)) {
+					lkey = null;
+				}
+				Object rkey = map.get("rkey");
+				if ("null".equals(rkey)) {
+					rkey = null;
+				}
+
 				SkeletonNode node = new SkeletonNode(
-					(ktr == null)? (K)map.get("lkey"): ktr.rev((Q)map.get("lkey")),
-					(ktr == null)? (K)map.get("rkey"): ktr.rev((Q)map.get("rkey")),
+					(ktr == null) ? (K) lkey : ktr.rev((Q) lkey),
+					(ktr == null) ? (K) rkey : ktr.rev((Q) rkey),
 					!notleaf,
 					(mtr == null)? (SkeletonTreeMap<K, V>)map.get("entries")
 					             : mtr.rev((R)map.get("entries")),
@@ -1575,8 +1591,20 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 		/*@Override**/ public SkeletonBTreeMap<K, V> rev(Map<String, Object> map) throws DataFormatException {
 			try {
-				SkeletonBTreeMap<K, V> tree = new SkeletonBTreeMap<K, V>((Integer)map.get("node_min"));
-				tree.size = (Integer)map.get("size");
+				Object nodeMinObj = map.get("node_min");
+				int nodeMin;
+				if (nodeMinObj instanceof String) { // FIXME
+					nodeMin = Integer.parseInt((String) nodeMinObj);
+				} else {
+					nodeMin = (Integer) map.get("node_min");
+				}
+				SkeletonBTreeMap<K, V> tree = new SkeletonBTreeMap<>(nodeMin);
+				Object sizeObj = map.get("size");
+				if (sizeObj instanceof String) {
+					tree.size = Integer.parseInt((String) sizeObj);
+				} else {
+					tree.size = (Integer) sizeObj;
+				}
 				// map.put("lkey", null); // NULLNOTICE: get() gives null which matches
 				// map.put("rkey", null); // NULLNOTICE: get() gives null which matches
 				tree.root = tree.makeNodeTranslator(ktr, mtr).rev(map);

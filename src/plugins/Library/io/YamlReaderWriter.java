@@ -3,6 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io;
 
+import freenet.support.SortedIntSet;
 import org.yaml.snakeyaml.nodes.Tag;
 
 import org.yaml.snakeyaml.Yaml;
@@ -19,9 +20,7 @@ import org.yaml.snakeyaml.constructor.AbstractConstruct;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.Arrays;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -185,7 +184,13 @@ public class YamlReaderWriter implements ObjectStreamReader<Object>, ObjectStrea
 								"found incorrectly sized map data " + map, null);
 					}
 					for (Map.Entry<?, ?> en: map.entrySet()) {
-						return new Packer.BinInfo(en.getKey(), Integer.parseInt((String) en.getValue()));
+						int w; // FIXME
+						if (en.getValue() instanceof String) {
+							w = Integer.parseInt((String) en.getValue());
+						} else {
+							w = (Integer) en.getValue();
+						}
+						return new Packer.BinInfo(en.getKey(), w);
 					}
 					throw new AssertionError();
 				}
@@ -206,7 +211,53 @@ public class YamlReaderWriter implements ObjectStreamReader<Object>, ObjectStrea
 			@Override
 			public Object construct(Node node) {
 				Map<Object, Object> map = constructMapping((MappingNode)node);
-				map.put("rel", Float.valueOf((String) map.get("rel")));
+				Object relObj = map.get("rel");
+				float rel;
+				if (relObj instanceof Double) { // FIXME
+					rel = ((Double) relObj).floatValue();
+				} else {
+					rel = Float.parseFloat((String) relObj);
+				}
+				map.put("rel", rel);
+
+				// FIXME
+				Object posObj = map.get("positions");
+				if (posObj != null) {
+					if ("null".equals(posObj)) {
+						map.put("positions", null);
+					} else {
+						Set<Integer> pos = new SortedIntSet();
+						for (Object p : (Set) posObj) {
+							if (p instanceof String) {
+								pos.add("null".equals(p) ? null : Integer.parseInt((String) p));
+							} else {
+								pos.add((Integer) p);
+							}
+						}
+						map.put("positions", pos);
+					}
+				}
+
+				// FIXME
+				Object posFragmentsObj = map.get("posFragments");
+				if (posFragmentsObj != null) {
+					if ("null".equals(posFragmentsObj)) {
+						map.put("posFragments", null);
+					} else {
+						Map<Integer, String> frags = new HashMap<>();
+						for (Map.Entry<?, ?> entry : ((Map<?, ?>) posFragmentsObj).entrySet()) {
+							Integer key;
+							if (entry.getKey() instanceof String) {
+								key = "null".equals(entry.getKey()) ? null : Integer.parseInt((String) entry.getKey());
+							} else {
+								key = (Integer) entry.getKey();
+							}
+							frags.put(key, "null".equals(entry.getValue()) ? null : (String) entry.getValue());
+						}
+						map.put("posFragments", frags);
+					}
+				}
+
 				try {
 					return blueprint.objectFromMap(map);
 				} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
