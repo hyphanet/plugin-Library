@@ -166,7 +166,7 @@ public class YamlReaderWriter implements ObjectStreamReader<Object>, ObjectStrea
 			this.yamlConstructors.put(new Tag("!FreenetURI"), new AbstractConstruct() {
 				@Override
 				public Object construct(Node node) {
-					String uri = constructScalar((ScalarNode)node);
+					String uri = constructScalar((ScalarNode) node);
 					try {
 						return new FreenetURI(uri);
 					} catch (java.net.MalformedURLException e) {
@@ -178,21 +178,20 @@ public class YamlReaderWriter implements ObjectStreamReader<Object>, ObjectStrea
 			this.yamlConstructors.put(new Tag("!BinInfo"), new AbstractConstruct() {
 				@Override
 				public Object construct(Node node) {
-					Map<?, ?> map = constructMapping((MappingNode)node);
+					Map<?, ?> map = constructMapping((MappingNode) node);
 					if (map.size() != 1) {
 						throw new ConstructorException("while constructing a Packer.BinInfo", node.getStartMark(),
 								"found incorrectly sized map data " + map, null);
 					}
-					for (Map.Entry<?, ?> en: map.entrySet()) {
-						int w; // FIXME
-						if (en.getValue() instanceof String) {
-							w = Integer.parseInt((String) en.getValue());
-						} else {
-							w = (Integer) en.getValue();
-						}
-						return new Packer.BinInfo(en.getKey(), w);
+
+					Map.Entry<?, ?> entry = map.entrySet().iterator().next();
+					int w; // FIXME
+					if (entry.getValue() instanceof String) {
+						w = Integer.parseInt((String) entry.getValue());
+					} else {
+						w = (Integer) entry.getValue();
 					}
-					throw new AssertionError();
+					return new Packer.BinInfo(entry.getKey(), w);
 				}
 			});
 			this.yamlConstructors.put(new Tag("!TermTermEntry"), new ConstructTermEntry<>(tebp_term));
