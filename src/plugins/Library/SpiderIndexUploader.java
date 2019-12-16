@@ -66,7 +66,7 @@ public class SpiderIndexUploader {
 	}
 	
 	private final PluginRespirator pr;
-	private Object freenetMergeSync = new Object();
+	private final Object freenetMergeSync = new Object();
 	private boolean freenetMergeRunning = false;
 	private boolean diskMergeRunning = false;
 	
@@ -75,7 +75,8 @@ public class SpiderIndexUploader {
 	// When pushing is broken, allow max handling to reach this level before stalling forever to prevent running out of disk space.
 	private int PUSH_BROKEN_MAX_HANDLING_COUNT = 10;
 	// Don't use too much disk space, take into account fact that Spider slows down over time.
-	
+
+	// Flag for the Spider plugin to hang
 	private boolean pushBroken;
 	
 	/** The temporary on-disk index. We merge stuff into this until it exceeds a threshold size, then
@@ -877,6 +878,9 @@ public class SpiderIndexUploader {
 		}
 	}
 
+	/**
+	 * Retrieving data from Spider
+	 */
 	public void handlePushBuffer(SimpleFieldSet params, Bucket data) {
 
 		if(data.size() == 0) {
