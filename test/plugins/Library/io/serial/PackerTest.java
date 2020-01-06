@@ -5,17 +5,13 @@ package plugins.Library.io.serial;
 
 import junit.framework.TestCase;
 
-import plugins.Library.util.Generators;
-import plugins.Library.util.SkeletonTreeMap;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.io.serial.Packer.Bin;
-import plugins.Library.io.serial.Serialiser.*;
-
 import java.util.Map;
-import java.util.List;
-import java.util.Iterator;
 import java.util.HashSet;
 import java.util.HashMap;
+import java.util.UUID;
+
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.exec.TaskAbortException;
 
 /**
 ** PRIORITY actually write some tests for this...
@@ -25,6 +21,14 @@ import java.util.HashMap;
 public class PackerTest extends TestCase {
 
 	final static public int NODE_MAX = 64;
+
+	private static String rndStr() {
+		return UUID.randomUUID().toString();
+	}
+
+	private static String rndKey() {
+		return rndStr().substring(0,8);
+	}
 
 	final public static Packer<String, HashSet> srl = new Packer<String, HashSet>(
 		new IterableSerialiser<Map<String, HashSet>>() {
@@ -60,7 +64,7 @@ public class PackerTest extends TestCase {
 			for (int i=0; i<size; ++i) {
 				hs.add(new Integer(i));
 			}
-			tasks.put(Generators.rndKey(), new PushTask<HashSet>(hs, meta));
+			tasks.put(rndKey(), new PushTask<HashSet>(hs, meta));
 		}
 		return tasks;
 	}

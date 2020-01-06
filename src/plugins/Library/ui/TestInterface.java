@@ -3,10 +3,10 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.ui;
 
-import plugins.Library.util.exec.Execution;
 import plugins.Library.search.Search;
 import plugins.Library.*;
 
+import plugins.Library.util.exec.Execution;
 import freenet.support.Logger;
 
 import java.util.HashMap;
@@ -14,7 +14,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
 public class TestInterface{
-	static HashMap<String,Execution> requests = new HashMap<String,Execution>();
+	static HashMap<String, Execution> requests = new HashMap<>();
 	static int requestcount =0;
 
 	public static void main(String[] args){

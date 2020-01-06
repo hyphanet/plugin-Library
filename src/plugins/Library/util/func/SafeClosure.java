@@ -12,6 +12,5 @@ package plugins.Library.util.func;
 */
 public interface SafeClosure<P> extends Closure<P, RuntimeException> {
 
-	public void invoke(P param);
-
+	void invoke(P param);
 }

@@ -3,17 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.io.serial.IterableSerialiser;
-import plugins.Library.io.serial.ScheduledSerialiser;
-import plugins.Library.io.serial.MapSerialiser;
-import plugins.Library.io.serial.Translator;
-import plugins.Library.io.DataFormatException;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.util.exec.TaskCompleteException;
-import plugins.Library.util.func.Tuples.X2;
-import plugins.Library.util.func.Tuples.X3;
-
 import java.util.AbstractSet;
 import java.util.Comparator;
 import java.util.Iterator;
@@ -29,22 +18,11 @@ import java.util.Stack;
 // TODO NORM tidy this
 import java.util.Queue;
 import java.util.PriorityQueue;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import plugins.Library.util.exec.Progress;
-import plugins.Library.util.exec.ProgressParts;
-import plugins.Library.util.exec.BaseCompositeProgress;
-import plugins.Library.io.serial.Serialiser;
-import plugins.Library.io.serial.ProgressTracker;
-import plugins.Library.util.exec.TaskCompleteException;
-import plugins.Library.util.BTreeMap.Node;
-import plugins.Library.util.concurrent.Scheduler;
 
 import java.util.Collections;
 import java.util.SortedSet;
@@ -53,17 +31,26 @@ import java.util.TreeSet;
 import java.util.TreeMap;
 import java.util.HashMap;
 
-import freenet.support.Logger;
-import plugins.Library.util.Sorted;
+import plugins.Library.io.DataFormatException;
+import plugins.Library.io.serial.IterableSerialiser;
+import plugins.Library.io.serial.MapSerialiser;
+import plugins.Library.io.serial.ProgressTracker;
+import plugins.Library.io.serial.ScheduledSerialiser;
+import plugins.Library.io.serial.Serialiser;
+import plugins.Library.io.serial.Translator;
+import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.concurrent.BoundedPriorityBlockingQueue;
 import plugins.Library.util.concurrent.ExceptionConvertor;
+import plugins.Library.util.concurrent.Executors;
 import plugins.Library.util.concurrent.Notifier;
 import plugins.Library.util.concurrent.ObjectProcessor;
-import plugins.Library.util.concurrent.Executors;
-import plugins.Library.util.event.TrackingSweeper;
 import plugins.Library.util.event.CountingSweeper;
+import plugins.Library.util.event.TrackingSweeper;
+import plugins.Library.util.exec.*;
 import plugins.Library.util.func.Closure;
 import plugins.Library.util.func.SafeClosure;
+import plugins.Library.util.func.Tuples.X2;
+import plugins.Library.util.func.Tuples.X3;
 import static plugins.Library.util.Maps.$K;
 
 /**
@@ -150,9 +137,9 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	static volatile boolean logMINOR;
 	static volatile boolean logDEBUG;
 	
-	static {
-		Logger.registerClass(SkeletonBTreeMap.class);
-	}
+	//	static {
+	//		Logger.registerClass(SkeletonBTreeMap.class);
+	//	}
 	
 	final public Comparator<PullTask<SkeletonNode>> CMP_PULL = new Comparator<PullTask<SkeletonNode>>() {
 		/*@Override**/ public int compare(PullTask<SkeletonNode> t1, PullTask<SkeletonNode> t2) {
@@ -166,8 +153,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		}
 	};
 
-	final public Comparator<Map.Entry<K, V>> CMP_ENTRY = new Comparator<Map.Entry<K, V>>() {
-		/*@Override**/ public int compare(Map.Entry<K, V> t1, Map.Entry<K, V> t2) {
+	final public Comparator<Entry<K, V>> CMP_ENTRY = new Comparator<Entry<K, V>>() {
+		/*@Override**/ public int compare(Entry<K, V> t1, Entry<K, V> t2) {
 			return SkeletonBTreeMap.this.compare(t1.getKey(), t2.getKey());
 		}
 	};
@@ -579,8 +566,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			new LinkedBlockingQueue<X2<PullTask<SkeletonNode>, TaskAbortException>>(0x10),
 			new HashMap<PullTask<SkeletonNode>, SkeletonNode>()
 		);
-		//System.out.println("Using scheduler");
-		//int DEBUG_pushed = 0, DEBUG_popped = 0;
 
 		try {
 			nodequeue.add((SkeletonNode)root);
@@ -589,8 +574,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			// operation fails
 
 			do {
-				//System.out.println("pushed: " + DEBUG_pushed + "; popped: " + DEBUG_popped);
-
 				// handle the inflated tasks and attach them to the tree.
 				// THREAD progress tracker should prevent this from being run twice for the
 				// same node, but what if we didn't use a progress tracker? hmm...
@@ -654,8 +637,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			throw new TaskAbortException("interrupted", e);
 		} finally {
 			proc_pull.close();
-			//System.out.println("pushed: " + DEBUG_pushed + "; popped: " + DEBUG_popped);
-			//assert(DEBUG_pushed == DEBUG_popped);
 		}
 	}
 
@@ -738,7 +719,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	** @param value_handler Closure to retrieve the value for each putkey
 	** @see #update(SortedSet, SortedSet, SortedMap, Closure)
 	*/
-	public <X extends Exception> void update(SortedSet<K> putkey, SortedSet<K> remkey, Closure<Map.Entry<K, V>, X> value_handler, ExceptionConvertor<X> conv) throws TaskAbortException {
+	public <X extends Exception> void update(SortedSet<K> putkey, SortedSet<K> remkey, Closure<Entry<K, V>, X> value_handler, ExceptionConvertor<X> conv) throws TaskAbortException {
 		update(putkey, remkey, null, value_handler, conv);
 	}
 
@@ -812,7 +793,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 	*/
 	protected <X extends Exception> void update(
 		SortedSet<K> putkey, SortedSet<K> remkey,
-		final SortedMap<K, V> putmap, Closure<Map.Entry<K, V>, X> value_handler,
+		final SortedMap<K, V> putmap, Closure<Entry<K, V>, X> value_handler,
 		ExceptionConvertor<X> conv
 	) throws TaskAbortException {
 		
@@ -851,7 +832,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 	protected <X extends Exception> void update(
 			SortedSet<K> putkey, 
-			final SortedMap<K, V> putmap, Closure<Map.Entry<K, V>, X> value_handler,
+			final SortedMap<K, V> putmap, Closure<Entry<K, V>, X> value_handler,
 			ExceptionConvertor<X> conv, final SortedSet<K> rejected
 		) throws TaskAbortException {
 			
@@ -931,7 +912,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		/**
 		** Deposit for a value-retrieval operation
 		*/
-		class DeflateNode extends TrackingSweeper<K, SortedSet<K>> implements Runnable, SafeClosure<Map.Entry<K, V>> {
+		class DeflateNode extends TrackingSweeper<K, SortedSet<K>> implements Runnable, SafeClosure<Entry<K, V>> {
 
 			/** The node to be pushed, when run() is called. */
 			final SkeletonNode node;
@@ -971,10 +952,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			** Update the key's value in the node. Runs whenever an entry is
 			** popped from proc_val.
 			*/
-			public void invoke(Map.Entry<K, V> en) {
+			public void invoke(Entry<K, V> en) {
 				assert(node.entries.containsKey(en.getKey()));
 				node.entries.put(en.getKey(), en.getValue());
-				if(logMINOR) Logger.minor(this, "New value for key "+en.getKey()+" : "+en.getValue()+" in "+node+" parent = "+parNClo);
+				// if(logMINOR) Logger.minor(this, "New value for key "+en.getKey()+" : "+en.getValue()+" in "+node+" parent = "+parNClo);
 			}
 
 			public void deflate() throws TaskAbortException {
@@ -991,11 +972,11 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 		// The proc_val output queue must comfortably cover everything generated by a single invocation of InflateChildNodes, or else we will deadlock.
 		// Note that this is all deflated sub-trees, so they are relatively small - some of the other queues
 		// handle much larger structures in their counters.
-		final ObjectProcessor<Map.Entry<K, V>, DeflateNode, X> proc_val = (value_handler == null)? null
-		: new ObjectProcessor<Map.Entry<K, V>, DeflateNode, X>(
-			new BoundedPriorityBlockingQueue<Map.Entry<K, V>>(0x10, CMP_ENTRY),
-			new LinkedBlockingQueue<X2<Map.Entry<K, V>, X>>(ENT_MAX*3),
-			new HashMap<Map.Entry<K, V>, DeflateNode>(),
+		final ObjectProcessor<Entry<K, V>, DeflateNode, X> proc_val = (value_handler == null)? null
+		: new ObjectProcessor<Entry<K, V>, DeflateNode, X>(
+			new BoundedPriorityBlockingQueue<Entry<K, V>>(0x10, CMP_ENTRY),
+			new LinkedBlockingQueue<X2<Entry<K, V>, X>>(ENT_MAX*3),
+			new HashMap<Entry<K, V>, DeflateNode>(),
 			value_handler, VALUE_EXECUTOR, conv, notifier // These can block so pool them separately.
 		).autostart();
 		
@@ -1111,7 +1092,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					reassignKeyToSweeper(key, parVClo);
 				}
 
-				//System.out.println("parent:"+parent.getRange()+"\nseps:"+keys+"\nheld:"+held);
 				parNClo.open();
 
 				// for each split-node, create a sweeper that will run when all its (k,v)
@@ -1122,12 +1102,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 					// reassign appropriate keys to the split-node's sweeper
 					SortedSet<K> subheld = subSet(held, n.lkey, n.rkey);
-					//try {
 					assert(subheld.isEmpty() || compareL(n.lkey, subheld.first()) < 0 && compareR(subheld.last(), n.rkey) < 0);
-					//} catch (AssertionError e) {
-					//	System.out.println(n.lkey + " " + subheld.first() + " " + subheld.last() + " " + n.rkey);
-					//	throw e;
-					//}
 					for (K key: subheld) {
 						reassignKeyToSweeper(key, vClo);
 					}
@@ -1168,7 +1143,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				//assert(((UpdateValue)value_closures.get(key)).node == node);
 				proc_val.update($K(key, (V)null), clo);
 				// FIXME what if it has already run???
-				if(logMINOR) Logger.minor(this, "Reassigning key "+key+" to "+clo+" on "+this+" parent="+parent+" parent split node "+parNClo+" parent deflate node "+parVClo);
+				// if(logMINOR) Logger.minor(this, "Reassigning key "+key+" to "+clo+" on "+this+" parent="+parent+" parent split node "+parNClo+" parent deflate node "+parVClo);
 				// nodeVClo.release(key);
 				// this is unnecessary since nodeVClo() will only be used if we did not
 				// split its node (and never called this method)
@@ -1276,7 +1251,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 						} catch (ClassCastException e) {
 							// This has been seen in practice. I have no idea what it means.
 							// FIXME HIGH !!!
-							Logger.error(this, "Node is already loaded?!?!?!: "+node.selectNode(rng.first()));
+							// Logger.error(this, "Node is already loaded?!?!?!: "+node.selectNode(rng.first()));
 							continue;
 						}
 						PullTask<SkeletonNode> task = new PullTask<SkeletonNode>(n);
@@ -1308,7 +1283,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 			private void handleLocalPut(SkeletonNode n, K key, DeflateNode vClo) {
 				V oldval = n.entries.put(key, null);
 				vClo.acquire(key);
-				if(logMINOR) Logger.minor(this, "handleLocalPut for key "+key+" old value "+oldval+" for deflate node "+vClo+" - passing to proc_val");
+				// if(logMINOR) Logger.minor(this, "handleLocalPut for key "+key+" old value "+oldval+" for deflate node "+vClo+" - passing to proc_val");
 				ObjectProcessor.submitSafe(proc_val, $K(key, oldval), vClo);
 			}
 
@@ -1333,17 +1308,17 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 			boolean progress = true;
 			int count = 0;
-
+			int ccount = 0;
 			do {
 				// Only sleep if we run out of jobs.
 				if((!progress) && (count++ > 10)) {
 					count = 0;
-					if (proc_val == null) {
-						Logger.debug(this, /*System.identityHashCode(this) + " " + */
-								proc_val + " " + proc_pull + " " + proc_push + " " + proc_deflate);
-					} else {
-						Logger.minor(this, proc_val + " " + proc_pull + " " + proc_push + " " + proc_deflate);
-					}
+					//					Logger.debug(this,
+					//						     "SkeletonBTreeMap update " +
+					//						     proc_val + " " +
+					//						     proc_pull + " " +
+					//						     proc_push + " " +
+					//						     proc_deflate);
 					notifier.waitUpdate(1000);
 				}
 				progress = false;
@@ -1367,8 +1342,6 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				}
 				if(loop) continue;
 
-				//System.out.println(System.identityHashCode(this) + " " + proc_push + " " + ((proc_val == null)? "": proc_val+ " ") + proc_pull);
-
 				if(proc_deflate.hasCompleted()) {
 					X3<DeflateNode, SkeletonNode, TaskAbortException> res = proc_deflate.accept();
 					DeflateNode sw = res._0;
@@ -1383,8 +1356,8 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				if(loop) continue;
 
 				if (proc_val != null && proc_val.hasCompleted()) {
-					X3<Map.Entry<K, V>, DeflateNode, X> res = proc_val.accept();
-					Map.Entry<K, V> en = res._0;
+					X3<Entry<K, V>, DeflateNode, X> res = proc_val.accept();
+					Entry<K, V> en = res._0;
 					DeflateNode sw = res._1;
 					X ex = res._2;
 					if (ex != null) {
@@ -1508,7 +1481,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 				if (notleaf) {
 					Map<Object, Object> subnodes = (Map<Object, Object>) map.get("subnodes");
 					gh = new ArrayList<>(subnodes.size());
-					for (Map.Entry<Object, Object> en: subnodes.entrySet()) {
+					for (Entry<Object, Object> en: subnodes.entrySet()) {
 						Object sObj = en.getValue();
 						int s;
 						if (sObj instanceof String) { // FIXME
@@ -1644,10 +1617,10 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 					return new Iterator<K>() {
 
 						Stack<SkeletonNode> nodestack = new Stack<SkeletonNode>();
-						Stack<Iterator<Map.Entry<K, V>>> itstack = new Stack<Iterator<Map.Entry<K, V>>>();
+						Stack<Iterator<Entry<K, V>>> itstack = new Stack<Iterator<Entry<K, V>>>();
 
 						SkeletonNode cnode = (SkeletonNode)(SkeletonBTreeMap.this.root);
-						Iterator<Map.Entry<K, V>> centit = cnode.entries.entrySet().iterator();
+						Iterator<Entry<K, V>> centit = cnode.entries.entrySet().iterator();
 
 						K lastkey = null;
 						boolean removeok = false;
@@ -1664,7 +1637,7 @@ public class SkeletonBTreeMap<K, V> extends BTreeMap<K, V> implements SkeletonMa
 
 						/*@Override**/ public boolean hasNext() {
 							// TODO LOW ideally iterate in the reverse order
-							for (Iterator<Map.Entry<K, V>> it: itstack) {
+							for (Iterator<Entry<K, V>> it: itstack) {
 								if (it.hasNext()) { return true; }
 							}
 							if (centit.hasNext()) { return true; }

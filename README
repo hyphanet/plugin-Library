@@ -56,3 +56,15 @@ this may change soon :
 <input type="submit" />
 </form>
 
+== Ongoing work to split ==
+
+The plugin is in src, test (for historical reasons).
+
+The uploader is in uploader/src and uploader/test depending on fcp and 
+shared parts.
+
+The shared parts are in shared/src and shared/test. shared means shared
+between the plugin and the uploader.
+
+Plan: These are three separate eclipse project so eclipse will help
+monitoring the dependencies.

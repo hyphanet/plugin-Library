@@ -4,13 +4,7 @@
 package plugins.Library.index.xml;
 
 import plugins.Library.Library;
-import plugins.Library.Index;
-import plugins.Library.index.TermEntry;
-import plugins.Library.index.TermPageEntry;
-import plugins.Library.index.URIEntry;
 import plugins.Library.search.InvalidSearchException;
-import plugins.Library.util.exec.Execution;
-import plugins.Library.util.exec.TaskAbortException;
 
 import freenet.support.Fields;
 import freenet.support.Logger;
@@ -27,7 +21,13 @@ import freenet.client.HighLevelSimpleClient;
 import freenet.client.FetchResult;
 import freenet.node.RequestStarter;
 import freenet.node.RequestClient;
-import freenet.keys.FreenetURI;
+import plugins.Library.index.Index;
+import plugins.Library.index.TermEntry;
+import plugins.Library.index.TermPageEntry;
+import plugins.Library.index.URIEntry;
+import plugins.Library.io.FreenetURI;
+import plugins.Library.util.exec.Execution;
+import plugins.Library.util.exec.TaskAbortException;
 
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Executor;
@@ -234,12 +234,12 @@ public class XMLIndex implements Index, ClientGetCallback {
 		FreenetURI u = new FreenetURI(uri);
 		while (true) {
 			try {
-				rootGetter = hlsc.fetch(u, -1, this, hlsc.getFetchContext().clone());
+				rootGetter = hlsc.fetch(new freenet.keys.FreenetURI(u.toString()), -1, this, hlsc.getFetchContext().clone());
 				Logger.normal(this, "Fetch started : "+toString());
 				break;
 			} catch (FetchException e) {
 				if (e.newURI != null) {
-					u = e.newURI;
+					u = new FreenetURI(e.newURI.toASCIIString());
 					if(logMINOR) Logger.minor(this, "New URI: "+uri);
 					continue;
 				} else

@@ -27,6 +27,7 @@ import java.io.OutputStreamWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
+import java.net.MalformedURLException;
 
 /* class definitions added to the extended Yaml processor */
 import org.yaml.snakeyaml.resolver.Resolver;
@@ -35,7 +36,11 @@ import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermPageEntry;
 import plugins.Library.index.TermIndexEntry;
 import plugins.Library.index.TermTermEntry;
-import freenet.keys.FreenetURI;
+import plugins.Library.index.TermEntry;
+import plugins.Library.index.TermIndexEntry;
+import plugins.Library.index.TermPageEntry;
+import plugins.Library.index.TermTermEntry;
+import plugins.Library.io.serial.Packer;
 
 /**
 * Converts between an object and a stream containing a YAML document. By
@@ -125,7 +130,7 @@ public class YamlReaderWriter implements ObjectStreamReader<Object>, ObjectStrea
 			this.representers.put(FreenetURI.class, new Represent() {
 				@Override
 				public Node representData(Object data) {
-					return representScalar(new Tag("!FreenetURI"), data.toString());
+					return representScalar(new Tag("!plugins.Library.io.FreenetURI"), data.toString());
 				}
 			});
 			this.representers.put(Packer.BinInfo.class, new Represent() {
@@ -163,13 +168,13 @@ public class YamlReaderWriter implements ObjectStreamReader<Object>, ObjectStrea
 	*/
 	public static class ExtendedConstructor extends Constructor {
 		public ExtendedConstructor() {
-			this.yamlConstructors.put(new Tag("!FreenetURI"), new AbstractConstruct() {
+			this.yamlConstructors.put(new Tag("!plugins.Library.io.FreenetURI"), new AbstractConstruct() {
 				@Override
 				public Object construct(Node node) {
 					String uri = constructScalar((ScalarNode) node);
 					try {
 						return new FreenetURI(uri);
-					} catch (java.net.MalformedURLException e) {
+					} catch (MalformedURLException e) {
 						throw new ConstructorException("while constructing a FreenetURI", node.getStartMark(),
 								"found malformed URI " + uri, null);
 					}

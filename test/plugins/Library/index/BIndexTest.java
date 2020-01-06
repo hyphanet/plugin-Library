@@ -7,13 +7,14 @@ import junit.framework.TestCase;
 import static plugins.Library.util.Generators.rand;
 
 import plugins.Library.util.*;
-import plugins.Library.util.func.*;
-import plugins.Library.util.exec.*;
-import plugins.Library.io.serial.*;
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.index.*;
 
-import freenet.keys.FreenetURI;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.SkeletonBTreeMap;
+import plugins.Library.util.SkeletonBTreeSet;
+import plugins.Library.util.TaskAbortExceptionConvertor;
+import plugins.Library.util.exec.Execution;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.func.Closure;
 
 import java.util.*;
 import java.io.*;
@@ -26,7 +27,7 @@ import java.io.*;
 public class BIndexTest extends TestCase {
 
 	// mininum number of entries in a b-tree node.
-	final public static int node_size = 0x04;
+	final public static int node_size = 1024;
 
 	// base number of keys in an index. the final size (after async-update) will be around double this.
 	final public static int index_size = 0x80;
@@ -56,16 +57,16 @@ public class BIndexTest extends TestCase {
 		time = System.currentTimeMillis();
 		return time - oldtime;
 	}
-	
+
 	public BIndexTest() {
 	    f = new File("BindexTest");
 	    f.mkdir();
 	    srl = ProtoIndexSerialiser.forIndex(f);
 	    csrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, srl.getChildSerialiser());
 	}
-	
+
 	private final File f;
-	private final ProtoIndexSerialiser srl; 
+	private final ProtoIndexSerialiser srl;
 	private final ProtoIndexComponentSerialiser csrl;
 	private ProtoIndex idx;
 
@@ -84,7 +85,7 @@ public class BIndexTest extends TestCase {
 
 	protected void newTestSkeleton() {
 		try {
-			idx = new ProtoIndex(new FreenetURI("CHK@yeah"), "test", null, null, 0);
+			idx = new ProtoIndex(new plugins.Library.io.FreenetURI("CHK@yeah"), "test", null, null, 0);
 		} catch (java.net.MalformedURLException e) {
 			assertTrue(false);
 		}
@@ -219,7 +220,7 @@ public class BIndexTest extends TestCase {
 		assertTrue(count == idx.ttab.size());
 		System.out.println("Iterated keys, total is "+count+" size is "+idx.ttab.size());
 		assertTrue(idx.ttab.isBare());
-		
+
 		// full inflate (2)
 		PullTask<ProtoIndex> task5 = new PullTask<ProtoIndex>(task4.meta);
 		srl.pull(task5);
@@ -248,7 +249,6 @@ public class BIndexTest extends TestCase {
 		System.out.println("merge validated in " + timeDiff() + " ms.");
 
 		System.out.println("");
-
 	}
 
 	public void testBasicMulti() throws TaskAbortException {
@@ -302,7 +302,6 @@ public class BIndexTest extends TestCase {
 		assertTrue(idx.ttab.isLive());
 		assertFalse(idx.ttab.isBare());
 		System.out.println("inflated all terms separately in " + timeDiff() + " ms");
-
 	}
 
 	public void testPartialInflateMulti() throws TaskAbortException {
@@ -375,7 +374,5 @@ public class BIndexTest extends TestCase {
 		}
 		assertTrue(count == entries.size());
 		System.out.println(count + " entries successfully got in " + rq1.getTimeElapsed() + "ms");
-
 	}
-
 }

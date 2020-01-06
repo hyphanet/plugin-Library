@@ -3,9 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.index.TermEntry.EntryType;
-
-import freenet.keys.FreenetURI;
+import plugins.Library.io.FreenetURI;
 
 /**
 ** A {@link TermEntry} that associates a subject term with another index.

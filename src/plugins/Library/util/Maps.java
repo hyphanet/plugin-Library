@@ -3,8 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import static plugins.Library.util.Maps.$;
-
 import java.util.Map.Entry; // WORKAROUND javadoc bug #4464323
 import java.util.Map;
 
@@ -18,7 +16,7 @@ final public class Maps {
 	/**
 	** A simple {@link Entry} with no special properties.
 	*/
-	public static class BaseEntry<K, V> implements Map.Entry<K, V> {
+	public static class BaseEntry<K, V> implements Entry<K, V> {
 
 		final public K key;
 		protected V val;
@@ -32,8 +30,9 @@ final public class Maps {
 		@Override public boolean equals(Object o) {
 			if (o == this) { return true; }
 			if (!(o instanceof Map.Entry)) { return false; }
-			Map.Entry en = (Map.Entry)o;
-			return (key == null? en.getKey() == null: key.equals(en.getKey())) && (val == null? en.getValue() == null : val.equals(en.getValue()));
+			Entry en = (Entry)o;
+			return (key == null ? en.getKey() == null : key.equals(en.getKey())) &&
+					(val == null ? en.getValue() == null : val.equals(en.getValue()));
 		}
 
 		@Override public int hashCode() {
@@ -91,28 +90,28 @@ final public class Maps {
 	/**
 	** Returns a new {@link BaseEntry} with the given key and value.
 	*/
-	public static <K, V> Map.Entry<K, V> $(final K k, final V v) {
+	public static <K, V> Entry<K, V> $(final K k, final V v) {
 		return new BaseEntry<K, V>(k, v);
 	}
 
 	/**
 	** Returns a new {@link ImmutableEntry} with the given key and value.
 	*/
-	public static <K, V> Map.Entry<K, V> $$(final K k, final V v) {
+	public static <K, V> Entry<K, V> $$(final K k, final V v) {
 		return new ImmutableEntry<K, V>(k, v);
 	}
 
 	/**
 	** Returns a new {@link KeyEntry} with the given key and value.
 	*/
-	public static <K, V> Map.Entry<K, V> $K(K k, V v) {
+	public static <K, V> Entry<K, V> $K(K k, V v) {
 		return new KeyEntry<K, V>(k, v);
 	}
 
-	public static <K, V> Map<K, V> of(Class<? extends Map> mapcl, Map.Entry<K, V>... items) {
+	public static <K, V> Map<K, V> of(Class<? extends Map> mapcl, Entry<K, V>... items) {
 		try {
 			Map<K, V> map = mapcl.newInstance();
-			for (Map.Entry<K, V> en: items) {
+			for (Entry<K, V> en: items) {
 				map.put(en.getKey(), en.getValue());
 			}
 			return map;

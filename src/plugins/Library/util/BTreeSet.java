@@ -71,6 +71,4 @@ implements Set<E>, SortedSet<E>/*, NavigableSet<E>, Cloneable, Serializable*/ {
 	public E get(int i) {
 		return bkmap.getEntry(i).getKey();
 	}
-
-
 }

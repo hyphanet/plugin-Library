@@ -41,7 +41,7 @@ public class TermResults {
 	** Interdex#getEffectiveRelevance()} when the search is still ongoing.
 	**
 	** TODO this should be a good estimate that is always greater than the
-	** actual value...
+	**  actual value...
 	*/
 	public float getCachedAveragePerceivedRelevance() {
 		return av_pcv_rel_;
@@ -51,6 +51,4 @@ public class TermResults {
 		query_subject = q;
 		subject = s;
 	}
-
-
 }

@@ -81,6 +81,26 @@ abstract public class TermEntry implements Comparable<TermEntry> {
 		return a.compareTo(b);
 	}
 
+    /**
+     * Is this term a part of a key.
+     * 
+     * Spider creates a lot of terms like this. It looks like whenever
+     * it finds a key in the text of a page it creates terms for the parts
+     * of the key. For now, we would like to avoid changing spider and
+     * remove them here instead. This also drops torrent references.
+     *
+     * @return true if likely part of a key.
+     */
+    public boolean toBeDropped() {
+    	if (subj.matches(".*[0-9][^0-9][^0-9][^0-9]*[0-9].*")) {
+    		return true;
+    	}
+    	if (subj.matches(".*[0-9][^0-9][^0-9]*[0-9][0-9]*[^0-9][^0-9]*[0-9].*")) {
+    		return true;
+    	}
+    	return false;
+    }
+
 	/**
 	** {@inheritDoc}
 	**

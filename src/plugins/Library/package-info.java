@@ -10,4 +10,3 @@
 ** @author infinity0
 */
 package plugins.Library;
-

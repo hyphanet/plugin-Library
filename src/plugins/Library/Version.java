@@ -13,5 +13,4 @@ public class Version {
 	public static String vcsRevision() {
 		return vcsRevision;
 	}
-
 }

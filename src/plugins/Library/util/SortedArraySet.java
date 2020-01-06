@@ -3,7 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import freenet.support.Fields; // JDK6: use this instead of Arrays.binarySearch
+// import freenet.support.Fields; // JDK6: use this instead of Arrays.binarySearch
 
 import java.util.Comparator;
 import java.util.Iterator;

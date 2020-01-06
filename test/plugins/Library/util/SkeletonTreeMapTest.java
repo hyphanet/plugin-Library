@@ -3,10 +3,12 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import junit.framework.TestCase;
-
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.UUID;
+
+import plugins.Library.io.serial.MapSerialiser;
+import plugins.Library.util.exec.TaskAbortException;
 
 /**
 ** @author infinity0
@@ -15,10 +17,18 @@ public class SkeletonTreeMapTest extends SortedMapTestSkeleton {
 
 	SkeletonTreeMap<String, Integer> skelmap;
 
+	private static String rndStr() {
+		return UUID.randomUUID().toString();
+	}
+
+	private static String rndKey() {
+		return rndStr().substring(0,8);
+	}
+
 	protected void setUp() {
 		skelmap = new SkeletonTreeMap<String, Integer>();
 		for (int i=0; i<1024; ++i) {
-			skelmap.putGhost(Generators.rndKey(), Boolean.FALSE);
+			skelmap.putGhost(rndKey(), Boolean.FALSE);
 		}
 	}
 
@@ -120,6 +130,80 @@ public class SkeletonTreeMapTest extends SortedMapTestSkeleton {
 		fillSkelMap();
 		for (Integer en: skelmap.values()) {
 			assertTrue(skelmap.values().contains(en));
+		}
+	}
+
+	class SkelMapMapSerializer<T1, T2> implements MapSerialiser<String, Integer> {
+
+		@Override
+		public void pull(Map<String, PullTask<Integer>> tasks, Object mapmeta) throws TaskAbortException {
+			for (Map.Entry<String, PullTask<Integer>> en : tasks.entrySet()) {
+				// Simulate existing contents
+				en.getValue().data = 12;
+			}
+		}
+
+		@Override
+		public void push(Map<String, PushTask<Integer>> tasks, Object mapmeta) throws TaskAbortException {
+			// Simulate storage.
+		}
+
+	}
+
+	public void testInflateAndDeflate() throws TaskAbortException {
+		skelmap.setSerialiser(new SkelMapMapSerializer<String, Integer>());
+		assertFalse(skelmap.isLive());
+		assertTrue(skelmap.isBare());
+		skelmap.inflate();
+		assertTrue(skelmap.isLive());
+		assertFalse(skelmap.isBare());
+		for (Map.Entry<String, Integer> en : skelmap.entrySet()) {
+			assertTrue(skelmap.entrySet().contains(en));
+			assertNotNull(skelmap.get(en.getKey()));
+			assertEquals(skelmap.get(en.getKey()), new Integer(12));
+		}
+
+		assertTrue(skelmap.isLive());
+		assertFalse(skelmap.isBare());
+		skelmap.deflate();
+		assertFalse(skelmap.isLive());
+		assertTrue(skelmap.isBare());
+		for (Map.Entry<String, Integer> en : skelmap.entrySet()) {
+			try {
+				skelmap.entrySet().contains(en);
+			} catch (DataNotLoadedException e) {
+				continue;
+			}
+			fail("Data was loaded for " + en);
+		}
+	}
+
+	public void testSingleInflateAndDeflate() throws TaskAbortException {
+		skelmap.setSerialiser(new SkelMapMapSerializer<String, Integer>());
+		assertFalse(skelmap.isLive());
+		assertTrue(skelmap.isBare());
+		skelmap.inflate(skelmap.firstKey());
+		assertFalse(skelmap.isLive());
+		assertFalse(skelmap.isBare());
+		for (Map.Entry<String, Integer> en : skelmap.entrySet()) {
+			assertTrue(skelmap.entrySet().contains(en));
+			assertNotNull(skelmap.get(en.getKey()));
+			assertEquals(skelmap.get(en.getKey()), new Integer(12));
+			break;
+		}
+
+		assertFalse(skelmap.isLive());
+		assertFalse(skelmap.isBare());
+		skelmap.deflate(skelmap.firstKey());
+		assertFalse(skelmap.isLive());
+		assertTrue(skelmap.isBare());
+		for (Map.Entry<String, Integer> en : skelmap.entrySet()) {
+			try {
+				skelmap.entrySet().contains(en);
+			} catch (DataNotLoadedException e) {
+				continue;
+			}
+			fail("Data was loaded for " + en);
 		}
 	}
 
