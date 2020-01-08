@@ -26,6 +26,14 @@ class IndexPeeker {
 	IndexPeeker(File dir) {
 		directory = dir;
 		String lastCHK = DirectoryUploader.readStringFrom(new File(directory, UploaderPaths.LAST_URL_FILENAME));
+
+		if (lastCHK == null) { // case when the index is created for the first time
+			topTtab = new LinkedHashMap<>();
+			topElements = new HashSet<>();
+			activeSections = new LinkedList<>();
+			return;
+		}
+
 		String rootFilename = directory + "/" + UploaderPaths.LIBRARY_CACHE + "/" + lastCHK;
 		try {
 			LinkedHashMap<String, Object> top = (LinkedHashMap<String, Object>) new YamlReaderWriter().readObject(new FileInputStream(new File(rootFilename)));

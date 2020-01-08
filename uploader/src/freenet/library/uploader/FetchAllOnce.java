@@ -362,7 +362,7 @@ class FetchAllOnce extends AdHocDataReader {
         @Override
         public void receivedSubscribedUSKUpdate(FcpConnection fcpConnection, SubscribedUSKUpdate subscribedUSKUpdate) {
             assert fcpConnection == connection;
-            if (subscribedUSKUpdate.isNewKnownGood() &&
+            if (/*FIXME subscribedUSKUpdate.isNewKnownGood() &&*/
                 subscribedUSKUpdate.getEdition() > edition) {
                 updated = true;
                 try {

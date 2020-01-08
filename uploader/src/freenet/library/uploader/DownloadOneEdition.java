@@ -1266,7 +1266,7 @@ class DownloadOneEdition {
 				} catch (MalformedURLException e) {
 					throw new RuntimeException(e);
 				}
-				if (subscribedUSKUpdate.isNewKnownGood() && !newUri.equals(newUris[0])) {
+				if (/*FIXME subscribedUSKUpdate.isNewKnownGood() &&*/ !newUri.equals(newUris[0])) {
 					newUris[0] = newUri;
 					editions[0] = subscribedUSKUpdate.getEdition();
 					synchronized (subscriber) {

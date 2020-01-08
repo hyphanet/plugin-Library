@@ -299,7 +299,10 @@ class DirectoryUploader implements Runnable {
         assert diskToMerge != null || removeIdxDisk != null;
         if (lastUploadURI == null) {
             try {
-				lastUploadURI = new FreenetURI(readStringFrom(new File(LAST_URL_FILENAME)));
+                String lastURI = readStringFrom(new File(LAST_URL_FILENAME));
+                if (lastURI != null) { // lastURI == null: case when the index is created for the first time
+                    lastUploadURI = new FreenetURI(lastURI);
+                }
 			} catch (MalformedURLException e) {
 				throw new RuntimeException("File contents of " + LAST_URL_FILENAME + " invalid.", e);
 			}
