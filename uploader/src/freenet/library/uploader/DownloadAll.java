@@ -13,7 +13,7 @@ package freenet.library.uploader;
 
 import java.net.MalformedURLException;
 
-import freenet.library.io.FreenetURI;
+import plugins.Library.io.FreenetURI;
 
 /**
  * Class to download the entire index.

@@ -40,7 +40,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import freenet.library.io.FreenetURI;
+import plugins.Library.io.FreenetURI;
+
 import net.pterodactylus.fcp.AllData;
 import net.pterodactylus.fcp.ClientGet;
 import net.pterodactylus.fcp.ClientPut;

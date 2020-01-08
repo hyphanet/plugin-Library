@@ -6,15 +6,14 @@ package freenet.library.uploader;
 import java.io.File;
 import java.security.MessageDigest;
 
-import freenet.library.ArchiverFactory;
-import freenet.library.io.ObjectStreamReader;
-import freenet.library.io.ObjectStreamWriter;
-import freenet.library.io.serial.LiveArchiver;
-import freenet.library.util.exec.SimpleProgress;
+import plugins.Library.ArchiverFactory;
+import plugins.Library.Priority;
+import plugins.Library.io.ObjectStreamReader;
+import plugins.Library.io.ObjectStreamWriter;
+import plugins.Library.io.serial.LiveArchiver;
+import plugins.Library.util.exec.SimpleProgress;
 
 import net.pterodactylus.fcp.FcpConnection;
-
-
 
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces
@@ -46,9 +45,9 @@ final public class UploaderLibrary implements ArchiverFactory {
         }
         return lib;
     }
-        
+
     public static FcpConnection fcpConnection;
-        
+
     public synchronized static void init(FcpConnection connection) {
         fcpConnection = connection;
     }
@@ -87,7 +86,7 @@ final public class UploaderLibrary implements ArchiverFactory {
     public <T, S extends ObjectStreamWriter & ObjectStreamReader> 
                          LiveArchiver<T, SimpleProgress> 
                          newArchiver(S rw, String mime, int size, 
-                                     freenet.library.Priority priorityLevel) {
+                                     Priority priorityLevel) {
     	return new FcpArchiver<T, S>(fcpConnection,
             		new File(UploaderPaths.LIBRARY_CACHE),
             		rw,
@@ -99,7 +98,7 @@ final public class UploaderLibrary implements ArchiverFactory {
                          LiveArchiver<T, SimpleProgress> 
                          newArchiver(S rw, String mime, int size,
                                      LiveArchiver<T, SimpleProgress> archiver) {
-        freenet.library.Priority priorityLevel = freenet.library.Priority.Bulk;
+        Priority priorityLevel = Priority.Bulk;
         /*
         if (archiver != null &&
             archiver isinstance ??) {

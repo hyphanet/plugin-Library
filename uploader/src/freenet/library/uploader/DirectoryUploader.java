@@ -21,21 +21,21 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
-import freenet.library.Priority;
-import freenet.library.index.ProtoIndex;
-import freenet.library.index.ProtoIndexComponentSerialiser;
-import freenet.library.index.ProtoIndexSerialiser;
-import freenet.library.index.TermEntry;
-import freenet.library.io.FreenetURI;
-import freenet.library.io.serial.LiveArchiver;
-import freenet.library.io.serial.Serialiser.PullTask;
-import freenet.library.io.serial.Serialiser.PushTask;
-import freenet.library.util.SkeletonBTreeMap;
-import freenet.library.util.SkeletonBTreeSet;
-import freenet.library.util.TaskAbortExceptionConvertor;
-import freenet.library.util.exec.SimpleProgress;
-import freenet.library.util.exec.TaskAbortException;
-import freenet.library.util.func.Closure;
+import plugins.Library.Priority;
+import plugins.Library.index.ProtoIndex;
+import plugins.Library.index.ProtoIndexComponentSerialiser;
+import plugins.Library.index.ProtoIndexSerialiser;
+import plugins.Library.index.TermEntry;
+import plugins.Library.io.FreenetURI;
+import plugins.Library.io.serial.LiveArchiver;
+import plugins.Library.io.serial.Serialiser.PullTask;
+import plugins.Library.io.serial.Serialiser.PushTask;
+import plugins.Library.util.SkeletonBTreeMap;
+import plugins.Library.util.SkeletonBTreeSet;
+import plugins.Library.util.TaskAbortExceptionConvertor;
+import plugins.Library.util.exec.SimpleProgress;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.func.Closure;
 
 import net.pterodactylus.fcp.ClientPut;
 import net.pterodactylus.fcp.FcpAdapter;
@@ -46,7 +46,7 @@ import net.pterodactylus.fcp.URIGenerated;
 import net.pterodactylus.fcp.UploadFrom;
 
 class DirectoryUploader implements Runnable {
-        
+
     FcpConnection connection;
     File directory;
     boolean forceCreateUSK;
@@ -56,7 +56,7 @@ class DirectoryUploader implements Runnable {
         directory = d;
 	forceCreateUSK = fcu;
     }
-        
+
     public void run() {
     	mergeToFreenet(directory);
     }
@@ -469,7 +469,7 @@ class DirectoryUploader implements Runnable {
     	String insertURI = readFileLine(PRIV_URI_FILENAME);
     	String keyPart = insertURI.substring("freenet:SSK@".length());
     	int lastEdition = Integer.parseInt(readFileLine(EDITION_FILENAME));
-        final ClientPut usk = new ClientPut("USK@" + keyPart + "/" + (lastEdition + 1), 
+        final ClientPut usk = new ClientPut("USK@" + keyPart + "/" + (lastEdition + 1),
         									"USKupload",
         									UploadFrom.redirect);
         usk.setTargetURI(uri.toString());

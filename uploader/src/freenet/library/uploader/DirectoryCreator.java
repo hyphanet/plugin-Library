@@ -8,16 +8,16 @@ import java.net.MalformedURLException;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import freenet.library.index.ProtoIndex;
-import freenet.library.index.ProtoIndexComponentSerialiser;
-import freenet.library.index.ProtoIndexSerialiser;
-import freenet.library.index.TermEntry;
-import freenet.library.io.FreenetURI;
-import freenet.library.io.serial.LiveArchiver;
-import freenet.library.io.serial.Serialiser.PushTask;
-import freenet.library.util.SkeletonBTreeSet;
-import freenet.library.util.exec.SimpleProgress;
-import freenet.library.util.exec.TaskAbortException;
+import plugins.Library.index.ProtoIndex;
+import plugins.Library.index.ProtoIndexComponentSerialiser;
+import plugins.Library.index.ProtoIndexSerialiser;
+import plugins.Library.index.TermEntry;
+import plugins.Library.io.FreenetURI;
+import plugins.Library.io.serial.LiveArchiver;
+import plugins.Library.io.serial.Serialiser.PushTask;
+import plugins.Library.util.SkeletonBTreeSet;
+import plugins.Library.util.exec.SimpleProgress;
+import plugins.Library.util.exec.TaskAbortException;
 
 class DirectoryCreator {
 	private ProtoIndex idxDisk;

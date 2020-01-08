@@ -18,11 +18,11 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
-import net.pterodactylus.fcp.FcpConnection;
+import net.pterodactylus.fcp.FcpConnection; // https://github.com/Bombe/jFCPlib
 
-import freenet.library.FactoryRegister;
-import freenet.library.index.TermEntry;
-import freenet.library.util.exec.TaskAbortException;
+import plugins.Library.FactoryRegister;
+import plugins.Library.index.TermEntry;
+import plugins.Library.util.exec.TaskAbortException;
 
 /**
  * Standalone program to do the merging.

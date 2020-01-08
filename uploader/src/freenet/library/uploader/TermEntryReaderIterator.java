@@ -8,8 +8,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import freenet.library.index.TermEntry;
-import freenet.library.index.TermEntryReaderWriter;
+import plugins.Library.index.TermEntry;
+import plugins.Library.index.TermEntryReaderWriter;
 
 class TermEntryReaderIterator implements Iterable<TermEntry> {
     private DataInputStream is;

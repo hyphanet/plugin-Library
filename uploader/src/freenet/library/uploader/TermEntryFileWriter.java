@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import freenet.library.index.TermEntry;
-import freenet.library.index.TermEntryReaderWriter;
+import plugins.Library.index.TermEntry;
+import plugins.Library.index.TermEntryReaderWriter;
 
 class TermEntryFileWriter {
     private DataOutputStream os;

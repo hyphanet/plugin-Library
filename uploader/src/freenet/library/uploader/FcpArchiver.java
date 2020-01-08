@@ -12,6 +12,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import freenet.support.Base64;
+import freenet.crypt.SHA256;
+
+import plugins.Library.Priority;
+import plugins.Library.io.FreenetURI;
+import plugins.Library.io.ObjectStreamReader;
+import plugins.Library.io.ObjectStreamWriter;
+import plugins.Library.io.serial.LiveArchiver;
+import plugins.Library.util.exec.SimpleProgress;
+import plugins.Library.util.exec.TaskAbortException;
+
 import net.pterodactylus.fcp.ClientPut;
 import net.pterodactylus.fcp.FcpAdapter;
 import net.pterodactylus.fcp.FcpConnection;
@@ -20,19 +31,9 @@ import net.pterodactylus.fcp.PutFetchable;
 import net.pterodactylus.fcp.PutSuccessful;
 import net.pterodactylus.fcp.URIGenerated;
 import net.pterodactylus.fcp.Verbosity;
-import freenet.copied.Base64;
-import freenet.copied.SHA256;
-import freenet.library.Priority;
-import freenet.library.io.FreenetURI;
-import freenet.library.io.ObjectStreamReader;
-import freenet.library.io.ObjectStreamWriter;
-import freenet.library.io.serial.LiveArchiver;
-import freenet.library.util.exec.SimpleProgress;
-import freenet.library.util.exec.TaskAbortException;
-
 
 public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader> 
-		implements LiveArchiver<T, freenet.library.util.exec.SimpleProgress> {
+		implements LiveArchiver<T, plugins.Library.util.exec.SimpleProgress> {
 	private FcpConnection connection;
 	private File cacheDir;
 	private ObjectStreamReader<T> reader;
@@ -72,13 +73,13 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 	}
 
 	@Override
-	public void pull(freenet.library.io.serial.Serialiser.PullTask<T> task)
+	public void pull(plugins.Library.io.serial.Serialiser.PullTask<T> task)
 			throws TaskAbortException {
 		pullLive(task, null);
 	}
 
 	@Override
-	public void push(freenet.library.io.serial.Serialiser.PushTask<T> task)
+	public void push(plugins.Library.io.serial.Serialiser.PushTask<T> task)
 			throws TaskAbortException {
 		pushLive(task, null);
 	}
@@ -88,7 +89,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 	 * that we cannot take over someone else's index. 
 	 */
 	@Override
-	public void pullLive(freenet.library.io.serial.Serialiser.PullTask<T> task,
+	public void pullLive(plugins.Library.io.serial.Serialiser.PullTask<T> task,
 			SimpleProgress progress) throws TaskAbortException {
 		if (cacheDir.exists()) {
 			String cacheKey = null;
@@ -286,7 +287,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 	private static int counter = 1;
 
 	@Override
-	public void pushLive(freenet.library.io.serial.Serialiser.PushTask<T> task,
+	public void pushLive(plugins.Library.io.serial.Serialiser.PushTask<T> task,
 			SimpleProgress progress) throws TaskAbortException {
 		// Slow down the build up of the queue.
 		try {

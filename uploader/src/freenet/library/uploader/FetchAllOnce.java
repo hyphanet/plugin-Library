@@ -41,6 +41,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import plugins.Library.io.FreenetURI;
+import plugins.Library.io.YamlReaderWriter;
+import plugins.Library.io.serial.Packer;
+import plugins.Library.io.serial.Packer.BinInfo;
+
 import net.pterodactylus.fcp.AllData;
 import net.pterodactylus.fcp.ClientGet;
 import net.pterodactylus.fcp.ClientPut;
@@ -54,10 +59,6 @@ import net.pterodactylus.fcp.SubscribeUSK;
 import net.pterodactylus.fcp.SubscribedUSKUpdate;
 import net.pterodactylus.fcp.URIGenerated;
 import net.pterodactylus.fcp.Verbosity;
-import freenet.library.io.FreenetURI;
-import freenet.library.io.YamlReaderWriter;
-import freenet.library.io.serial.Packer;
-import freenet.library.io.serial.Packer.BinInfo;
 
 /**
  * Class to download the entire index.

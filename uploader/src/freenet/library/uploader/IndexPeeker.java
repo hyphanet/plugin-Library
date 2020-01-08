@@ -9,10 +9,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import freenet.library.index.TermEntry;
-import freenet.library.io.YamlReaderWriter;
-import freenet.library.util.SkeletonBTreeMap;
-import freenet.library.util.SkeletonBTreeSet;
+import plugins.Library.index.TermEntry;
+import plugins.Library.io.YamlReaderWriter;
+import plugins.Library.util.SkeletonBTreeMap;
+import plugins.Library.util.SkeletonBTreeSet;
 
 class IndexPeeker {
 	private File directory;
