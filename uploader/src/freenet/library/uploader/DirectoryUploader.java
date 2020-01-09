@@ -471,7 +471,11 @@ class DirectoryUploader implements Runnable {
     private void uploadUSKForFreenetIndex(FreenetURI uri) {
     	String insertURI = readFileLine(PRIV_URI_FILENAME);
     	String keyPart = insertURI.substring("freenet:SSK@".length());
-    	int lastEdition = Integer.parseInt(readFileLine(EDITION_FILENAME));
+        int lastEdition = 0;
+        try {
+            lastEdition = Integer.parseInt(readFileLine(EDITION_FILENAME));
+        } catch (RuntimeException ignore) { } // FileNotFound
+        System.out.println("lastEdition: " + lastEdition);
         final ClientPut usk = new ClientPut("USK@" + keyPart + "/" + (lastEdition + 1),
         									"USKupload",
         									UploadFrom.redirect);
