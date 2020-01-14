@@ -29,6 +29,11 @@ public class FreenetURI implements Cloneable, Serializable {
 	private String contents;
 
 	public FreenetURI(String uri) throws MalformedURLException {
+		if (uri.endsWith("null")) { // FIXME
+			System.out.println("fixed uri in library (ends with 'null'): " + uri);
+			uri = uri.substring(0, uri.length() - 4);
+		}
+
 		contents = uri;
 		if (contents.matches("^[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-" +
 							 "[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-" + 
@@ -140,7 +145,7 @@ public class FreenetURI implements Cloneable, Serializable {
 			for(int i = 0; i < metaStrings.length; i++) {
 				b.append('/').append(URLEncoder.encode(metaStrings[i], "UTF-8"));
 			}
-			
+
 			return new FreenetURI(b.toString());
 		}
 
