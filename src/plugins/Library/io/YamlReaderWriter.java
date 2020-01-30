@@ -36,11 +36,6 @@ import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermPageEntry;
 import plugins.Library.index.TermIndexEntry;
 import plugins.Library.index.TermTermEntry;
-import plugins.Library.index.TermEntry;
-import plugins.Library.index.TermIndexEntry;
-import plugins.Library.index.TermPageEntry;
-import plugins.Library.index.TermTermEntry;
-import plugins.Library.io.serial.Packer;
 
 /**
 * Converts between an object and a stream containing a YAML document. By
@@ -130,7 +125,7 @@ public class YamlReaderWriter implements ObjectStreamReader<Object>, ObjectStrea
 			this.representers.put(FreenetURI.class, new Represent() {
 				@Override
 				public Node representData(Object data) {
-					return representScalar(new Tag("!plugins.Library.io.FreenetURI"), data.toString());
+					return representScalar(new Tag("!FreenetURI"), data.toString());
 				}
 			});
 			this.representers.put(Packer.BinInfo.class, new Represent() {
@@ -168,7 +163,7 @@ public class YamlReaderWriter implements ObjectStreamReader<Object>, ObjectStrea
 	*/
 	public static class ExtendedConstructor extends Constructor {
 		public ExtendedConstructor() {
-			this.yamlConstructors.put(new Tag("!plugins.Library.io.FreenetURI"), new AbstractConstruct() {
+			this.yamlConstructors.put(new Tag("!FreenetURI"), new AbstractConstruct() {
 				@Override
 				public Object construct(Node node) {
 					String uri = constructScalar((ScalarNode) node);

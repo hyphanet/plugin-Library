@@ -3,8 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.Library;
-import plugins.Library.client.FreenetArchiver;
 import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.exec.SimpleProgress;
@@ -19,28 +17,15 @@ import plugins.Library.io.DataFormatException;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
 
 import java.io.File;
-import java.net.MalformedURLException;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import plugins.Library.FactoryRegister;
-import plugins.Library.io.DataFormatException;
 import plugins.Library.io.FreenetURI;
-import plugins.Library.io.YamlReaderWriter;
-import plugins.Library.io.serial.Archiver;
-import plugins.Library.io.serial.FileArchiver;
-import plugins.Library.io.serial.LiveArchiver;
-import plugins.Library.io.serial.Serialiser;
-import plugins.Library.io.serial.Translator;
 import plugins.Library.Priority;
-import plugins.Library.util.SkeletonBTreeMap;
-import plugins.Library.util.SkeletonBTreeSet;
-import plugins.Library.util.exec.SimpleProgress;
-import plugins.Library.util.exec.TaskAbortException;
 
 /**
 ** Serialiser for ProtoIndex
@@ -209,20 +194,16 @@ implements Archiver<ProtoIndex>,
 			if (magic == ProtoIndex.serialVersionUID) {
 				try {
 					// FIXME yet more hacks related to the lack of proper asynchronous FreenetArchiver...
-//<<<<<<< HEAD:src/plugins/Library/index/ProtoIndexSerialiser.java
-//					Object serialFormatUIDObj = map.get("serialFormatUID");
-//					int serialFormatUID;
-//					if (serialFormatUIDObj instanceof String) { // FIXME
-//						serialFormatUID = Integer.parseInt((String) map.get("serialFormatUID"));
-//					} else {
-//						serialFormatUID = (Integer) serialFormatUIDObj;
-//					}
-//					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get(serialFormatUID, subsrl);
-//					FreenetURI reqID = (FreenetURI)map.get("reqID");
-//=======
-					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"), subsrl);
+					Object serialFormatUIDObj = map.get("serialFormatUID");
+					int serialFormatUID;
+					if (serialFormatUIDObj instanceof String) { // FIXME
+						serialFormatUID = Integer.parseInt((String) map.get("serialFormatUID"));
+					} else {
+						serialFormatUID = (Integer) serialFormatUIDObj;
+					}
+					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get(serialFormatUID, subsrl);
+
 					FreenetURI reqID = (FreenetURI) map.get("reqID");
-//>>>>>>> debbiedub/fcp-uploader:shared/src/freenet/library/index/ProtoIndexSerialiser.java
 					String name = (String)map.get("name");
 					String ownerName = (String)map.get("ownerName");
 					String ownerEmail = (String)map.get("ownerEmail");
