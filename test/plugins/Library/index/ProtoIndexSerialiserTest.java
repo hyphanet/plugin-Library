@@ -242,8 +242,8 @@ public class ProtoIndexSerialiserTest extends TestCase {
 				"  entries:\n" +
 				"    adam: !BinInfo {? &id001 !!binary \"abcdef==\" : !!int '1'}\n" +
 				"  subnodes:\n" +
-				"    !plugins.Library.io.FreenetURI 'CHK@123,456,A789': !!int '1234'\n" +
-				"    !plugins.Library.io.FreenetURI 'CHK@456,678,A890': !!int '1235'\n" +
+				"    !FreenetURI 'CHK@123,456,A789': !!int '1234'\n" +
+				"    !FreenetURI 'CHK@456,678,A890': !!int '1235'\n" +
 				"").getBytes();
 		task.data = mockProtoIndex;
 

@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import freenet.support.Base64;
 import freenet.crypt.SHA256;
@@ -45,10 +46,8 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 	 * Before synchronizing on stillRunning, be sure to synchronize
 	 * connection!
 	 */
-	private Map<String, PushAdapter> stillRunning =
-			new HashMap<String, PushAdapter>();
+	private Map<String, PushAdapter> stillRunning = new HashMap<>();
 	private Thread cleanupThread;
-	
 
 	public FcpArchiver(FcpConnection fcpConnection, 
 					   File directory,
@@ -227,6 +226,9 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			progressCompleted = sp.getSucceeded();
 			progressTotal = sp.getTotal();
 			printLeft();
+			synchronized (stillRunning) {
+				stillRunning.notifyAll();
+			}
     	}
 
     	public void receivedURIGenerated(FcpConnection c, URIGenerated uriGenerated) {
@@ -422,7 +424,7 @@ public class FcpArchiver<T,  S extends ObjectStreamWriter & ObjectStreamReader>
 			if (moreJobs) {
 				synchronized (stillRunning) {
 					try {
-						stillRunning.wait();
+						stillRunning.wait(TimeUnit.HOURS.toMillis(1));
 					} catch (InterruptedException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
