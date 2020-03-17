@@ -4,20 +4,24 @@
 <project name="plugins-Library" default="dist" basedir=".">
 	<property name="freenet-cvs-snapshot.location" location="../fred/build/libs/freenet.jar"/>
 	<property name="freenet-ext.location" location="../fred/lib/freenet/freenet-ext.jar"/>
-	<property name="jfcplib.location" location="../jFCPlib/target/jFCPlib-0.1.6.jar"/>
+	<property name="jfcplib.location" location="../jFCPlib/target/jFCPlib-0.1.7-SNAPSHOT.jar"/>
+
 	<property name="source-version" value="1.8"/>
 	<property name="target-version" value="1.8"/>
-	<property name="build" location="build/"/>
+
+	<property name="build" location="build"/>
 	<property name="build-uploader" location="${build}/uploader"/>
+
 	<property name="build-test" location="build-test/"/>
 	<property name="build-test-uploader" location="${build-test}/uploader"/>
-	<property name="run-test" location="run-test/"/>
+	<property name="run-test" location="${build-test}/run"/>
+
 	<property name="tmp" location="tmp/"/>
 	<property name="dist" location="dist/"/>
 	<property name="javadoc" location="javadoc/"/>
 	<property name="junit.location" value="/usr/share/java/junit.jar"/>
 	<property name="packagebase" value="plugins.Library" />
-	<property name="minNodeVersion" value="1239"/>
+	<property name="minNodeVersion" value="1484"/>
 
 	<property name="version.src" value="plugins/Library/Version.java" />
 	<property name="version.build" value="plugins/Library/Version.class" />
@@ -205,39 +209,39 @@
 			<include name="**/*.java"/>
 		</javac>
 
-		<mkdir dir="${build-test-uploader}"/>
-		<javac srcdir="uploader/test/" destdir="${build-test-uploader}" debug="on" optimize="on" source="1.8"
-			   includeantruntime="false">
-			<classpath>
-				<path refid="uploader.path"/>
-				<pathelement path="${build-uploader}"/>
-				<pathelement location="${junit.location}"/>
-			</classpath>
-			<compilerarg value="-Xlint"/>
-			<include name="**/*.java"/>
-		</javac>
+<!--		<mkdir dir="${build-test-uploader}"/>-->
+<!--		<javac srcdir="uploader/test/" destdir="${build-test-uploader}" debug="on" optimize="on" source="1.8"-->
+<!--			   includeantruntime="false">-->
+<!--			<classpath>-->
+<!--				<path refid="uploader.path"/>-->
+<!--				<pathelement path="${build-uploader}"/>-->
+<!--				<pathelement location="${junit.location}"/>-->
+<!--			</classpath>-->
+<!--			<compilerarg value="-Xlint"/>-->
+<!--			<include name="**/*.java"/>-->
+<!--		</javac>-->
 	</target>
 
 	<target name="junit" depends="unit-build" if="junit.present" unless="skip_tests">
-<!--		<delete dir="${run-test}"/>-->
-<!--		<mkdir dir="${run-test}"/>-->
-<!--		<junit printsummary="yes" fork="yes" haltonfailure="yes" dir="${run-test}" showoutput="yes">-->
-<!--			<classpath>-->
-<!--				<path refid="lib.path"/>-->
-<!--				<pathelement path="${build}"/>-->
-<!--				<pathelement path="${build-test}"/>-->
-<!--				<pathelement location="${junit.location}"/>-->
-<!--			</classpath>-->
-<!--			<assertions><enable/></assertions>-->
-<!--			<formatter type="plain" usefile="false"/>-->
-<!--			<batchtest fork="yes">-->
-<!--				<fileset dir="${build-test}">-->
-<!--					<include name="**/*Test.class"/>-->
-<!--				</fileset>-->
-<!--			</batchtest>-->
-<!--			<sysproperty key="benchmark" value="${benchmark}" />-->
-<!--			<sysproperty key="extensiveTesting" value="${extensiveTesting}" />-->
-<!--		</junit>-->
+		<delete dir="${run-test}"/>
+		<mkdir dir="${run-test}"/>
+		<junit printsummary="yes" fork="yes" haltonfailure="yes" dir="${run-test}" showoutput="yes">
+			<classpath>
+				<path refid="lib.path"/>
+				<pathelement path="${build}"/>
+				<pathelement path="${build-test}"/>
+				<pathelement location="${junit.location}"/>
+			</classpath>
+			<assertions><enable/></assertions>
+			<formatter type="plain" usefile="false"/>
+			<batchtest fork="yes">
+				<fileset dir="${build-test}">
+					<include name="**/*Test.class"/>
+				</fileset>
+			</batchtest>
+			<sysproperty key="benchmark" value="${benchmark}" />
+			<sysproperty key="extensiveTesting" value="${extensiveTesting}" />
+		</junit>
 	</target>
 
 	<!-- ================================================== -->
