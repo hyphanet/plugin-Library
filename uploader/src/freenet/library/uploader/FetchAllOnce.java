@@ -19,21 +19,8 @@ import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.MessageFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.Formatter;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
-import java.util.Set;
-import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -41,24 +28,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import net.pterodactylus.fcp.*;
 import plugins.Library.io.FreenetURI;
-import plugins.Library.io.YamlReaderWriter;
-import plugins.Library.io.serial.Packer;
-import plugins.Library.io.serial.Packer.BinInfo;
-
-import net.pterodactylus.fcp.AllData;
-import net.pterodactylus.fcp.ClientGet;
-import net.pterodactylus.fcp.ClientPut;
-import net.pterodactylus.fcp.FcpAdapter;
-import net.pterodactylus.fcp.FcpConnection;
-import net.pterodactylus.fcp.GetFailed;
-import net.pterodactylus.fcp.Priority;
-import net.pterodactylus.fcp.PutFailed;
-import net.pterodactylus.fcp.PutSuccessful;
-import net.pterodactylus.fcp.SubscribeUSK;
-import net.pterodactylus.fcp.SubscribedUSKUpdate;
-import net.pterodactylus.fcp.URIGenerated;
-import net.pterodactylus.fcp.Verbosity;
 
 /**
  * Class to download the entire index.
@@ -67,24 +38,23 @@ class FetchAllOnce extends AdHocDataReader {
     private static final int PARALLEL_JOBS = 10;
     private static final int PARALLEL_UPLOADS = 3;
 
-    /** Logger. */
+    // Logger
     private static final Logger logger = Logger.getLogger(FetchAllOnce.class.getName());
-    
-    public final Map<FetchedPage, GetAdapter> stillRunning = new HashMap<FetchedPage, GetAdapter>();
+
+    public final Map<FetchedPage, GetAdapter> stillRunning = new HashMap<>();
     private FreenetURI uri;
     private FreenetURI newUri;
     private int edition;
     private FcpConnection connection;
     private static int getterCounter = 0;
     private static int uploadCounter = 0;
-    private LinkedBlockingQueue<FetchedPage> objectQueue =
-        new LinkedBlockingQueue<FetchedPage>();
+    private LinkedBlockingQueue<FetchedPage> objectQueue = new LinkedBlockingQueue<>();
     private Thread cleanupThread;
-    private List<FetchedPage> roots = new ArrayList<FetchedPage>();
-    
+    private final List<FetchedPage> roots = new ArrayList<>();
+
     private ExecutorService uploadStarter = null;
     private Map<String, OngoingUpload> ongoingUploads = null;
-            
+
     private int successful = 0;
     private int successfulBlocks = 0;
     private long successfulBytes = 0;
@@ -98,22 +68,20 @@ class FetchAllOnce extends AdHocDataReader {
     private int avoidRecreate = 0;
     private int wrongChkCounterForUpload = 0;
     private int maxObjectQueueSize = 0;
-    
+
     private Random rand = new Random();
     private Date started = new Date();
 
     public FetchAllOnce(FreenetURI u) {
         uri = u;
     }
-    
-    public static class WeakHashSet<T>
-        implements Set<T> {
-        /**
-         * We just use the keys and let all values be TOKEN.
-         */
-        private Map<T, Object> map = new WeakHashMap<T, Object>();
-        private static Object TOKEN = new Object();
-        
+
+    // TODO: move to a separate util class
+    public static class WeakHashSet<T> implements Set<T> {
+        // We just use the keys and let all values be TOKEN.
+        private Map<T, Object> map = new WeakHashMap<>();
+        private static final Object TOKEN = new Object();
+
         @Override
         public boolean add(T arg0) {
             if (map.containsKey(arg0)) {
@@ -208,7 +176,6 @@ class FetchAllOnce extends AdHocDataReader {
         public <T> T[] toArray(T[] arg0) {
             return map.keySet().toArray(arg0);
         }
-        
     }
 
     /**
@@ -221,46 +188,46 @@ class FetchAllOnce extends AdHocDataReader {
          * This is really a Set but there is no WeakSet so we use the keys
          * and let all values be TOKEN.
          */
-        private Set<FetchedPage> parents = Collections.synchronizedSet(new WeakHashSet<FetchedPage>());
-        private Set<FetchedPage> children = Collections.synchronizedSet(new HashSet<FetchedPage>());
-        
+        private Set<FetchedPage> parents = Collections.synchronizedSet(new WeakHashSet<>());
+        private Set<FetchedPage> children = Collections.synchronizedSet(new HashSet<>());
+
         private FreenetURI uri;
         int level;
         private boolean succeeded;
         private boolean failed;
-        
+
         FetchedPage(FreenetURI u) {
             this(u, 0);
         }
-        
+
         FetchedPage(FreenetURI u, int l) {
             uri = u;
             level = l;
         }
-        
+
         void addParent(FetchedPage fp) {
             parents.add(fp);
         }
-        
+
         void addChild(FetchedPage fp) {
             children.add(fp);
         }
-        
+
         FetchedPage newChild(FreenetURI u) {
             FetchedPage child = new FetchedPage(u, level + 1);
             child.addParent(this);
             addChild(child);
             return child;
         }
-        
+
         FreenetURI getURI() {
             return uri;
         }
-        
+
         boolean hasParent() {
             return !parents.isEmpty();
         }
-    
+
         private FetchedPage[] getParents() {
             // Even though parents and children are synchronized we
             // encountered some ConcurrentModificationException when
@@ -275,9 +242,8 @@ class FetchAllOnce extends AdHocDataReader {
         /**
          * fetchedPage is an ancestor, any number of levels, to this
          * page.
-         * 
+         *
          * @param fetchedPage the ancestor to search for.
-         * @return
          */
         public boolean hasParent(FetchedPage fetchedPage) {
             if (parents.contains(fetchedPage)) {
@@ -298,7 +264,7 @@ class FetchAllOnce extends AdHocDataReader {
             }
             return size;
         }
-        
+
         void addPerLevel(Map<Integer, Integer> result) {
             if (!result.containsKey(level)) {
                 result.put(level, 0);
@@ -326,7 +292,7 @@ class FetchAllOnce extends AdHocDataReader {
             }
             return size;
         }
-        
+
         void didFail() {
             failed = true;
         }
@@ -349,11 +315,10 @@ class FetchAllOnce extends AdHocDataReader {
             return null;
         }
     }
-    
+
     private class USKUpdateAdapter extends FcpAdapter {
-        
         private boolean updated = false;
-        private Object subscriber;
+        private final Object subscriber;
 
         public USKUpdateAdapter(Object s) {
             subscriber = s;
@@ -362,8 +327,8 @@ class FetchAllOnce extends AdHocDataReader {
         @Override
         public void receivedSubscribedUSKUpdate(FcpConnection fcpConnection, SubscribedUSKUpdate subscribedUSKUpdate) {
             assert fcpConnection == connection;
-            if (/*FIXME subscribedUSKUpdate.isNewKnownGood() &&*/
-                subscribedUSKUpdate.getEdition() > edition) {
+            if (// FIXME subscribedUSKUpdate.isNewKnownGood() &&
+                    subscribedUSKUpdate.getEdition() > edition) {
                 updated = true;
                 try {
                     newUri = new FreenetURI(subscribedUSKUpdate.getURI());
@@ -376,7 +341,7 @@ class FetchAllOnce extends AdHocDataReader {
                 }
             }
         }
-        
+
         public void restart() {
             if (updated) {
                 updated = false;
@@ -389,9 +354,8 @@ class FetchAllOnce extends AdHocDataReader {
             }
         }
     }
-    
-    
-    class StatisticsAccumulator {
+
+    private class StatisticsAccumulator {
         private int count = 0;
         private int sum = 0;
 
@@ -401,26 +365,27 @@ class FetchAllOnce extends AdHocDataReader {
         }
 
         double getMean() {
-            return 1.0 * sum / count;
+            return (double) sum / count;
         }
-        
+
         public String toString() {
-            return "" + getMean() + " (" + count + ")";
+            return getMean() + " (" + count + ")";
         }
     }
-    
-    private Map<Integer, StatisticsAccumulator> statistics = new HashMap<Integer, StatisticsAccumulator>();
+
+    private Map<Integer, StatisticsAccumulator> statistics = new HashMap<>();
+
     private void addFoundChildren(int level, int foundChildren) {
         if (!statistics.containsKey(level)) {
             statistics.put(level, new StatisticsAccumulator());
         }
         statistics.get(level).addSample(foundChildren);
     }
-    
+
     private double getEstimatedPagesLeft(FetchedPage page) {
         double estimate = 0.0;
         double extra = 0.0;
-        Map<Integer, Integer> pagesPerLevel = new HashMap<Integer, Integer>();
+        Map<Integer, Integer> pagesPerLevel = new HashMap<>();
         page.addPerLevel(pagesPerLevel);
         for (int level = 1; pagesPerLevel.containsKey(level); level++) {
             if (!statistics.containsKey(level)) {
@@ -432,13 +397,12 @@ class FetchAllOnce extends AdHocDataReader {
         }
         return estimate;
     }
-    
 
     private static class OngoingUpload {
         private final Date started = new Date();
         private final FreenetURI freenetURI;
         private final Runnable callback;
-        
+
         public OngoingUpload(FreenetURI fname, Runnable cback) {
             freenetURI = fname;
             callback = cback;
@@ -458,11 +422,11 @@ class FetchAllOnce extends AdHocDataReader {
             final long minutes = seconds / 60;
             final long hours = minutes / 60;
             logger.log(Level.FINE, "Upload completed after {0,number}:{1,number,00}:{2,number,00}.",
-                       new Object[] {
-                           hours,
-                           minutes % 60,
-                           seconds % 60,
-                       });
+                    new Object[]{
+                            hours,
+                            minutes % 60,
+                            seconds % 60,
+                    });
             callback.run();
         }
     }
@@ -493,13 +457,11 @@ class FetchAllOnce extends AdHocDataReader {
                     }
                     ongoingUploadsMessage = " and " + ongoingUploadsSize() + " uploads";
                     if (oldest != null && new Date().getTime() - oldest.getTime() > TimeUnit.HOURS.toMillis(5)) {
-                        ongoingUploadsMessage += new MessageFormat(", oldest from {0,date,long}").format(new Object[] { oldest });
+                        ongoingUploadsMessage += new MessageFormat(", oldest from {0,date,long}").format(new Object[]{oldest});
                     }
-                    ongoingUploadsMessage += ".";
                 }
                 logger.finest("Outstanding " + stillRunning.size() + " ClientGet jobs " +
-                              "(" + completed + "/" + required + "/" + total + ")" +
-                              ongoingUploadsMessage);
+                        "(" + completed + "/" + required + "/" + total + ")" + ongoingUploadsMessage);
             }
         }
     }
@@ -517,13 +479,13 @@ class FetchAllOnce extends AdHocDataReader {
 
         public GetAdapter(FetchedPage u) {
             page = u;
-            getterCounter ++;
+            getterCounter++;
             token = "Getter" + getterCounter;
             waitingLaps = 0;
             getter = new ClientGet(page.getURI().toString(), token);
             getter.setPriority(Priority.prefetch);
             getter.setVerbosity(Verbosity.ALL);
- 
+
             waitForSlot();
             connection.addFcpListener(this);
             try {
@@ -540,6 +502,7 @@ class FetchAllOnce extends AdHocDataReader {
 
         /**
          * Called when nothing has happened for a while with this request.
+         *
          * @param key The page.
          */
         public void hasBeenWaiting(FetchedPage key) {
@@ -559,7 +522,6 @@ class FetchAllOnce extends AdHocDataReader {
             }
         }
 
-        
         private boolean processAnUri(FreenetURI uri) {
             synchronized (roots) {
                 for (FetchedPage root : roots) {
@@ -574,7 +536,7 @@ class FetchAllOnce extends AdHocDataReader {
             objectQueue.offer(page.newChild(uri));
             return true;
         }
-        
+
         @Override
         public void receivedAllData(FcpConnection c, AllData ad) {
             assert c == connection;
@@ -587,57 +549,52 @@ class FetchAllOnce extends AdHocDataReader {
                 maxObjectQueueSize = objectQueueSize;
             }
             logger.entering(GetAdapter.class.toString(),
-                            "receivedAllData",
-                            "receivedAllData for " + token +
+                    "receivedAllData",
+                    "receivedAllData for " + token +
                             " adding to the " + objectQueueSize + " elements in the queue " +
                             "(max " + maxObjectQueueSize + ").");
             page.didSucceed();
             UriProcessor uriProcessor = new UriProcessor() {
-                    @Override
-                    public FreenetURI getURI() {
-                        return page.getURI();
-                    }
+                @Override
+                public FreenetURI getURI() {
+                    return page.getURI();
+                }
 
-		    @Override
-		    public int getLevel() {
-			return page.level;
-		    }
+                @Override
+                public int getLevel() {
+                    return page.level;
+                }
 
-                    @Override
-                    public boolean processUri(FreenetURI uri) {
-                        return processAnUri(uri);
-                    }
+                @Override
+                public boolean processUri(FreenetURI uri) {
+                    return processAnUri(uri);
+                }
 
-		    @Override
-		    public void uriSeen() {
-			uriUrisSeen++;
-		    }
-		    
-		    @Override
-		    public void stringSeen() {
-			stringUrisSeen++;
-		    }
-		    
-		    @Override
-		    public void childrenSeen(int level, int foundChildren) {
-			addFoundChildren(level, foundChildren);
-		    }
-					
-                };
+                @Override
+                public void uriSeen() {
+                    uriUrisSeen++;
+                }
+
+                @Override
+                public void stringSeen() {
+                    stringUrisSeen++;
+                }
+
+                @Override
+                public void childrenSeen(int level, int foundChildren) {
+                    addFoundChildren(level, foundChildren);
+                }
+            };
             final InputStream inputStream = ad.getPayloadInputStream();
             try {
                 readAndProcessYamlData(inputStream, uriProcessor, page.level);
-            } catch (IOException e) {
+            } catch (IOException | ClassCastException e) {
                 logger.log(Level.SEVERE, "Cannot unpack.", e);
                 e.printStackTrace();
                 System.exit(1);
-            } catch (ClassCastException cce) {
-                logger.log(Level.SEVERE, "Cannot unpack.", cce);
-                cce.printStackTrace();
-                System.exit(1);
             } finally {
                 markDone();
-                successful ++;
+                successful++;
                 successfulBlocks += progressCompleted;
                 successfulBytes += ad.getDataLength();
                 showProgress();
@@ -657,23 +614,21 @@ class FetchAllOnce extends AdHocDataReader {
             logger.warning("receivedGetFailed for " + token + " (" + page.getURI() + ").");
             page.didFail();
             markDone();
-            failed ++;
+            failed++;
             showProgress();
-            upload(page, new Runnable() {
-                    public void run() {
-                        objectQueue.offer(page);
-                        recreated ++;
-                    }
-                });
+            upload(page, () -> {
+                objectQueue.offer(page);
+                recreated++;
+            });
         }
-        
+
         /**
          * We have detected that we cannot download a certain CHK.
-         * 
+         * <p>
          * If this CHK is actually cached, lets upload it from
          * the cache in an attempt to repair the index.
-         * 
-         * @param page the URI to upload.
+         *
+         * @param page     the URI to upload.
          * @param callback when the file is successfully uploaded.
          */
         public boolean upload(final FetchedPage page, final Runnable callback) {
@@ -688,150 +643,138 @@ class FetchAllOnce extends AdHocDataReader {
             }
             if (uploadStarter == null) {
                 uploadStarter = Executors.newSingleThreadExecutor();
-                uploadStarter.execute(new Runnable() {
-                        public void run() {
-                            connection.addFcpListener(new FcpAdapter() {
-                                    @Override
-                                    public void receivedURIGenerated(FcpConnection c, URIGenerated uriGenerated) {
-                                        assert c == connection;
-                                        assert uriGenerated != null;
-                                        String identifier = uriGenerated.getIdentifier();
-                                        FreenetURI chk;
-                                        synchronized (ongoingUploads) {
-                                            chk = ongoingUploads.get(identifier).getKey();
-                                        }
-                                        FreenetURI generatedURI;
-                                        try {
-                                            generatedURI = new FreenetURI(uriGenerated.getURI());
-					} catch (MalformedURLException e) {
-					    logger.severe("Were supposed to resurrect " + chk +
-							  " but the URI calculated to " + uriGenerated.getURI() +
-							  " that is not possible to convert to an URI. Will upload anyway.");
-					    wrongChkCounterForUpload++;
-					    return;
-					}
-					if (!generatedURI.equals(chk)) {
-					    logger.severe("Were supposed to resurrect " + chk +
-							  " but the URI calculated to " + uriGenerated.getURI() + ". " +
-							  "Will upload anyway.");
-					    wrongChkCounterForUpload++;
-					} else {
-					    logger.finest("Resurrecting " + chk);
-					}
-				    }
-		                	
-				    @Override
-				    public void receivedPutSuccessful(FcpConnection c, PutSuccessful putSuccessful) {
-					assert c == connection;
-					assert putSuccessful != null;
-					String identifier = putSuccessful.getIdentifier();
-					OngoingUpload ongoingUpload;
-					synchronized (ongoingUploads) {
-					    ongoingUpload = ongoingUploads.get(identifier);
-					}
-					final OngoingUpload foundUpload = ongoingUpload;
-					FreenetURI chk = foundUpload.getKey();
-					FreenetURI generatedURI = null;
-					try {
-					    generatedURI = new FreenetURI(putSuccessful.getURI());
-					} catch (MalformedURLException e) {
-					    logger.severe("Uploaded " + putSuccessful.getURI() +
-							  " that is not possible to convert to an URI.");
-					}
-					if (generatedURI != null) {
-					    if (!generatedURI.equals(chk)) {
-						logger.severe("Uploaded " + putSuccessful.getURI() +
-							      " while supposed to upload " + chk +
-							      ". ");
-					    } else {
-						foundUpload.complete();
-					    }
-					}
-					synchronized (ongoingUploads) {
-					    ongoingUploads.remove(identifier);
-					    ongoingUploads.notifyAll();
-					}
-					synchronized (stillRunning) {
-					    stillRunning.notifyAll();
-					}
-				    };
-		            		
-				    @Override
-				    public void receivedPutFailed(FcpConnection c, PutFailed putFailed) {
-					assert c == connection;
-					assert putFailed != null;
-					String identifier = putFailed.getIdentifier();
-					OngoingUpload ongoingUpload;
-					synchronized (ongoingUploads) {
-					    ongoingUpload = ongoingUploads.get(identifier);
-					}
-					final OngoingUpload foundUpload = ongoingUpload;
-					FreenetURI chk = foundUpload.getKey();
-					logger.severe("Uploaded " + chk + " failed.");
-					failedRecreated++;
-					synchronized (ongoingUploads) {
-					    ongoingUploads.remove(identifier);
-					    ongoingUploads.notifyAll();
-					}
-					synchronized (stillRunning) {
-					    stillRunning.notifyAll();
-					}
-				    }
-		            	});
-            		}
-		    });
-            	ongoingUploads = new HashMap<String, OngoingUpload>();
+                uploadStarter.execute(() -> connection.addFcpListener(new FcpAdapter() {
+                    @Override
+                    public void receivedURIGenerated(FcpConnection c, URIGenerated uriGenerated) {
+                        assert c == connection;
+                        assert uriGenerated != null;
+                        String identifier = uriGenerated.getIdentifier();
+                        FreenetURI chk;
+                        synchronized (ongoingUploads) {
+                            chk = ongoingUploads.get(identifier).getKey();
+                        }
+                        FreenetURI generatedURI;
+                        try {
+                            generatedURI = new FreenetURI(uriGenerated.getURI());
+                        } catch (MalformedURLException e) {
+                            logger.severe("Were supposed to resurrect " + chk +
+                                    " but the URI calculated to " + uriGenerated.getURI() +
+                                    " that is not possible to convert to an URI. Will upload anyway.");
+                            wrongChkCounterForUpload++;
+                            return;
+                        }
+                        if (!generatedURI.equals(chk)) {
+                            logger.severe("Were supposed to resurrect " + chk +
+                                    " but the URI calculated to " + uriGenerated.getURI() + ". " +
+                                    "Will upload anyway.");
+                            wrongChkCounterForUpload++;
+                        } else {
+                            logger.finest("Resurrecting " + chk);
+                        }
+                    }
+
+                    @Override
+                    public void receivedPutSuccessful(FcpConnection c, PutSuccessful putSuccessful) {
+                        assert c == connection;
+                        assert putSuccessful != null;
+                        String identifier = putSuccessful.getIdentifier();
+                        OngoingUpload ongoingUpload;
+                        synchronized (ongoingUploads) {
+                            ongoingUpload = ongoingUploads.get(identifier);
+                        }
+                        final OngoingUpload foundUpload = ongoingUpload;
+                        FreenetURI chk = foundUpload.getKey();
+                        FreenetURI generatedURI = null;
+                        try {
+                            generatedURI = new FreenetURI(putSuccessful.getURI());
+                        } catch (MalformedURLException e) {
+                            logger.severe("Uploaded " + putSuccessful.getURI() +
+                                    " that is not possible to convert to an URI.");
+                        }
+                        if (generatedURI != null) {
+                            if (!generatedURI.equals(chk)) {
+                                logger.severe("Uploaded " + putSuccessful.getURI() +
+                                        " while supposed to upload " + chk + ". ");
+                            } else {
+                                foundUpload.complete();
+                            }
+                        }
+                        synchronized (ongoingUploads) {
+                            ongoingUploads.remove(identifier);
+                            ongoingUploads.notifyAll();
+                        }
+                        synchronized (stillRunning) {
+                            stillRunning.notifyAll();
+                        }
+                    }
+
+                    @Override
+                    public void receivedPutFailed(FcpConnection c, PutFailed putFailed) {
+                        assert c == connection;
+                        assert putFailed != null;
+                        String identifier = putFailed.getIdentifier();
+                        OngoingUpload ongoingUpload;
+                        synchronized (ongoingUploads) {
+                            ongoingUpload = ongoingUploads.get(identifier);
+                        }
+                        final OngoingUpload foundUpload = ongoingUpload;
+                        FreenetURI chk = foundUpload.getKey();
+                        logger.severe("Uploaded " + chk + " failed.");
+                        failedRecreated++;
+                        synchronized (ongoingUploads) {
+                            ongoingUploads.remove(identifier);
+                            ongoingUploads.notifyAll();
+                        }
+                        synchronized (stillRunning) {
+                            stillRunning.notifyAll();
+                        }
+                    }
+                }));
+                ongoingUploads = new HashMap<>();
             }
             uploadsStarted++;
-            uploadStarter.execute(new Runnable() {
-		    public void run() {
-			if (!page.hasParent()) {
-			    avoidRecreate++;
-			    return;
-			}
-			uploadCounter++;
-			final String identifier = "Upload" + uploadCounter;
-			synchronized (ongoingUploads) {
-			    ongoingUploads.put(identifier, new OngoingUpload(page.getURI(), callback));
-			    ongoingUploads.notifyAll();
-			}
-			final ClientPut putter = new ClientPut("CHK@", identifier);
-			putter.setEarlyEncode(true);
-			putter.setPriority(net.pterodactylus.fcp.Priority.bulkSplitfile);
-			putter.setVerbosity(Verbosity.NONE);
-			final long dataLength = file.length();
-			putter.setDataLength(dataLength);
-			FileInputStream in;
-			try {
-			    in = new FileInputStream(file);
-			    putter.setPayloadInputStream(in);
-			    connection.sendMessage(putter);
-			    in.close();
-			    in = null;
-			} catch (IOException | NullPointerException e) {
-			    e.printStackTrace();
-			    logger.warning("Upload failed for " + file);
-			}
-			while (true) {
-			    synchronized (ongoingUploads) {
-				if (ongoingUploads.size() < PARALLEL_UPLOADS) {
-				    break;
-				}
-				try {
-				    ongoingUploads.wait(TimeUnit.SECONDS.toMillis(3));
-				} catch (InterruptedException e) {
-				    throw new RuntimeException("Waiting for upload slot terminated.");
-				}
-			    }
-			}
-		    }
-		});
+            uploadStarter.execute(() -> {
+                if (!page.hasParent()) {
+                    avoidRecreate++;
+                    return;
+                }
+                uploadCounter++;
+                final String identifier = "Upload" + uploadCounter;
+                synchronized (ongoingUploads) {
+                    ongoingUploads.put(identifier, new OngoingUpload(page.getURI(), callback));
+                    ongoingUploads.notifyAll();
+                }
+                final ClientPut putter = new ClientPut("CHK@", identifier);
+                putter.setEarlyEncode(true);
+                putter.setPriority(Priority.bulkSplitfile);
+                putter.setVerbosity(Verbosity.NONE);
+                final long dataLength = file.length();
+                putter.setDataLength(dataLength);
+                try (FileInputStream in = new FileInputStream(file)) {
+                    putter.setPayloadInputStream(in);
+                    connection.sendMessage(putter);
+                } catch (IOException | NullPointerException e) {
+                    e.printStackTrace();
+                    logger.warning("Upload failed for " + file);
+                }
+                while (true) {
+                    synchronized (ongoingUploads) {
+                        if (ongoingUploads.size() < PARALLEL_UPLOADS) {
+                            break;
+                        }
+                        try {
+                            ongoingUploads.wait(TimeUnit.SECONDS.toMillis(3));
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException("Waiting for upload slot terminated.");
+                        }
+                    }
+                }
+            });
             return true;
         }
 
         @Override
-        public void receivedSimpleProgress(FcpConnection c,
-					   net.pterodactylus.fcp.SimpleProgress sp) {
+        public void receivedSimpleProgress(FcpConnection c, SimpleProgress sp) {
             assert c == connection;
             assert sp != null;
             if (!token.equals(sp.getIdentifier())) {
@@ -842,26 +785,24 @@ class FetchAllOnce extends AdHocDataReader {
             progressCompleted = sp.getSucceeded();
             printLeft();
         }
-        
 
         private void markDone() {
             done = true;
             synchronized (this) {
                 this.notifyAll();
             }
-            // Signal to the cleanup thread:
+
             synchronized (stillRunning) {
-                stillRunning.notifyAll();
+                stillRunning.notifyAll(); // Signal to the cleanup thread
             }
         }
-        
+
         private void forgetAboutThis() {
             assert done;
             connection.removeFcpListener(this);
             synchronized (stillRunning) {
                 stillRunning.remove(page);
-                // Signal to the 
-                stillRunning.notifyAll();
+                stillRunning.notifyAll(); // Signal to the cleanup thread
                 printLeft();
             }
         }
@@ -869,38 +810,33 @@ class FetchAllOnce extends AdHocDataReader {
         boolean isDone() {
             return done;
         }
-    };
+    }
 
     private int uploadsWaiting() {
-	return uploadsStarted - uploadCounter - avoidRecreate;
+        return uploadsStarted - uploadCounter - avoidRecreate;
     }
 
     private void ageRunning() {
-	final HashSet<Entry<FetchedPage, GetAdapter>> stillRunningCopy;
-	synchronized (stillRunning) {
-	    stillRunningCopy = new HashSet<Entry<FetchedPage, GetAdapter>>(stillRunning.entrySet());
-	}
-	for (Entry<FetchedPage, GetAdapter> entry : stillRunningCopy) {
-	    entry.getValue().hasBeenWaiting(entry.getKey());
-	}
+        final HashSet<Entry<FetchedPage, GetAdapter>> stillRunningCopy;
+        synchronized (stillRunning) {
+            stillRunningCopy = new HashSet<>(stillRunning.entrySet());
+        }
+        for (Entry<FetchedPage, GetAdapter> entry : stillRunningCopy) {
+            entry.getValue().hasBeenWaiting(entry.getKey());
+        }
     }
 
     public void doDownload() {
-        FcpSession session;
+        FcpSession session = null;
         try {
             session = new FcpSession("DownloaderFor" + uri);
-        } catch (IllegalStateException | IOException e1) {
-            e1.printStackTrace();
-            return;
-        }
-        try {
             connection = session.getConnection();
             if (connection == null) {
                 throw new IllegalArgumentException("No connection.");
             }
             final SubscribeUSK subscriber = new SubscribeUSK(uri + "-1", "USK");
             subscriber.setActive(true);
-    
+
             final USKUpdateAdapter subscriberListener = new USKUpdateAdapter(subscriber);
             connection.addFcpListener(subscriberListener);
 
@@ -915,16 +851,14 @@ class FetchAllOnce extends AdHocDataReader {
                 }
             }
             subscriberListener.restart();
-            
+
             boolean moreJobs = false;
             do {
                 if (moreJobs) {
                     synchronized (stillRunning) {
                         try {
-                            logger.fine("Queue empty. " +
-					"Still running " +
-					stillRunning.size() + ".");
-                            stillRunning.wait(20000);
+                            logger.fine("Queue empty. Still running " + stillRunning.size());
+                            stillRunning.wait(20_000);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                             System.exit(1);
@@ -932,14 +866,16 @@ class FetchAllOnce extends AdHocDataReader {
                     }
                 }
 
-                boolean empty = true;
+                boolean empty;
                 do {
                     ageRunning();
                     synchronized (roots) {
                         final int roots_size = roots.size();
-			if (roots_size > 1) {
-			    int roots_distance = roots_size - 1;
-                            if (roots.get(1).getTreeSizeSucceeded() >= roots.get(0).getTreeSizeSucceeded() - roots_distance * roots_distance * roots_distance) {
+                        if (roots_size > 1) {
+                            int roots_distance = roots_size - 1;
+                            if (roots.get(1).getTreeSizeSucceeded() >=
+                                    roots.get(0).getTreeSizeSucceeded()
+                                            - roots_distance * roots_distance * roots_distance) {
                                 roots.remove(0);
                             }
                         }
@@ -947,7 +883,7 @@ class FetchAllOnce extends AdHocDataReader {
 
                     FetchedPage lastRoot;
                     synchronized (roots) {
-                    	lastRoot = roots.get(roots.size() - 1);
+                        lastRoot = roots.get(roots.size() - 1);
                     }
 
                     // Randomize the order by rotating the queue
@@ -960,21 +896,20 @@ class FetchAllOnce extends AdHocDataReader {
                     int counted = 0;
 
                     while (!objectQueue.isEmpty()) {
-                    	FetchedPage taken;
-                    	try {
-			    taken = objectQueue.take();
-                    	} catch (InterruptedException e) {
-			    e.printStackTrace();
-			    System.exit(1);
-			    continue;
-                    	}
+                        FetchedPage taken;
+                        try {
+                            taken = objectQueue.take();
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                            System.exit(1);
+                            continue;
+                        }
                         if (!taken.hasParent()) {
                             logger.finer("Avoid fetching " + taken.getURI());
-                            taken = null;
                             avoidFetching++;
                             continue;
                         }
-                        
+
                         counted += taken.level * taken.level * taken.level;
                         if (counted < toRotate) {
                             rotated++;
@@ -982,13 +917,13 @@ class FetchAllOnce extends AdHocDataReader {
                             continue;
                         }
 
-			if (!taken.hasParent(lastRoot) && rand.nextInt(100) > 0) {
+                        if (!taken.hasParent(lastRoot) && rand.nextInt(100) > 0) {
                             logger.finer("Defer fetching non-last " + taken.getURI());
-			    objectQueue.offer(taken);
-			    continue;
-			}
+                            objectQueue.offer(taken);
+                            continue;
+                        }
 
-			logger.finest("Rotated " + rotated + " (count to " + toRotate + ").");
+                        logger.finest("Rotated " + rotated + " (count to " + toRotate + ").");
                         new GetAdapter(taken);
                         break;
                     }
@@ -999,61 +934,67 @@ class FetchAllOnce extends AdHocDataReader {
                     moreJobs = !stillRunning.isEmpty();
                 }
             } while (moreJobs);
+
             if (uploadStarter != null) {
-            	uploadStarter.shutdown();
-            	try {
-		    uploadStarter.awaitTermination(1, TimeUnit.HOURS);
-		} catch (InterruptedException e) {
-		    e.printStackTrace();
-		}
+                uploadStarter.shutdown();
+                try {
+                    uploadStarter.awaitTermination(1, TimeUnit.HOURS);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
             }
             connection.removeFcpListener(subscriberListener);
+        } catch (IllegalStateException | IOException e) {
+            e.printStackTrace();
+            return;
         } finally {
             removeCleanupThread();
-            session.close();
+            if (session != null) {
+                session.close();
+            }
             connection = null;
         }
         showProgress();
     }
 
-
     private void showProgress() {
-    	String recreatedMessage = "";
-    	if (recreated > 0) {
-	    recreatedMessage = " Recreated: " + recreated;
-    	}
-    	if (failedRecreated > 0) {
-	    recreatedMessage += " Recreation failed: " + failedRecreated;
-    	}
-    	if (avoidRecreate > 0) {
-	    recreatedMessage += " Recreation avoided: " + avoidRecreate;
-    	}
-    	String urisSeenMessage = "";
-    	if (uriUrisSeen > 0 || stringUrisSeen > 0) {
-	    urisSeenMessage = " StringUrisSeen: " + stringUrisSeen + "/" + (uriUrisSeen + stringUrisSeen);
-	    urisSeenMessage += new Formatter().format(" (%.1f%%)", 100.0 * stringUrisSeen / (uriUrisSeen + stringUrisSeen));
-    	}
-    	String wrongChkCounterForUploadMessage = "";
-    	if (wrongChkCounterForUpload > 0) {
-	    wrongChkCounterForUploadMessage = " WrongChkUploaded: " + wrongChkCounterForUpload;
-    	}
-        logger.fine("Fetches: Successful: " + successful + 
-		    " blocks: " + successfulBlocks +
-		    " bytes: " + successfulBytes +
-		    " Failed: " + failed +
-		    urisSeenMessage +
-		    recreatedMessage +
-		    wrongChkCounterForUploadMessage +
-		    " Avoided: " + avoidFetching + ".");
+        String recreatedMessage = "";
+        if (recreated > 0) {
+            recreatedMessage = " Recreated: " + recreated;
+        }
+        if (failedRecreated > 0) {
+            recreatedMessage += " Recreation failed: " + failedRecreated;
+        }
+        if (avoidRecreate > 0) {
+            recreatedMessage += " Recreation avoided: " + avoidRecreate;
+        }
+        String urisSeenMessage = "";
+        if (uriUrisSeen > 0 || stringUrisSeen > 0) {
+            urisSeenMessage = " StringUrisSeen: " + stringUrisSeen + "/" + (uriUrisSeen + stringUrisSeen);
+            urisSeenMessage += new Formatter().format(" (%.1f%%)", 100.0 * stringUrisSeen / (uriUrisSeen + stringUrisSeen));
+        }
+
+        String wrongChkCounterForUploadMessage = "";
+        if (wrongChkCounterForUpload > 0) {
+            wrongChkCounterForUploadMessage = " WrongChkUploaded: " + wrongChkCounterForUpload;
+        }
+        logger.fine("Fetches: Successful: " + successful +
+                " blocks: " + successfulBlocks +
+                " bytes: " + successfulBytes +
+                " Failed: " + failed +
+                urisSeenMessage +
+                recreatedMessage +
+                wrongChkCounterForUploadMessage +
+                " Avoided: " + avoidFetching);
 
         StringBuilder sb = new StringBuilder();
         List<FetchedPage> copiedRoots;
         synchronized (roots) {
-            copiedRoots = new ArrayList<FetchedPage>(roots);
+            copiedRoots = new ArrayList<>(roots);
         }
         Collections.reverse(copiedRoots);
         boolean first = true;
-	for (FetchedPage root : copiedRoots) {
+        for (FetchedPage root : copiedRoots) {
             if (sb.length() > 0) {
                 sb.append(", ");
             }
@@ -1062,23 +1003,23 @@ class FetchAllOnce extends AdHocDataReader {
             int succeeded = root.getTreeSizeSucceeded();
             int failed = root.getTreeSizeFailed();
             if (failed > 0) {
-            	sb.append(new Formatter().format(" FAILED: %.1f%%.", 100.0 * failed / (failed + succeeded)));
+                sb.append(new Formatter().format(" FAILED: %.1f%%.", 100.0 * failed / (failed + succeeded)));
             }
             double estimate = getEstimatedPagesLeft(root);
             if (estimate < Double.POSITIVE_INFINITY) {
                 final double fractionDone = 1.0 * succeeded / (estimate + succeeded);
-		sb.append(new Formatter().format(" Fetched: %.1f%%.",
-						 100.0 * fractionDone));
-		if (first) {
-		    logger.log(Level.FINER, "ETA: {0,date}, Started: {1,date}. Done {2,number,percent}.",
-			       new Object[] {
-				   new Date(new Double(1.0 / fractionDone * (new Date().getTime() - started.getTime())).longValue() +
-					    started.getTime()),
-				   started,
-				   fractionDone,
-			       });
-		    first = false;
-		}
+                sb.append(new Formatter().format(" Fetched: %.1f%%.",
+                        100.0 * fractionDone));
+                if (first) {
+                    logger.log(Level.FINER, "ETA: {0,date}, Started: {1,date}. Done {2,number,percent}.",
+                            new Object[]{
+                                    new Date(new Double(1.0 / fractionDone * (new Date().getTime() - started.getTime())).longValue()
+                                            + started.getTime()),
+                                    started,
+                                    fractionDone,
+                            });
+                    first = false;
+                }
             }
             sb.append(" (");
             sb.append(succeeded);
@@ -1088,7 +1029,7 @@ class FetchAllOnce extends AdHocDataReader {
                 sb.append(failed);
                 sb.append(" failed");
             }
-            
+
             sb.append(")");
         }
 
@@ -1101,99 +1042,102 @@ class FetchAllOnce extends AdHocDataReader {
      *    The CHK/filename is of the top file (in library.index.lastpushed.chk).
      */
     public void doMove() {
-    	int count = 0;
-    	File toDirectory = new File("../" + UploaderPaths.LIBRARY_CACHE + ".new2");
-    	if (!toDirectory.mkdir()) {
-	    System.err.println("Could not create the directory " + toDirectory);
-	    System.exit(1);
-    	}
-    	final FetchedPage fetchedPage = new FetchedPage(uri);
-	roots.add(fetchedPage);
-	objectQueue.add(fetchedPage);
-	while (objectQueue.size() > 0) {
-	    FetchedPage page;
-	    try {
-		page = objectQueue.take();
-	    } catch (InterruptedException e1) {
-		// TODO Auto-generated catch block
-		e1.printStackTrace();
-		System.exit(1);
-		return;
-	    }
-	    final FetchedPage finalPage = page;
-	    FileInputStream inputStream;
-	    try {
-		Files.createLink(Paths.get(toDirectory.getPath(), page.uri.toString()), Paths.get(page.uri.toString()));
-		inputStream = new FileInputStream(page.uri.toString());
-		count++;
-		System.out.println("Read file " + count + " in " + page.uri + " level " + page.level + " left: " + objectQueue.size());
-	    } catch (IOException e) {
-		System.out.println("Cannot find file " + page.uri);
-		e.printStackTrace();
-		System.exit(1);
-		return;
-	    }
-	    try {
-		readAndProcessYamlData(inputStream,
-				       new UriProcessor() {
-					   @Override
-					   public FreenetURI getURI() {
-					       return finalPage.getURI();
-					   }
+        int count = 0;
+        File toDirectory = new File("../" + UploaderPaths.LIBRARY_CACHE + ".new2");
+        if (!toDirectory.mkdir()) {
+            System.err.println("Could not create the directory " + toDirectory);
+            System.exit(1);
+        }
+        final FetchedPage fetchedPage = new FetchedPage(uri);
+        roots.add(fetchedPage);
+        objectQueue.add(fetchedPage);
+        while (objectQueue.size() > 0) {
+            FetchedPage page;
+            try {
+                page = objectQueue.take();
+            } catch (InterruptedException e) { // TODO Auto-generated catch block
+                e.printStackTrace();
+                System.exit(1);
+                return;
+            }
+            final FetchedPage finalPage = page;
+            FileInputStream inputStream;
+            try {
+                Files.createLink(Paths.get(toDirectory.getPath(), page.uri.toString()), Paths.get(page.uri.toString()));
+                inputStream = new FileInputStream(page.uri.toString());
+                count++;
+                System.out.println("Read file " + count + " in " + page.uri + " level " + page.level + " left: " + objectQueue.size());
+            } catch (IOException e) {
+                System.out.println("Cannot find file " + page.uri);
+                e.printStackTrace();
+                System.exit(1);
+                return;
+            }
+            try {
+                readAndProcessYamlData(inputStream,
+                        new UriProcessor() {
+                            @Override
+                            public FreenetURI getURI() {
+                                return finalPage.getURI();
+                            }
 
-					   @Override
-					   public int getLevel() {
-					       return 1;
-					   }
+                            @Override
+                            public int getLevel() {
+                                return 1;
+                            }
 
-					   Set<FreenetURI> seen = new HashSet<FreenetURI>();
-					   @Override
-					   public boolean processUri(FreenetURI uri) {
-					       if (seen.contains(uri)) {
-						   return false;
-					       }
-					       seen.add(uri);
-					       objectQueue.offer(finalPage.newChild(uri));
-					       return true;
-					   }
+                            Set<FreenetURI> seen = new HashSet<>();
 
-					   @Override
-					   public void uriSeen() {}
+                            @Override
+                            public boolean processUri(FreenetURI uri) {
+                                if (seen.contains(uri)) {
+                                    return false;
+                                }
+                                seen.add(uri);
+                                objectQueue.offer(finalPage.newChild(uri));
+                                return true;
+                            }
 
-					   @Override
-					   public void stringSeen() {}
-					
-					   @Override
-					   public void childrenSeen(int level, int foundChildren) {}
-					
-				       }, page.level);
-	    } catch (IOException e) {
-		System.out.println("Cannot read file " + page.uri);
-		e.printStackTrace();
-		System.exit(1);
-		return;
-	    }
-			
-	}
+                            @Override
+                            public void uriSeen() {
+                            }
+
+                            @Override
+                            public void stringSeen() {
+                            }
+
+                            @Override
+                            public void childrenSeen(int level, int foundChildren) {
+                            }
+
+                        }, page.level);
+            } catch (IOException e) {
+                System.out.println("Cannot read file " + page.uri);
+                e.printStackTrace();
+                System.exit(1);
+                return;
+            }
+
+        }
     }
-    
-    private int ongoingUploadsSize() {
-    	if (ongoingUploads == null) {
-	    return 0;
-    	}
 
-    	synchronized (ongoingUploads) {
-	    return ongoingUploads.size();
-    	}
+    private int ongoingUploadsSize() {
+        if (ongoingUploads == null) {
+            return 0;
+        }
+
+        synchronized (ongoingUploads) {
+            return ongoingUploads.size();
+        }
     }
 
     public void waitForSlot() {
         startCleanupThread();
         synchronized (stillRunning) {
             try {
-            	for (int i = 0; i < uploadsWaiting() + ongoingUploadsSize() + stillRunning.size(); i++) {
-		    stillRunning.wait(TimeUnit.SECONDS.toMillis(1 + uploadsWaiting() + uploadsWaiting()));
-            	}
+                for (int i = 0; i < uploadsWaiting() + ongoingUploadsSize() + stillRunning.size(); i++) {
+                    stillRunning.wait(TimeUnit.SECONDS.toMillis(1 + uploadsWaiting() + uploadsWaiting()));
+                }
                 while (stillRunning.size() >= PARALLEL_JOBS) {
                     stillRunning.wait(1 + TimeUnit.MINUTES.toMillis(2));
                 }
@@ -1206,48 +1150,44 @@ class FetchAllOnce extends AdHocDataReader {
 
     private synchronized void startCleanupThread() {
         if (cleanupThread == null) {
-            cleanupThread = new Thread(
-				       new Runnable() {
-					   public void run () {
-					       boolean moreJobs = false;
-					       do {
-						   if (moreJobs) {
-						       synchronized (stillRunning) {
-							   try {
-							       stillRunning.wait(1234567);
-							   } catch (InterruptedException e) {
-							       e.printStackTrace();
-							       System.exit(1);
-							   }
-						       }
-						       Set<GetAdapter> copy;
-						       synchronized (stillRunning) {
-							   copy = new HashSet<GetAdapter>(stillRunning.values());
-						       }
-						       for (GetAdapter ga : copy) {
-							   if (ga.isDone()) {
-							       ga.forgetAboutThis();
-							   }
-						       }
-						   }
-						   synchronized (stillRunning) {
-						       moreJobs = !stillRunning.isEmpty();
-						   }
-					       } while (moreJobs);
-					       removeCleanupThread();
-					   }
-				       }
-				       );
+            cleanupThread = new Thread(() -> {
+                boolean moreJobs = false;
+                do {
+                    if (moreJobs) {
+                        synchronized (stillRunning) {
+                            try {
+                                stillRunning.wait(1_234_567);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                                System.exit(1);
+                            }
+                        }
+                        Set<GetAdapter> copy;
+                        synchronized (stillRunning) {
+                            copy = new HashSet<>(stillRunning.values());
+                        }
+                        for (GetAdapter ga : copy) {
+                            if (ga.isDone()) {
+                                ga.forgetAboutThis();
+                            }
+                        }
+                    }
+                    synchronized (stillRunning) {
+                        moreJobs = !stillRunning.isEmpty();
+                    }
+                } while (moreJobs);
+                removeCleanupThread();
+            });
             cleanupThread.start();
         }
     }
-    
+
     private synchronized void removeCleanupThread() {
         cleanupThread = null;
 
         Set<GetAdapter> copy;
         synchronized (stillRunning) {
-            copy = new HashSet<GetAdapter>(stillRunning.values());
+            copy = new HashSet<>(stillRunning.values());
         }
         for (GetAdapter ga : copy) {
             ga.markDone();
