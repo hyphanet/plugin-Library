@@ -38,7 +38,6 @@ class FetchAllOnce extends AdHocDataReader {
     private static final int PARALLEL_JOBS = 10;
     private static final int PARALLEL_UPLOADS = 3;
 
-    // Logger
     private static final Logger logger = Logger.getLogger(FetchAllOnce.class.getName());
 
     public final Map<FetchedPage, GetAdapter> stillRunning = new HashMap<>();
@@ -634,6 +633,7 @@ class FetchAllOnce extends AdHocDataReader {
         public boolean upload(final FetchedPage page, final Runnable callback) {
             final File dir = new File(".", UploaderPaths.LIBRARY_CACHE);
             if (!dir.canRead()) {
+                logger.warning("Cannot find cache dir");
                 return false;
             }
             final File file = new File(dir, page.getURI().toString());
@@ -842,6 +842,9 @@ class FetchAllOnce extends AdHocDataReader {
 
             synchronized (subscriber) {
                 try {
+                    // NOTE: The response/callback will be only after changing the version of the index.
+                    //  If it need to start the process on a known version, restart Fred so that
+                    //  FCP will forget about known version.
                     connection.sendMessage(subscriber);
                     subscriber.wait();
                 } catch (InterruptedException e) {
