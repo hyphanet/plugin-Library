@@ -63,3 +63,7 @@ this may change soon :
 The plugin is in src, test (for historical reasons).
 
 The uploader (standalone program) is in uploader/src and uploader/test depending on fcp and plugin.
+
+### Restore
+
+`java -cp ./uploader.jar freenet.library.uploader.DownloadAll USK@4bc...AAE/index.yml/`
