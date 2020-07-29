@@ -13,20 +13,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import plugins.Library.client.FreenetArchiver;
-import plugins.Library.index.ProtoIndex;
-import plugins.Library.index.ProtoIndexSerialiser;
 import plugins.Library.index.xml.URLUpdateHook;
 import plugins.Library.index.xml.XMLIndex;
-import plugins.Library.io.ObjectStreamReader;
-import plugins.Library.io.ObjectStreamWriter;
-import plugins.Library.io.serial.Serialiser.PullTask;
 import plugins.Library.search.InvalidSearchException;
-import plugins.Library.util.exec.TaskAbortException;
 
 import freenet.client.FetchContext;
 import freenet.client.FetchException;
@@ -46,6 +41,18 @@ import freenet.client.events.ClientEventListener;
 import freenet.client.events.ExpectedMIMEEvent;
 import freenet.keys.FreenetURI;
 import freenet.keys.USK;
+import plugins.Library.ArchiverFactory;
+import plugins.Library.FactoryRegister;
+import plugins.Library.index.Index;
+import plugins.Library.index.ProtoIndex;
+import plugins.Library.index.ProtoIndexSerialiser;
+import plugins.Library.io.ObjectStreamReader;
+import plugins.Library.io.ObjectStreamWriter;
+import plugins.Library.io.serial.LiveArchiver;
+import plugins.Library.io.serial.Serialiser.PullTask;
+import plugins.Library.Priority;
+import plugins.Library.util.exec.SimpleProgress;
+import plugins.Library.util.exec.TaskAbortException;
 import freenet.node.NodeClientCore;
 import freenet.node.RequestClient;
 import freenet.node.RequestStarter;
@@ -55,18 +62,19 @@ import freenet.support.Executor;
 import freenet.support.Logger;
 import freenet.support.io.FileUtil;
 
-
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces
  * @author MikeB
  */
-final public class Library implements URLUpdateHook {
+final public class Library implements URLUpdateHook, ArchiverFactory {
 
 	public static final String BOOKMARK_PREFIX = "bookmark:";
 	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "liberty-of-information" + " " + BOOKMARK_PREFIX + "free-market-free-people" + " " +
 	    BOOKMARK_PREFIX + "gotcha" + " " + BOOKMARK_PREFIX + "wanna" + " " + BOOKMARK_PREFIX + "wanna.old" + " " + BOOKMARK_PREFIX + "gogo";
 	private static int version = 36;
 	public static final String plugName = "Library " + getVersion();
+
+
 
 	public static String getPlugName() {
 		return plugName;
@@ -121,8 +129,9 @@ final public class Library implements URLUpdateHook {
 	 * Method to setup Library class so it has access to PluginRespirator, and load bookmarks
 	 * TODO pull bookmarks from disk
 	 */
-	private Library(PluginRespirator pr){
+	private Library(PluginRespirator pr) {
 		this.pr = pr;
+		FactoryRegister.register(this);
 		PluginStore ps;
 		if(pr!=null) {
 			this.exec = pr.getNode().executor;
@@ -184,7 +193,7 @@ final public class Library implements URLUpdateHook {
 				bookmarkCallbacks.put(name, callback);
 				USK u;
 				try {
-					u = USK.create(uri);
+					u = USK.create(new freenet.keys.FreenetURI(uri.toString()));
 				} catch (MalformedURLException e) {
 					Logger.error(this, "Invalid bookmark USK: "+target+" for "+name, e);
 					continue;
@@ -192,6 +201,12 @@ final public class Library implements URLUpdateHook {
 				uskManager.subscribe(u, callback, false, rcBulk);
 				callback.ret = uskManager.subscribeContent(u, callback, false, pr.getHLSimpleClient().getFetchContext(), RequestStarter.IMMEDIATE_SPLITFILE_PRIORITY_CLASS, rcBulk);
 			}
+		}
+		if (!bookmarks.containsKey("debbies-library-development-index")) {
+		    addBookmark("debbies-library-development-index", 
+		    			"USK@E0jWjfYUfJqESuiM~5ZklhTZXKCWapxl~CRj1jmZ-~I,gl48QSprqZC1mASLbE9EOhQoBa~PheO8r-q9Lqj~uXA,AQACAAE/index.yml/966");
+		    migrated = true;
+			Logger.normal(this, "Added new default index");
 		}
 		if(bookmarks.isEmpty() || needNewWanna || !bookmarks.containsKey("gotcha") || 
 		        !bookmarks.containsKey("liberty-of-information") ||
@@ -241,16 +256,6 @@ final public class Library implements URLUpdateHook {
 	 * search for multiple terms in the same btree, but for now, turning off caching is the only viable option.
 	 */
 
-//	/**
-//	** Holds all the read-indexes.
-//	*/
-//	private Map<String, Index> rtab = new HashMap<String, Index>();
-//
-//	/**
-//	** Holds all the writeable indexes.
-//	*/
-//	private Map<String, WriteableIndex> wtab = new HashMap<String, WriteableIndex>();
-//
 	/**
 	** Holds all the bookmarks (aliases into the rtab).
 	*/
@@ -258,9 +263,13 @@ final public class Library implements URLUpdateHook {
 
 	private Map<String, BookmarkCallback> bookmarkCallbacks = new HashMap<String, BookmarkCallback>();
 
+	/** Set of all the enabled indices */
+	public Set<String> selectedIndices = new HashSet<String>();
+
 	/**
 	** Get the index type giving a {@code FreenetURI}. This must not contain
 	** a metastring (end with "/") or be a USK.
+	 * @throws MalformedURLException 
 	*/
 	public Class<?> getIndexType(FreenetURI indexuri) throws FetchException {
 		if(indexuri.lastMetaString()!=null && indexuri.lastMetaString().equals(XMLIndex.DEFAULT_FILE))
@@ -329,10 +338,10 @@ final public class Library implements URLUpdateHook {
 
 	public Class<?> getIndexTypeFromMIME(String mime) {
 		if (mime.equals(ProtoIndex.MIME_TYPE)) {
-			//return "YAML index";
+			// YAML index
 			return ProtoIndex.class;
 		} else if (mime.equals(XMLIndex.MIME_TYPE)) {
-			//return "XML index";
+			// XML index
 			return XMLIndex.class;
 		} else {
 			throw new UnsupportedOperationException("Unknown mime-type for index: "+mime);
@@ -340,103 +349,6 @@ final public class Library implements URLUpdateHook {
 	}
 
 
-/*
-	KEYEXPLORER slightly more efficient version that depends on KeyExplorer
-
-	/**
-	** Get the index type giving a {@code FreenetURI}. This should have been
-	** passed through {@link KeyExplorerUtils#sanitizeURI(List, String)} at
-	** some point - ie. it must not contain a metastring (end with "/") or be
-	** a USK.
-	* /
-	public Class<?> getIndexType(FreenetURI uri)
-	throws FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
-		GetResult getresult  = KeyExplorerUtils.simpleGet(pr, uri);
-		byte[] data = BucketTools.toByteArray(getresult.getData());
-
-		if (getresult.isMetaData()) {
-			try {
-				Metadata md = Metadata.construct(data);
-
-				if (md.isArchiveManifest()) {
-					if (md.getArchiveType() == ARCHIVE_TYPE.TAR) {
-						return getIndexTypeFromManifest(uri, false, true);
-
-					} else if (md.getArchiveType() == ARCHIVE_TYPE.ZIP) {
-						return getIndexTypeFromManifest(uri, true, false);
-
-					} else {
-						throw new UnsupportedOperationException("not implemented - unknown archive manifest");
-					}
-
-				} else if (md.isSimpleManifest()) {
-					return getIndexTypeFromManifest(uri, false, false);
-				}
-
-				return getIndexTypeFromSimpleMetadata(md);
-
-			} catch (MetadataParseException e) {
-				throw new RuntimeException(e);
-			}
-		} else {
-			throw new UnsupportedOperationException("Found data instead of metadata; I do not have enough intelligence to decode this.");
-		}
-	}
-
-	public Class<?> getIndexTypeFromSimpleMetadata(Metadata md) {
-		String mime = md.getMIMEType();
-		if (mime.equals(ProtoIndex.MIME_TYPE)) {
-			//return "YAML index";
-			return ProtoIndex.class;
-		} else if (mime.equals(XMLIndex.MIME_TYPE)) {
-			//return "XML index";
-			return XMLIndex.class;
-		} else {
-			throw new UnsupportedOperationException("Unknown mime-type for index");
-		}
-	}
-
-	public Class<?> getIndexTypeFromManifest(FreenetURI furi, boolean zip, boolean tar)
-	throws FetchException, IOException, MetadataParseException, LowLevelGetException, KeyListenerConstructionException {
-
-		boolean automf = true, deep = true, ml = true;
-		Metadata md = null;
-
-		if (zip)
-			md = KeyExplorerUtils.zipManifestGet(pr, furi);
-		else if (tar)
-			md = KeyExplorerUtils.tarManifestGet(pr, furi, ".metadata");
-		else {
-			md = KeyExplorerUtils.simpleManifestGet(pr, furi);
-			if (ml) {
-				md = KeyExplorerUtils.splitManifestGet(pr, md);
-			}
-		}
-
-		if (md.isSimpleManifest()) {
-			// a subdir
-			HashMap<String, Metadata> docs = md.getDocuments();
-			Metadata defaultDoc = md.getDefaultDocument();
-
-			if (defaultDoc != null) {
-				//return "(default doc method) " + getIndexTypeFromSimpleMetadata(defaultDoc);
-				return getIndexTypeFromSimpleMetadata(defaultDoc);
-			}
-
-			if (docs.containsKey(ProtoIndex.DEFAULT_FILE)) {
-				//return "(doclist method) YAML index";
-				return ProtoIndex.class;
-			} else if (docs.containsKey(XMLIndex.DEFAULT_FILE)) {
-				//return "(doclist method) XML index";
-				return XMLIndex.class;
-			} else {
-				throw new UnsupportedOperationException("Could not find a supported index in the document-listings for " + furi.toString());
-			}
-		}
-
-		throw new UnsupportedOperationException("Parsed metadata but did not reach a simple manifest: " + furi.toString());
-	}
-*/
 	public Class<?> getIndexType(File f) {
 		if (f.getName().endsWith(ProtoIndexSerialiser.FILE_EXTENSION))
 			return ProtoIndex.class;
@@ -451,9 +363,7 @@ final public class Library implements URLUpdateHook {
 			// return KeyExplorerUtils.sanitizeURI(new ArrayList<String>(), indexuri); KEYEXPLORER
 			// OPT HIGH if it already ends with eg. *Index.DEFAULT_FILE, don't strip
 			// the MetaString, and have getIndexType behave accordingly
-			FreenetURI tempURI = new FreenetURI(indexuri);
-//			if (tempURI.hasMetaStrings()) { tempURI = tempURI.setMetaString(null); }
-//			if (tempURI.isUSK()) { tempURI = tempURI.sskForUSK(); }
+			plugins.Library.io.FreenetURI tempURI = new plugins.Library.io.FreenetURI(indexuri);
 			return tempURI;
 		} catch (MalformedURLException e) {
 			File file = new File(indexuri);
@@ -480,7 +390,7 @@ final public class Library implements URLUpdateHook {
 		try {
 			u = new FreenetURI(uri);
 			if(u.isUSK()) {
-				uskNew = USK.create(u);
+				uskNew = USK.create(new freenet.keys.FreenetURI(u.toString()));
 				edition = uskNew.suggestedEdition;
 			}
 		} catch (MalformedURLException e) {
@@ -503,7 +413,7 @@ final public class Library implements URLUpdateHook {
 			try {
 				FreenetURI uold = new FreenetURI(old);
 				if(uold.isUSK()) {
-					USK usk = USK.create(uold);
+					USK usk = USK.create(new freenet.keys.FreenetURI(uold.toString()));
 					if(!(uskNew != null && usk.equals(uskNew, false))) {
 						uskManager.unsubscribe(usk, callback);
 						uskManager.unsubscribeContent(usk, callback.ret, true);
@@ -606,14 +516,6 @@ final public class Library implements URLUpdateHook {
 		return indices;
 	}
 
-	// See comments near rtab. Can't use in parallel so not acceptable.
-//	/**
-//	 * Method to get all of the instatiated Indexes
-//	 */
-//	public final Iterable<Index> getAllIndices() {
-//		return rtab.values();
-//	}
-//
 	public final Index getIndex(String indexuri) throws InvalidSearchException, TaskAbortException {
 		return getIndex(indexuri, null);
 	}
@@ -644,10 +546,6 @@ final public class Library implements URLUpdateHook {
 				throw new InvalidSearchException("Index bookmark '"+indexuri+" does not exist");
 		}
 
-		// See comments near rtab. Can't use in parallel so caching is dangerous.
-//		if (rtab.containsKey(indexuri))
-//			return rtab.get(indexuri);
-//
 		Class<?> indextype;
 		Index index;
 		Object indexkey;
@@ -663,9 +561,9 @@ final public class Library implements URLUpdateHook {
 		try {
 			if (indexkey instanceof File) {
 				indextype = getIndexType((File)indexkey);
-			} else if (indexkey instanceof FreenetURI) {
+			} else if (indexkey instanceof plugins.Library.io.FreenetURI) {
 				// TODO HIGH make this non-blocking
-				FreenetURI uri = (FreenetURI)indexkey;
+				FreenetURI uri = new FreenetURI(indexkey.toString());
 				if(uri.isUSK())
 					edition = uri.getEdition();
 				indextype = getIndexType(uri);
@@ -676,7 +574,7 @@ final public class Library implements URLUpdateHook {
 			if (indextype == ProtoIndex.class) {
 				// TODO HIGH this *must* be non-blocking as it fetches the whole index root
 				PullTask<ProtoIndex> task = new PullTask<ProtoIndex>(indexkey);
-				ProtoIndexSerialiser.forIndex(indexkey, RequestStarter.INTERACTIVE_PRIORITY_CLASS).pull(task);
+				ProtoIndexSerialiser.forIndex(indexkey, Priority.Interactive).pull(task);
 				index = task.data;
 
 			} else if (indextype == XMLIndex.class) {
@@ -686,33 +584,22 @@ final public class Library implements URLUpdateHook {
 				throw new AssertionError();
 			}
 
-			// See comments near rtab. Can't use in parallel so caching is dangerous.
-			//rtab.put(indexuri, index);
 			Logger.normal(this, "Loaded index type " + indextype.getName() + " at " + indexuri);
 
 			return index;
 
+		} catch (MalformedURLException e) {
+			Logger.warning(this, "Failed to find index type", e);
+			throw new TaskAbortException("Failed to find index type " + indexuri+" : "+e, e, true);
 		} catch (FetchException e) {
-			throw new TaskAbortException("Failed to fetch index " + indexuri+" : "+e, e, true); // can retry
-/* KEYEXPLORER
-		} catch (IOException e) {
-			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
-
-		} catch (LowLevelGetException e) {
-			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
-
-		} catch (KeyListenerConstructionException e) {
-			throw new TaskAbortException("Failed to fetch index " + indexuri, e, true); // can retry
-
-		} catch (MetadataParseException e) {
-			throw new TaskAbortException("Failed to parse index  " + indexuri, e);
-*/
+			Logger.warning(this, "Failed to find fetch index", e);
+			throw new TaskAbortException("Failed to fetch index " + indexuri+" : "+e, e, true);
 		} catch (UnsupportedOperationException e) {
+			Logger.warning(this, "Failed to find parse index", e);
 			throw new TaskAbortException("Failed to parse index  " + indexuri+" : "+e, e);
-
 		} catch (RuntimeException e) {
+			Logger.warning(this, "Failed to find load index", e);
 			throw new TaskAbortException("Failed to load index  " + indexuri+" : "+e, e);
-
 		}
 	}
 
@@ -724,7 +611,7 @@ final public class Library implements URLUpdateHook {
 	** @throws IllegalStateException if the singleton has not been initialised
 	**         or if it does not have a respirator.
 	*/
-	public static <T> FreenetArchiver<T>
+	public static <T> LiveArchiver<T, SimpleProgress>
 	makeArchiver(ObjectStreamReader r, ObjectStreamWriter w, String mime, int size, short priorityClass) {
 		if (lib == null || lib.pr == null) {
 			throw new IllegalStateException("Cannot archive to freenet without a fully live Library plugin connected to a freenet node.");
@@ -732,7 +619,7 @@ final public class Library implements URLUpdateHook {
 			return new FreenetArchiver<T>(lib.pr.getNode().clientCore, r, w, mime, size, priorityClass);
 		}
 	}
-
+	
 	/**
 	** Create a {@link FreenetArchiver} connected to the core of the
 	** singleton's {@link PluginRespirator}.
@@ -740,9 +627,33 @@ final public class Library implements URLUpdateHook {
 	** @throws IllegalStateException if the singleton has not been initialised
 	**         or if it does not have a respirator.
 	*/
-	public static <T, S extends ObjectStreamWriter & ObjectStreamReader> FreenetArchiver<T>
+	public static <T, S extends ObjectStreamWriter & ObjectStreamReader> LiveArchiver<T, SimpleProgress>
 	makeArchiver(S rw, String mime, int size, short priorityClass) {
 		return Library.<T>makeArchiver(rw, rw, mime, size, priorityClass);
+	}
+
+	public <T, S extends ObjectStreamWriter & ObjectStreamReader> LiveArchiver<T, SimpleProgress>
+		newArchiver(S rw, String mime, int size, Priority priorityLevel) {
+		short priorityClass = 0;
+		switch (priorityLevel) {
+		case Interactive:
+			priorityClass = RequestStarter.INTERACTIVE_PRIORITY_CLASS;
+			break;
+		case Bulk:
+			priorityClass = RequestStarter.BULK_SPLITFILE_PRIORITY_CLASS;
+			break;
+		}
+		return makeArchiver(rw, mime, size, priorityClass);
+	}
+
+	public <T, S extends ObjectStreamWriter & ObjectStreamReader> LiveArchiver<T, SimpleProgress>
+		newArchiver(S rw, String mime, int size, LiveArchiver<T, SimpleProgress> archiver) {
+		short priorityClass = RequestStarter.BULK_SPLITFILE_PRIORITY_CLASS;
+		if (archiver != null &&
+				archiver instanceof FreenetArchiver)
+			priorityClass = ((FreenetArchiver<T>) archiver).priorityClass;
+
+		return makeArchiver(rw, mime, size, priorityClass);
 	}
 
 	public static String convertToHex(byte[] data) {

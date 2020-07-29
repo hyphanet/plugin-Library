@@ -15,9 +15,9 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
+import freenet.support.Logger;
 import plugins.Library.util.func.Closure;
 import plugins.Library.util.func.SafeClosure;
-import freenet.support.Logger;
 
 /**
 ** A class that wraps around an {@link Executor}, for processing any given type
@@ -45,13 +45,6 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	protected int dispatched = 0;
 	protected int completed = 0;
 	protected int started = 0;
-	
-	private static volatile boolean logMINOR;
-	private static volatile boolean logDEBUG;
-
-	static {
-		Logger.registerClass(ObjectProcessor.class);
-	}
 
 	// Most ObjectProcessor's are likely to be autostart()'ed, and this way we can
 	// still use ConcurrentMap for pending while having garbage collection.
@@ -103,7 +96,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	*/
 	public ObjectProcessor(
 		BlockingQueue<T> input, BlockingQueue<X2<T, X>> output, Map<T, E> deposit,
-		Closure<T, X> closure, Executor executor, ExceptionConvertor<X> conv, Notifier n
+		Closure<T, X> closure, Executor executor, ExceptionConvertor<X> conv, Notifier notifier
 	) {
 		in = input;
 		out = output;
@@ -111,7 +104,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 		clo = closure;
 		exec = executor;
 		convertor = conv;
-		notifier = n;
+		this.notifier = notifier;
 	}
 
 	public ObjectProcessor(
@@ -224,7 +217,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	** This method is provided for completeness, in case anyone needs it;
 	** {@link #auto()} should be adequate for most purposes.
 	**
-	** @throws InterruptedExeception if interrupted whilst waiting
+	** @throws InterruptedException if interrupted whilst waiting
 	*/
 	public synchronized void dispatchTake() throws InterruptedException {
 		throw new UnsupportedOperationException("not implemented");
@@ -275,11 +268,9 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 			/*@Override**/ public void run() {
 				X ex = null;
 				synchronized(ObjectProcessor.this) { ++started; }
-				RuntimeException ee = null;
 				try { clo.invoke(item); }
 				// FIXME NORM this could throw RuntimeException
 				catch (RuntimeException e) {
-					Logger.error(this, "Caught "+e, e);
 					System.err.println("In ObjProc-"+name+" : "+e);
 					e.printStackTrace();
 					ex = convertor.convert(e); 
@@ -311,7 +302,9 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 						try {
 							boolean o = proc.open;
 							while (proc.dispatchPoll());
-							if (!o) { it.remove(); }
+							if (!o) {
+								it.remove();
+							}
 						} catch (RejectedExecutionException e) {
 							// FIXME NORM
 							// neither Executors.DEFAULT_EXECUTOR nor Freenet's in-built executors
@@ -328,7 +321,6 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 					} catch (InterruptedException e) {
 						// TODO LOW log this somewhere
 					}
-					// System.out.println("pending " + pending.size());
 
 					if (t > 0) { continue; }
 					synchronized (ObjectProcessor.class) {
@@ -363,7 +355,7 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	/**
 	** Call {@link #auto()} and return {@code this}.
 	*/
-	public ObjectProcessor autostart() {
+	public ObjectProcessor<T, E, X> autostart() {
 		auto();
 		return this;
 	}
@@ -396,5 +388,4 @@ public class ObjectProcessor<T, E, X extends Exception> implements Scheduler {
 	@Override public String toString() {
 		return "ObjProc-" + name + ":{" + size() + "|" + dispatched + "|" + started + "|" + completed + "}";
 	}
-
 }

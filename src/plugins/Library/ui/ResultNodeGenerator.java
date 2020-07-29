@@ -3,12 +3,12 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.ui;
 
+
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermIndexEntry;
 import plugins.Library.index.TermPageEntry;
 import plugins.Library.index.TermTermEntry;
-
-import freenet.keys.FreenetURI;
+import plugins.Library.io.FreenetURI;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;
 
@@ -109,7 +109,7 @@ public class ResultNodeGenerator implements Runnable {
 				long uskEdition = Long.MIN_VALUE;
 				// Get the key and name
 				FreenetURI uri;
-				uri = pageEntry.page;
+				uri = pageEntry.getPage();
 				// convert usk's
 				if(uri.isSSKForUSK()){
 					uri = uri.uskForSSK();
@@ -117,7 +117,7 @@ public class ResultNodeGenerator implements Runnable {
 					uskEdition = uri.getEdition();
 				}
 				// Get the site base name, key + documentname - uskversion
-				sitebase = uri.setMetaString(null).setSuggestedEdition(0).toString().replaceFirst("/0", "");
+				sitebase = uri.getRoot();
 				Logger.minor(this, sitebase);
 
 				// Add site
@@ -240,9 +240,9 @@ public class ResultNodeGenerator implements Runnable {
 	 * @param newestVersion	if set, the result is shown in full brightness, if unset the result is greyed out
 	 */
 	private HTMLNode termPageEntryNode(TermPageEntry entry,boolean newestVersion) {
-		FreenetURI uri = entry.page;
+		FreenetURI uri = entry.getPage();
 		String showtitle = entry.title;
-		String showurl = uri.toShortString();
+		String showurl = uri.toString();
 		if (showtitle == null || showtitle.trim().length() == 0) {
 			showtitle = showurl;
 		}

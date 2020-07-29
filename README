@@ -4,6 +4,7 @@ Build:
 
   plugin-Library$ ant
 
+
 == Javadoc ==
 
 If you want to generate Javadocs, download bliki-doclet, which is a little
@@ -56,3 +57,9 @@ this may change soon :
 <input type="submit" />
 </form>
 
+
+== Ongoing work to split ==
+
+The plugin is in src, test (for historical reasons).
+
+The uploader (standalone program) is in uploader/src and uploader/test depending on fcp and plugin.

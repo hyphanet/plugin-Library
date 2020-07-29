@@ -3,10 +3,11 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.io.serial.MapSerialiser;
-import plugins.Library.util.exec.TaskAbortException;
 
 import java.util.Map;
+
+import plugins.Library.io.serial.MapSerialiser;
+import plugins.Library.util.exec.TaskAbortException;
 
 /**
 ** A {@link Skeleton} of a {@link Map}.

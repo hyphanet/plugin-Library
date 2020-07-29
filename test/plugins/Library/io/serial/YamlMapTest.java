@@ -6,19 +6,14 @@ package plugins.Library.io.serial;
 import junit.framework.TestCase;
 
 import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.error.YAMLException;
-import org.yaml.snakeyaml.Loader;
-import org.yaml.snakeyaml.Dumper;
 import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.nodes.Tag;
 import org.yaml.snakeyaml.representer.Representer;
 import org.yaml.snakeyaml.representer.Represent;
 import org.yaml.snakeyaml.nodes.Node;
 import org.yaml.snakeyaml.nodes.ScalarNode;
-import org.yaml.snakeyaml.nodes.MappingNode;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.constructor.Construct;
-import org.yaml.snakeyaml.constructor.ConstructorException;
 
 import java.io.*;
 import java.util.*;
@@ -29,14 +24,13 @@ import java.util.*;
 public class YamlMapTest extends TestCase {
 
 	public void testYamlMap() throws IOException {
-		Map<String, Object> data = new TreeMap<String, Object>();
+		Map<String, Object> data = new TreeMap<>();
 		data.put("key1", new Bean());
 		data.put("key2", new Bean());
 		data.put("key3", new Custom("test"));
 		data.put("key4", new Wrapper("test", new Custom("test")));
 
-		Yaml yaml = new Yaml(new Loader(new ExtendedConstructor()),
-			                new Dumper(new ExtendedRepresenter(), new DumperOptions()));
+		Yaml yaml = new Yaml(new ExtendedConstructor(), new ExtendedRepresenter(), new DumperOptions());
 		File file = new File("beantest.yml");
 
 		FileOutputStream os = new FileOutputStream(file);
@@ -44,15 +38,13 @@ public class YamlMapTest extends TestCase {
 		os.close();
 
 		FileInputStream is = new FileInputStream(file);
-		Object o = yaml.load(new InputStreamReader(is));
+		Map<String, Object> map = yaml.load(new InputStreamReader(is));
 		is.close();
 
-		assertTrue(o instanceof Map);
-		Map m = (Map)o;
-		assertTrue(m.get("key1") instanceof Bean);
-		assertTrue(m.get("key2") instanceof Bean); // NOTE these tests fail in snakeYAML 1.2 and below, fixed in 1.3
-		assertTrue(m.get("key3") instanceof Custom);
-		assertTrue(m.get("key4") instanceof Wrapper);
+		assertTrue(map.get("key1") instanceof Bean);
+		assertTrue(map.get("key2") instanceof Bean); // NOTE these tests fail in snakeYAML 1.2 and below, fixed in 1.3
+		assertTrue(map.get("key3") instanceof Custom);
+		assertTrue(map.get("key4") instanceof Wrapper);
 	}
 
 	public static class Bean {
@@ -60,7 +52,6 @@ public class YamlMapTest extends TestCase {
 		public Bean() { a = ""; }
 		public String getA() { return a; }
 		public void setA(String s) { a = s; }
-
 	}
 
 	public static class Wrapper {
@@ -92,7 +83,6 @@ public class YamlMapTest extends TestCase {
 		public String toString() { return str; }
 	}
 
-
 	public static class ExtendedRepresenter extends Representer {
 		public ExtendedRepresenter() {
 			this.representers.put(Custom.class, new RepresentCustom());
@@ -100,24 +90,22 @@ public class YamlMapTest extends TestCase {
 
 		private class RepresentCustom implements Represent {
 			public Node representData(Object data) {
-				return representScalar("!Custom", ((Custom) data).toString());
+				return representScalar(new Tag("!Custom"), data.toString());
 			}
 		}
 	}
 
-
 	public static class ExtendedConstructor extends Constructor {
 		public ExtendedConstructor() {
-			this.yamlConstructors.put("!Custom", new ConstructCustom());
+			this.yamlConstructors.put(new Tag("!Custom"), new ConstructCustom());
 		}
 
 		private class ConstructCustom implements Construct {
 			public Object construct(Node node) {
-				String str = (String) constructScalar((ScalarNode)node);
+				String str = constructScalar((ScalarNode)node);
 				return new Custom(str);
 			}
 			public void construct2ndStep(Node node, Object object) { }
 		}
 	}
-
 }

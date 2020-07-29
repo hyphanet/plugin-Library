@@ -3,38 +3,30 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.Index;
-import plugins.Library.io.serial.Serialiser;
-import plugins.Library.io.serial.ProgressTracker;
-import plugins.Library.util.Skeleton;
-import plugins.Library.util.SkeletonTreeMap;
-import plugins.Library.util.SkeletonBTreeMap;
-import plugins.Library.util.SkeletonBTreeSet;
-import plugins.Library.util.DataNotLoadedException;
-import plugins.Library.util.exec.Progress;
-import plugins.Library.util.exec.ProgressParts;
-import plugins.Library.util.exec.ChainedProgress;
-import plugins.Library.util.exec.Execution;
-import plugins.Library.util.exec.AbstractExecution;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.util.concurrent.Executors;
-
-import freenet.keys.FreenetURI;
-import freenet.support.Logger;
-
 import java.util.AbstractSet;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.HashMap;
-import java.util.TreeSet;
-import java.util.LinkedHashMap;
 import java.util.Date;
-
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executor;
+
+import plugins.Library.io.FreenetURI;
+import plugins.Library.io.serial.ProgressTracker;
+import plugins.Library.io.serial.Serialiser;
+import plugins.Library.util.DataNotLoadedException;
+import plugins.Library.util.Skeleton;
+import plugins.Library.util.SkeletonBTreeMap;
+import plugins.Library.util.SkeletonBTreeSet;
+import plugins.Library.util.concurrent.Executors;
+import plugins.Library.util.exec.AbstractExecution;
+import plugins.Library.util.exec.ChainedProgress;
+import plugins.Library.util.exec.Execution;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.TaskAbortException;
 
 /**
 ** Prototype B-tree based index. DOCUMENT
@@ -158,14 +150,6 @@ final public class ProtoIndex implements Index {
 		return request;
 	}
 
-
-
-
-	public Execution<URIEntry> getURIEntry(FreenetURI uri) {
-		throw new UnsupportedOperationException("not implemented");
-	}
-
-
 	public class getTermEntriesHandler extends AbstractExecution<Set<TermEntry>> implements Runnable, ChainedProgress {
 		// TODO NORM have a Runnable field instead of extending Runnable
 		// basically, redesign this entire class and series of classes
@@ -232,10 +216,12 @@ final public class ProtoIndex implements Index {
 					long specific = root.size(); // Number of pages in this entry
 					multiplier = Math.log(((double)total) / ((double)specific));
 					if(multiplier < 0) {
-						Logger.error(this, "Negative multiplier!: "+multiplier+" total = "+total+" specific = "+root.size());
+						// Logger.error(this, "Negative multiplier!: "+multiplier+" total = "+total+" specific = "+root.size());
+						System.out.println("Negative multiplier!: "+multiplier+" total = "+total+" specific = "+root.size());
 						multiplier = 1.0;
-					} else
-						Logger.normal(this, "Correcting results: "+multiplier);
+					} else {
+						// Logger.normal(this, "Correcting results: "+multiplier);
+					}
 				}
 				Set<TermEntry> entries = wrapper(root, multiplier);
 				

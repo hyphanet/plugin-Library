@@ -20,39 +20,39 @@ public interface Skeleton<K, S extends Serialiser<?>> {
 	/**
 	** Whether the skeleton is fully loaded and has no data missing.
 	*/
-	public boolean isLive();
+	boolean isLive();
 
 	/**
 	** Whether the skeleton is bare and has no data loaded at all.
 	*/
-	public boolean isBare();
+	boolean isBare();
 
 	/**
 	** Get the serialiser for this skeleton.
 	*/
-	public S getSerialiser();
+	S getSerialiser();
 
 	/**
 	** Get the meta data associated with this skeleton.
 	*/
-	public Object getMeta();
+	Object getMeta();
 
 	/**
 	** Set the meta data associated with this skeleton.
 	*/
-	public void setMeta(Object m);
+	void setMeta(Object m);
 
 	/**
 	** Inflate the entire skeleton so that after the method call, {@link
 	** #isLive()} returns true.
 	*/
-	public void inflate() throws TaskAbortException;
+	void inflate() throws TaskAbortException;
 
 	/**
 	** Deflate the entire skeleton so that after the method call, {@link
 	** #isBare()} returns true.
 	*/
-	public void deflate() throws TaskAbortException;
+	void deflate() throws TaskAbortException;
 
 	/**
 	** Partially inflate the skeleton based on some parameter object. This
@@ -60,7 +60,7 @@ public interface Skeleton<K, S extends Serialiser<?>> {
 	**
 	** @param param The parameter for the partial inflate.
 	*/
-	public void inflate(K param) throws TaskAbortException;
+	void inflate(K param) throws TaskAbortException;
 
 	/**
 	** Partially deflate the skeleton based on some parameter object. This
@@ -68,6 +68,5 @@ public interface Skeleton<K, S extends Serialiser<?>> {
 	**
 	** @param param The parameter for the partial deflate.
 	*/
-	public void deflate(K param) throws TaskAbortException;
-
+	void deflate(K param) throws TaskAbortException;
 }

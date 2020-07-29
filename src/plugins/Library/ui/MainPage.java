@@ -6,13 +6,13 @@ package plugins.Library.ui;
 import plugins.Library.Library;
 import plugins.Library.search.InvalidSearchException;
 import plugins.Library.search.Search;
+
+import freenet.keys.FreenetURI;
 import plugins.Library.util.exec.ChainedProgress;
 import plugins.Library.util.exec.CompositeProgress;
 import plugins.Library.util.exec.Progress;
 import plugins.Library.util.exec.ProgressParts;
 import plugins.Library.util.exec.TaskAbortException;
-
-import freenet.keys.FreenetURI;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.HTMLNode;
 import freenet.support.Logger;
@@ -145,30 +145,10 @@ class MainPage {
 
 		// Get bookmarked index list
 		page.indexstring = "";
-		for (String bm : library.bookmarkKeys()){
+		for (String bm : library.selectedIndices){
 			String bmid = (Library.BOOKMARK_PREFIX + bm).trim();
-			//Logger.normal(this, "checking for ~" + bm + " - "+request.isPartSet("~"+bm));
-			if(request.isPartSet("~"+bm)){
-				page.indexstring += bmid + " ";
-				page.selectedBMIndexes.add(bmid);
-			}
-		}
-		// Get other index list
-		//Logger.normal(page, "extra indexes : "+request.getIntPart("extraindexcount", 0));
-		for (int i = 0; i < request.getIntPart("extraindexcount", 0); i++) {
-			if (request.isPartSet("index"+i)){
-				String otherindexuri = request.getPartAsStringFailsafe("index"+i, 256);
-				//Logger.normal(page, "Added index : "+otherindexuri);
-				page.indexstring += otherindexuri + " ";
-				page.selectedOtherIndexes.add(otherindexuri);
-			}//else
-				//Logger.normal(page, "other index #"+i+" unchecked");
-		}
-		for (String string : etcIndexes) {
-			if(string.length()>0){
-				page.indexstring += string + " ";
-				page.selectedOtherIndexes.add(string);
-			}
+			page.indexstring += bmid + " ";
+			page.selectedBMIndexes.add(bmid);
 		}
 		page.indexstring = page.indexstring.trim();
 
@@ -285,10 +265,8 @@ class MainPage {
 				if (search.isDone()) {
 					if(search.hasGeneratedResultNode()){
 						contentNode.addChild(search.getHTMLNode());
-						//Logger.normal(this, "Got pre generated result node.");
 					}else
 						try {
-							//Logger.normal(this, "Blocking to generate resultnode.");
 							ResultNodeGenerator nodegenerator = new ResultNodeGenerator(search.getResult(), groupusk, showold, true); // js is being switch on always currently due to detection being off
 							nodegenerator.run();
 							contentNode.addChild(nodegenerator.getPageEntryNode());
@@ -310,8 +288,6 @@ class MainPage {
 				// refresh will GET so use a request id
 				if (!js) {
 					headers.put("Refresh", "2;url=" + refreshURL);
-					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "script.js" : "detect.js") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
-					//contentNode.addChild("script", new String[]{"type", "src"}, new String[]{"text/javascript", path() + "static/" + (js ? "script.js" : "detect.js") + "?request="+search.hashCode()+(showold?"&showold=on":"")}).addChild("%", " ");
 				}
 			}
 		}catch(TaskAbortException e) {
@@ -346,23 +322,26 @@ class MainPage {
 					searchBox.addChild("br");
 					searchBox.addChild("input", new String[]{"name", "size", "type", "value", "title"}, new String[]{"search", "40", "text", query, "Enter a search query. You can use standard search syntax such as 'and', 'or', 'not' and \"\" double quotes around phrases"});
 					searchBox.addChild("input", new String[]{"name", "type", "value", "tabindex"}, new String[]{"find", "submit", "Find!", "1"});
-					if(js)
+					
+					searchBox.addChild("#", "Will use indices: " + library.selectedIndices + " ");
+					searchBox.addChild("a", new String[]{ "href", }, new String[]{ ConfigPageToadlet.PATH, }).addChild("#", "change");
+					
+/*					if(js)
 						searchBox.addChild("input", new String[]{"type","name"}, new String[]{"hidden","js"});
 					// Shows the list of bookmarked indexes TODO show descriptions on mouseover ??
 					HTMLNode indexeslist = searchBox.addChild("ul", "class", "index-bookmark-list", "Select indexes");
-					for (String bm : library.bookmarkKeys()){
-						//Logger.normal(this, "Checking for bm="+Library.BOOKMARK_PREFIX+bm+" in \""+indexuri + " = " + selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm)+" "+indexuri.contains(Library.BOOKMARK_PREFIX+bm));
+					for (String bm : library.bookmarkKeys()) {
 						HTMLNode bmItem = indexeslist.addChild("li");
-							bmItem.addChild("input", new String[]{"name", "type", "value", "title", (selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"~"+bm, "checkbox", Library.BOOKMARK_PREFIX+bm, "Index uri : "+library.getBookmark(bm), "1" } , bm);
-							bmItem.addChild("input", new String[]{"name", "type", "value", "title", "class"}, new String[]{Commands.removebookmark+bm, "submit", "X", "Delete this bookmark", "index-bookmark-delete" });
+						bmItem.addChild("input", new String[]{"name", "type", "value", "title", (selectedBMIndexes.contains(Library.BOOKMARK_PREFIX+bm) ? "checked" : "size" )}, new String[]{"~"+bm, "checkbox", Library.BOOKMARK_PREFIX+bm, "Index uri : "+library.getBookmark(bm), "1" } , bm);
+						bmItem.addChild("input", new String[]{"name", "type", "value", "title", "class"}, new String[]{Commands.removebookmark+bm, "submit", "X", "Delete this bookmark", "index-bookmark-delete" });
 					}
 					int i=0;
 					for (String uri : selectedOtherIndexes) {
 						HTMLNode removeItem = indexeslist.addChild("li");
 							String showuri;
-							try{
+							try {
 								showuri = (new FreenetURI(uri)).toShortString();
-							}catch(MalformedURLException e){
+							} catch (MalformedURLException e) {
 								showuri = uri;
 							}
 							removeItem.addChild("input", new String[]{"type", "name", "value", "checked"}, new String[]{"checkbox", "index"+i, uri, "checked", } , showuri);
@@ -372,7 +351,7 @@ class MainPage {
 					indexeslist.addChild("input", new String[]{"name", "type", "value"}, new String[]{"extraindexcount", "hidden", ""+selectedOtherIndexes.size()});
 					indexeslist.addChild("li")
 							.addChild("input", new String[]{"name", "type", "value", "class", "title"}, new String[]{"indexuris", "text", "", "index", "URI or path of other index(s) to search on"});
-
+*/
 
 				HTMLNode optionsBox = searchForm.addChild("div", "style", "margin: 20px 0px 20px 20px; display: inline-table; text-align: left;", "Options");
 					HTMLNode optionsList = optionsBox.addChild("ul", "class", "options-list");
@@ -380,7 +359,7 @@ class MainPage {
 							.addChild("input", new String[]{"name", "type", groupusk?"checked":"size", "title"}, new String[]{"groupusk", "checkbox", "1", "If set, the results are returned grouped by site and edition, this makes the results quicker to scan through but will disrupt ordering on relevance, if applicable to the indexs you are using."}, "Group sites and editions");
 						optionsList.addChild("li")
 							.addChild("input", new String[]{"name", "type", showold?"checked":"size", "title"}, new String[]{"showold", "checkbox", "1", "If set, older editions are shown in the results greyed out, otherwise only the most recent are shown."}, "Show older editions");
-
+/*
 					HTMLNode newIndexInput = optionsBox.addChild("div", new String[]{"class", "style"}, new String[]{"index", "display: inline-table;"}, "Add an index:");
 						newIndexInput.addChild("br");
 						newIndexInput.addChild("div", "style", "display: inline-block; width: 50px;", "Name:");
@@ -390,6 +369,7 @@ class MainPage {
 						newIndexInput.addChild("input", new String[]{"name", "type", "class", "title", "value"}, new String[]{"addindexuri", "text", "index", "URI or path of index to add to bookmarks, including the main index filename at the end of a Freenet uri will help Library not to block in order to discover the index type.", addindexuri});
 						newIndexInput.addChild("br");
 						newIndexInput.addChild("input", new String[]{"name", "type", "value"}, new String[]{"addbookmark", "submit", "Add Bookmark"});
+						*/
 		}else
 			searchDiv.addChild("#", "No PluginRespirater, so Form cannot be displayed");
 		return searchDiv;
@@ -443,7 +423,7 @@ class MainPage {
 				error1.addChild("br");
 				error1.addChild("#", " -- "+ste.toString());
 			}
-			if(error.getCause()!=null)
+			if (error.getCause()!=null)
 				addError(error1, error.getCause(), messages);
 		}
 	}
@@ -456,17 +436,17 @@ class MainPage {
 	 */
 	public static HTMLNode progressBar(Progress progress, boolean canFail) throws TaskAbortException {
 		synchronized (progress){
-			if( progress instanceof CompositeProgress && ((CompositeProgress) progress).getSubProgress()!=null && ((CompositeProgress) progress).getSubProgress().iterator().hasNext()){
+			if (progress instanceof CompositeProgress && ((CompositeProgress) progress).getSubProgress()!=null && ((CompositeProgress) progress).getSubProgress().iterator().hasNext()){
 				// Put together progress bars for all the subProgress
 				HTMLNode block = new HTMLNode("#");
 				block.addChild("tr").addChild("td", "colspan", "6", progress.getSubject() + " : "+progress.getStatus());
 				TaskAbortException firstError = null;
 				boolean anySuccess = false;
-				if(canFail && progress instanceof Search) {
+				if (canFail && progress instanceof Search) {
 					if(!(((Search)progress).innerCanFailAndStillComplete()))
 						canFail = false;
 				} else canFail = false;
-				if(((CompositeProgress) progress).getSubProgress() != null)
+				if (((CompositeProgress) progress).getSubProgress() != null)
 					for (Progress progress1 : ((CompositeProgress) progress).getSubProgress()) {
 						try {
 							block.addChild(progressBar(progress1, canFail));

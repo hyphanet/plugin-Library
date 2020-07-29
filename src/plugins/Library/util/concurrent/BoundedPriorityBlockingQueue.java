@@ -192,5 +192,4 @@ public class BoundedPriorityBlockingQueue<E> extends PriorityBlockingQueue<E> {
 	}
 	
 	// writeObject() is safe
-
 }

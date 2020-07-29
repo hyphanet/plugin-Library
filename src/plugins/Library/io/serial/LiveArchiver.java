@@ -3,7 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
-import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.exec.Progress;
 import plugins.Library.util.exec.TaskAbortException;
 
@@ -27,7 +26,7 @@ public interface LiveArchiver<T, P extends Progress> extends Archiver<T> {
 	**
 	** '''If this does not occur, deadlock will result'''.
 	*/
-	public void pullLive(PullTask<T> task, P p) throws TaskAbortException;
+	void pullLive(PullTask<T> task, P p) throws TaskAbortException;
 
 	/**
 	** Executes a {@link PushTask} and update the progress associated with it.
@@ -41,6 +40,7 @@ public interface LiveArchiver<T, P extends Progress> extends Archiver<T> {
 	**
 	** '''If this does not occur, deadlock will result'''.
 	*/
-	public void pushLive(PushTask<T> task, P p) throws TaskAbortException;
+	void pushLive(PushTask<T> task, P p) throws TaskAbortException;
 
+	void waitForAsyncInserts() throws TaskAbortException;
 }

@@ -3,19 +3,18 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.io.DataFormatException;
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.io.serial.IterableSerialiser;
-import plugins.Library.io.serial.MapSerialiser;
-import plugins.Library.io.serial.Translator;
-import plugins.Library.util.exec.TaskAbortException;
 
 import java.util.Comparator;
 import java.util.Collection;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.ArrayList;
+
+import plugins.Library.io.DataFormatException;
+import plugins.Library.io.serial.IterableSerialiser;
+import plugins.Library.io.serial.MapSerialiser;
+import plugins.Library.io.serial.Translator;
+import plugins.Library.util.exec.TaskAbortException;
 
 /**
 ** {@link Skeleton} of a {@link BTreeSet}. DOCUMENT

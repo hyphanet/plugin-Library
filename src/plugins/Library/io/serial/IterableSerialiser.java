@@ -3,7 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
-import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.exec.TaskAbortException;
 
 /**
@@ -19,7 +18,7 @@ public interface IterableSerialiser<T> extends Archiver<T> {
 	**
 	** @param tasks The group of tasks to execute
 	*/
-	public void pull(Iterable<PullTask<T>> tasks) throws TaskAbortException;
+	void pull(Iterable<PullTask<T>> tasks) throws TaskAbortException;
 
 	// FIXME OPT NORM
 	// Split up pull() into startPull and endPull. startPull would do the actual
@@ -35,7 +34,7 @@ public interface IterableSerialiser<T> extends Archiver<T> {
 	**
 	** @param tasks The group of tasks to execute
 	*/
-	public void push(Iterable<PushTask<T>> tasks) throws TaskAbortException;
+	void push(Iterable<PushTask<T>> tasks) throws TaskAbortException;
 
 	// FIXME OPT HIGH
 	// Split up push() into startPush and endPush. startPush will return as soon

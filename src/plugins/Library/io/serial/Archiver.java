@@ -3,11 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
-import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.exec.TaskAbortException;
-
-import java.util.Collection;
-import java.util.Map;
 
 /**
 ** An interface that handles a single {@link Serialiser.Task}.
@@ -31,7 +27,7 @@ public interface Archiver<T> extends Serialiser<T> {
 	**
 	** @param task The task to execute
 	*/
-	public void pull(PullTask<T> task) throws TaskAbortException;
+	void pull(PullTask<T> task) throws TaskAbortException;
 
 	/**
 	** Execute a {@link PushTask}, returning only when the task is done.
@@ -49,6 +45,5 @@ public interface Archiver<T> extends Serialiser<T> {
 	**
 	** @param task The task to execute
 	*/
-	public void push(PushTask<T> task) throws TaskAbortException;
-
+	void push(PushTask<T> task) throws TaskAbortException;
 }

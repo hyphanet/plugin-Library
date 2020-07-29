@@ -3,46 +3,35 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.Library;
-import plugins.Library.client.FreenetArchiver;
-import plugins.Library.util.SkeletonTreeMap;
-import plugins.Library.util.SkeletonBTreeMap;
-import plugins.Library.util.SkeletonBTreeSet;
-import plugins.Library.util.exec.ProgressParts;
-import plugins.Library.util.exec.Progress;
-import plugins.Library.util.exec.SimpleProgress;
-import plugins.Library.util.exec.BaseCompositeProgress;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.util.exec.TaskInProgressException;
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.io.serial.Serialiser;
-import plugins.Library.io.serial.Translator;
-import plugins.Library.io.serial.ProgressTracker;
-import plugins.Library.io.serial.Archiver;
-import plugins.Library.io.serial.IterableSerialiser;
-import plugins.Library.io.serial.MapSerialiser;
-import plugins.Library.io.serial.LiveArchiver;
-import plugins.Library.io.serial.ParallelSerialiser;
-import plugins.Library.io.serial.Packer;
-import plugins.Library.io.serial.Packer.Scale; // WORKAROUND javadoc bug #4464323
-import plugins.Library.io.serial.FileArchiver;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
+
+import plugins.Library.FactoryRegister;
 import plugins.Library.io.DataFormatException;
 import plugins.Library.io.YamlReaderWriter;
-
-import freenet.keys.FreenetURI;
-import freenet.node.RequestStarter;
-
-import java.io.File;
-import java.util.Collection;
-import java.util.Set;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.LinkedHashMap;
-import java.util.HashMap;
-import java.util.TreeSet;
-import java.util.TreeMap;
-import java.util.Date;
+import plugins.Library.io.serial.Archiver;
+import plugins.Library.io.serial.FileArchiver;
+import plugins.Library.io.serial.IterableSerialiser;
+import plugins.Library.io.serial.LiveArchiver;
+import plugins.Library.io.serial.MapSerialiser;
+import plugins.Library.io.serial.Packer;
+import plugins.Library.io.serial.Packer.Scale;
+import plugins.Library.io.serial.ParallelSerialiser;
+import plugins.Library.io.serial.ProgressTracker;
+import plugins.Library.io.serial.Serialiser;
+import plugins.Library.io.serial.Translator;
+import plugins.Library.util.SkeletonBTreeMap;
+import plugins.Library.util.SkeletonBTreeSet;
+import plugins.Library.util.SkeletonTreeMap;
+import plugins.Library.util.exec.BaseCompositeProgress;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.SimpleProgress;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.exec.TaskInProgressException;
+import plugins.Library.io.FreenetURI;
 
 /**
 ** Serialiser for the components of a ProtoIndex.
@@ -205,10 +194,11 @@ public class ProtoIndexComponentSerialiser {
 		} else {
 			switch (fmtid) {
 			case FMT_FREENET_SIMPLE:
-				short priorityClass = RequestStarter.INTERACTIVE_PRIORITY_CLASS;
-				if(archiver instanceof FreenetArchiver)
-					priorityClass = ((FreenetArchiver)archiver).priorityClass;
-				leaf_arx = Library.makeArchiver(yamlrw, ProtoIndex.MIME_TYPE, 0x180 * ProtoIndex.BTREE_NODE_MIN, priorityClass);
+				leaf_arx = FactoryRegister.getArchiverFactory().newArchiver(
+						yamlrw, 
+						ProtoIndex.MIME_TYPE, 
+						0x180 * ProtoIndex.BTREE_NODE_MIN, 
+						archiver);
 				break;
 			case FMT_FILE_LOCAL:
 				leaf_arx = new FileArchiver<Map<String, Object>>(yamlrw, true, YamlReaderWriter.FILE_EXTENSION, "", "", null);
@@ -380,8 +370,14 @@ public class ProtoIndexComponentSerialiser {
 				ghost.setMeta(serialisable.meta); task.data = trans.rev(serialisable.data);
 				p.exitingSerialiser();
 			} catch (RuntimeException e) {
+				System.out.println("RuntimeException");
+				System.out.println(e);
+				e.printStackTrace();
 				p.abort(new TaskAbortException("Could not pull B-tree node", e));
 			} catch (DataFormatException e) {
+				System.out.println("DataFormatException");
+				System.out.println(e);
+				e.printStackTrace();
 				p.abort(new TaskAbortException("Could not pull B-tree node", e));
 			}
 		}
@@ -398,6 +394,11 @@ public class ProtoIndexComponentSerialiser {
 			} catch (RuntimeException e) {
 				p.abort(new TaskAbortException("Could not push B-tree node", e));
 			}
+		}
+
+		@Override
+		public void waitForAsyncInserts() throws TaskAbortException {
+			subsrl.waitForAsyncInserts();
 		}
 
 	}
@@ -522,6 +523,11 @@ public class ProtoIndexComponentSerialiser {
 			} catch (RuntimeException e) {
 				p.abort(new TaskAbortException("Failed task: " + p.getSubject(), e));
 			}
+		}
+
+		@Override
+		public void waitForAsyncInserts() throws TaskAbortException {
+			subsrl.waitForAsyncInserts();
 		}
 
 	}

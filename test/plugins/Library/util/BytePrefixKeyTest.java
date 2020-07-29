@@ -4,7 +4,6 @@
 package plugins.Library.util;
 
 import junit.framework.TestCase;
-import static plugins.Library.util.Generators.rand;
 
 import java.util.Random;
 import java.util.Arrays;
@@ -14,6 +13,8 @@ import java.util.Arrays;
 */
 public class BytePrefixKeyTest extends TestCase {
 
+	final private static Random rand = new Random();
+
 	public void testBasic()  {
 		for (int i=0; i<256; ++i) {
 			byte[] bs = new byte[32];
@@ -21,5 +22,4 @@ public class BytePrefixKeyTest extends TestCase {
 			assertTrue(Arrays.equals(bs, BytePrefixKey.hexToBytes(BytePrefixKey.bytesToHex(bs))));
 		}
 	}
-
 }

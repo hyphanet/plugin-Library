@@ -4,17 +4,27 @@
 package plugins.Library;
 
 import plugins.Library.client.*;
-import plugins.Library.util.exec.*;
-import plugins.Library.util.func.Closure;
 import plugins.Library.index.*;
-import plugins.Library.io.*;
-import plugins.Library.io.serial.*;
-import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.util.*;
 import plugins.Library.*;
 
 import freenet.keys.FreenetURI;
 import freenet.node.RequestStarter;
+
+import plugins.Library.Priority;
+import plugins.Library.index.ProtoIndex;
+import plugins.Library.index.ProtoIndexComponentSerialiser;
+import plugins.Library.index.ProtoIndexSerialiser;
+import plugins.Library.index.TermEntry;
+import plugins.Library.io.YamlReaderWriter;
+import plugins.Library.io.serial.LiveArchiver;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.SkeletonBTreeSet;
+import plugins.Library.util.TaskAbortExceptionConvertor;
+import plugins.Library.util.exec.ProgressParts;
+import plugins.Library.util.exec.SimpleProgress;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.func.Closure;
 
 import java.util.*;
 import java.io.*;
@@ -76,7 +86,7 @@ public class Tester {
 		if (push_progress_thread == null) {
 			push_progress_thread = new Thread() {
 				YamlReaderWriter yamlrw = new YamlReaderWriter();
-				FreenetArchiver<Map<String, Integer>> arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000, RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+				LiveArchiver<Map<String, Integer>, SimpleProgress> arx = Library.makeArchiver(yamlrw, "text/yaml", 0x10000, RequestStarter.INTERACTIVE_PRIORITY_CLASS);
 
 				@Override public void run() {
 					push_progress_start = new Date();
@@ -144,13 +154,13 @@ public class Tester {
 		if (push_index_thread == null) {
 			push_index_start = new Date();
 			push_index_thread = new Thread() {
-				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI, RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI.toASCIIString(), Priority.Interactive);
 				ProtoIndex idx;
 				Random rand = new Random();
 
 				@Override public void run() {
 					try {
-						idx = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0);
+						idx = new ProtoIndex(new plugins.Library.io.FreenetURI("CHK@"), "test", null, null, 0);
 					} catch (java.net.MalformedURLException e) {
 						throw new AssertionError(e);
 					}
@@ -228,14 +238,14 @@ public class Tester {
 			FreenetArchiver.setCacheDir(cacheDir);
 			
 			push_index_thread = new Thread() {
-				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI, RequestStarter.INTERACTIVE_PRIORITY_CLASS);
+				ProtoIndexSerialiser srl = ProtoIndexSerialiser.forIndex(push_index_endURI.toASCIIString(), Priority.Interactive);
 				ProtoIndex idx;
 				Random rand = new Random();
 
 				@Override public void run() {
 					
 					try {
-						idx = new ProtoIndex(new FreenetURI("CHK@"), "test", null, null, 0);
+						idx = new ProtoIndex(new plugins.Library.io.FreenetURI("CHK@"), "test", null, null, 0);
 					} catch (java.net.MalformedURLException e) {
 						throw new AssertionError(e);
 					}

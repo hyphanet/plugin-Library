@@ -3,12 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.io.serial.Translator;
-import plugins.Library.io.serial.MapSerialiser;
-import plugins.Library.io.DataFormatException;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.util.exec.TaskCompleteException;
 
 import java.util.Iterator;
 import java.util.Comparator;
@@ -22,7 +16,12 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.HashMap;
 
-import freenet.support.Logger;
+import plugins.Library.io.DataFormatException;
+import plugins.Library.io.serial.MapSerialiser;
+import plugins.Library.io.serial.Translator;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.exec.TaskCompleteException;
 
 /**
 ** A {@link SkeletonMap} of a {@link TreeMap}. DOCUMENT
@@ -78,7 +77,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 
 	public SkeletonTreeMap(SkeletonTreeMap<K, V> m) {
 		skmap = new TreeMap<K, SkeletonValue<V>>(m.comparator());
-		for (Map.Entry<K, SkeletonValue<V>> en: m.skmap.entrySet()) {
+		for (Entry<K, SkeletonValue<V>> en: m.skmap.entrySet()) {
 			skmap.put(en.getKey(), en.getValue().clone());
 		}
 		ghosts = m.ghosts;
@@ -149,14 +148,14 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 
 		Map<K, PullTask<V>> tasks = new HashMap<K, PullTask<V>>(size()<<1);
 		// load only the tasks that need pulling
-		for (Map.Entry<K, SkeletonValue<V>> en: skmap.entrySet()) {
+		for (Entry<K, SkeletonValue<V>> en: skmap.entrySet()) {
 			SkeletonValue<V> skel = en.getValue();
 			if (skel.isLoaded()) { continue; }
 			tasks.put(en.getKey(), new PullTask<V>(skel.meta()));
 		}
 		serialiser.pull(tasks, mapmeta);
 
-		for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
+		for (Entry<K, PullTask<V>> en: tasks.entrySet()) {
 			assert(skmap.get(en.getKey()) != null);
 			// TODO NORM atm old metadata is retained, could update?
 			put(en.getKey(), en.getValue().data);
@@ -169,7 +168,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 
 		Map<K, PushTask<V>> tasks = new HashMap<K, PushTask<V>>(size()<<1);
 		// load all the tasks, most MapSerialisers need this info
-		for (Map.Entry<K, SkeletonValue<V>> en: skmap.entrySet()) {
+		for (Entry<K, SkeletonValue<V>> en: skmap.entrySet()) {
 			SkeletonValue<V> skel = en.getValue();
 			if(skel.data() == null) {
 				if(skel.isLoaded())
@@ -191,7 +190,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 		serialiser.push(tasks, mapmeta);
 
-		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
+		for (Entry<K, PushTask<V>> en: tasks.entrySet()) {
 			assert(skmap.get(en.getKey()) != null);
 			putGhost(en.getKey(), en.getValue().meta);
 		}
@@ -217,7 +216,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			// TODO NORM atm old metadata is retained, could update?
 			if (tasks.isEmpty()) { return; }
 
-			for (Map.Entry<K, PullTask<V>> en: tasks.entrySet()) {
+			for (Entry<K, PullTask<V>> en: tasks.entrySet()) {
 				// other keys may also have been inflated, so add them, but only if the
 				// generated metadata match.
 				PullTask<V> t = en.getValue();
@@ -253,7 +252,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		// OPTMISE think of a way to let the serialiser signal what
 		// information it needs? will be quite painful to implement that...
 		tasks.put(key, new PushTask<V>(skel.data(), skel.meta()));
-		for (Map.Entry<K, SkeletonValue<V>> en: skmap.entrySet()) {
+		for (Entry<K, SkeletonValue<V>> en: skmap.entrySet()) {
 			skel = en.getValue();
 			if (skel.isLoaded()) { continue; }
 			assert(skel.data() == null);
@@ -261,7 +260,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		}
 		serialiser.push(tasks, mapmeta);
 
-		for (Map.Entry<K, PushTask<V>> en: tasks.entrySet()) {
+		for (Entry<K, PushTask<V>> en: tasks.entrySet()) {
 			assert(skmap.get(en.getKey()) != null);
 			// serialiser may have pulled and re-pushed some of the
 			// eg. Packer does this. so set all the metadata for all the tasks
@@ -301,11 +300,11 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			}
 			// FIXME LOW maybe get rid of intm and just always use HashMap
 			if (ktr != null) {
-				for (Map.Entry<K, SkeletonValue<V>> en: map.skmap.entrySet()) {
+				for (Entry<K, SkeletonValue<V>> en: map.skmap.entrySet()) {
 					intm.put(ktr.app(en.getKey()), en.getValue().meta());
 				}
 			} else {
-				for (Map.Entry<K, SkeletonValue<V>> en: map.skmap.entrySet()) {
+				for (Entry<K, SkeletonValue<V>> en: map.skmap.entrySet()) {
 					intm.put(en.getKey().toString(), en.getValue().meta());
 				}
 			}
@@ -321,16 +320,16 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** @param ktr A translator between key and {@link String}
 		*/
 		public static <K, V> SkeletonTreeMap<K, V> rev(Map<String, Object> intm, SkeletonTreeMap<K, V> map, Translator<K, String> ktr) throws DataFormatException {
-			if (ktr == null) {
+			if (ktr == null) { // this case when K is String and therefore no keyTranslator is needed
 				try {
-					for (Map.Entry<String, Object> en: intm.entrySet()) {
-						map.putGhost((K)en.getKey(), en.getValue());
+					for (Entry<String, Object> en: intm.entrySet()) {
+						map.putGhost((K) en.getKey(), en.getValue());
 					}
 				} catch (ClassCastException e) {
 					throw new DataFormatException("TreeMapTranslator: reverse translation failed. Try supplying a non-null key-translator.", e, intm, null, null);
 				}
 			} else {
-				for (Map.Entry<String, Object> en: intm.entrySet()) {
+				for (Entry<String, Object> en: intm.entrySet()) {
 					map.putGhost(ktr.rev(en.getKey()), en.getValue());
 				}
 			}
@@ -406,13 +405,13 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		} else if (map instanceof SkeletonTreeMap.UnwrappingSortedSubMap) {
 			putmap = ((UnwrappingSortedSubMap)map).bkmap;
 		} else {
-			for (Map.Entry en: map.entrySet()) {
+			for (Entry en: map.entrySet()) {
 				put((K)en.getKey(), (V)en.getValue());
 			}
 			return;
 		}
 		int g = 0;
-		for (Map.Entry<K, SkeletonValue<V>> en: putmap.entrySet()) {
+		for (Entry<K, SkeletonValue<V>> en: putmap.entrySet()) {
 			SkeletonValue<V> sk = en.getValue();
 			SkeletonValue<V> old = skmap.put(en.getKey(), sk);
 			if (old == null) {
@@ -446,8 +445,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		return sk.data();
 	}
 
-	private transient Set<Map.Entry<K,V>> entries;
-	@Override public Set<Map.Entry<K,V>> entrySet() {
+	private transient Set<Entry<K,V>> entries;
+	@Override public Set<Entry<K,V>> entrySet() {
 		if (entries == null) {
 			entries = new UnwrappingEntrySet(skmap, false);
 		}
@@ -589,13 +588,13 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	*/
 	protected class UnwrappingIterator<T> implements Iterator<T> {
 
-		final protected Iterator<Map.Entry<K, SkeletonValue<V>>> iter;
+		final protected Iterator<Entry<K, SkeletonValue<V>>> iter;
 
 		/**
 		** Last entry returned by the backing iterator. Used by {@link
 		** #remove()} to update the {@link #ghosts} counter correctly.
 		*/
-		protected Map.Entry<K, SkeletonValue<V>> last;
+		protected Entry<K, SkeletonValue<V>> last;
 
 		final protected static int KEY = 0;
 		final protected static int VALUE = 1;
@@ -625,7 +624,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** @param it The backing iterator
 		** @param t The {@link #type} of iterator
 		*/
-		protected UnwrappingIterator(Iterator<Map.Entry<K, SkeletonValue<V>>> it, int t, boolean sub) {
+		protected UnwrappingIterator(Iterator<Entry<K, SkeletonValue<V>>> it, int t, boolean sub) {
 			assert(t == KEY || t == VALUE || t == ENTRY);
 			type = t;
 			iter = it;
@@ -665,18 +664,18 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 
 
 		/************************************************************************
-		** {@link java.util.Map.Entry} backed by one whose value is wrapped inside a {@link
+		** {@link Entry} backed by one whose value is wrapped inside a {@link
 		** SkeletonValue}. This class will unwrap the value when it is required,
 		** throwing {@link DataNotLoadedException} as necessary.
 		**
 		** @author infinity0
 		*/
-		protected class UnwrappingEntry implements Map.Entry<K, V> {
+		protected class UnwrappingEntry implements Entry<K, V> {
 
 			final K key;
 			final SkeletonValue<V> skel;
 
-			protected UnwrappingEntry(Map.Entry<K, SkeletonValue<V>> en) {
+			protected UnwrappingEntry(Entry<K, SkeletonValue<V>> en) {
 				key = en.getKey();
 				skel = en.getValue();
 			}
@@ -713,7 +712,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			@Override public boolean equals(Object o) {
 				if (!(o instanceof Map.Entry)) { return false; }
 				verifyLoaded();
-				Map.Entry<K, V> en = (Map.Entry<K, V>)o;
+				Entry<K, V> en = (Entry<K, V>)o;
 				return (key==null? en.getKey()==null: key.equals(en.getKey())) &&
 				       (skel.data()==null? en.getValue()==null: skel.data().equals(en.getValue()));
 			}
@@ -760,8 +759,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			return bkmap.lastKey();
 		}
 
-		private transient Set<Map.Entry<K, V>> entries;
-		@Override public Set<Map.Entry<K, V>> entrySet() {
+		private transient Set<Entry<K, V>> entries;
+		@Override public Set<Entry<K, V>> entrySet() {
 			if (entries == null) {
 				entries = new UnwrappingEntrySet(bkmap, true);
 			}
@@ -806,7 +805,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 	**
 	** @author infinity0
 	*/
-	protected class UnwrappingEntrySet extends AbstractSet<Map.Entry<K, V>> {
+	protected class UnwrappingEntrySet extends AbstractSet<Entry<K, V>> {
 
 		final protected SortedMap<K, SkeletonValue<V>> bkmap;
 		/**
@@ -823,8 +822,8 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 
 		@Override public int size() { return bkmap.size(); }
 
-		@Override public Iterator<Map.Entry<K, V>> iterator() {
-			return new UnwrappingIterator<Map.Entry<K, V>>(bkmap.entrySet().iterator(), UnwrappingIterator.ENTRY, issub);
+		@Override public Iterator<Entry<K, V>> iterator() {
+			return new UnwrappingIterator<Entry<K, V>>(bkmap.entrySet().iterator(), UnwrappingIterator.ENTRY, issub);
 		}
 
 		@Override public void clear() {
@@ -834,7 +833,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 
 		@Override public boolean contains(Object o) {
 			if (!(o instanceof Map.Entry)) { return false; }
-			Map.Entry en = (Map.Entry)o;
+			Entry en = (Entry)o;
 			Object key = en.getKey(); Object val = en.getValue();
 			// return SkeletonTreeMap.this.get(e.getKey()).equals(e.getValue());
 			SkeletonValue<V> sk = bkmap.get(key);
@@ -847,7 +846,7 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 			if (issub) { throw new UnsupportedOperationException("not implemented"); }
 			// SkeletonTreeMap.remove() called, which automatically updates _ghosts
 			boolean c = contains(o);
-			if (c) { SkeletonTreeMap.this.remove(((Map.Entry)o).getKey()); }
+			if (c) { SkeletonTreeMap.this.remove(((Entry)o).getKey()); }
 			return c;
 		}
 

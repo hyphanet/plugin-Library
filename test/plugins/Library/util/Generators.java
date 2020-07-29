@@ -3,15 +3,11 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import junit.framework.TestCase;
-
-import plugins.Library.index.*;
-
-import freenet.keys.FreenetURI;
+import plugins.Library.index.TermPageEntry;
+import plugins.Library.FreenetURIForTesting;
 
 import java.util.UUID;
 import java.util.Random;
-import java.net.MalformedURLException;
 
 /**
 ** @author infinity0
@@ -37,7 +33,7 @@ final public class Generators {
 	}
 
 	public static TermPageEntry rndEntry(String key) {
-		return new TermPageEntry(key, (float)Math.random(), FreenetURI.generateRandomCHK(rand), null);
+		return new TermPageEntry(key, (float)Math.random(), FreenetURIForTesting.generateRandomCHK(rand), null);
 	}
 
 }

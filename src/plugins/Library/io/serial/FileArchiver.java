@@ -9,11 +9,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileLock;
 
-import plugins.Library.io.ObjectStreamReader;
-import plugins.Library.io.ObjectStreamWriter;
-import plugins.Library.io.serial.Serialiser.Task;
 import plugins.Library.util.exec.SimpleProgress;
 import plugins.Library.util.exec.TaskAbortException;
+
+import plugins.Library.io.ObjectStreamReader;
+import plugins.Library.io.ObjectStreamWriter;
 
 /**
 ** Converts between a map of {@link String} to {@link Object}, and a file on
@@ -132,7 +132,8 @@ implements Archiver<T>, LiveArchiver<T, SimpleProgress> {
 	  public interface LiveArchiver
 	 ========================================================================*/
 
-	/*@Override**/ public void pull(PullTask<T> t) throws TaskAbortException {
+	@Override
+	public void pull(PullTask<T> t) throws TaskAbortException {
 		File file = getFile(t.meta);
 		try {
 			FileInputStream is = new FileInputStream(file);
@@ -153,7 +154,8 @@ implements Archiver<T>, LiveArchiver<T, SimpleProgress> {
 		}
 	}
 
-	/*@Override**/ public void push(PushTask<T> t) throws TaskAbortException {
+	@Override
+	public void push(PushTask<T> t) throws TaskAbortException {
 		if (random) { t.meta = java.util.UUID.randomUUID().toString(); }
 		File file = getFile(t.meta);
 		try {
@@ -175,7 +177,8 @@ implements Archiver<T>, LiveArchiver<T, SimpleProgress> {
 		}
 	}
 
-	/*@Override**/ public void pullLive(PullTask<T> t, SimpleProgress p) throws TaskAbortException {
+	@Override
+	public void pullLive(PullTask<T> t, SimpleProgress p) throws TaskAbortException {
 		try {
 			pull(t);
 			if (testmode) { randomWait(p); }
@@ -185,7 +188,8 @@ implements Archiver<T>, LiveArchiver<T, SimpleProgress> {
 		}
 	}
 
-	/*@Override**/ public void pushLive(PushTask<T> t, SimpleProgress p) throws TaskAbortException {
+	@Override
+	public void pushLive(PushTask<T> t, SimpleProgress p) throws TaskAbortException {
 		try {
 			push(t);
 			if (testmode) { randomWait(p); }
@@ -193,6 +197,10 @@ implements Archiver<T>, LiveArchiver<T, SimpleProgress> {
 		} catch (TaskAbortException e) {
 			p.abort(e);
 		}
+	}
+
+	@Override
+	public void waitForAsyncInserts() {
 	}
 
 }
