@@ -5,3 +5,4 @@ javadoc
 lib
 tmp
 run-test
+/.gradle
