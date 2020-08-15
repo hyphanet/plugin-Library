@@ -6,3 +6,4 @@ lib
 tmp
 run-test
 /.gradle
+.idea
