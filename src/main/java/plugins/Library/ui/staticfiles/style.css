@@ -1,0 +1,48 @@
+
+#results { padding-left: 8px; }
+.result-group { padding : 0 0 6px; }
+.result-grouptitle { font-size: large; font-weight: bold; margin-bottom: 0px; margin-top: 6px;  }
+.result-editiontitle-new { display:inline; padding-top: 5px; font-size: medium; color: black; }
+.result-editiontitle-old { display:inline; padding-top: 5px; font-size: medium; color: darkGrey; }
+.result-entry { margin-bottom: 10px; }
+.result-sitename {color:black; font-weight:bold; }
+.result-table { border-spacing : 5px; }
+a.result-title-new:link { color: Blue }
+a.result-title-new:visited { color: Purple; }
+a.result-title-old:link { color: LightBlue; }
+a.result-title-old:visited { color: Orchid; }
+a.result-url-new {color:Green; font-size:small; padding-left:15px; }
+a.result-url-old {color:LightGreen; font-size:small; padding-left:15px; }
+a.result-uskbutton-new {color: #480000; font-variant: small-caps; font-size: small; padding-left: 20px; }
+a.result-uskbutton-old {color: #996666; font-variant: small-caps; font-size: small; padding-left: 20px; }
+.progress-table {border-spacing:10px 0px; }
+table.progress-table td { padding: 5px 15px; }
+td.progress-bar-outline { padding: 0px 3px; width:300px; border:1px solid grey; height : 20px; border-spacing: 0px; }
+div.progress-bar-inner-final { background-color: red; height:20px; z-index:-1; border-spacing: 0px; }
+div.progress-bar-inner-nonfinal { background-color: pink; height:20px; z-index:-1; border-spacing: 0px; }
+input.index { font-size: 0.63em; width: 170px; height:1.1em; }
+input.index-bookmark-delete {
+    width: 12px;
+    height: 11px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+    border-top-width: 0px;
+    border-bottom-width: 0px;
+    border-left-width: 0px;
+    border-right-width: 0px;
+    background-color: DarkSkyBlue;
+	color: red;
+	font-size: xx-small;
+}
+input.index-other-add {  }
+li.index {  }
+td.sskeditionbracket { background: black; width: 2px; padding: 0px; }
+ul.index-bookmark-list { list-style: none; }
+ul.options-list { list-style-type: none; margin-top: 0; }
+div#content th, td { border: none; }
+div.authorization-box { background: darksalmon; border: 1px solid darkred; padding: 8px; }
+div.authorization-box h1 { font-size: 16pt; font-weight: bold; margin-top: 0px; }
+div.authorization-box a:link { color: blue; }
+

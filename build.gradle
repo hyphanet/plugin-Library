@@ -1,0 +1,99 @@
+buildscript {
+    dependencies {
+        classpath files('gradle/gradle-witness.jar')
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'witness'
+apply plugin: 'maven-publish'
+apply plugin: 'application'
+
+compileJava {
+    sourceCompatibility = 1.7
+    targetCompatibility = 1.7
+}
+
+version = "37"
+
+repositories {
+    mavenLocal()
+    maven { url "http://4thline.org/m2" }
+    maven { url 'https://mvn.freenetproject.org' }
+    jcenter()
+}
+
+configurations {
+    extraLibs
+}
+
+dependencies {
+    compile group: 'org.freenetproject', name: 'fred', version: 'build+'
+    compile group: 'org.yaml', name: 'snakeyaml', version: '1.5'
+    testImplementation 'junit:junit:4.13'
+}
+
+def gitrev
+task buildInfo {
+    try {
+        def cmd = "git describe --always --abbrev=4 --dirty"
+        def proc = cmd.execute()
+        gitrev = proc.text.trim()
+    } catch (java.io.IOException e) {
+        gitrev = "@unknown@"
+    }
+}
+
+test {
+	useJUnit()
+}
+
+application {
+    mainClassName = 'plugins.Library.ui.TestInterface'
+}
+
+jar {
+    manifest {
+        attributes 'Plugin-Main-Class': 'plugins.Library.Main',
+                   'Main-Class': 'plugins.Library.ui.TestInterface',
+                   'Required-Node-Version': '1239',
+                   'Implementation-Version': version,
+                   'Built-By': System.getProperty('user.name'),
+                   'Built-Date': new Date(),
+                   'Built-JDK': System.getProperty('java.version')
+    }
+    from('src') {
+      include '**/*.txt'
+        include '**/*.properties'
+    }
+    from (configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) }) {
+        exclude "META-INF/*.SF"
+        exclude "META-INF/*.DSA"
+        exclude "META-INF/*.RSA"
+    }
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+    duplicatesStrategy = "exclude"
+    archiveName = 'freenet-Library.jar'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId 'org.freenetproject.plugins'
+            artifactId "Library"
+            version version
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "s3://mvn.freenetproject.org/"
+            credentials(AwsCredentials) {
+                accessKey System.getenv('AWS_ACCESS_KEY_ID')
+                secretKey System.getenv('AWS_SECRET_ACCESS_KEY')
+            }
+        }
+    }
+}
+
