@@ -57,11 +57,11 @@ public class BIndexTest extends TestCase {
 		return time - oldtime;
 	}
 	
-	public BIndexTest() {
-	    f = new File("BindexTest");
-	    f.mkdir();
-	    srl = ProtoIndexSerialiser.forIndex(f);
-	    csrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, srl.getChildSerialiser());
+	public BIndexTest() throws IOException {
+		f = File.createTempFile("tmp", "BindexTest");
+		f.mkdir();
+		srl = ProtoIndexSerialiser.forIndex(f);
+		csrl = ProtoIndexComponentSerialiser.get(ProtoIndexComponentSerialiser.FMT_FILE_LOCAL, srl.getChildSerialiser());
 	}
 	
 	private final File f;
