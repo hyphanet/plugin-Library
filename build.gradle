@@ -28,13 +28,14 @@ configurations {
 
 dependencies {
     compile group: 'org.freenetproject', name: 'fred', version: 'build+'
-    extraLibs group: 'org.yaml', name: 'snakeyaml', version: '1.5'
+    compile group: 'org.yaml', name: 'snakeyaml', version: '1.5'
     testImplementation 'junit:junit:4.13'
 }
 
 dependencyVerification {
     verify = [
         'org.freenetproject:fred:a181e584a055211ebbe69657a89f8e1452a5eb72af441839208223dc6515cbce',
+        'org.yaml:snakeyaml:9cf5e385cea2aaa58eb943a6a63c3a674d9ba00d88eca480548294d93c7b85c0',
         'org.bouncycastle:bcprov-jdk15on:1c31e44e331d25e46d293b3e8ee2d07028a67db011e74cb2443285aed1d59c85',
         'net.java.dev.jna:jna-platform:f1d00c167d8921c6e23c626ef9f1c3ae0be473c95c68ffa012bc7ae55a87e2d6',
         'net.java.dev.jna:jna:0c8eb7acf67261656d79005191debaba3b6bf5dd60a43735a245429381dbecff',
