@@ -41,7 +41,7 @@ public class StaticToadlet extends Toadlet {
 	}
 
 	public static final String ROOT_URL = "/library/static/";
-	public static final String ROOT_PATH = "staticfiles/";
+	public static final String ROOT_PATH = "/staticfiles/";
 
 	public void handleMethodGET(URI uri, final HTTPRequest httprequest, final ToadletContext ctx)
 	throws ToadletContextClosedException, IOException, RedirectException {
