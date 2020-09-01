@@ -17,7 +17,6 @@ compileJava {
 version = "37"
 
 repositories {
-    mavenLocal()
     maven { url "http://4thline.org/m2" }
     maven { url 'https://mvn.freenetproject.org' }
     jcenter()
@@ -29,8 +28,18 @@ configurations {
 
 dependencies {
     compile group: 'org.freenetproject', name: 'fred', version: 'build+'
-    compile group: 'org.yaml', name: 'snakeyaml', version: '1.5'
+    extraLibs group: 'org.yaml', name: 'snakeyaml', version: '1.5'
     testImplementation 'junit:junit:4.13'
+}
+
+dependencyVerification {
+    verify = [
+        'org.freenetproject:fred:a181e584a055211ebbe69657a89f8e1452a5eb72af441839208223dc6515cbce',
+        'org.bouncycastle:bcprov-jdk15on:1c31e44e331d25e46d293b3e8ee2d07028a67db011e74cb2443285aed1d59c85',
+        'net.java.dev.jna:jna-platform:f1d00c167d8921c6e23c626ef9f1c3ae0be473c95c68ffa012bc7ae55a87e2d6',
+        'net.java.dev.jna:jna:0c8eb7acf67261656d79005191debaba3b6bf5dd60a43735a245429381dbecff',
+        'org.freenetproject:freenet-ext:32f2b3d6beedf54137ea2f9a3ebef67666d769f0966b08cd17fd7db59ba4d79f',
+    ]
 }
 
 def gitrev
@@ -71,10 +80,6 @@ jar {
                    'Built-By': System.getProperty('user.name'),
                    'Built-Date': getMTime("src/main/java/plugins/Library/Version.java"),
                    'Built-JDK': System.getProperty('java.version')
-    }
-    from('src') {
-      include '**/*.txt'
-        include '**/*.properties'
     }
     from (configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) }) {
         exclude "META-INF/*.SF"
