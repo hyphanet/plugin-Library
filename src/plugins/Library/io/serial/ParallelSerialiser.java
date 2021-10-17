@@ -3,17 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.TaskAbortExceptionConvertor;
-import plugins.Library.util.concurrent.Scheduler;
-import plugins.Library.util.concurrent.ObjectProcessor;
-import plugins.Library.util.concurrent.Executors;
-import plugins.Library.util.exec.Progress;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.util.exec.TaskInProgressException;
-import plugins.Library.util.exec.TaskCompleteException;
-import plugins.Library.util.func.SafeClosure;
-import static plugins.Library.util.func.Tuples.X2; // also imports the class
+import static plugins.Library.util.func.Tuples.X2;
 
 import java.util.Iterator;
 import java.util.List;
@@ -26,6 +16,17 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentMap;
+
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.TaskAbortExceptionConvertor;
+import plugins.Library.util.concurrent.Executors;
+import plugins.Library.util.concurrent.ObjectProcessor;
+import plugins.Library.util.concurrent.Scheduler;
+import plugins.Library.util.exec.Progress;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.exec.TaskCompleteException;
+import plugins.Library.util.exec.TaskInProgressException;
+import plugins.Library.util.func.SafeClosure;
 
 /**
 ** An {@link IterableSerialiser} that uses threads to handle tasks given to it

@@ -6,4 +6,3 @@
  * Where classes which only apply to xml indexes stay
  */
 package plugins.Library.index.xml;
-

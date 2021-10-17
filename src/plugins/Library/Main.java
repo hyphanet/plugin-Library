@@ -3,76 +3,25 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library;
 
-import freenet.node.RequestStarter;
 import freenet.pluginmanager.PluginReplySender;
-import freenet.support.MutableBoolean;
 import freenet.support.SimpleFieldSet;
 import freenet.support.api.Bucket;
-import freenet.support.io.BucketTools;
-import freenet.support.io.Closer;
-import freenet.support.io.FileBucket;
-import freenet.support.io.FileUtil;
-import freenet.support.io.LineReadingInputStream;
-import freenet.support.io.NativeThread;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
-import java.util.logging.Level;
-
-import plugins.Library.client.FreenetArchiver;
-import plugins.Library.index.ProtoIndex;
-import plugins.Library.index.ProtoIndexComponentSerialiser;
-import plugins.Library.index.ProtoIndexSerialiser;
-import plugins.Library.index.TermEntry;
-import plugins.Library.index.TermPageEntry;
 import plugins.Library.search.Search;
 import plugins.Library.ui.WebInterface;
-import plugins.Library.util.SkeletonBTreeMap;
-import plugins.Library.util.SkeletonBTreeSet;
-import plugins.Library.util.TaskAbortExceptionConvertor;
-import plugins.Library.util.concurrent.Executors;
-import plugins.Library.util.exec.SimpleProgress;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.util.func.Closure;
 
 import freenet.pluginmanager.FredPlugin;
 import freenet.pluginmanager.FredPluginL10n;
 import freenet.pluginmanager.FredPluginRealVersioned;
 import freenet.pluginmanager.FredPluginThreadless;
 import freenet.pluginmanager.FredPluginVersioned;
-import freenet.pluginmanager.PluginNotFoundException;
 import freenet.pluginmanager.PluginRespirator;
 import freenet.support.Executor;
-import freenet.client.InsertException;
-import freenet.keys.FreenetURI;
-import freenet.keys.InsertableClientSSK;
-import freenet.l10n.BaseL10n.LANGUAGE;
+import plugins.Library.util.concurrent.Executors;
 
 import freenet.pluginmanager.FredPluginFCP;
 import freenet.support.Logger;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.FilenameFilter;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.security.MessageDigest;
-import plugins.Library.index.TermEntryReaderWriter;
-import plugins.Library.index.xml.LibrarianHandler;
-import plugins.Library.io.serial.LiveArchiver;
-import plugins.Library.io.serial.Serialiser.PullTask;
-import plugins.Library.io.serial.Serialiser.PushTask;
 
 /**
  * Library class is the api for others to use search facilities, it is used by the interfaces
@@ -85,10 +34,7 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 	private Library library;
 	private WebInterface webinterface;
 	private SpiderIndexUploader uploader;
-	
-	static volatile boolean logMINOR;
-	static volatile boolean logDEBUG;
-	
+
 	static {
 		Logger.registerClass(Main.class);
 	}
@@ -195,5 +141,4 @@ public class Main implements FredPlugin, FredPluginVersioned, freenet.pluginmana
 			Logger.error(this, "Unknown command : \""+params.get("command"));
 		}
 	}
-
 }

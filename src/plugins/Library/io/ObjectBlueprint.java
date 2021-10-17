@@ -299,6 +299,9 @@ public class ObjectBlueprint<T> {
 			String property = en.getKey();
 			Class<?> type = en.getValue();
 			Object value = map.get(property);
+			if (value != null && value.equals("null")) { // FIXME: case when type Map and value String "null"
+				value = null;
+			}
 			try {
 				if (type.isPrimitive()) {
 					value = boxCast(type, value);
@@ -335,25 +338,25 @@ public class ObjectBlueprint<T> {
 
 		return new AbstractMap<String, Object>() {
 
-			final private Set<Map.Entry<String, Object>> entrySet = new AbstractSet<Map.Entry<String, Object>>() {
+			final private Set<Entry<String, Object>> entrySet = new AbstractSet<Entry<String, Object>>() {
 
 				@Override public int size() {
 					return properties.size();
 				}
 
-				@Override public Iterator<Map.Entry<String, Object>> iterator() {
-					return new Iterator<Map.Entry<String, Object>>() {
-						final Iterator<Map.Entry<String, String>> props = properties.entrySet().iterator();
+				@Override public Iterator<Entry<String, Object>> iterator() {
+					return new Iterator<Entry<String, Object>>() {
+						final Iterator<Entry<String, String>> props = properties.entrySet().iterator();
 
 						/*@Override**/ public boolean hasNext() {
 							return props.hasNext();
 						}
 
-						/*@Override**/ public Map.Entry<String, Object> next() {
-							Map.Entry<String, String> en = props.next();
+						/*@Override**/ public Entry<String, Object> next() {
+							Entry<String, String> en = props.next();
 							final String property = en.getKey();
 							final String method_name = en.getValue();
-							return new Map.Entry<String, Object>() {
+							return new Entry<String, Object>() {
 								/*@Override**/ public String getKey() { return property; }
 								/*@Override**/ public Object getValue() { return get(property, method_name); }
 								/*@Override**/ public Object setValue(Object o) { throw new UnsupportedOperationException("Cannot modify an object in this way."); }
@@ -395,7 +398,7 @@ public class ObjectBlueprint<T> {
 				}
 			}
 
-			@Override public Set<Map.Entry<String, Object>> entrySet() {
+			@Override public Set<Entry<String, Object>> entrySet() {
 				return entrySet;
 			}
 

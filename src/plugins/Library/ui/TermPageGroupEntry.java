@@ -12,6 +12,7 @@ import java.util.TreeSet;
 import plugins.Library.index.TermEntry;
 import plugins.Library.index.TermPageEntry;
 
+
 /**
  * TODO make this fit the TermEntry contract
  * @author MikeB

@@ -6,8 +6,10 @@ package plugins.Library.util;
 import junit.framework.TestCase;
 
 import java.util.Map;
+import java.util.Random;
 import java.util.SortedMap;
 import java.util.Iterator;
+import java.util.UUID;
 
 /**
 ** TODO maybe make some tailMap, headMap, subMap tests
@@ -20,10 +22,16 @@ abstract public class SortedMapTestSkeleton extends TestCase {
 
 	abstract protected SortedMap<String, Integer> makeTestMap();
 
+	final private static Random rand = new Random();
+
+	private static String rndStr() {
+		return UUID.randomUUID().toString();
+	}
+
 	public void fillTestMap() {
 		testmap = makeTestMap();
 		for (int i=0; i<0x1000; ++i) {
-			testmap.put(Generators.rndStr(), Generators.rand.nextInt());
+			testmap.put(rndStr(), rand.nextInt());
 		}
 	}
 

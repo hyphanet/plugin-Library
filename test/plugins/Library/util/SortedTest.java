@@ -4,9 +4,6 @@
 package plugins.Library.util;
 
 import junit.framework.TestCase;
-import static plugins.Library.util.Generators.rand;
-
-import plugins.Library.util.Sorted.Inclusivity;
 
 import java.util.Random;
 import java.util.Iterator;
@@ -14,6 +11,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.UUID;
+
+import plugins.Library.util.Sorted.Inclusivity;
 
 /**
 ** @author infinity0
@@ -54,6 +54,16 @@ public class SortedTest extends TestCase {
 		{},
 		{8,16,24,32}
 	};
+
+	final private static Random rand = new Random();
+
+	private static String rndStr() {
+		return UUID.randomUUID().toString();
+	}
+
+	private static String rndKey() {
+		return rndStr().substring(0,8);
+	}
 
 	public void testSplitPredefined()  {
 		SortedSet<Integer> sep = new TreeSet<Integer>(Arrays.asList(split_sep));
@@ -152,13 +162,13 @@ public class SortedTest extends TestCase {
 
 	protected void randomSelectSplit(int n, int k) {
 		SortedSet<String> subj = new TreeSet<String>();
-		for (int i=0; i<n; ++i) { subj.add(Generators.rndKey()); }
+		for (int i=0; i<n; ++i) { subj.add(rndKey()); }
 
 		SortedSet<String> sep = new TreeSet<String>();
 		List<String> candsep = Sorted.select(subj, k);
 		assertTrue(candsep.size() == k);
 		for (String key: candsep) {
-			sep.add((rand.nextInt(2) == 0)? key: Generators.rndKey());
+			sep.add((rand.nextInt(2) == 0)? key: rndKey());
 		}
 		assertTrue(sep.size() == k);
 

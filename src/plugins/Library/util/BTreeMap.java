@@ -3,13 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import plugins.Library.util.CompositeIterable;
-import plugins.Library.util.func.Tuples.X2;
-import plugins.Library.util.func.Tuples.X3;
 
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
@@ -21,7 +17,9 @@ import java.util.TreeMap;
 import java.util.HashMap;
 import java.util.Stack;
 import java.util.NoSuchElementException;
-import java.util.ConcurrentModificationException;
+
+import plugins.Library.util.func.Tuples.X2;
+import plugins.Library.util.func.Tuples.X3;
 
 /**
 ** General purpose B-tree implementation. '''This class is not a general-use
@@ -371,7 +369,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 		/**
 		** Add the given entries and subnodes to this node. The subnodes are
-		** added with {@link #addChildNode(BTreeMap.Node)}.
+		** added with {@link #addChildNode(Node)}.
 		**
 		** It is '''assumed''' that the entries are located exactly exclusively
 		** between the nodes (ie. like in an actual node); it is up to the
@@ -796,12 +794,12 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			StringBuilder s = new StringBuilder();
 			s.append(istr).append('(').append(lkey).append(')').append('\n');
 			if (isLeaf) {
-				for (Map.Entry<K, V> en: entries.entrySet()) {
+				for (Entry<K, V> en: entries.entrySet()) {
 					s.append(istr).append(en.getKey()).append(" : ").append(en.getValue()).append('\n');
 				}
 			} else {
 				s.append(rnodes.get(lkey).toTreeString(nistr));
-				for (Map.Entry<K, V> en: entries.entrySet()) {
+				for (Entry<K, V> en: entries.entrySet()) {
 					s.append(istr).append(en.getKey()).append(" : ").append(en.getValue()).append('\n');
 					s.append(rnodes.get(en.getKey()).toTreeString(nistr));
 				}
@@ -953,10 +951,6 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			verify(node.nodeSize() + 1 == node.rnodes.size());
 			verify(node.nodeSize() + 1 == node.lnodes.size());
 		}
-		/* DEBUG if (node._size > 0 && node._size != s) {
-			System.out.println(node._size + " vs " + s);
-			System.out.println(node.toTreeString("\t"));
-		}*/
 		verify(node._size < 0 || node._size == s);
 
 		verify(node.nodeSize() <= ENT_MAX);
@@ -1062,14 +1056,14 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		if (child.isLeaf()) {
 			// this is just the same as the code in the else block, but with leaf
 			// references to rnodes and lnodes removed (since they are null)
-			Iterator<Map.Entry<K, V>> it = child.entries.entrySet().iterator();
+			Iterator<Entry<K, V>> it = child.entries.entrySet().iterator();
 			for (int i=0; i<ENT_MIN; ++i) {
-				Map.Entry<K, V> entry = it.next(); it.remove();
+				Entry<K, V> entry = it.next(); it.remove();
 				K key = entry.getKey();
 
 				lnode.entries.put(key, entry.getValue());
 			}
-			Map.Entry<K, V> median = it.next(); it.remove();
+			Entry<K, V> median = it.next(); it.remove();
 			mkey = median.getKey();
 
 			lnode.lkey = child.lkey;
@@ -1083,16 +1077,16 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 		} else {
 			lnode.rnodes.put(child.lkey, child.rnodes.remove(child.lkey));
-			Iterator<Map.Entry<K, V>> it = child.entries.entrySet().iterator();
+			Iterator<Entry<K, V>> it = child.entries.entrySet().iterator();
 			for (int i=0; i<ENT_MIN; ++i) {
-				Map.Entry<K, V> entry = it.next(); it.remove();
+				Entry<K, V> entry = it.next(); it.remove();
 				K key = entry.getKey();
 
 				lnode.entries.put(key, entry.getValue());
 				lnode.lnodes.put(key, child.lnodes.remove(key));
 				lnode.rnodes.put(key, child.rnodes.remove(key));
 			}
-			Map.Entry<K, V> median = it.next(); it.remove();
+			Entry<K, V> median = it.next(); it.remove();
 			mkey = median.getKey();
 			lnode.lnodes.put(mkey, child.lnodes.remove(mkey));
 
@@ -1334,7 +1328,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	/**
 	** Returns the entry at a particular (zero-based) index.
 	*/
-	public Map.Entry<K, V> getEntry(int index) {
+	public Entry<K, V> getEntry(int index) {
 		if (index < 0 || index >= size) {
 			throw new IndexOutOfBoundsException("Index outside of range [0," + size + ")");
 		}
@@ -1344,7 +1338,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 		for (;;) {
 			if (node.isLeaf()) {
-				for (Map.Entry<K, V> en: node.entries.entrySet()) {
+				for (Entry<K, V> en: node.entries.entrySet()) {
 					if (current == index) { return en; }
 					++current;
 				}
@@ -1365,7 +1359,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			if (index < next) { node = nextnode; continue; }
 			current = next;
 
-			for (Map.Entry<K, V> en: node.entries.entrySet()) {
+			for (Entry<K, V> en: node.entries.entrySet()) {
 				if (current == index) { return en; }
 				++current;
 
@@ -1671,13 +1665,13 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 				nextlnodes = new HashMap<K, Node>(k<<1);
 				nextmap = new TreeMap<K, V>(comparator);
 
-				Iterator<Map.Entry<K, V>> it = map.entrySet().iterator();
+				Iterator<Entry<K, V>> it = map.entrySet().iterator();
 				K prevkey = null; // NULLNOTICE
 
 				// allocate all entries into these k nodes, except for k-1 parents
 				for (Integer n: Integers.allocateEvenly(map.size()-k+1, k)) {
 					// put n entries into a new leaf
-					Map.Entry<K, V> en = makeNode(it, n, prevkey, lnodes, nextlnodes);
+					Entry<K, V> en = makeNode(it, n, prevkey, lnodes, nextlnodes);
 					if (en != null) { nextmap.put(prevkey = en.getKey(), en.getValue()); }
 				}
 
@@ -1703,12 +1697,12 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 	** @param lnodes Complete map of keys to their lnodes at this level
 	** @param nextlnodes In-construction lnodes map for the next level
 	*/
-	private Map.Entry<K, V> makeNode(Iterator<Map.Entry<K, V>> it, int n, K prevkey, Map<K, Node> lnodes, Map<K, Node> nextlnodes) {
+	private Entry<K, V> makeNode(Iterator<Entry<K, V>> it, int n, K prevkey, Map<K, Node> lnodes, Map<K, Node> nextlnodes) {
 		Node node;
 		if (lnodes == null) { // create leaf nodes
 			node = newNode(prevkey, null, true);
 			for (int i=0; i<n; ++i) {
-				Map.Entry<K, V> en = it.next();
+				Entry<K, V> en = it.next();
 				K key = en.getKey();
 				node.entries.put(key, en.getValue());
 				prevkey = key;
@@ -1716,7 +1710,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		} else {
 			node = newNode(prevkey, null, false);
 			for (int i=0; i<n; ++i) {
-				Map.Entry<K, V> en = it.next();
+				Entry<K, V> en = it.next();
 				K key = en.getKey();
 				node.entries.put(key, en.getValue());
 				Node subnode = lnodes.get(key);
@@ -1726,7 +1720,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 			}
 		}
 
-		Map.Entry<K, V> next;
+		Entry<K, V> next;
 		K key;
 		if (it.hasNext()) {
 			next = it.next();
@@ -1755,23 +1749,23 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 		putAll(this);
 	}
 
-	private Set<Map.Entry<K, V>> entrySet = null;
-	@Override public Set<Map.Entry<K, V>> entrySet() {
+	private Set<Entry<K, V>> entrySet = null;
+	@Override public Set<Entry<K, V>> entrySet() {
 		if (entrySet == null) {
-			entrySet = new AbstractSet<Map.Entry<K, V>>() {
+			entrySet = new AbstractSet<Entry<K, V>>() {
 
 				@Override public int size() { return BTreeMap.this.size(); }
 
-				@Override public Iterator<Map.Entry<K, V>> iterator() {
+				@Override public Iterator<Entry<K, V>> iterator() {
 					// FIXME LOW - this does NOT yet throw ConcurrentModificationException
 					// use a modCount counter
-					return new Iterator<Map.Entry<K, V>>() {
+					return new Iterator<Entry<K, V>>() {
 
 						Stack<Node> nodestack = new Stack<Node>();
-						Stack<Iterator<Map.Entry<K, V>>> itstack = new Stack<Iterator<Map.Entry<K, V>>>();
+						Stack<Iterator<Entry<K, V>>> itstack = new Stack<Iterator<Entry<K, V>>>();
 
 						Node cnode = BTreeMap.this.root;
-						Iterator<Map.Entry<K, V>> centit = cnode.entries.entrySet().iterator();
+						Iterator<Entry<K, V>> centit = cnode.entries.entrySet().iterator();
 
 						K lastkey = null;
 						boolean removeok = false;
@@ -1787,7 +1781,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 						/*@Override**/ public boolean hasNext() {
 							// TODO LOW ideally iterate in the reverse order
-							for (Iterator<Map.Entry<K, V>> it: itstack) {
+							for (Iterator<Entry<K, V>> it: itstack) {
 								if (it.hasNext()) { return true; }
 							}
 							if (centit.hasNext()) { return true; }
@@ -1795,7 +1789,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 							return false;
 						}
 
-						/*@Override**/ public Map.Entry<K, V> next() {
+						/*@Override**/ public Entry<K, V> next() {
 							if (cnode.isLeaf()) {
 								while (!centit.hasNext()) {
 									if (nodestack.empty()) {
@@ -1818,7 +1812,7 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 									centit = cnode.entries.entrySet().iterator();
 								}
 							}
-							Map.Entry<K, V> next = centit.next(); lastkey = next.getKey();
+							Entry<K, V> next = centit.next(); lastkey = next.getKey();
 							removeok = true;
 							return next;
 						}
@@ -1872,14 +1866,14 @@ implements Map<K, V>, SortedMap<K, V>/*, NavigableMap<K, V>, Cloneable, Serializ
 
 				@Override public boolean contains(Object o) {
 					if (!(o instanceof Map.Entry)) { return false; }
-					Map.Entry e = (Map.Entry)o;
+					Entry e = (Entry)o;
 					Object value = BTreeMap.this.get(e.getKey());
 					return value != null && value.equals(e.getValue());
 				}
 
 				@Override public boolean remove(Object o) {
 					if (contains(o)) {
-						Map.Entry e = (Map.Entry)o;
+						Entry e = (Entry)o;
 						BTreeMap.this.remove(e.getKey());
 						return true;
 					}

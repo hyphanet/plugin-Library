@@ -2,19 +2,26 @@
 <!-- ant build file for Freenet -->
 
 <project name="plugins-Library" default="dist" basedir=".">
-	<property name="freenet-cvs-snapshot.location" location="../fred/dist/freenet.jar"/>
+	<property name="freenet-cvs-snapshot.location" location="../fred/build/libs/freenet.jar"/>
 	<property name="freenet-ext.location" location="../fred/lib/freenet/freenet-ext.jar"/>
-	<property name="source-version" value="1.6"/>
-	<property name="target-version" value="1.6"/>
-	<property name="build" location="build/"/>
+	<property name="jfcplib.location" location="../jFCPlib/target/jFCPlib-0.1.7-SNAPSHOT.jar"/>
+
+	<property name="source-version" value="1.8"/>
+	<property name="target-version" value="1.8"/>
+
+	<property name="build" location="build"/>
+	<property name="build-uploader" location="${build}/uploader"/>
+
 	<property name="build-test" location="build-test/"/>
-	<property name="run-test" location="run-test/"/>
+	<property name="build-test-uploader" location="${build-test}/uploader"/>
+	<property name="run-test" location="${build-test}/run"/>
+
 	<property name="tmp" location="tmp/"/>
 	<property name="dist" location="dist/"/>
 	<property name="javadoc" location="javadoc/"/>
 	<property name="junit.location" value="/usr/share/java/junit.jar"/>
 	<property name="packagebase" value="plugins.Library" />
-	<property name="minNodeVersion" value="1239"/>
+	<property name="minNodeVersion" value="1484"/>
 
 	<property name="version.src" value="plugins/Library/Version.java" />
 	<property name="version.build" value="plugins/Library/Version.class" />
@@ -27,6 +34,12 @@
 		<fileset dir="lib/">
 			<include name="**/*.jar"/>
 		</fileset>
+	</path>
+
+	<path id="uploader.path">
+		<path refid="lib.path"/>
+		<pathelement location="${build}"/>
+		<pathelement location="${jfcplib.location}"/>
 	</path>
 
 	<exec executable="git"
@@ -48,6 +61,7 @@
 	<!-- ================================================== -->
 	<target name="mkdir">
 		<mkdir dir="${build}"/>
+		<mkdir dir="${build-uploader}"/>
 		<mkdir dir="${build-test}"/>
 		<mkdir dir="${run-test}"/>
 		<mkdir dir="${dist}"/>
@@ -58,20 +72,23 @@
 	<!-- ================================================== -->
 	<target name="build-dep">
 		<mkdir dir="lib/"/>
+		<copy file="${jfcplib.location}" todir="lib/" />
+		<copy file="${freenet-ext.location}" todir="lib/" />
+		<copy file="${freenet-cvs-snapshot.location}" todir="lib/" />
 		<mkdir dir="${tmp}"/>
 		<ant target="SnakeYAML-get"/>
 		<!--<ant target="KeyExplorer-get"/>-->
 		<delete dir="${tmp}"/>
 	</target>
 
-	<property name="SnakeYAML.mirror" value="https://downloads.freenetproject.org/snakeyaml-1.5.jar" />
-	<property name="SnakeYAML.md5" value="1788db5d529a981b090632b8e49b8cd2" />
-	<property name="SnakeYAML.sha" value="a3654035d0b68db775034afa5425a62250de8184" />
+	<property name="SnakeYAML.mirror" value="https://repo1.maven.org/maven2/org/yaml/snakeyaml/1.25/snakeyaml-1.25.jar" />
+	<property name="SnakeYAML.md5" value="6f7d5b8f596047aae07a3bf6f23a0bf2" />
+	<property name="SnakeYAML.sha" value="8b6e01ef661d8378ae6dd7b511a7f2a33fae1421" />
 	<available property="SnakeYAML.exist" classname="org.yaml.snakeyaml.Yaml" classpathref="lib.path"/>
 	<target name="SnakeYAML-get" unless="SnakeYAML.exist">
-		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/snakeyaml-1.5.jar" />
-		<checksum file="${tmp}/snakeyaml-1.5.jar" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
-		<checksum file="${tmp}/snakeyaml-1.5.jar" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
+		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/snakeyaml-1.25.jar" />
+		<checksum file="${tmp}/snakeyaml-1.25.jar" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
+		<checksum file="${tmp}/snakeyaml-1.25.jar" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
 		<fail message="SnakeYAML.zip checksum mismatch">
 			<condition>
 				<or>
@@ -80,7 +97,7 @@
 				</or>
 			</condition>
 		</fail>
-		<move file="${tmp}/snakeyaml-1.5.jar" todir="lib/" />
+		<move file="${tmp}/snakeyaml-1.25.jar" todir="lib/" />
 	</target>
 
 	<!--<property name="KeyExplorer.mirror" value="http://cloud.github.com/downloads/freenet/plugin-Library-staging/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" />
@@ -131,11 +148,20 @@
 		</javac>
 
 		<!-- Force compile of Version.java in case compile of ${src} didn't trigger it -->
-		<javac srcdir="${build}" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
+		<javac srcdir="${build}" destdir="${build}" debug="on" optimize="on" source="1.8" target="1.8">
 			<classpath>
 				<path refid="lib.path"/>
 			</classpath>
 			<include name="${version.src}"/>
+		</javac>
+
+		<javac srcdir="uploader/src/" destdir="${build-uploader}" debug="on" optimize="on" source="${source-version}" target="${target-version}"
+			   includeantruntime="false">
+			<classpath>
+				<path refid="uploader.path"/>
+			</classpath>
+			<include name="**/*.java"/>
+			<exclude name="**/package-info.java"/>
 		</javac>
 
 		<!-- Copy web interface static files to the build dir -->
@@ -146,7 +172,7 @@
 	</target>
 
 	<target name="compile-tester" depends="compile" if="tester">
-		<javac srcdir="test/" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
+		<javac srcdir="test/" destdir="${build}" debug="on" optimize="on" source="1.8" target="1.8">
 			<classpath>
 				<path refid="lib.path"/>
 				<!-- Uses some code that uses junit -->
@@ -173,7 +199,7 @@
 
 	<!-- ================================================== -->
 	<target name="unit-build" depends="compile" if="junit.present" unless="skip_tests">
-		<javac srcdir="test/" destdir="${build-test}" debug="on" optimize="on" source="1.5">
+		<javac srcdir="test/" destdir="${build-test}" debug="on" optimize="on" source="1.8">
 			<classpath>
 				<path refid="lib.path"/>
 				<pathelement path="${build}"/>
@@ -182,6 +208,18 @@
 			<compilerarg value="-Xlint"/>
 			<include name="**/*.java"/>
 		</javac>
+
+<!--		<mkdir dir="${build-test-uploader}"/>-->
+<!--		<javac srcdir="uploader/test/" destdir="${build-test-uploader}" debug="on" optimize="on" source="1.8"-->
+<!--			   includeantruntime="false">-->
+<!--			<classpath>-->
+<!--				<path refid="uploader.path"/>-->
+<!--				<pathelement path="${build-uploader}"/>-->
+<!--				<pathelement location="${junit.location}"/>-->
+<!--			</classpath>-->
+<!--			<compilerarg value="-Xlint"/>-->
+<!--			<include name="**/*.java"/>-->
+<!--		</javac>-->
 	</target>
 
 	<target name="junit" depends="unit-build" if="junit.present" unless="skip_tests">
@@ -221,6 +259,16 @@
 			<fileset dir="${build}/">
 				<exclude name="${version.src}"/>
 			</fileset>
+			<zipgroupfileset dir="lib/" includes="**/*.jar"/>
+		</jar>
+
+		<jar jarfile="${dist}/uploader.jar" duplicate="fail">
+			<manifest>
+				<attribute name="Main-Class" value="freenet.library.uploader.Merger"/>
+				<attribute name="Required-Node-Version" value="${minNodeVersion}"/>
+			</manifest>
+			<fileset dir="${build}"/>
+			<fileset dir="${build-uploader}"/>
 			<zipgroupfileset dir="lib/" includes="**/*.jar"/>
 		</jar>
 	</target>

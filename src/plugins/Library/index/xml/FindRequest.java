@@ -10,20 +10,20 @@ import freenet.client.events.ExpectedMIMEEvent;
 import freenet.client.events.SendingToNetworkEvent;
 import freenet.client.events.SplitfileCompatibilityModeEvent;
 import freenet.client.events.SplitfileProgressEvent;
-import freenet.support.Logger;
-
-import java.util.Collections;
-import java.util.ArrayList;
-import java.util.Set;
-
+import plugins.Library.index.TermEntry;
+import plugins.Library.index.TermPageEntry;
 import plugins.Library.util.exec.AbstractExecution;
 import plugins.Library.util.exec.ChainedProgress;
 import plugins.Library.util.exec.Execution;
 import plugins.Library.util.exec.Progress;
 import plugins.Library.util.exec.ProgressParts;
 import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.index.TermPageEntry;
-import plugins.Library.index.TermEntry;
+import freenet.support.Logger;
+
+import java.util.Collections;
+import java.util.ArrayList;
+import java.util.Set;
+
 
 
 /**

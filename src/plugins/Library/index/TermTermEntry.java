@@ -3,8 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.index.TermEntry.EntryType;
-
 /**
 ** A {@link TermEntry} that associates a subject term with a related term.
 **

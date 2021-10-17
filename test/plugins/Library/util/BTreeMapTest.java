@@ -3,8 +3,6 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.util;
 
-import junit.framework.TestCase;
-
 import java.util.*;
 
 /**
@@ -19,6 +17,14 @@ public class BTreeMapTest extends SortedMapTestSkeleton {
 	final public static int sz0 = 0x400;
 	final public static int sz1 = sz0<<2; //sz0<<6;
 
+	private static String rndStr() {
+		return UUID.randomUUID().toString();
+	}
+
+	private static String rndKey() {
+		return rndStr().substring(0,8);
+	}
+
 	public void testBasic() {
 
 		BTreeMap<String, String> testmap = new BTreeMap<String, String>(0x40);
@@ -26,7 +32,7 @@ public class BTreeMapTest extends SortedMapTestSkeleton {
 		try {
 			for (int i=0; i<sz1;) {
 				for (int j=0; j<sz0; ++j, ++i) {
-					String k = Generators.rndKey(), v = Generators.rndStr();
+					String k = rndKey(), v = rndStr();
 					testmap.put(k, v);
 					backmap.put(k, v);
 				}
@@ -57,7 +63,7 @@ public class BTreeMapTest extends SortedMapTestSkeleton {
 		for (int n=0; n<0x100; ++n) {
 			Map<String, String> backmap = new TreeMap<String, String>();
 			for (int i=0; i<n; ++i) {
-				String k = Generators.rndKey(), v = Generators.rndStr();
+				String k = rndKey(), v = rndStr();
 				backmap.put(k, v);
 			}
 

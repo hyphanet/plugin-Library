@@ -3,23 +3,34 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
+
 import plugins.Library.io.DataFormatException;
 import plugins.Library.io.ObjectStreamReader;
 import plugins.Library.io.ObjectStreamWriter;
-
-import freenet.keys.FreenetURI;
+import plugins.Library.io.FreenetURI;
+import freenet.support.Base64;
 
 import java.util.Map;
 import java.util.HashMap;
+import java.util.regex.Pattern;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.URLEncoder;
+
+import org.yaml.snakeyaml.reader.ReaderException;
 
 /**
 ** Reads and writes {@link TermEntry}s in binary form, for performance.
+**
+** This needs to be able to read FreenetURI:s as generated from Spider but
+** everything written uses the simpler String-version of the FreenetURI.
+** To distringuish between them, when using the String-version, it is always
+** preceeded with a short that is 0.
 **
 ** @author infinity0
 */
@@ -35,6 +46,89 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 
 	/*@Override**/ public TermEntry readObject(InputStream is) throws IOException {
 		return readObject(new DataInputStream(is));
+	}
+
+	static final byte CHK = 1;
+	static final byte SSK = 2;
+	static final byte KSK = 3;
+	static final byte USK = 4;
+	static final short ClientCHK_EXTRA_LENGTH = 5;
+	static final short ClientSSK_EXTRA_LENGTH = 5;
+
+	/**
+	 * This is to be able to read the data created by Spider.
+	 */
+	private String readFreenetURI(DataInputStream dis1) throws IOException {
+	    int len = dis1.readShort();
+	    if (len == 0) {
+		// This is the new format.
+		return dis1.readUTF();
+	    }
+	    byte[] buf = new byte[len];
+	    dis1.readFully(buf);
+	    ByteArrayInputStream bais = new ByteArrayInputStream(buf);
+	    DataInputStream dis = new DataInputStream(bais);
+	    byte type = dis.readByte();
+	    String keyType;
+	    if(type == CHK)
+		keyType = "CHK";
+	    else if(type == SSK)
+		keyType = "SSK";
+	    else if(type == KSK)
+		keyType = "KSK";
+	    else
+		throw new IOException("Unrecognized FreenetURI type " + type);
+	    byte[] routingKey = null;
+	    byte[] cryptoKey = null;
+	    byte[] extra = null;
+	    if((type == CHK) || (type == SSK)) {
+		// routingKey is a hash, so is exactly 32 bytes
+		routingKey = new byte[32];
+		dis.readFully(routingKey);
+		// cryptoKey is a 256 bit AES key, so likewise
+		cryptoKey = new byte[32];
+		dis.readFully(cryptoKey);
+		// Number of bytes of extra depends on key type
+		int extraLen;
+		extraLen = (type == CHK ? ClientCHK_EXTRA_LENGTH : ClientSSK_EXTRA_LENGTH);
+		extra = new byte[extraLen];
+		dis.readFully(extra);
+	    }
+
+	    String docName = null;
+	    if(type != CHK)
+		docName = dis.readUTF();
+	    int count = dis.readInt();
+	    String[] metaStrings = new String[count];
+	    for(int i = 0; i < metaStrings.length; i++)
+		metaStrings[i] = dis.readUTF();
+
+	    StringBuilder b = new StringBuilder();
+
+	    b.append(keyType).append('@');
+	    if(!"KSK".equals(keyType)) {
+		if(routingKey != null)
+		    b.append(Base64.encode(routingKey));
+		if(cryptoKey != null)
+		    b.append(',').append(Base64.encode(cryptoKey));
+		if(extra != null)
+		    b.append(',').append(Base64.encode(extra));
+		if(docName != null)
+		    b.append('/');
+	    }
+
+	    if(docName != null)
+		b.append(URLEncoder.encode(docName, "UTF-8"));
+
+	    //if(keyType.equals("USK")) {
+	    // b.append('/');
+	    // b.append(suggestedEdition);
+	    // }
+
+	    for(int i = 0; i < metaStrings.length; i++) {
+		b.append('/').append(URLEncoder.encode(metaStrings[i], "UTF-8"));
+	    }
+	    return b.toString();
 	}
 
 	public TermEntry readObject(DataInputStream dis) throws IOException {
@@ -61,6 +155,9 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 			if (size < 0) {
 				title = dis.readUTF();
 				size = ~size;
+				if (!isValid(title)) {
+					title = clean(title);
+				}
 			}
 			Map<Integer, String> pos = new HashMap<Integer, String>(size<<1);
 			for (int i=0; i<size; ++i) {
@@ -78,6 +175,17 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 		writeObject(en, new DataOutputStream(os));
 	}
 
+    final static Pattern NON_PRINTABLE = Pattern
+            .compile("[^\t\n\r\u0020-\u007E\u0085\u00A0-\uD7FF\uE000-\uFFFC]");
+
+    private boolean isValid(String str) {
+        return !NON_PRINTABLE.matcher(str).find();
+	}
+    
+    private String clean(String str) {
+        return NON_PRINTABLE.matcher(str).replaceAll("");
+    }
+
 	public void writeObject(TermEntry en, DataOutputStream dos) throws IOException {
 		dos.writeLong(TermEntry.serialVersionUID);
 		TermEntry.EntryType type = en.entryType();
@@ -93,11 +201,14 @@ public class TermEntryReaderWriter implements ObjectStreamReader<TermEntry>, Obj
 			return;
 		case PAGE:
 			TermPageEntry enn = (TermPageEntry)en;
-			enn.page.writeFullBinaryKeyWithLength(dos);
+			enn.getPage().writeFullBinaryKeyWithLength(dos);
 			int size = enn.hasPositions() ? enn.positionsSize() : 0;
 			if(enn.title == null)
 				dos.writeInt(size);
 			else {
+				if (!isValid(enn.title)) {
+					throw new RuntimeException("Invalid title " + enn.title);
+				}
 				dos.writeInt(~size); // invert bits to signify title is set
 				dos.writeUTF(enn.title);
 			}

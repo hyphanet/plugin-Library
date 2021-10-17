@@ -15,9 +15,9 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 import plugins.Library.Library;
-import plugins.Library.index.TermEntry;
 import plugins.Library.search.ResultSet.ResultOperation;
 import plugins.Library.ui.ResultNodeGenerator;
+import plugins.Library.index.TermEntry;
 import plugins.Library.util.exec.AbstractExecution;
 import plugins.Library.util.exec.CompositeProgress;
 import plugins.Library.util.exec.Execution;

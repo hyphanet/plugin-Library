@@ -77,18 +77,18 @@ implements Map<E, E>, SortedMap<E, E>/*, NavigableMap<E, E>, Cloneable, Serializ
 		return bkset.remove(o)? (E)o: null;
 	}
 
-	private transient Set<Map.Entry<E, E>> entries;
-	@Override public Set<Map.Entry<E, E>> entrySet() {
+	private transient Set<Entry<E, E>> entries;
+	@Override public Set<Entry<E, E>> entrySet() {
 		if (entries == null) {
-			entries = new AbstractSet<Map.Entry<E, E>>() {
+			entries = new AbstractSet<Entry<E, E>>() {
 
 				@Override public int size() { return bkset.size(); }
 
-				@Override public Iterator<Map.Entry<E, E>> iterator() {
-					return new Iterator<Map.Entry<E, E>>() {
+				@Override public Iterator<Entry<E, E>> iterator() {
+					return new Iterator<Entry<E, E>>() {
 						final Iterator<E> it = bkset.iterator();
 						/*@Override**/ public boolean hasNext() { return it.hasNext(); }
-						/*@Override**/ public Map.Entry<E, E> next() {
+						/*@Override**/ public Entry<E, E> next() {
 							E e = it.next();
 							return Maps.$$(e, e);
 						}
@@ -102,14 +102,14 @@ implements Map<E, E>, SortedMap<E, E>/*, NavigableMap<E, E>, Cloneable, Serializ
 
 				@Override public boolean contains(Object o) {
 					if (!(o instanceof Map.Entry)) { return false; }
-					Map.Entry en = (Map.Entry)o;
+					Entry en = (Entry)o;
 					if (en.getKey() != en.getValue()) { return false; }
 					return bkset.contains(en.getKey());
 				}
 
 				@Override public boolean remove(Object o) {
 					boolean c = contains(o);
-					if (c) { bkset.remove(((Map.Entry)o).getKey()); }
+					if (c) { bkset.remove(((Entry)o).getKey()); }
 					return c;
 				}
 

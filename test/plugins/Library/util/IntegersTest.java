@@ -4,7 +4,6 @@
 package plugins.Library.util;
 
 import junit.framework.TestCase;
-import static plugins.Library.util.Generators.rand;
 
 import java.util.Random;
 import java.util.Arrays;
@@ -29,6 +28,8 @@ public class IntegersTest extends TestCase {
 		{1,2,1,2},
 		{2,1,2,2,1,2}
 	};
+
+	final private static Random rand = new Random();
 
 	public void testAllocateEvenlyPredefined()  {
 		for (int i=0; i<totals.length; ++i) {

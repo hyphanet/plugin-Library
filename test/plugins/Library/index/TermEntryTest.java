@@ -5,24 +5,19 @@ package plugins.Library.index;
 
 import junit.framework.TestCase;
 
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.io.serial.FileArchiver;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.io.serial.Packer;
-
 import plugins.Library.io.YamlReaderWriter;
+import plugins.Library.io.serial.FileArchiver;
+import plugins.Library.io.serial.Packer;
+import plugins.Library.io.FreenetURI;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.exec.TaskAbortException;
 
-import freenet.keys.FreenetURI;
-
-import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.UUID;
-import java.net.MalformedURLException;
 import java.io.*;
+import java.net.MalformedURLException;
 
 /**
 ** @author infinity0
@@ -39,7 +34,7 @@ public class TermEntryTest extends TestCase {
 			z = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), null);
 			v = new TermPageEntry("lol", 0.8f, new FreenetURI("CHK@9eDo5QWLQcgSuDh1meTm96R4oE7zpoMBuV15jLiZTps,3HJaHbdW~-MtC6YsSkKn6I0DTG9Z1gKDGgtENhHx82I,AAIC--8"), "title", null);
 		} catch (MalformedURLException e) {
-			throw new AssertionError();
+			throw new AssertionError(e);
 		}
 	}
 	final static TermTermEntry y  = new TermTermEntry("test", 0.8f, "lol2");
@@ -58,19 +53,12 @@ public class TermEntryTest extends TestCase {
 		l.add(y);
 		l.add(z);
 		map.put("test", l);
-		try {
-			map.put("test2", new Packer.BinInfo(new FreenetURI("http://127.0.0.1:8888/CHK@WtWIvOZXLVZkmDrY5929RxOZ-woRpRoMgE8rdZaQ0VU,rxH~D9VvOOuA7bCnVuzq~eux77i9RR3lsdwVHUgXoOY,AAIC--8/Library.jar"), 123));
-		} catch (java.net.MalformedURLException e) {
-			assert(false);
-		}
+		map.put("test2", new Packer.BinInfo("CHK@WtWIvOZXLVZkmDrY5929RxOZ-woRpRoMgE8rdZaQ0VU,rxH~D9VvOOuA7bCnVuzq~eux77i9RR3lsdwVHUgXoOY,AAIC--8/Library.jar", 123));
 
 		ym.push(new PushTask<Map<String, Object>>(map));
 		PullTask<Map<String, Object>> pt = new PullTask<Map<String, Object>>("");
-		try{
+
 		ym.pull(pt);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 
 		assertTrue(pt.data instanceof Map);
 		Map<String, Object> m = pt.data;
@@ -84,7 +72,7 @@ public class TermEntryTest extends TestCase {
 
 		assertTrue(m.get("test2") instanceof Packer.BinInfo);
 		Packer.BinInfo inf = (Packer.BinInfo)m.get("test2");
-		assertTrue(inf.getID() instanceof FreenetURI);
+		assertTrue(inf.getID() instanceof String);
 	}
 
 	public void testBinaryReadWrite() throws IOException, TaskAbortException {
@@ -113,9 +101,33 @@ public class TermEntryTest extends TestCase {
 	}
 
 	public static void assertEqualButNotIdentical(Object a, Object b) {
-		assertTrue(a != b);
-		assertTrue(a.equals(b));
-		assertTrue(a.hashCode() == b.hashCode());
+		assertTrue(a + " and " + b + " are identical.", a != b);
+		assertTrue(a + " and " + b + " not equal.", a.equals(b));
+		assertTrue(a + " and " + b + " not same hashCode.", a.hashCode() == b.hashCode());
 	}
 
+	private TermEntry TE(String s) {
+		return new TermEntry(s, 0) {
+			@Override
+			public boolean equalsTarget(TermEntry entry) {
+				return false;
+			}
+			
+			@Override
+			public EntryType entryType() {
+				return null;
+			}
+		};
+	}
+
+	public void testToBeDropped() {
+		assertFalse(TE("").toBeDropped());
+		assertFalse(TE("1h1").toBeDropped());
+		assertTrue(TE("1hh1").toBeDropped());
+		assertFalse(TE("r2d2").toBeDropped());
+		assertFalse(TE("c3po").toBeDropped());
+		assertTrue(TE("a1b2c3d4e5").toBeDropped());
+		assertFalse(TE("conventional").toBeDropped());
+		assertTrue(TE("abcdef12345fedcba54321aabbee").toBeDropped());
+	}
 }

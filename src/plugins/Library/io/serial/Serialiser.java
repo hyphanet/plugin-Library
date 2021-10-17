@@ -3,10 +3,11 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
-import plugins.Library.util.exec.Progress;
 
 import java.util.Collection;
 import java.util.Map;
+
+import plugins.Library.util.exec.Progress;
 
 /**
 ** An empty marker interface for serialisation classes. It defines some nested
@@ -34,7 +35,7 @@ public interface Serialiser<T> {
 	** Defines a serialisation task for an object. Contains two fields - data
 	** and metadata.
 	*/
-	abstract public static class Task<T> {
+	abstract class Task<T> {
 
 		/**
 		** Field for the metadata. This should be serialisable as defined in the
@@ -46,7 +47,6 @@ public interface Serialiser<T> {
 		** Field for the data.
 		*/
 		public T data = null;
-
 	}
 
 	/************************************************************************
@@ -62,7 +62,7 @@ public interface Serialiser<T> {
 	** Consequently, {@code Serialiser}s should be implemented so that its
 	** push operations generate metadata for which this property holds.
 	*/
-	final public static class PullTask<T> extends Task<T> {
+	final class PullTask<T> extends Task<T> {
 
 		public PullTask(Object m) {
 			if (m == null) { throw new IllegalArgumentException("Cowardly refusing to make a PullTask with null metadata."); }
@@ -77,7 +77,6 @@ public interface Serialiser<T> {
 		@Override public int hashCode() {
 			return System.identityHashCode(meta);
 		}
-
 	}
 
 	/************************************************************************
@@ -93,7 +92,7 @@ public interface Serialiser<T> {
 	** Consequently, {@code Serialiser}s may require that extra data is passed
 	** to its push operations such that it can...
 	*/
-	final public static class PushTask<T> extends Task<T> {
+	final class PushTask<T> extends Task<T> {
 
 		public PushTask(T d) {
 			if (d == null) { throw new IllegalArgumentException("Cowardly refusing to make a PushTask with null data."); }
@@ -115,29 +114,26 @@ public interface Serialiser<T> {
 		@Override public int hashCode() {
 			return System.identityHashCode(data);
 		}
-
 	}
 
 	/**
 	** Represents a serialiser that exposes the progress status of its
 	** running operations via a {@link ProgressTracker}.
 	*/
-	public interface Trackable<T> extends Serialiser<T> {
+	interface Trackable<T> extends Serialiser<T> {
 
-		public ProgressTracker<T, ? extends Progress> getTracker();
-
+		ProgressTracker<T, ? extends Progress> getTracker();
 	}
 
 	/**
 	** Represents a serialiser which uses a {@link Translator} to do much of
-	** its work. This can be used alongside a {@link Serialiser.Composite}.
+	** its work. This can be used alongside a {@link Composite}.
 	**
 	** TODO LOW rename this to something better...
 	*/
-	public interface Translate<T, I> extends Serialiser<T> {
+	interface Translate<T, I> extends Serialiser<T> {
 
-		public Translator<T, I> getTranslator();
-
+		Translator<T, I> getTranslator();
 	}
 
 	/**
@@ -147,15 +143,13 @@ public interface Serialiser<T> {
 	** Serialiser} (which may also be composite).
 	**
 	** The conversion can be handled by a {@link Translator}, in which case the
-	** class might also implement {@link Serialiser.Translate}.
+	** class might also implement {@link Translate}.
 	**
 	** TODO HIGH find a tidy way to make this extend Serialiser<T>
 	** "Composite<T, S extends Serialiser<T>> extends Serialiser<T>" will work...
 	*/
-	public interface Composite<S extends Serialiser<?>> /*extends Serialiser<T>*/ {
+	interface Composite<S extends Serialiser<?>> /*extends Serialiser<T>*/ {
 
-		public S getChildSerialiser();
-
+		S getChildSerialiser();
 	}
-
 }

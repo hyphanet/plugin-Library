@@ -3,10 +3,9 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.exec.TaskAbortException;
-
 import java.util.Map;
+
+import plugins.Library.util.exec.TaskAbortException;
 
 /**
 ** An interface that handles a map of {@link Serialiser.Task}s. As well as the
@@ -31,7 +30,7 @@ public interface MapSerialiser<K, T> extends Serialiser<T> {
 	** @param tasks The map of tasks to execute
 	** @param mapmeta The map-wide metadata
 	*/
-	public void pull(Map<K, PullTask<T>> tasks, Object mapmeta) throws TaskAbortException;
+	void pull(Map<K, PullTask<T>> tasks, Object mapmeta) throws TaskAbortException;
 
 	/**
 	** Execute everything in a map of {@link PushTask}s, returning only when
@@ -45,6 +44,5 @@ public interface MapSerialiser<K, T> extends Serialiser<T> {
 	** @param tasks The map of tasks to execute
 	** @param mapmeta The map-wide metadata
 	*/
-	public void push(Map<K, PushTask<T>> tasks, Object mapmeta) throws TaskAbortException;
-
+	void push(Map<K, PushTask<T>> tasks, Object mapmeta) throws TaskAbortException;
 }

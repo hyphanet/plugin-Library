@@ -9,5 +9,4 @@ public class TaskAbortExceptionConvertor implements
 	public TaskAbortException convert(RuntimeException e) {
 		return new TaskAbortException(e.getMessage(), e);
 	}
-
 }

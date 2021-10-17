@@ -7,10 +7,10 @@ import java.util.Date;
 import java.util.Set;
 import java.util.HashSet;
 
-import freenet.keys.FreenetURI;
+import plugins.Library.io.FreenetURI;
 
 /**
-** Data associated with a {@link FreenetURI}. DOCUMENT expand this...
+** Data associated with a FreenetURI. DOCUMENT expand this...
 **
 ** FIXME NORM code equals()
 **

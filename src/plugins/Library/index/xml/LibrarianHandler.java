@@ -3,10 +3,10 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index.xml;
 
-import plugins.Library.index.TermPageEntry;
 
 import freenet.support.Logger;
-import freenet.keys.FreenetURI;
+import plugins.Library.io.FreenetURI;
+import plugins.Library.index.TermPageEntry;
 
 import org.xml.sax.Attributes;
 import org.xml.sax.Locator;

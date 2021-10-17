@@ -3,16 +3,10 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.io.serial;
 
-import plugins.Library.io.serial.Serialiser.*;
-import plugins.Library.util.IdentityComparator;
-import plugins.Library.util.concurrent.ObjectProcessor;
-import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.util.exec.TaskCompleteException;
 
 import java.util.Collections;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
@@ -23,6 +17,10 @@ import java.util.HashSet;
 import java.util.TreeSet;
 
 import freenet.support.Logger;
+import plugins.Library.io.serial.Serialiser.*;
+import plugins.Library.util.IdentityComparator;
+import plugins.Library.util.exec.TaskAbortException;
+import plugins.Library.util.exec.TaskCompleteException;
 
 /**
 ** {@link MapSerialiser} that packs a map of weighable elements (eg. objects
@@ -71,9 +69,9 @@ implements MapSerialiser<K, T>,
 	private static volatile boolean logMINOR;
 	private static volatile boolean logDEBUG;
 
-	static {
-		Logger.registerClass(Packer.class);
-	}
+	//	static {
+	//		Logger.registerClass(Packer.class);
+	//	}
 
 	/**
 	** Maximum weight of a bin (except one; see {@link #push(Map, Object)} for
@@ -551,7 +549,11 @@ implements MapSerialiser<K, T>,
 				PullTask<Map<K, T>> bintask = en.getValue();
 				for (Map.Entry<K, T> el: bintask.data.entrySet()) {
 					if (tasks.containsKey(el.getKey())) {
-						throw new TaskAbortException("Packer found an extra unexpected element (" + el.getKey() + ") inside a bin (" + en.getKey() + "). Either the data is corrupt, or the child serialiser is buggy.", new Exception("internal error"));
+						Logger.error(this, "Skip '" + el.getKey() + "' don't know why");
+						continue;
+//						throw new TaskAbortException("Packer found an extra unexpected element (" + el.getKey() + ") " +
+//								"inside a bin (" + en.getKey() + "). Either the data is corrupt, " +
+//								"or the child serialiser is buggy.", new Exception("internal error"));
 					}
 					PullTask<T> task = new PullTask<T>(scale.makeMeta(en.getKey(), scale.weigh(el.getValue())));
 					task.data = el.getValue();
@@ -604,7 +606,7 @@ implements MapSerialiser<K, T>,
 		try {
 			// read local copy of aggression
 			int agg = getAggression();
-			if(logDEBUG) Logger.debug(this, "Aggression = "+agg+" tasks size = "+tasks.size());
+			// if(logDEBUG) Logger.debug(this, "Aggression = "+agg+" tasks size = "+tasks.size());
 
 			IDGenerator gen = generator();
 			Inventory<K, T> inv = new Inventory<K, T>(this, tasks);

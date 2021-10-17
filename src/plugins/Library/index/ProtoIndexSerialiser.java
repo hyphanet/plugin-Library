@@ -3,13 +3,10 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.index;
 
-import plugins.Library.Library;
-import plugins.Library.client.FreenetArchiver;
 import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.exec.SimpleProgress;
 import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.io.serial.LiveArchiver;
 import plugins.Library.io.serial.Serialiser;
 import plugins.Library.io.serial.Translator;
@@ -18,19 +15,17 @@ import plugins.Library.io.serial.FileArchiver;
 import plugins.Library.io.YamlReaderWriter;
 import plugins.Library.io.DataFormatException;
 
-import freenet.keys.FreenetURI;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 
-import java.util.Collection;
-import java.util.Set;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.LinkedHashMap;
-import java.util.HashMap;
-import java.util.TreeSet;
-import java.util.TreeMap;
-import java.util.Date;
 import java.io.File;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import plugins.Library.FactoryRegister;
+import plugins.Library.io.FreenetURI;
+import plugins.Library.Priority;
 
 /**
 ** Serialiser for ProtoIndex
@@ -67,17 +62,18 @@ implements Archiver<ProtoIndex>,
 //	final protected static HashMap<Class<?>, ProtoIndexSerialiser>
 //	srl_cls = new HashMap<Class<?>, ProtoIndexSerialiser>();
 
-	public static ProtoIndexSerialiser forIndex(Object o, short priorityClass) {
+	public static ProtoIndexSerialiser forIndex(Object o, Priority priorityLevel) {
 		if (o instanceof FreenetURI) {
-			return forIndex((FreenetURI)o, priorityClass);
+			return forIndex((FreenetURI)o, priorityLevel);
 		} else if (o instanceof File) {
 			return forIndex((File)o);
 		} else {
-			throw new UnsupportedOperationException("Don't know how to retrieve index for object " + o);
+			throw new UnsupportedOperationException("Don't know how to retrieve index for object " + o +
+					" (of type " + o.getClass().getName() + ")");
 		}
 	}
 
-	public static ProtoIndexSerialiser forIndex(FreenetURI uri, short priorityClass) {
+	public static ProtoIndexSerialiser forIndex(FreenetURI uri, Priority priorityLevel) {
 //		ProtoIndexSerialiser srl = srl_cls.get(FreenetURI.class);
 //		if (srl == null) {
 //			// java's type-inference isn't that smart, see
@@ -88,7 +84,7 @@ implements Archiver<ProtoIndex>,
 		
 		// One serialiser per application. See comments above re srl_cls.
 		// java's type-inference isn't that smart, see
-		FreenetArchiver<Map<String, Object>> arx = Library.makeArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN, priorityClass);
+		LiveArchiver<Map<String, Object>, SimpleProgress> arx = FactoryRegister.getArchiverFactory().newArchiver(ProtoIndexComponentSerialiser.yamlrw, MIME_TYPE, 0x80 * ProtoIndex.BTREE_NODE_MIN, priorityLevel);
 		return new ProtoIndexSerialiser(arx);
 	}
 
@@ -172,7 +168,7 @@ implements Archiver<ProtoIndex>,
 				throw new IllegalArgumentException("Data structure is not bare. Try calling deflate() first.");
 			}
 			Map<String, Object> map = new LinkedHashMap<String, Object>();
-			map.put("serialVersionUID", idx.serialVersionUID);
+			map.put("serialVersionUID", ProtoIndex.serialVersionUID);
 			map.put("serialFormatUID", idx.serialFormatUID);
 			map.put("insID", idx.insID);
 			map.put("name", idx.name);
@@ -187,27 +183,53 @@ implements Archiver<ProtoIndex>,
 		}
 
 		/*@Override**/ public ProtoIndex rev(Map<String, Object> map) throws DataFormatException {
-			long magic = (Long)map.get("serialVersionUID");
+			Object serialVersionUID = map.get("serialVersionUID");
+			long magic;
+			if (serialVersionUID instanceof String) { // FIXME
+				magic = Long.parseLong((String) map.get("serialVersionUID"));
+			} else {
+				magic = (Long) serialVersionUID;
+			}
 
 			if (magic == ProtoIndex.serialVersionUID) {
 				try {
 					// FIXME yet more hacks related to the lack of proper asynchronous FreenetArchiver...
-					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"), subsrl);
-					FreenetURI reqID = (FreenetURI)map.get("reqID");
+					Object serialFormatUIDObj = map.get("serialFormatUID");
+					int serialFormatUID;
+					if (serialFormatUIDObj instanceof String) { // FIXME
+						serialFormatUID = Integer.parseInt((String) map.get("serialFormatUID"));
+					} else {
+						serialFormatUID = (Integer) serialFormatUIDObj;
+					}
+					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get(serialFormatUID, subsrl);
+
+					FreenetURI reqID = (FreenetURI) map.get("reqID");
 					String name = (String)map.get("name");
 					String ownerName = (String)map.get("ownerName");
 					String ownerEmail = (String)map.get("ownerEmail");
-					// FIXME yaml idiocy??? It seems to give a Long if the number is big enough to need one, and an Integer otherwise.
+					Object totalPagesObj = map.get("totalPages");
 					long totalPages;
-					Object o = map.get("totalPages");
-					if(o instanceof Long)
-						totalPages = (Long)o;
-					else // Integer
-						totalPages = (Integer)o;
-					Date modified = (Date)map.get("modified");
+					if (totalPagesObj instanceof String) { // FIXME
+						totalPages = Long.parseLong((String) totalPagesObj);
+					} else if (totalPagesObj instanceof Long) { // FIXME yaml??? It seems to give a Long if the number
+						totalPages = (Long) totalPagesObj;      //  is big enough to need one, and an Integer otherwise.
+					} else {
+						totalPages = (Integer) totalPagesObj;
+					}
+					Object modifiedObj = map.get("modified");
+					Date modified;
+					if (modifiedObj instanceof String) { // FIXME
+						try {
+							modified = new SimpleDateFormat("yyyy-MM-dd").parse((String) modifiedObj);
+						} catch (ParseException ignored) {
+							modified = null;
+						}
+					} else {
+						modified = (Date) modifiedObj;
+					}
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
 					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
-					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>)map.get("ttab"));
+					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>) map.get("ttab"));
 
 					return cmpsrl.setSerialiserFor(new ProtoIndex(reqID, name, ownerName, ownerEmail, totalPages, modified, extra, utab, ttab));
 
