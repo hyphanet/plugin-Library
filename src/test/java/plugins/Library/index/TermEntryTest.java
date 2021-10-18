@@ -14,6 +14,8 @@ import plugins.Library.io.YamlReaderWriter;
 
 import freenet.keys.FreenetURI;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
@@ -44,9 +46,9 @@ public class TermEntryTest extends TestCase {
 	}
 	final static TermTermEntry y  = new TermTermEntry("test", 0.8f, "lol2");
 
-	public void testBasic() throws TaskAbortException {
-	    File f = new File("TermEntryTest");
-	    f.mkdir();
+	public void testBasic() throws TaskAbortException, IOException {
+	    Path p = Files.createTempDirectory("TermEntryTest");
+	    File f = p.toFile();
 		FileArchiver<Map<String, Object>> ym = new FileArchiver<Map<String, Object>>(new YamlReaderWriter(), "test", null, ".yml", f);
 
 		Map<String, Object> map = new HashMap<String, Object>();

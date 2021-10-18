@@ -37,7 +37,7 @@ public class YamlMapTest extends TestCase {
 
 		Yaml yaml = new Yaml(new Loader(new ExtendedConstructor()),
 			                new Dumper(new ExtendedRepresenter(), new DumperOptions()));
-		File file = new File("beantest.yml");
+		File file = File.createTempFile("tmp", "beantest.yml");
 
 		FileOutputStream os = new FileOutputStream(file);
 		yaml.dump(data, new OutputStreamWriter(os));
