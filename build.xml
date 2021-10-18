@@ -2,10 +2,10 @@
 <!-- ant build file for Freenet -->
 
 <project name="plugins-Library" default="dist" basedir=".">
-	<property name="freenet-cvs-snapshot.location" location="../fred/dist/freenet.jar"/>
+	<property name="freenet-cvs-snapshot.location" location="../fred/build/libs/freenet.jar"/>
 	<property name="freenet-ext.location" location="../fred/lib/freenet/freenet-ext.jar"/>
-	<property name="source-version" value="1.6"/>
-	<property name="target-version" value="1.6"/>
+	<property name="source-version" value="1.8"/>
+	<property name="target-version" value="1.8"/>
 	<property name="build" location="build/"/>
 	<property name="build-test" location="build-test/"/>
 	<property name="run-test" location="run-test/"/>
