@@ -3,14 +3,7 @@
  * http://www.gnu.org/ for further details of the GPL. */
 package plugins.Library.search;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -113,10 +106,13 @@ public class Search extends AbstractExecution<Set<TermEntry>>
 			// create search for multiple terms over multiple indices
 			ArrayList<Execution<Set<TermEntry>>> indexrequests = new ArrayList<Execution<Set<TermEntry>>>(indices.length);
 			for (String index : indices){
-				Search indexsearch = startSearch(search, index);
-				if(indexsearch==null)
-					return null;
-				indexrequests.add(indexsearch);
+				try {
+					Search indexsearch = startSearch(search, index);
+					if(indexsearch == null) continue;
+					indexrequests.add(indexsearch);
+				} catch (InvalidSearchException ignored) { // continue
+				} catch (TaskAbortException ignored) { // continue
+				}
 			}
 			Search newSearch = new Search(search, indexuri, indexrequests, ResultOperation.DIFFERENTINDEXES);
 			return newSearch;
