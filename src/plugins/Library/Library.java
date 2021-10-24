@@ -65,7 +65,7 @@ final public class Library implements URLUpdateHook {
 	public static final String BOOKMARK_PREFIX = "bookmark:";
 	public static final String DEFAULT_INDEX_SITE = BOOKMARK_PREFIX + "liberty-of-information" + " " + BOOKMARK_PREFIX + "free-market-free-people" + " " +
 	    BOOKMARK_PREFIX + "gotcha" + " " + BOOKMARK_PREFIX + "wanna" + " " + BOOKMARK_PREFIX + "wanna.old" + " " + BOOKMARK_PREFIX + "gogo";
-	private static int version = 36;
+	private static int version = 37;
 	public static final String plugName = "Library " + getVersion();
 
 	public static String getPlugName() {
