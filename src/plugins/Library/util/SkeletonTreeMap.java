@@ -321,10 +321,10 @@ implements Map<K, V>, SortedMap<K, V>, SkeletonMap<K, V>, Cloneable {
 		** @param ktr A translator between key and {@link String}
 		*/
 		public static <K, V> SkeletonTreeMap<K, V> rev(Map<String, Object> intm, SkeletonTreeMap<K, V> map, Translator<K, String> ktr) throws DataFormatException {
-			if (ktr == null) {
+			if (ktr == null) { // this case when K is String and therefore no keyTranslator is needed
 				try {
 					for (Map.Entry<String, Object> en: intm.entrySet()) {
-						map.putGhost((K)en.getKey(), en.getValue());
+						map.putGhost((K) en.getKey(), en.getValue());
 					}
 				} catch (ClassCastException e) {
 					throw new DataFormatException("TreeMapTranslator: reverse translation failed. Try supplying a non-null key-translator.", e, intm, null, null);

@@ -64,14 +64,14 @@
 		<delete dir="${tmp}"/>
 	</target>
 
-	<property name="SnakeYAML.mirror" value="https://downloads.freenetproject.org/snakeyaml-1.5.jar" />
-	<property name="SnakeYAML.md5" value="1788db5d529a981b090632b8e49b8cd2" />
-	<property name="SnakeYAML.sha" value="a3654035d0b68db775034afa5425a62250de8184" />
+	<property name="SnakeYAML.mirror" value="https://repo1.maven.org/maven2/org/yaml/snakeyaml/1.25/snakeyaml-1.25.jar" />
+	<property name="SnakeYAML.md5" value="6f7d5b8f596047aae07a3bf6f23a0bf2" />
+	<property name="SnakeYAML.sha" value="8b6e01ef661d8378ae6dd7b511a7f2a33fae1421" />
 	<available property="SnakeYAML.exist" classname="org.yaml.snakeyaml.Yaml" classpathref="lib.path"/>
 	<target name="SnakeYAML-get" unless="SnakeYAML.exist">
-		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/snakeyaml-1.5.jar" />
-		<checksum file="${tmp}/snakeyaml-1.5.jar" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
-		<checksum file="${tmp}/snakeyaml-1.5.jar" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
+		<get verbose="true" src="${SnakeYAML.mirror}" dest="${tmp}/snakeyaml-1.25.jar" />
+		<checksum file="${tmp}/snakeyaml-1.25.jar" algorithm="MD5" property="${SnakeYAML.md5}" verifyProperty="SnakeYAMLMD5ok" />
+		<checksum file="${tmp}/snakeyaml-1.25.jar" algorithm="SHA" property="${SnakeYAML.sha}" verifyProperty="SnakeYAMLSHAok" />
 		<fail message="SnakeYAML.zip checksum mismatch">
 			<condition>
 				<or>
@@ -80,7 +80,7 @@
 				</or>
 			</condition>
 		</fail>
-		<move file="${tmp}/snakeyaml-1.5.jar" todir="lib/" />
+		<move file="${tmp}/snakeyaml-1.25.jar" todir="lib/" />
 	</target>
 
 	<!--<property name="KeyExplorer.mirror" value="http://cloud.github.com/downloads/freenet/plugin-Library-staging/KeyExplorer-dacfafecbc82aecdeffa56bef4a047a7f6c7f08d.jar" />
@@ -131,7 +131,7 @@
 		</javac>
 
 		<!-- Force compile of Version.java in case compile of ${src} didn't trigger it -->
-		<javac srcdir="${build}" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
+		<javac srcdir="${build}" destdir="${build}" debug="on" optimize="on" source="1.8" target="1.8">
 			<classpath>
 				<path refid="lib.path"/>
 			</classpath>
@@ -146,7 +146,7 @@
 	</target>
 
 	<target name="compile-tester" depends="compile" if="tester">
-		<javac srcdir="test/" destdir="${build}" debug="on" optimize="on" source="1.5" target="1.5">
+		<javac srcdir="test/" destdir="${build}" debug="on" optimize="on" source="1.8" target="1.8">
 			<classpath>
 				<path refid="lib.path"/>
 				<!-- Uses some code that uses junit -->
@@ -173,7 +173,7 @@
 
 	<!-- ================================================== -->
 	<target name="unit-build" depends="compile" if="junit.present" unless="skip_tests">
-		<javac srcdir="test/" destdir="${build-test}" debug="on" optimize="on" source="1.5">
+		<javac srcdir="test/" destdir="${build-test}" debug="on" optimize="on" source="1.8">
 			<classpath>
 				<path refid="lib.path"/>
 				<pathelement path="${build}"/>

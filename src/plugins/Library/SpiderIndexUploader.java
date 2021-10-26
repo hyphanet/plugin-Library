@@ -389,7 +389,7 @@ public class SpiderIndexUploader {
             /*@Override**/ public void invoke(Map.Entry<String, SkeletonBTreeSet<TermEntry>> entry) throws TaskAbortException {
                 String key = entry.getKey();
                 SkeletonBTreeSet<TermEntry> tree = entry.getValue();
-                if(logMINOR) Logger.minor(this, "Processing: "+key+" : "+tree);
+                Logger.minor(this, "Processing: " + key + " : " + (tree != null ? tree : "new"));
                 if(tree != null)
                     Logger.debug(this, "Merging data (on disk) in term "+key);
                 else

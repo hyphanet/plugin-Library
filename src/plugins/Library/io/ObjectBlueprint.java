@@ -299,6 +299,9 @@ public class ObjectBlueprint<T> {
 			String property = en.getKey();
 			Class<?> type = en.getValue();
 			Object value = map.get(property);
+			if (value != null && value.equals("null")) { // FIXME: case when type Map and value String "null"
+				value = null;
+			}
 			try {
 				if (type.isPrimitive()) {
 					value = boxCast(type, value);

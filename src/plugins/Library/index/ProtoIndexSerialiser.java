@@ -9,7 +9,6 @@ import plugins.Library.util.SkeletonBTreeMap;
 import plugins.Library.util.SkeletonBTreeSet;
 import plugins.Library.util.exec.SimpleProgress;
 import plugins.Library.util.exec.TaskAbortException;
-import plugins.Library.io.serial.Serialiser.*;
 import plugins.Library.io.serial.LiveArchiver;
 import plugins.Library.io.serial.Serialiser;
 import plugins.Library.io.serial.Translator;
@@ -20,16 +19,9 @@ import plugins.Library.io.DataFormatException;
 
 import freenet.keys.FreenetURI;
 
-import java.util.Collection;
-import java.util.Set;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.LinkedHashMap;
-import java.util.HashMap;
-import java.util.TreeSet;
-import java.util.TreeMap;
-import java.util.Date;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.io.File;
 
 /**
@@ -187,27 +179,52 @@ implements Archiver<ProtoIndex>,
 		}
 
 		/*@Override**/ public ProtoIndex rev(Map<String, Object> map) throws DataFormatException {
-			long magic = (Long)map.get("serialVersionUID");
+			Object serialVersionUID = map.get("serialVersionUID");
+			long magic;
+			if (serialVersionUID instanceof String) { // FIXME
+				magic = Long.parseLong((String) map.get("serialVersionUID"));
+			} else {
+				magic = (Long) serialVersionUID;
+			}
 
 			if (magic == ProtoIndex.serialVersionUID) {
 				try {
 					// FIXME yet more hacks related to the lack of proper asynchronous FreenetArchiver...
-					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get((Integer)map.get("serialFormatUID"), subsrl);
+					Object serialFormatUIDObj = map.get("serialFormatUID");
+					int serialFormatUID;
+					if (serialFormatUIDObj instanceof String) { // FIXME
+						serialFormatUID = Integer.parseInt((String) map.get("serialFormatUID"));
+					} else {
+						serialFormatUID = (Integer) serialFormatUIDObj;
+					}
+					ProtoIndexComponentSerialiser cmpsrl = ProtoIndexComponentSerialiser.get(serialFormatUID, subsrl);
 					FreenetURI reqID = (FreenetURI)map.get("reqID");
 					String name = (String)map.get("name");
 					String ownerName = (String)map.get("ownerName");
 					String ownerEmail = (String)map.get("ownerEmail");
-					// FIXME yaml idiocy??? It seems to give a Long if the number is big enough to need one, and an Integer otherwise.
+					Object totalPagesObj = map.get("totalPages");
 					long totalPages;
-					Object o = map.get("totalPages");
-					if(o instanceof Long)
-						totalPages = (Long)o;
-					else // Integer
-						totalPages = (Integer)o;
-					Date modified = (Date)map.get("modified");
+					if (totalPagesObj instanceof String) { // FIXME
+						totalPages = Long.parseLong((String) totalPagesObj);
+					} else if (totalPagesObj instanceof Long) { // FIXME yaml??? It seems to give a Long if the number
+						totalPages = (Long) totalPagesObj;      //  is big enough to need one, and an Integer otherwise.
+					} else {
+						totalPages = (Integer) totalPagesObj;
+					}
+					Object modifiedObj = map.get("modified");
+					Date modified;
+					if (modifiedObj instanceof String) { // FIXME
+						try {
+							modified = new SimpleDateFormat("yyyy-MM-dd").parse((String) modifiedObj);
+						} catch (ParseException ignored) {
+							modified = null;
+						}
+					} else {
+						modified = (Date) modifiedObj;
+					}
 					Map<String, Object> extra = (Map<String, Object>)map.get("extra");
 					SkeletonBTreeMap<URIKey, SkeletonBTreeMap<FreenetURI, URIEntry>> utab = utrans.rev((Map<String, Object>)map.get("utab"));
-					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>)map.get("ttab"));
+					SkeletonBTreeMap<String, SkeletonBTreeSet<TermEntry>> ttab = ttrans.rev((Map<String, Object>) map.get("ttab"));
 
 					return cmpsrl.setSerialiserFor(new ProtoIndex(reqID, name, ownerName, ownerEmail, totalPages, modified, extra, utab, ttab));
 
